@@ -1,0 +1,44 @@
+body,h1,h2,h3,h4,h5,h6 { font-family: "Delius", sans-serif; }
+body.fontA,body.fontA h1,body.fontA h2,body.fontA h3,body.fontA h4,body.fontA h5,body.fontA h6 { font-family: "Delius", sans-serif; }
+body.fontB,body.fontB h1,body.fontB h2,body.fontB h3,body.fontB h4,body.fontB h5,body.fontB h6 { font-family: "Chilanka", sans-serif; }
+body.fontC,body.fontC h1,body.fontC h2,body.fontC h3,body.fontC h4,body.fontC h5,body.fontC h6 { font-family: "Mali", sans-serif; }
+body.fontD,body.fontD h1,body.fontD h2,body.fontD h3,body.fontD h4,body.fontD h5,body.fontD h6 { font-family: "Pangolin", sans-serif; }
+
+body { font-size: 1.2em; }
+
+.w3-top .w3-bar { height: 42px; }
+.w3-main { margin-top: 42px; }
+.logo {
+  display: inline-block;
+  background-image: url(http://www.ineffable.co.uk/twig-logo-purple.gif); 
+  background-size: contain; 
+  background-position: top center; 
+  background-repeat: no-repeat; 
+  height: 100%; 
+  width: 80px!important;
+}
+.w3-sidebar {
+  z-index: 3;
+  width: 340px;
+  top: 42px;
+  bottom: 0;
+  height: inherit;
+}
+
+.X-w3-content { max-width: 1200px; }
+
+body.leftnav .w3-sidebar {
+  left: 0px;
+  animation: animateleft 0.4s;
+}
+body.leftnav .w3-main {
+  margin-left: 340px;
+}
+
+body.rightnav .w3-sidebar {
+  right: 0px;
+  animation: animateright 0.4s;
+}
+body.rightnav .w3-main {
+  margin-right: 340px;
+}

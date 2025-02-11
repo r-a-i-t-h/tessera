@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Web Component test - simple</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            font-size: 80%;
+            background-color: #fff;
+        }
+    </style>
+    <script>
+        class WCBase extends HTMLElement {
+            static a = {
+                example: function (v) { console.log(`set example attribute to ${v}`) }
+            }
+
+            static get observedAttributes() { return Object.keys(this.a) }
+
+            constructor() {
+                super()
+                this.attachShadow({ mode: 'open' })
+                const childrenSlot = document.createElement('slot')
+                this.shadowRoot.appendChild(childrenSlot)
+                childrenSlot.addEventListener('slotchange', (e) => {
+                    if (this.childrenRehome) {
+                        childrenSlot.assignedNodes().forEach(n => this.childrenRehome.appendChild(n))
+                    }
+                })
+            }
+
+            childrenRehome = null
+
+            processElements(parent, children) {
+                let newParent = null
+                children.forEach(element => {
+                    if (Array.isArray(element)) {
+                        if (!newParent) throw 'Missing parent node when adding children'
+                        if (element.length == 0) {
+                            // Empty array denotes the target for inherited children
+                            this.childrenRehome = newParent
+                        } else {
+                            this.processElements(newParent, element)
+                        }
+                    } else {
+                        newParent = parent.appendChild(element)
+                    }
+                })
+            }
+
+            connectedCallback() {
+                if (this.b) {
+                    this.processElements(this.shadowRoot, this.b())
+                }
+                if (this.c) {
+                    this.c()
+                }
+            }
+
+            attributeChangedCallback(attr, vold, vnew) {
+                this.constructor.a[attr].call(this, vnew)
+            }
+
+            d(props) {
+                return this.e('div', props)
+            }
+
+            e(tag, props) {
+                let el = document.createElement(tag)
+                if (props) Object.assign(el, props)
+                return el
+            }
+        }
+
+        class RwmPanel extends WCBase {
+            el_title = this.e('h3', { style: 'margin-top: 0;' })
+            el_img = this.e('img', { style: 'float: right; margin: 0px 0px 20px 20px; width: 80px; height: auto;' })
+
+            static a = {
+                title: function (v) { this.el_title.innerText = v },
+                src: function (v) { this.el_img.src = v },
+            }
+
+            b() {
+                // Build up our element here. Cannot do this in constructor.
+                this.el_img.src = this.el_img.src || 'http://acms.joyofhex.co.uk/no-image.png'
+
+                this.style = 'position: relative; display: inline-block; width: 280px; margin: 20px; padding: 20px; border: solid 1px black; border-radius: 10px; box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1); vertical-align: top;'
+
+                return [
+                    this.el_title,
+                    this.el_img,
+                    this.d(),
+                    [],
+                ]
+            }
+        }
+
+        customElements.define('rwm-panel', RwmPanel)
+
+    </script>
+</head>
+
+<body>
+
+    <h1>Web Component Test - simple</h1>
+    <p>This encapsulates the wider functionality, including the rather dodgy child node relocation.</p>
+    <p>It is provided as a base class with only 3 properties/methods to provide in the derived class:</p>
+    <p>static a = { [attrName]: value => { } } // handlers for attribute values</p>
+    <p>b() => [ element1, element1children, element2, element2children ] // where the children are arrays, and a blank array denotes the target for the inherited children.</p>
+    <p>Note: b() return is rendered on each calling of connectedCallback!</p>
+    <p>c() => { } // any other code to execute within connectedCallback()</p>
+    <p>You can also use the convenience methods this.d(id?) to create a div element, and this.e(tag, id?) to create any element.</p>
+
+    <rwm-panel></rwm-panel>
+
+    <rwm-panel id="panel1" title="Title &amp; image set via attributes"
+        src="http://ineffable.co.uk/twig-logo-green.gif"></rwm-panel>
+
+    <rwm-panel title="Child nodes are untouched">
+        <p>These child nodes are initially assigned to the unnamed slot on the web component</p>
+        <p>and are then moved into the correct element.</p>
+        <p>They can be overwritten by appendChild or innerHTML, but they won't work quite as expected!</p>
+    </rwm-panel>
+
+</body>
+
+</html>
