@@ -1,0 +1,20 @@
+{
+  "name": "@r-a-i-t-h/tessera-skin-w3",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./w3.css": "./css/w3.css",
+    "./w3-theme-teal.css": "./css/w3-theme-teal.css"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@r-a-i-t-h/tessera-renderer": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2"
+  }
+}
