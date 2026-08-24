@@ -1,20 +1,18 @@
 {
-  "name": "@r-a-i-t-h/tessera-skin-w3",
+  "name": "@r-a-i-t-h/tessera-demo-kit",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./w3.css": "./css/w3.css",
-    "./w3-theme-teal.css": "./css/w3-theme-teal.css",
-    "./w3-theme-deep-purple.css": "./css/w3-theme-deep-purple.css",
-    "./w3-theme-indigo.css": "./css/w3-theme-indigo.css",
-    "./common.css": "./css/common.css"
+    "./w3": "./src/w3.ts",
+    "./chrome": "./src/chrome.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@r-a-i-t-h/tessera-model": "*",
     "@r-a-i-t-h/tessera-renderer": "*"
   },
   "devDependencies": {

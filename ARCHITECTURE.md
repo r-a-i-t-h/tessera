@@ -16,7 +16,9 @@ The **editor** (out of scope for now) will edit many records and emit the flatte
 | `@r-a-i-t-h/tessera-wc-base` | Cookie-cut custom element base (`a` / `b` / `c`) |
 | `@r-a-i-t-h/tessera-demo-pure` | Vite demo proving the model |
 
-Legacy `js/`, `demo-*`, and `css/` folders are the previous RecTem implementation and are not used by Tessera packages.
+Sample sites live under `apps/demo-*` (pure / ineffable / millersark). Shared chrome helpers are in `@r-a-i-t-h/tessera-demo-kit`.
+
+`ps/` keeps PurpleCMS migration scripts (to be rewritten for Tessera’s document shape).
 
 ## Content model
 

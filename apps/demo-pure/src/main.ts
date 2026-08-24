@@ -5,9 +5,11 @@ import "./site.css";
 import { escapeHtml, ComponentRegistry, SiteRenderer } from "@r-a-i-t-h/tessera-renderer";
 import type { SiteDocument } from "@r-a-i-t-h/tessera-model";
 import { w3Skin } from "@r-a-i-t-h/tessera-skin-w3";
+import { bodySwitch, installChromeGlobals } from "@r-a-i-t-h/tessera-demo-kit";
 import { registerSiteComponents } from "./components";
 import { registerCardElement } from "./components/rt-card";
 
+installChromeGlobals();
 registerCardElement();
 
 const registry = new ComponentRegistry();
@@ -33,7 +35,18 @@ function renderSidebar(pageId: string, doc: SiteDocument): void {
     const active = id === pageId ? " is-active" : "";
     parts.push(`<a class="${active}" href="${href}">${escapeHtml(entry.title ?? id)}</a>`);
   }
+  parts.push(`<div class="font-switch">
+    <button type="button" class="w3-button w3-tiny" data-font="0">font A</button>
+    <button type="button" class="w3-button w3-tiny" data-font="1">font B</button>
+    <button type="button" class="w3-button w3-tiny" data-font="2">font C</button>
+    <button type="button" class="w3-button w3-tiny" data-font="3">font D</button>
+  </div>`);
   el.innerHTML = parts.join("");
+  el.querySelectorAll("[data-font]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      bodySwitch.switch("font", Number((btn as HTMLElement).dataset.font));
+    });
+  });
 }
 
 const renderer = await SiteRenderer.create({

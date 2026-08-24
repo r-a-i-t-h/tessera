@@ -21,3 +21,36 @@ body {
   padding: 0.75rem 1rem;
   margin-bottom: 1rem;
 }
+
+body.fontA,
+body.fontA h1,
+body.fontA h2,
+body.fontA h3 {
+  font-family: "Lekton", sans-serif;
+}
+body.fontB,
+body.fontB h1,
+body.fontB h2,
+body.fontB h3 {
+  font-family: "Roboto", sans-serif;
+}
+body.fontC,
+body.fontC h1,
+body.fontC h2,
+body.fontC h3 {
+  font-family: "Orbitron", sans-serif;
+}
+body.fontD,
+body.fontD h1,
+body.fontD h2,
+body.fontD h3 {
+  font-family: "Thasadith", sans-serif;
+}
+
+.font-switch {
+  margin-top: 1rem;
+  font-size: 0.75rem;
+}
+.font-switch button {
+  margin-right: 0.25rem;
+}
