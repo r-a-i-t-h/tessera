@@ -46,6 +46,28 @@ export class TesseraGallery extends WCBase {
     const style = this.e("style");
     style.textContent = `
       tessera-gallery .tessera-gallery-thumb { cursor: pointer; }
+      tessera-gallery .tessera-gallery-btn {
+        box-sizing: border-box;
+        width: 2.5rem;
+        height: 2.5rem;
+        padding: 0;
+        margin: 0;
+        border: none;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #616161;
+        color: #fff;
+        font-size: 1.5rem;
+        line-height: 1;
+        cursor: pointer;
+      }
+      tessera-gallery .tessera-gallery-btn:hover,
+      tessera-gallery .tessera-gallery-btn:focus {
+        background: #757575;
+        color: #fff;
+      }
       tessera-gallery .tessera-gallery-dialog {
         border: none;
         padding: 0;
@@ -62,7 +84,30 @@ export class TesseraGallery extends WCBase {
         object-fit: contain;
         background: #000;
       }
-      tessera-gallery .tessera-gallery-dialog-controls .w3-button { margin: 0 0.25rem; font-size: 1.5rem; }
+      tessera-gallery .tessera-gallery-dialog-controls {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      tessera-gallery .tessera-gallery-dialog-nav {
+        display: flex;
+        gap: 0.35rem;
+        justify-content: center;
+        grid-column: 2;
+      }
+      tessera-gallery .tessera-gallery-close {
+        grid-column: 3;
+        justify-self: end;
+      }
+      tessera-gallery .tessera-gallery-slides .w3-display-left,
+      tessera-gallery .tessera-gallery-slides .w3-display-right {
+        position: absolute;
+        top: 50%;
+        transform: translate(0, -50%);
+      }
+      tessera-gallery .tessera-gallery-slides .w3-display-left { left: 0; }
+      tessera-gallery .tessera-gallery-slides .w3-display-right { right: 0; }
     `;
 
     const img = this.e("img", { className: "tessera-gallery-dialog-img" });
@@ -70,25 +115,28 @@ export class TesseraGallery extends WCBase {
     const caption = this.d({ className: "tessera-gallery-dialog-caption w3-padding" });
     const prev = this.e("button", {
       type: "button",
-      className: "w3-button w3-black tessera-gallery-prev",
+      className: "tessera-gallery-btn tessera-gallery-prev",
     });
     prev.textContent = "‹";
     prev.setAttribute("aria-label", "Previous");
     const next = this.e("button", {
       type: "button",
-      className: "w3-button w3-black tessera-gallery-next",
+      className: "tessera-gallery-btn tessera-gallery-next",
     });
     next.textContent = "›";
     next.setAttribute("aria-label", "Next");
     const close = this.e("button", {
       type: "button",
-      className: "w3-button w3-dark-grey tessera-gallery-close",
+      className: "tessera-gallery-btn tessera-gallery-close",
     });
-    close.textContent = "Close";
+    close.textContent = "×";
     close.setAttribute("aria-label", "Close");
 
-    const controls = this.d({ className: "tessera-gallery-dialog-controls w3-center w3-padding" });
-    controls.append(prev, close, next);
+    const nav = this.d({ className: "tessera-gallery-dialog-nav" });
+    nav.append(prev, next);
+
+    const controls = this.d({ className: "tessera-gallery-dialog-controls w3-padding" });
+    controls.append(nav, close);
 
     this.dialogEl.append(img, caption, controls);
 
@@ -179,14 +227,16 @@ export class TesseraGallery extends WCBase {
     img.style.objectFit = "contain";
     const prev = this.e("button", {
       type: "button",
-      className: "w3-button w3-black w3-display-left",
+      className: "tessera-gallery-btn tessera-gallery-prev w3-display-left",
     });
     prev.textContent = "‹";
+    prev.setAttribute("aria-label", "Previous");
     const next = this.e("button", {
       type: "button",
-      className: "w3-button w3-black w3-display-right",
+      className: "tessera-gallery-btn tessera-gallery-next w3-display-right",
     });
     next.textContent = "›";
+    next.setAttribute("aria-label", "Next");
     const open = this.e("button", {
       type: "button",
       className: "w3-button w3-theme w3-margin-top",

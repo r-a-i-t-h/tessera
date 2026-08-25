@@ -19,11 +19,20 @@ export const MediaBlockSchema = z.object({
   id: z.string(),
 });
 
-export type Block = TextBlock | JsonBlock | MediaBlock | ComponentBlock;
+/** Inline image slide (gallery / content) — not a catalog lookup. */
+export const ImageBlockSchema = z.object({
+  type: z.literal("image"),
+  url: z.string().min(1),
+  caption: z.string().optional(),
+  alt: z.string().optional(),
+});
+
+export type Block = TextBlock | JsonBlock | MediaBlock | ImageBlock | ComponentBlock;
 
 export type TextBlock = z.infer<typeof TextBlockSchema>;
 export type JsonBlock = z.infer<typeof JsonBlockSchema>;
 export type MediaBlock = z.infer<typeof MediaBlockSchema>;
+export type ImageBlock = z.infer<typeof ImageBlockSchema>;
 
 export type ComponentBlock = {
   type: "component";
@@ -38,6 +47,7 @@ export const BlockSchema: z.ZodType<Block> = z.lazy(() =>
     TextBlockSchema,
     JsonBlockSchema,
     MediaBlockSchema,
+    ImageBlockSchema,
     z.object({
       type: z.literal("component"),
       name: z.string(),
@@ -147,6 +157,28 @@ export const MediaSchema = z.object({
 });
 
 /**
+ * One image inside a scanned folder record.
+ * Order = array order (from filename sort at scan time). Caption defaults from filename.
+ */
+export const FolderImageSchema = z.object({
+  file: z.string().min(1),
+  caption: z.string().optional(),
+  alt: z.string().optional(),
+});
+
+/**
+ * First-class scanned folder — discrete gallery source (not a flat media bank).
+ * Gallery components reference folder id(s); optional regex filter on `file`.
+ */
+export const FolderSchema = z.object({
+  id: z.string().min(1),
+  /** URL prefix for files, e.g. `./media/goats`. */
+  path: z.string().min(1),
+  title: z.string().optional(),
+  images: z.array(FolderImageSchema).default([]),
+});
+
+/**
  * Site-data binding: name Z → show content X with registered component Y.
  * Insert via `{{id}}` in text HTML or `{ "type": "component", "name": "<id>" }`.
  */
@@ -212,6 +244,8 @@ export const SiteDocumentSchema = z.object({
   pages: z.array(PageSchema).min(1),
   items: z.array(ItemSchema).default([]),
   media: z.array(MediaSchema).default([]),
+  /** Scanned image folders — first-class gallery sources. */
+  folders: z.array(FolderSchema).default([]),
   /** Designed nav (perma). Page existence does not imply a nav entry. */
   nav: z.array(NavEntrySchema).default([]),
   /** Named bindings of data → component for insertion in content. */
@@ -222,9 +256,23 @@ export type Layout = z.infer<typeof LayoutSchema>;
 export type Page = z.infer<typeof PageSchema>;
 export type Item = z.infer<typeof ItemSchema>;
 export type Media = z.infer<typeof MediaSchema>;
+export type FolderImage = z.infer<typeof FolderImageSchema>;
+export type Folder = z.infer<typeof FolderSchema>;
 export type Binding = z.infer<typeof BindingSchema>;
 export type SiteMeta = z.infer<typeof SiteMetaSchema>;
 export type SiteDocument = z.infer<typeof SiteDocumentSchema>;
+
+/**
+ * Caption from filename: strip extension, then a leading ordering prefix (`01-`, `001_`, …),
+ * then turn separators into spaces.
+ */
+export function captionFromFilename(filename: string): string {
+  const base = filename.replace(/\.[^.]+$/, "");
+  const withoutOrder = base.replace(/^\d+[-_.\s]+/, "");
+  const spaced = (withoutOrder || base).replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
+  if (!spaced) return filename;
+  return spaced.replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 export function parseSiteDocument(data: unknown): SiteDocument {
   return SiteDocumentSchema.parse(data);

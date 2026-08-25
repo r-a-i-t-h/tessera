@@ -115,6 +115,7 @@ export function makeFixtureDoc(): SiteDocument {
         type: "image",
       },
     ],
+    folders: [],
     nav: [
       { sidebar: true, heading: "Pages" },
       { sidebar: true, id: "home", title: "Home" },

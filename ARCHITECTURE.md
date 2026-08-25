@@ -45,7 +45,9 @@ Static sites must stay subdirectory-safe:
 
 ## Gallery (spike)
 
-A gallery is catalog media + an ordered list of media ids (JSON zone) bound to the `gallery` component. Folder scan (`scripts/flatten-gallery.mjs` / `npm run flatten:gallery`) emits `media[]`, a data item, and a binding — an early flatten precursor to the editor pipeline. Presentation is `<tessera-gallery>` (grid or slides + dialog).
+First-class **`folders[]`** records are gallery sources (scan with `scripts/flatten-gallery.mjs`). A gallery binding/component says `folders: ["id"]` (optional merge of several; optional `filter` regex on filename). Inline variant uses nested `image` blocks in a `slides` zone — same slide shape `{ url, caption?, alt? }`. Captions default from filename after stripping an ordering prefix (`01-red.svg` → “Red”); `meta.json` may override per file.
+
+The global `media[]` catalog remains for single-image references; it is not the gallery bank.
 
 ## Zod
 

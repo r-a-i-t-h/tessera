@@ -38,7 +38,10 @@ export {
 export {
   registerGalleryComponents,
   gallery,
-  resolveGalleryMediaIds,
+  slidesFromFolders,
+  slidesFromImageBlocks,
+  mergeNestedZones,
+  type GallerySlide,
 } from "./builtins/gallery.js";
 export {
   registerGalleryElement,

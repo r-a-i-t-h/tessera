@@ -153,18 +153,16 @@
     {
       "id": "sample-gallery",
       "component": "gallery",
-      "itemId": "sample-gallery-data",
-      "fromZone": "slides",
       "props": {
+        "folders": ["sample-gallery"],
         "mode": "grid"
       }
     },
     {
       "id": "sample-gallery-slides",
       "component": "gallery",
-      "itemId": "sample-gallery-data",
-      "fromZone": "slides",
       "props": {
+        "folders": ["sample-gallery"],
         "mode": "slides",
         "autoplay": true
       }
@@ -225,27 +223,6 @@
                 "when": "Thu 19:00",
                 "where": "Marquee"
               }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "id": "sample-gallery-data",
-      "title": "Sample gallery (data)",
-      "tags": [
-        "gallery"
-      ],
-      "zones": {
-        "slides": [
-          {
-            "type": "json",
-            "data": [
-              "sample-gallery-01-red",
-              "sample-gallery-02-amber",
-              "sample-gallery-03-green",
-              "sample-gallery-04-blue",
-              "sample-gallery-05-teal"
             ]
           }
         ]
@@ -514,17 +491,40 @@
       "tags": ["page"],
       "includes": ["common-footer"],
       "zones": {
-        "title": [{ "type": "text", "html": "Gallery spike" }],
+        "title": [{ "type": "text", "html": "Gallery" }],
         "main": [
           {
             "type": "text",
-            "html": "<p>Greenfield gallery fed from the media catalog. Folder scan (<code>npm run flatten:gallery</code>) built binding <code>sample-gallery</code> from <code>public/media/sample-gallery/</code>.</p><h3>Grid + lightbox</h3><p class=\"w3-small\">Click a thumb for dialog; use prev/next or arrow keys.</p>{{sample-gallery}}<h3>Slides + autoplay</h3><p class=\"w3-small\">Same media ids; presentation via binding props.</p>{{sample-gallery-slides}}"
+            "html": "<p>First-class <strong>folder</strong> records are gallery sources. Scan with <code>npm run flatten:gallery</code> — no image-bank cherry-picking.</p><h3>Folder source (grid)</h3><p class=\"w3-small\">Binding props: <code>folders: [\"sample-gallery\"]</code>.</p>{{sample-gallery}}<h3>Same folder (slides + autoplay)</h3>{{sample-gallery-slides}}<h3>Inline <code>image</code> blocks</h3><p class=\"w3-small\">Explicit slide list nested on the component — same control, document order.</p>"
+          },
+          {
+            "type": "component",
+            "name": "gallery",
+            "props": { "mode": "grid" },
+            "zones": {
+              "slides": [
+                {
+                  "type": "image",
+                  "url": "./media/sample-gallery/01-red.svg",
+                  "caption": "Inline crimson"
+                },
+                {
+                  "type": "image",
+                  "url": "./media/sample-gallery/04-blue.svg"
+                },
+                {
+                  "type": "image",
+                  "url": "./media/sample-gallery/05-teal.svg",
+                  "caption": "Inline teal"
+                }
+              ]
+            }
           }
         ],
         "aside": [
           {
             "type": "text",
-            "html": "<p class=\"w3-small\">Disk-first authoring: images + optional <code>meta.json</code> captions → flatten → <code>media[]</code> + item + binding.</p>"
+            "html": "<p class=\"w3-small\">Captions: <code>meta.json</code> override, else filename with ordering prefix stripped (<code>01-red</code> → Red).</p>"
           }
         ]
       }
@@ -537,51 +537,6 @@
       "url": "./media/sample.svg",
       "type": "image",
       "alt": "Tessera sample"
-    },
-    {
-      "id": "sample-gallery-01-red",
-      "title": "Crimson field",
-      "caption": "Crimson field",
-      "url": "./media/sample-gallery/01-red.svg",
-      "type": "image",
-      "alt": "Crimson field",
-      "sort": 1
-    },
-    {
-      "id": "sample-gallery-02-amber",
-      "title": "Amber field",
-      "caption": "Amber field",
-      "url": "./media/sample-gallery/02-amber.svg",
-      "type": "image",
-      "alt": "Amber field",
-      "sort": 2
-    },
-    {
-      "id": "sample-gallery-03-green",
-      "title": "Green field",
-      "caption": "Green field",
-      "url": "./media/sample-gallery/03-green.svg",
-      "type": "image",
-      "alt": "Green field",
-      "sort": 3
-    },
-    {
-      "id": "sample-gallery-04-blue",
-      "title": "Blue field",
-      "caption": "Blue field",
-      "url": "./media/sample-gallery/04-blue.svg",
-      "type": "image",
-      "alt": "Blue field",
-      "sort": 4
-    },
-    {
-      "id": "sample-gallery-05-teal",
-      "title": "Teal field",
-      "caption": "Teal field",
-      "url": "./media/sample-gallery/05-teal.svg",
-      "type": "image",
-      "alt": "Teal field",
-      "sort": 5
     }
   ],
   "nav": [
@@ -622,6 +577,40 @@
       "source": {
         "pagesTag": "event"
       }
+    }
+  ],
+  "folders": [
+    {
+      "id": "sample-gallery",
+      "path": "./media/sample-gallery",
+      "title": "Sample gallery",
+      "images": [
+        {
+          "file": "01-red.svg",
+          "caption": "Crimson field",
+          "alt": "Crimson field"
+        },
+        {
+          "file": "02-amber.svg",
+          "caption": "Amber field",
+          "alt": "Amber field"
+        },
+        {
+          "file": "03-green.svg",
+          "caption": "Green field",
+          "alt": "Green field"
+        },
+        {
+          "file": "04-blue.svg",
+          "caption": "Blue field",
+          "alt": "Blue field"
+        },
+        {
+          "file": "05-teal.svg",
+          "caption": "Teal field",
+          "alt": "Teal field"
+        }
+      ]
     }
   ]
 }

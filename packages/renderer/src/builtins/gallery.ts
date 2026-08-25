@@ -1,62 +1,118 @@
-import type { Media } from "@r-a-i-t-h/tessera-model";
+import {
+  captionFromFilename,
+  type Block,
+  type Folder,
+  type SiteDocument,
+} from "@r-a-i-t-h/tessera-model";
 import { normalizeSiteAssetUrl } from "../assets.js";
-import type { ComponentFn } from "../types.js";
+import type { ComponentFn, ZoneMap } from "../types.js";
 import { registerGalleryElement, type GalleryItem } from "./gallery-element.js";
 
-/**
- * Resolve ordered media ids from a JSON zone.
- * Accepts: string ids, `{ id }`, or a single `{ mediaIds: string[] }` object.
- */
-export function resolveGalleryMediaIds(raw: unknown[]): string[] {
-  if (raw.length === 1 && raw[0] && typeof raw[0] === "object" && !Array.isArray(raw[0])) {
-    const obj = raw[0] as Record<string, unknown>;
-    if (Array.isArray(obj.mediaIds)) {
-      return obj.mediaIds.filter((x): x is string => typeof x === "string");
-    }
-  }
-  const ids: string[] = [];
-  for (const row of raw) {
-    if (typeof row === "string") ids.push(row);
-    else if (row && typeof row === "object" && typeof (row as { id?: unknown }).id === "string") {
-      ids.push((row as { id: string }).id);
-    }
-  }
-  return ids;
+export type GallerySlide = {
+  url: string;
+  caption?: string;
+  alt?: string;
+  /** Source filename when from a folder (used for filter). */
+  file?: string;
+};
+
+function folderById(document: SiteDocument): Map<string, Folder> {
+  return new Map((document.folders ?? []).map((f) => [f.id, f]));
 }
 
-function mediaToItem(media: Media): GalleryItem {
-  return {
-    id: media.id,
-    url: normalizeSiteAssetUrl(media.url),
-    alt: media.alt ?? media.title ?? "",
-    caption: media.caption ?? media.title ?? "",
-  };
+function joinPath(dir: string, file: string): string {
+  return `${dir.replace(/\/$/, "")}/${file.replace(/^\.\//, "")}`;
+}
+
+/** Slides from one or more first-class folder records (concat in folder order). */
+export function slidesFromFolders(
+  document: SiteDocument,
+  folderIds: string[],
+  filter?: string | RegExp,
+): GallerySlide[] {
+  const re =
+    filter === undefined || filter === ""
+      ? null
+      : typeof filter === "string"
+        ? new RegExp(filter)
+        : filter;
+  const byId = folderById(document);
+  const slides: GallerySlide[] = [];
+
+  for (const id of folderIds) {
+    const folder = byId.get(id);
+    if (!folder) continue;
+    for (const img of folder.images) {
+      if (re && !re.test(img.file)) continue;
+      const caption = img.caption ?? captionFromFilename(img.file);
+      slides.push({
+        file: img.file,
+        url: normalizeSiteAssetUrl(joinPath(folder.path, img.file)),
+        caption,
+        alt: img.alt ?? caption,
+      });
+    }
+  }
+  return slides;
+}
+
+/** Slides from explicit `image` blocks in a zone (document order). */
+export function slidesFromImageBlocks(blocks: Block[] | undefined): GallerySlide[] {
+  if (!blocks?.length) return [];
+  const slides: GallerySlide[] = [];
+  for (const b of blocks) {
+    if (b.type !== "image") continue;
+    const caption = b.caption ?? captionFromFilename(b.url.split("/").pop() ?? b.url);
+    slides.push({
+      url: normalizeSiteAssetUrl(b.url),
+      caption,
+      alt: b.alt ?? caption,
+    });
+  }
+  return slides;
+}
+
+function folderIdsFromProps(props: Record<string, unknown>): string[] {
+  const raw = props.folders ?? props.folder;
+  if (typeof raw === "string") return [raw];
+  if (Array.isArray(raw)) return raw.filter((x): x is string => typeof x === "string");
+  return [];
+}
+
+function slidesToItems(slides: GallerySlide[]): GalleryItem[] {
+  return slides.map((s, i) => ({
+    id: s.file ? `${s.file}-${i}` : `slide-${i}`,
+    url: s.url,
+    alt: s.alt ?? "",
+    caption: s.caption ?? "",
+  }));
 }
 
 /**
- * Gallery from catalog + ordered media ids in a JSON zone (via binding or props.fromZone).
+ * Gallery from folder id(s) and/or inline `image` blocks in a zone.
+ *
+ * Props:
+ * - `folders` / `folder` — first-class folder id(s); optional `filter` regex on filename
+ * - `fromZone` — zone of `image` blocks (default `slides` when no folders)
+ * - `mode` — `grid` | `slides`; `autoplay`
  */
 export const gallery: ComponentFn = (ctx, props = {}) => {
   registerGalleryElement();
 
-  const fromZone = typeof props.fromZone === "string" ? props.fromZone : "slides";
   const mode = props.mode === "slides" ? "slides" : "grid";
   const autoplay = props.autoplay === true || props.autoplay === "true";
+  const folderIds = folderIdsFromProps(props);
+  const filter = typeof props.filter === "string" ? props.filter : undefined;
+  const fromZone = typeof props.fromZone === "string" ? props.fromZone : "slides";
 
-  const ids = resolveGalleryMediaIds(ctx.zoneJson(fromZone));
-  const byId = new Map(ctx.document.media.map((m) => [m.id, m]));
-
-  const resolved = ids
-    .map((id) => byId.get(id))
-    .filter((m): m is Media => Boolean(m));
-
-  const anySort = resolved.some((m) => m.sort !== undefined);
-  if (anySort) {
-    resolved.sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0) || a.id.localeCompare(b.id));
+  let slides: GallerySlide[] = [];
+  if (folderIds.length) {
+    slides = slidesFromFolders(ctx.document, folderIds, filter);
+  } else {
+    slides = slidesFromImageBlocks(ctx.zones.get(fromZone));
   }
 
-  const items = resolved.map(mediaToItem);
-
+  const items = slidesToItems(slides);
   if (!items.length) {
     return `<p class="w3-text-grey"><em>No gallery images.</em></p>`;
   }
@@ -71,4 +127,14 @@ export function registerGalleryComponents(
 ): void {
   registerGalleryElement();
   define("gallery", gallery);
+}
+
+/** Merge nested component-block zones into a zone map (for inline gallery slides). */
+export function mergeNestedZones(base: ZoneMap, nested?: Record<string, Block[]>): ZoneMap {
+  if (!nested) return base;
+  const out = new Map(base);
+  for (const [id, blocks] of Object.entries(nested)) {
+    out.set(id, blocks);
+  }
+  return out;
 }

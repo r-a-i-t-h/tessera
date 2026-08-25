@@ -1,42 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { parseSiteDocument } from "@r-a-i-t-h/tessera-model";
 
-/** Mirrors scripts/flatten-gallery.mjs fragment shape for Zod validation. */
-describe("gallery flatten fragment", () => {
-  it("parses media + gallery item + binding as a SiteDocument", () => {
-    const fragment = {
-      media: [
-        {
-          id: "sample-gallery-01-red",
-          title: "Crimson field",
-          caption: "Crimson field",
-          url: "./media/sample-gallery/01-red.svg",
-          type: "image" as const,
-          alt: "Crimson field",
-          sort: 1,
-        },
-      ],
-      items: [
-        {
-          id: "sample-gallery-data",
-          title: "Sample gallery (data)",
-          tags: ["gallery"],
-          zones: {
-            slides: [{ type: "json" as const, data: ["sample-gallery-01-red"] }],
-          },
-        },
-      ],
-      bindings: [
-        {
-          id: "sample-gallery",
-          component: "gallery",
-          itemId: "sample-gallery-data",
-          fromZone: "slides",
-          props: { mode: "grid" },
-        },
-      ],
-    };
-
+describe("gallery folder fragment", () => {
+  it("parses folders + folder-sourced binding", () => {
     const doc = parseSiteDocument({
       version: 1,
       site: { id: "validate", title: "validate", homePageId: "home" },
@@ -51,11 +17,62 @@ describe("gallery flatten fragment", () => {
           },
         },
       ],
-      ...fragment,
+      folders: [
+        {
+          id: "sample-gallery",
+          path: "./media/sample-gallery",
+          title: "Sample gallery",
+          images: [
+            { file: "01-red.svg" },
+            { file: "02-amber.svg", caption: "Amber field" },
+          ],
+        },
+      ],
+      bindings: [
+        {
+          id: "sample-gallery",
+          component: "gallery",
+          props: { folders: ["sample-gallery"], mode: "grid" },
+        },
+      ],
     });
 
-    expect(doc.media[0]!.caption).toBe("Crimson field");
-    expect(doc.bindings[0]!.id).toBe("sample-gallery");
-    expect(doc.items[0]!.zones.slides?.[0]).toMatchObject({ type: "json" });
+    expect(doc.folders[0]!.images).toHaveLength(2);
+    expect(doc.bindings[0]!.props).toMatchObject({ folders: ["sample-gallery"] });
+  });
+
+  it("parses inline image blocks on a component", () => {
+    const doc = parseSiteDocument({
+      version: 1,
+      site: { id: "validate", title: "validate", homePageId: "home" },
+      layouts: [{ id: "L", root: { type: "zone", id: "main" } }],
+      pages: [
+        {
+          id: "home",
+          title: "Home",
+          layoutId: "L",
+          zones: {
+            main: [
+              {
+                type: "component",
+                name: "gallery",
+                props: { mode: "grid" },
+                zones: {
+                  slides: [
+                    { type: "image", url: "./a.svg", caption: "A" },
+                    { type: "image", url: "./b.svg" },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+    const block = doc.pages[0]!.zones.main![0];
+    expect(block).toMatchObject({ type: "component", name: "gallery" });
+    if (block && block.type === "component") {
+      expect(block.zones?.slides).toHaveLength(2);
+    }
   });
 });

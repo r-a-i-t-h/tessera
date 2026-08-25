@@ -15,8 +15,8 @@ Update this file when priorities or status change; keep demo scoreboard copy ali
 
 ## Upcoming (ordered)
 
-1. **Gallery component** — *spike in demo-pure*  
-   Greenfield `<tessera-gallery>` (grid / slides + dialog) + folder flatten (`npm run flatten:gallery`). Assess before millersark bulk.  
+1. **Gallery component** — *folder sources in demo-pure*  
+   First-class `folders[]` + inline `image` blocks; `<tessera-gallery>` grid/slides + dialog. Flatten emits folder records (`npm run flatten:gallery`).  
    → [SPEC §8](./SPEC.md#8-shipped-capabilities-ambition), [acceptance](./SPEC.md#gallery-and-presentation)
 
 2. **Shared layout web components**  

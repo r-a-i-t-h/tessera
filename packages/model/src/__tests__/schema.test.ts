@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { parseSiteDocument, safeParseSiteDocument, collectDeclaredZones } from "../index.js";
+import {
+  parseSiteDocument,
+  safeParseSiteDocument,
+  collectDeclaredZones,
+  captionFromFilename,
+} from "../index.js";
 import type { LayoutNode } from "../index.js";
 
 describe("SiteDocument schema", () => {
@@ -70,6 +75,24 @@ describe("SiteDocument schema", () => {
     });
     expect(doc.media[0]!.caption).toBe("Cap");
     expect(doc.media[0]!.sort).toBe(3);
+  });
+
+  it("parses folders and derives captionFromFilename", () => {
+    const doc = parseSiteDocument({
+      version: 1,
+      site: { id: "s", title: "S", homePageId: "p1" },
+      layouts: [{ id: "L", root: { type: "zone", id: "main" } }],
+      pages: [{ id: "p1", title: "P", layoutId: "L", zones: {} }],
+      folders: [
+        {
+          id: "g",
+          path: "./media/g",
+          images: [{ file: "01-hello-world.svg" }],
+        },
+      ],
+    });
+    expect(doc.folders[0]!.images[0]!.file).toBe("01-hello-world.svg");
+    expect(captionFromFilename("01-hello-world.svg")).toBe("Hello World");
   });
 
   it("collectDeclaredZones walks the layout tree", () => {

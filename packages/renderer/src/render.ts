@@ -32,6 +32,12 @@ function mediaToHtml(media: Media | undefined): string {
   return `<img src="${src}" alt="${alt}" />`;
 }
 
+function imageBlockToHtml(block: { url: string; alt?: string; caption?: string }): string {
+  const alt = escapeHtml(block.alt ?? block.caption ?? "");
+  const src = escapeHtml(normalizeSiteAssetUrl(block.url));
+  return `<img src="${src}" alt="${alt}" />`;
+}
+
 function zoneJsonFromMap(zones: ZoneMap, zoneId: string): unknown[] {
   const blocks = zones.get(zoneId) ?? [];
   const out: unknown[] = [];
@@ -41,6 +47,14 @@ function zoneJsonFromMap(zones: ZoneMap, zoneId: string): unknown[] {
     else out.push(b.data);
   }
   return out;
+}
+
+function withZones(ctx: RenderContext, zones: ZoneMap): RenderContext {
+  return {
+    ...ctx,
+    zones,
+    zoneJson: <T = unknown>(zoneId: string) => zoneJsonFromMap(zones, zoneId) as T[],
+  };
 }
 
 export function renderPage(options: RenderPageOptions): string {
@@ -81,8 +95,19 @@ function renderBlock(block: Block, ctx: RenderContext): string {
       return "";
     case "media":
       return ctx.mediaHtml(block.id);
-    case "component":
-      return renderNamed(block.name, ctx, block.props ?? {});
+    case "image":
+      return imageBlockToHtml(block);
+    case "component": {
+      let subCtx = ctx;
+      if (block.zones && Object.keys(block.zones).length) {
+        const nested = new Map(ctx.zones);
+        for (const [id, blocks] of Object.entries(block.zones)) {
+          nested.set(id, blocks);
+        }
+        subCtx = withZones(ctx, nested);
+      }
+      return renderNamed(block.name, subCtx, block.props ?? {});
+    }
     default: {
       const _exhaustive: never = block;
       return _exhaustive;
