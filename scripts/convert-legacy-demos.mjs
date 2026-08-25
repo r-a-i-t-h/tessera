@@ -29,6 +29,11 @@ function expandString(str, page, depth = 0) {
   // {{func:open_days_table ...}} → marker for component injection
   out = out.replace(/\{\{func:open_days_table[^}]*\}\}/g, "[[COMPONENT:openDaysTable]]");
 
+  // {{func:random_cells [...]||…}} → marker (items captured for props)
+  out = out.replace(/\{\{func:random_cells\s+(\[[^\]]*\])[^}]*\}\}/g, (_, json) => {
+    return `[[COMPONENT:randomCells:${json}]]`;
+  });
+
   // {{zone:id ...}} — ignore wrapper templates; substitute zone content
   out = out.replace(/\{\{zone:([\w.-]+)(?:\s+[^}]*)?\}\}/g, (_, zoneId) => {
     const raw = page.content?.[zoneId];
@@ -56,19 +61,37 @@ function flattenContent(value, page, depth = 0) {
 
 function contentToBlocks(html) {
   if (!html) return [];
-  const parts = html.split("[[COMPONENT:openDaysTable]]");
-  if (parts.length === 1) return [{ type: "text", html }];
   const blocks = [];
-  for (let i = 0; i < parts.length; i++) {
-    if (parts[i]) blocks.push({ type: "text", html: parts[i] });
-    if (i < parts.length - 1) {
+  const re = /\[\[COMPONENT:(openDaysTable|randomCells)(?::(\[[^\]]*\]))?\]\]/g;
+  let last = 0;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    if (m.index > last) {
+      blocks.push({ type: "text", html: html.slice(last, m.index) });
+    }
+    if (m[1] === "openDaysTable") {
       blocks.push({
         type: "component",
         name: "openDaysTable",
         props: { when: "future" },
       });
+    } else {
+      let items = [];
+      try {
+        items = JSON.parse(m[2] || "[]");
+      } catch {
+        items = [];
+      }
+      blocks.push({
+        type: "component",
+        name: "randomCells",
+        props: { items },
+      });
     }
+    last = m.index + m[0].length;
   }
+  if (last === 0) return [{ type: "text", html }];
+  if (last < html.length) blocks.push({ type: "text", html: html.slice(last) });
   return blocks;
 }
 

@@ -10,10 +10,12 @@ import {
   insertHeadingsMenu,
   renderNavSidebar,
 } from "@r-a-i-t-h/tessera-demo-kit";
+import { randomCells } from "./components/random-cells";
 
 installChromeGlobals();
 
 const registry = new ComponentRegistry();
+registry.define("randomCells", randomCells);
 
 const renderer = await SiteRenderer.create({
   documentUrl: "./data/site.json",
