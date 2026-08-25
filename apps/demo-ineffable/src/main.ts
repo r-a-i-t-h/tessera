@@ -9,6 +9,7 @@ import {
   installChromeGlobals,
   insertHeadingsMenu,
   renderNavSidebar,
+  renderStaleBanner,
 } from "@r-a-i-t-h/tessera-demo-kit";
 import { randomCells } from "./components/random-cells";
 
@@ -22,6 +23,9 @@ const renderer = await SiteRenderer.create({
   registry,
   mount: "#app",
   skin: w3Skin,
+  onStatusChange: (status) => {
+    renderStaleBanner(status.usingCachedData);
+  },
   onAfterRender: (pageId, doc) => {
     const nav = document.getElementById("nav_data");
     if (nav) renderNavSidebar(pageId, doc, nav);

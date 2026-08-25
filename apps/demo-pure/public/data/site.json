@@ -98,6 +98,15 @@
       }
     }
   ],
+  "bindings": [
+    {
+      "id": "farm-open-days",
+      "component": "eventList",
+      "itemId": "open-days-data",
+      "fromZone": "events",
+      "props": { "limit": 10 }
+    }
+  ],
   "items": [
     {
       "id": "common-footer",
@@ -127,6 +136,22 @@
           }
         ]
       }
+    },
+    {
+      "id": "open-days-data",
+      "title": "Farm open days (data)",
+      "zones": {
+        "events": [
+          {
+            "type": "json",
+            "data": [
+              { "title": "Open farm day", "when": "Sat 10:00", "where": "Main barn" },
+              { "title": "Volunteer briefing", "when": "Sun 09:30", "where": "Office" },
+              { "title": "Evening talk", "when": "Thu 19:00", "where": "Marquee" }
+            ]
+          }
+        ]
+      }
     }
   ],
   "pages": [
@@ -141,7 +166,7 @@
         "main": [
           {
             "type": "text",
-            "html": "<p>Formal <strong>layouts</strong> declare zones. Pages and shared items only <em>fill</em> them. Switch layout to hide a region without rewriting content.</p>"
+            "html": "<p>Formal <strong>layouts</strong> declare zones. Pages and shared items only <em>fill</em> them. Bindings live in site data — insert with <code>{{farm-open-days}}</code>.</p>"
           },
           {
             "type": "component",
@@ -151,26 +176,11 @@
         "primary": [
           {
             "type": "text",
-            "html": "<h3>Upcoming events</h3><p class=\"w3-small\">JSON lives in zone <code>events</code> (data only). The <code>eventList</code> component is imported in site TypeScript and registered by name.</p>"
+            "html": "<h3>Farm open days</h3><p class=\"w3-small\">Binding <code>farm-open-days</code> pairs item data with <code>eventList</code>. Mustache below:</p>{{farm-open-days}}"
           },
           {
             "type": "media",
             "id": "logo"
-          },
-          {
-            "type": "component",
-            "name": "eventList",
-            "props": { "fromZone": "events", "limit": 10 }
-          }
-        ],
-        "events": [
-          {
-            "type": "json",
-            "data": [
-              { "title": "Open farm day", "when": "Sat 10:00", "where": "Main barn" },
-              { "title": "Volunteer briefing", "when": "Sun 09:30", "where": "Office" },
-              { "title": "Evening talk", "when": "Thu 19:00", "where": "Marquee" }
-            ]
           }
         ],
         "aside": [
@@ -192,32 +202,7 @@
         "main": [
           {
             "type": "text",
-            "html": "<p>This page includes the same <code>promo-aside</code> item and page aside text as Home, but layout <code>simple</code> has no <code>aside</code> zone — so none of it appears.</p>"
-          }
-        ],
-        "primary": [
-          {
-            "type": "text",
-            "html": "<p>Events still render because <code>eventList</code> is placed in <code>primary</code>, which this layout keeps.</p>"
-          },
-          {
-            "type": "component",
-            "name": "eventList",
-            "props": { "fromZone": "events" }
-          }
-        ],
-        "events": [
-          {
-            "type": "json",
-            "data": [
-              { "title": "Hidden-layout check", "when": "Whenever", "where": "Data zone still readable" }
-            ]
-          }
-        ],
-        "aside": [
-          {
-            "type": "text",
-            "html": "<p>You should <strong>not</strong> see this on the simple layout.</p>"
+            "html": "<p>This page includes the same <code>promo-aside</code> item as Home, but layout <code>simple</code> has no <code>aside</code> zone. The same binding still works:</p>{{farm-open-days}}"
           }
         ]
       }
@@ -233,8 +218,9 @@
         "main": [
           {
             "type": "text",
-            "html": "<p>Function components are plain TypeScript. Web components use <code>WCBase</code> and are registered on the registry as elements.</p>"
+            "html": "<p>Function components are plain TypeScript. Web components use <code>WCBase</code>. Binding as a component block:</p>"
           },
+          { "type": "component", "name": "farm-open-days" },
           {
             "type": "component",
             "name": "infoCard",
@@ -253,6 +239,87 @@
           }
         ]
       }
+    },
+    {
+      "id": "nav-lab",
+      "title": "Nav lab",
+      "layoutId": "standard",
+      "tags": ["page"],
+      "includes": ["common-footer"],
+      "zones": {
+        "title": [{ "type": "text", "html": "Navigation presentations" }],
+        "main": [
+          {
+            "type": "text",
+            "html": "<p><strong>Pages ≠ nav.</strong> Designed nav is authored; dynamic <code>source</code> pulls content-implied links. Presentation is a component choice — not a single system style.</p><h3>Tags</h3>"
+          },
+          { "type": "component", "name": "navTags" },
+          {
+            "type": "text",
+            "html": "<h3>Full tree</h3>"
+          },
+          { "type": "component", "name": "navTree", "props": { "scope": "sidebar" } },
+          {
+            "type": "text",
+            "html": "<h3>Collapsible regions</h3>"
+          },
+          { "type": "component", "name": "navCollapse", "props": { "scope": "sidebar" } }
+        ],
+        "aside": [
+          {
+            "type": "text",
+            "html": "<p class=\"w3-small\">Try <code>#orphan</code> — that page exists but is not in designed nav.</p>"
+          }
+        ]
+      }
+    },
+    {
+      "id": "event-farm",
+      "title": "Open farm day",
+      "layoutId": "simple",
+      "tags": ["event"],
+      "includes": ["common-footer"],
+      "zones": {
+        "title": [{ "type": "text", "html": "Open farm day" }],
+        "main": [
+          {
+            "type": "text",
+            "html": "<p>Event page. Visible under designed nav only because <code>source.pagesTag: \"event\"</code> — not because the page exists.</p>"
+          }
+        ]
+      }
+    },
+    {
+      "id": "event-talk",
+      "title": "Evening talk",
+      "layoutId": "simple",
+      "tags": ["event"],
+      "includes": ["common-footer"],
+      "zones": {
+        "title": [{ "type": "text", "html": "Evening talk" }],
+        "main": [
+          {
+            "type": "text",
+            "html": "<p>Another event page for content-implied nav.</p>"
+          }
+        ]
+      }
+    },
+    {
+      "id": "orphan",
+      "title": "Orphan page",
+      "layoutId": "simple",
+      "tags": ["hidden"],
+      "includes": ["common-footer"],
+      "zones": {
+        "title": [{ "type": "text", "html": "Orphan (not in nav)" }],
+        "main": [
+          {
+            "type": "text",
+            "html": "<p>This page exists and is reachable at <code>#orphan</code>, but it is not listed in designed nav. Existence and visibility are distinct.</p>"
+          }
+        ]
+      }
     }
   ],
   "media": [
@@ -265,9 +332,20 @@
     }
   ],
   "nav": [
-    { "sidebar": true, "heading": "Pages" },
-    { "sidebar": true, "id": "home", "title": "Home" },
-    { "sidebar": true, "id": "no-aside", "title": "Simple layout" },
-    { "sidebar": true, "id": "components", "title": "Components" }
+    {
+      "sidebar": true,
+      "heading": "Site",
+      "children": [
+        { "sidebar": true, "id": "home", "title": "Home" },
+        { "sidebar": true, "id": "no-aside", "title": "Simple layout" },
+        { "sidebar": true, "id": "components", "title": "Components" },
+        { "sidebar": true, "id": "nav-lab", "title": "Nav lab" }
+      ]
+    },
+    {
+      "sidebar": true,
+      "heading": "Events",
+      "source": { "pagesTag": "event" }
+    }
   ]
 }

@@ -19,6 +19,9 @@ export class WCBase extends HTMLElement {
   /** Subclasses may set `useShadow = false` for W3.CSS-friendly light DOM. */
   useShadow = true;
   #built = false;
+  /** Nodes created by `b()` — must not be moved into the light-child slot. */
+  #structure = new Set<Node>();
+  #lightObserver: MutationObserver | null = null;
 
   /** Override: build UI. Nested arrays = children; empty array `[]` marks where light-DOM children move. */
   b?(): Array<Node | Node[]>;
@@ -43,9 +46,6 @@ export class WCBase extends HTMLElement {
     if (this.#built) return;
     this.#built = true;
 
-    // Stash light-DOM children before we build around them.
-    const pendingLight = this.useShadow ? [] : Array.from(this.childNodes);
-
     // Attach shadow here so subclass field initializers (useShadow) have run.
     if (this.useShadow && !this.shadowRoot) {
       this.attachShadow({ mode: "open" });
@@ -56,6 +56,7 @@ export class WCBase extends HTMLElement {
     if (this.useShadow) {
       const slot = document.createElement("slot");
       root.appendChild(slot);
+      this.#structure.add(slot);
       slot.addEventListener("slotchange", () => {
         if (!this.childrenRehome) return;
         slot.assignedNodes().forEach((n) => this.childrenRehome!.appendChild(n));
@@ -66,11 +67,35 @@ export class WCBase extends HTMLElement {
       this.processElements(root, this.b());
     }
 
-    if (this.childrenRehome && pendingLight.length > 0) {
-      pendingLight.forEach((n) => this.childrenRehome!.appendChild(n));
+    // Autonomous custom elements default to display:inline. Layout components
+    // almost always want block; subclasses can override in `b()` / CSS.
+    if (!this.useShadow && getComputedStyle(this).display === "inline") {
+      this.style.display = "block";
+    }
+
+    if (!this.useShadow && this.childrenRehome) {
+      this.#rehomeLightChildren();
+      // innerHTML / parser may attach light children after connectedCallback.
+      this.#lightObserver = new MutationObserver(() => this.#rehomeLightChildren());
+      this.#lightObserver.observe(this, { childList: true });
     }
 
     this.c?.();
+  }
+
+  disconnectedCallback(): void {
+    this.#lightObserver?.disconnect();
+    this.#lightObserver = null;
+  }
+
+  #rehomeLightChildren(): void {
+    const rehome = this.childrenRehome;
+    if (!rehome) return;
+    for (const node of [...this.childNodes]) {
+      if (node === rehome) continue;
+      if (this.#structure.has(node)) continue;
+      rehome.appendChild(node);
+    }
   }
 
   attributeChangedCallback(attr: string, _old: string | null, value: string | null): void {
@@ -89,6 +114,7 @@ export class WCBase extends HTMLElement {
           this.processElements(newParent, element);
         }
       } else {
+        this.#structure.add(element);
         newParent = parent.appendChild(element) as Element;
       }
     }

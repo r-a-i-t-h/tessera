@@ -1,12 +1,12 @@
 # Tessera architecture (v0.1)
 
-Tessera is a small CMS runtime for sites whose full text/data payload is cheaper than a typical image. Content is authored as structured records, **flattened to one file**, and rendered entirely in the browser. Dynamics (menus, event lists, clocks) are client-side functions owned by the site codebase.
+As-built engine contract. Product ambition, Phase-1 design decisions, and acceptance criteria live in [SPEC.md](./SPEC.md). Upcoming work is sequenced in [ROADMAP.md](./ROADMAP.md).
 
-Open / incomplete acceptance criteria live in [ROADMAP.md](./ROADMAP.md).
+Tessera is a small CMS runtime for sites whose full text/data payload is cheaper than a typical image. Content is authored as structured records, **flattened to one file**, and rendered entirely in the browser. Dynamics (menus, event lists, clocks) are client-side functions owned by the site codebase.
 
 The name evokes mosaic tiles: layouts place the tiles (zones); content fills them — or leaves them empty.
 
-The **editor** (out of scope for now) will edit many records and emit the flattened file. The **renderer** only consumes that file plus a site-owned component registry. The editor may host the renderer for preview; the renderer never depends on the editor.
+The **editor** (out of scope for the renderer phase; see SPEC) will edit many records and emit the flattened file. The **renderer** only consumes that file plus a site-owned component registry. The editor may host the renderer for preview; the renderer never depends on the editor.
 
 ## Packages
 
@@ -49,42 +49,44 @@ Static sites must stay subdirectory-safe:
 
 ## How dynamic lists / custom behaviour are defined
 
-Content never embeds JavaScript. Site code **imports** functions and **registers** them by name before start:
-
-```ts
-// apps/demo-pure/src/components/index.ts
-export const eventList: ComponentFn = (ctx, props = {}) => {
-  const rows = ctx.zoneJson((props.fromZone as string) ?? "events");
-  // ... return HTML string
-};
-
-registerSiteComponents((name, fn) => registry.define(name, fn));
-```
-
-Flattened data only references the name + props:
+**Component implementations** are TypeScript the site imports and registers. **Bindings** (which data + which component, under a public id) live in `site.json`:
 
 ```json
-{ "type": "component", "name": "eventList", "props": { "fromZone": "events", "limit": 10 } }
+"bindings": [
+  {
+    "id": "farm-open-days",
+    "component": "eventList",
+    "itemId": "open-days-data",
+    "fromZone": "events"
+  }
+]
 ```
 
-JSON for the list lives in content (often a zone that is not shown as a layout slot):
+Content inserts the populated view with mustache or a component block:
+
+```html
+{{farm-open-days}}
+```
 
 ```json
-"events": [{ "type": "json", "data": [ { "title": "…", "when": "…" } ] }]
+{ "type": "component", "name": "farm-open-days" }
 ```
 
 **What requires a rebuild:** adding a *new* component implementation.  
-**What does not:** changing text, JSON, layout trees, or which registered components a page calls.
+**What does not:** changing text, JSON, layout trees, bindings, or which binding ids a page references.
+
+Nav presentations (`navTags`, `navTree`, `navCollapse`, …) are registered components; designed `document.nav` plus optional `source` supply data. Page existence does not imply a nav entry.
 
 Web components follow the same idea: implement with `WCBase`, `customElements.define`, then either emit the tag from a small registry function or `registry.defineElement(name, tagName)`.
 
 ## Rendering pipeline
 
-1. Load + validate `site.json` (Zod).
-2. Resolve page from hash (fallback: `site.homePageId`).
+1. Load + validate `site.json` (Zod) with cache-busting query; persist to `localStorage`; fall back to cache on failure (see SPEC §3).
+2. Resolve page from hash (unknown ids fall back to home — no error UI).
 3. Merge `page.zones` then each included item’s zones (stable order).
 4. Walk the layout tree; zone nodes render their blocks; unknown component names become HTML comments.
-5. Optional `onAfterRender` for chrome outside the document (demo sidebar).
+5. Optional `onAfterRender` / `onStatusChange` for chrome outside the document (demo sidebar, stale banner).
+6. While open, re-fetch on a 5-minute TTL when `documentUrl` is set.
 
 ## CSS
 

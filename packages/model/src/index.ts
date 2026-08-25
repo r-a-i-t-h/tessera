@@ -1,4 +1,5 @@
 export {
+  SITE_DOCUMENT_SCHEMA_VERSION,
   BlockSchema,
   TextBlockSchema,
   JsonBlockSchema,
@@ -9,6 +10,8 @@ export {
   PageSchema,
   ItemSchema,
   MediaSchema,
+  BindingSchema,
+  NavSourceSchema,
   NavEntrySchema,
   SiteMetaSchema,
   SiteDocumentSchema,
@@ -32,6 +35,8 @@ export type {
   Page,
   Item,
   Media,
+  Binding,
+  NavSource,
   NavEntry,
   SiteMeta,
   SiteDocument,

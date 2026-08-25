@@ -1,8 +1,12 @@
 # Tessera
 
-Lightweight, client-side site runtime: **layouts declare zones**, **content fills them**, **components are TypeScript the site imports**. One flattened JSON file holds the whole text/data payload.
+Client-side site runtime that renders an entire small website from one validated JSON document plus a site-owned component registry — **layouts declare zones**, **content fills them**, **components are TypeScript the site imports**.
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for the model and [ROADMAP.md](./ROADMAP.md) for open acceptance criteria.
+| Doc | Role |
+|-----|------|
+| [SPEC.md](./SPEC.md) | Product + architecture: goals, design decisions, acceptance criteria |
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | As-built engine contract (packages, pipeline, Zod) |
+| [ROADMAP.md](./ROADMAP.md) | Sequenced upcoming features |
 
 ## Quick start
 

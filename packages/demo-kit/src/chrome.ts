@@ -1,5 +1,5 @@
 import type { SiteDocument } from "@r-a-i-t-h/tessera-model";
-import { escapeHtml } from "@r-a-i-t-h/tessera-renderer";
+import { escapeHtml, expandNav } from "@r-a-i-t-h/tessera-renderer";
 
 export const bodySwitch = {
   sets: {
@@ -49,7 +49,7 @@ export function installChromeGlobals(): void {
 
 export function renderNavSidebar(pageId: string, doc: SiteDocument, target: HTMLElement): void {
   const parts: string[] = [];
-  for (const entry of doc.nav) {
+  for (const entry of expandNav(doc)) {
     if (entry.heading) {
       const fa = entry.fa ? `<i class="fa fa-${escapeHtml(entry.fa)}"></i> ` : "";
       parts.push(`<h4 class="w3-bar-item w3-text-theme">${fa}${escapeHtml(entry.heading)}</h4>`);
@@ -65,6 +65,30 @@ export function renderNavSidebar(pageId: string, doc: SiteDocument, target: HTML
     );
   }
   target.innerHTML = parts.join("");
+}
+
+/** Show or clear a stale/offline banner (creates `#tessera-stale-banner` if needed). */
+export function renderStaleBanner(
+  usingCachedData: boolean,
+  opts: { parent?: HTMLElement | null; message?: string } = {},
+): void {
+  const parent = opts.parent ?? document.body;
+  if (!parent) return;
+  let el = document.getElementById("tessera-stale-banner");
+  if (!usingCachedData) {
+    el?.remove();
+    return;
+  }
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "tessera-stale-banner";
+    el.setAttribute("role", "status");
+    parent.prepend(el);
+  }
+  el.className = "w3-panel w3-pale-yellow w3-border w3-margin";
+  el.textContent =
+    opts.message ??
+    "Showing cached site data — could not refresh from the network (you may be offline).";
 }
 
 export function insertHeadingsMenu(

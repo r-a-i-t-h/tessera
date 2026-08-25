@@ -4,6 +4,8 @@ export {
   installChromeGlobals,
   flipNavSide,
   renderNavSidebar,
+  renderStaleBanner,
   insertHeadingsMenu,
   wireSidebarToggle,
 } from "./chrome.js";
+

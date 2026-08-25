@@ -1,5 +1,6 @@
 import type { Block, LayoutNode, Media, Page, SiteDocument } from "@r-a-i-t-h/tessera-model";
 import { normalizeSiteAssetUrl } from "./assets.js";
+import { expandMustache, renderNamed } from "./bindings.js";
 import type { ComponentRegistry } from "./registry.js";
 import { indexDocument, mergeZones } from "./merge.js";
 import type { RenderContext, ZoneMap } from "./types.js";
@@ -75,14 +76,13 @@ function renderBlocks(blocks: Block[], ctx: RenderContext): string {
 function renderBlock(block: Block, ctx: RenderContext): string {
   switch (block.type) {
     case "text":
-      return block.html;
+      return expandMustache(block.html, ctx);
     case "json":
-      // Raw JSON is for components via zoneJson / props — not shown as text.
       return "";
     case "media":
       return ctx.mediaHtml(block.id);
     case "component":
-      return ctx.registry.render(block.name, ctx, block.props ?? {});
+      return renderNamed(block.name, ctx, block.props ?? {});
     default: {
       const _exhaustive: never = block;
       return _exhaustive;
@@ -93,7 +93,7 @@ function renderBlock(block: Block, ctx: RenderContext): string {
 function renderNode(node: LayoutNode, ctx: RenderContext, skin?: Skin): string {
   switch (node.type) {
     case "static":
-      return node.html;
+      return expandMustache(node.html, ctx);
     case "zone": {
       const blocks = ctx.zones.get(node.id) ?? [];
       const inner = renderBlocks(blocks, ctx);
@@ -107,12 +107,14 @@ function renderNode(node: LayoutNode, ctx: RenderContext, skin?: Skin): string {
         skin?.regionClass?.(node.role, node.className) ??
         [node.className, node.role ? `rt-role-${node.role}` : ""].filter(Boolean).join(" ");
       const children = node.children.map((c) => renderNode(c, ctx, skin)).join("");
+      // Skip empty wrappers (e.g. unused primary column on pages that only fill main).
+      if (!children) return "";
       const classAttr = cls ? ` class="${escapeHtml(cls)}"` : "";
       return `<${tag}${classAttr}>${children}</${tag}>`;
     }
     case "component": {
       const childrenHtml = (node.children ?? []).map((c) => renderNode(c, ctx, skin)).join("");
-      return ctx.registry.render(node.name, ctx, node.props ?? {}, childrenHtml);
+      return renderNamed(node.name, ctx, node.props ?? {}, childrenHtml);
     }
     default: {
       const _exhaustive: never = node;

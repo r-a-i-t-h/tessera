@@ -121,5 +121,6 @@ export function makeFixtureDoc(): SiteDocument {
       { sidebar: true, id: "hidden-aside", title: "Hidden" },
       { sidebar: true, id: "about", title: "About" },
     ],
+    bindings: [],
   };
 }

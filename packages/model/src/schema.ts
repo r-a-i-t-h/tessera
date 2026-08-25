@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+/** Schema version expected by this package — must match `SiteDocument.version`. */
+export const SITE_DOCUMENT_SCHEMA_VERSION = 1 as const;
+
 /** Content blocks that fill zones. */
 export const TextBlockSchema = z.object({
   type: z.literal("text"),
@@ -139,14 +142,55 @@ export const MediaSchema = z.object({
   alt: z.string().optional(),
 });
 
-export const NavEntrySchema = z.object({
-  id: z.string().optional(),
-  title: z.string().optional(),
-  heading: z.string().optional(),
-  fa: z.string().optional(),
-  topbar: z.boolean().optional(),
-  sidebar: z.boolean().optional(),
+/**
+ * Site-data binding: name Z → show content X with registered component Y.
+ * Insert via `{{id}}` in text HTML or `{ "type": "component", "name": "<id>" }`.
+ */
+export const BindingSchema = z.object({
+  id: z.string().min(1),
+  /** Registered component implementation (Y). */
+  component: z.string().min(1),
+  /** When set, read zones from this item instead of the current page merge. */
+  itemId: z.string().optional(),
+  /** Zone id whose JSON (or other data) the component reads (often via `fromZone`). */
+  fromZone: z.string().optional(),
+  props: z.record(z.unknown()).optional(),
 });
+
+/**
+ * Dynamic children for a nav node — content-implied links.
+ * Presentation (tags / tree / collapse) is chosen by a nav *component*, not the system.
+ */
+export const NavSourceSchema = z.object({
+  pagesTag: z.string().min(1).optional(),
+  itemsTag: z.string().min(1).optional(),
+});
+
+export type NavSource = z.infer<typeof NavSourceSchema>;
+
+export type NavEntry = {
+  id?: string;
+  title?: string;
+  heading?: string;
+  fa?: string;
+  topbar?: boolean;
+  sidebar?: boolean;
+  source?: NavSource;
+  children?: NavEntry[];
+};
+
+export const NavEntrySchema: z.ZodType<NavEntry> = z.lazy(() =>
+  z.object({
+    id: z.string().optional(),
+    title: z.string().optional(),
+    heading: z.string().optional(),
+    fa: z.string().optional(),
+    topbar: z.boolean().optional(),
+    sidebar: z.boolean().optional(),
+    source: NavSourceSchema.optional(),
+    children: z.array(NavEntrySchema).optional(),
+  }),
+);
 
 export const SiteMetaSchema = z.object({
   id: z.string().min(1),
@@ -158,20 +202,23 @@ export const SiteMetaSchema = z.object({
 });
 
 export const SiteDocumentSchema = z.object({
-  version: z.literal(1),
+  version: z.literal(SITE_DOCUMENT_SCHEMA_VERSION),
   site: SiteMetaSchema,
   layouts: z.array(LayoutSchema).min(1),
   pages: z.array(PageSchema).min(1),
   items: z.array(ItemSchema).default([]),
   media: z.array(MediaSchema).default([]),
+  /** Designed nav (perma). Page existence does not imply a nav entry. */
   nav: z.array(NavEntrySchema).default([]),
+  /** Named bindings of data → component for insertion in content. */
+  bindings: z.array(BindingSchema).default([]),
 });
 
 export type Layout = z.infer<typeof LayoutSchema>;
 export type Page = z.infer<typeof PageSchema>;
 export type Item = z.infer<typeof ItemSchema>;
 export type Media = z.infer<typeof MediaSchema>;
-export type NavEntry = z.infer<typeof NavEntrySchema>;
+export type Binding = z.infer<typeof BindingSchema>;
 export type SiteMeta = z.infer<typeof SiteMetaSchema>;
 export type SiteDocument = z.infer<typeof SiteDocumentSchema>;
 
