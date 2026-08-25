@@ -1,0 +1,10 @@
+{
+  "title": "Sample gallery",
+  "captions": {
+    "01-red.svg": "Crimson field",
+    "02-amber.svg": "Amber field",
+    "03-green.svg": "Green field",
+    "04-blue.svg": "Blue field",
+    "05-teal.svg": "Teal field"
+  }
+}

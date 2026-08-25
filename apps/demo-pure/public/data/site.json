@@ -22,9 +22,17 @@
                 "type": "region",
                 "tag": "h1",
                 "className": "w3-text-theme w3-padding-16",
-                "children": [{ "type": "zone", "id": "title" }]
+                "children": [
+                  {
+                    "type": "zone",
+                    "id": "title"
+                  }
+                ]
               },
-              { "type": "zone", "id": "main" },
+              {
+                "type": "zone",
+                "id": "main"
+              },
               {
                 "type": "region",
                 "role": "row",
@@ -33,7 +41,12 @@
                   {
                     "type": "region",
                     "className": "w3-col m8",
-                    "children": [{ "type": "zone", "id": "primary" }]
+                    "children": [
+                      {
+                        "type": "zone",
+                        "id": "primary"
+                      }
+                    ]
                   },
                   {
                     "type": "region",
@@ -43,9 +56,17 @@
                         "type": "region",
                         "tag": "h3",
                         "className": "w3-text-theme",
-                        "children": [{ "type": "static", "html": "Aside" }]
+                        "children": [
+                          {
+                            "type": "static",
+                            "html": "Aside"
+                          }
+                        ]
                       },
-                      { "type": "zone", "id": "aside" }
+                      {
+                        "type": "zone",
+                        "id": "aside"
+                      }
                     ]
                   }
                 ]
@@ -57,7 +78,12 @@
             "tag": "footer",
             "role": "footer",
             "className": "w3-theme-l3 w3-margin-top",
-            "children": [{ "type": "zone", "id": "footer" }]
+            "children": [
+              {
+                "type": "zone",
+                "id": "footer"
+              }
+            ]
           }
         ]
       }
@@ -77,14 +103,25 @@
                 "type": "region",
                 "tag": "h1",
                 "className": "w3-text-theme w3-padding-16",
-                "children": [{ "type": "zone", "id": "title" }]
+                "children": [
+                  {
+                    "type": "zone",
+                    "id": "title"
+                  }
+                ]
               },
               {
                 "type": "static",
                 "html": "<div class=\"info-banner\">This page uses the <strong>simple</strong> layout. It does not declare an <code>aside</code> zone, so aside contributions from content are not shown — without editing that content.</div>"
               },
-              { "type": "zone", "id": "main" },
-              { "type": "zone", "id": "primary" }
+              {
+                "type": "zone",
+                "id": "main"
+              },
+              {
+                "type": "zone",
+                "id": "primary"
+              }
             ]
           },
           {
@@ -92,7 +129,12 @@
             "tag": "footer",
             "role": "footer",
             "className": "w3-theme-l3 w3-margin-top",
-            "children": [{ "type": "zone", "id": "footer" }]
+            "children": [
+              {
+                "type": "zone",
+                "id": "footer"
+              }
+            ]
           }
         ]
       }
@@ -104,7 +146,28 @@
       "component": "eventList",
       "itemId": "open-days-data",
       "fromZone": "events",
-      "props": { "limit": 10 }
+      "props": {
+        "limit": 10
+      }
+    },
+    {
+      "id": "sample-gallery",
+      "component": "gallery",
+      "itemId": "sample-gallery-data",
+      "fromZone": "slides",
+      "props": {
+        "mode": "grid"
+      }
+    },
+    {
+      "id": "sample-gallery-slides",
+      "component": "gallery",
+      "itemId": "sample-gallery-data",
+      "fromZone": "slides",
+      "props": {
+        "mode": "slides",
+        "autoplay": true
+      }
     }
   ],
   "items": [
@@ -120,7 +183,9 @@
           {
             "type": "component",
             "name": "now",
-            "props": { "style": "font-weight:bold" }
+            "props": {
+              "style": "font-weight:bold"
+            }
           }
         ]
       }
@@ -145,9 +210,42 @@
           {
             "type": "json",
             "data": [
-              { "title": "Open farm day", "when": "Sat 10:00", "where": "Main barn" },
-              { "title": "Volunteer briefing", "when": "Sun 09:30", "where": "Office" },
-              { "title": "Evening talk", "when": "Thu 19:00", "where": "Marquee" }
+              {
+                "title": "Open farm day",
+                "when": "Sat 10:00",
+                "where": "Main barn"
+              },
+              {
+                "title": "Volunteer briefing",
+                "when": "Sun 09:30",
+                "where": "Office"
+              },
+              {
+                "title": "Evening talk",
+                "when": "Thu 19:00",
+                "where": "Marquee"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "sample-gallery-data",
+      "title": "Sample gallery (data)",
+      "tags": [
+        "gallery"
+      ],
+      "zones": {
+        "slides": [
+          {
+            "type": "json",
+            "data": [
+              "sample-gallery-01-red",
+              "sample-gallery-02-amber",
+              "sample-gallery-03-green",
+              "sample-gallery-04-blue",
+              "sample-gallery-05-teal"
             ]
           }
         ]
@@ -159,10 +257,20 @@
       "id": "home",
       "title": "Home",
       "layoutId": "standard",
-      "tags": ["page"],
-      "includes": ["common-footer", "promo-aside"],
+      "tags": [
+        "page"
+      ],
+      "includes": [
+        "common-footer",
+        "promo-aside"
+      ],
       "zones": {
-        "title": [{ "type": "text", "html": "Tessera rebuilt" }],
+        "title": [
+          {
+            "type": "text",
+            "html": "Tessera rebuilt"
+          }
+        ],
         "main": [
           {
             "type": "text",
@@ -195,10 +303,20 @@
       "id": "no-aside",
       "title": "Same content, simple layout",
       "layoutId": "simple",
-      "tags": ["page"],
-      "includes": ["common-footer", "promo-aside"],
+      "tags": [
+        "page"
+      ],
+      "includes": [
+        "common-footer",
+        "promo-aside"
+      ],
       "zones": {
-        "title": [{ "type": "text", "html": "Aside content still exists" }],
+        "title": [
+          {
+            "type": "text",
+            "html": "Aside content still exists"
+          }
+        ],
         "main": [
           {
             "type": "text",
@@ -211,26 +329,43 @@
       "id": "components",
       "title": "Components",
       "layoutId": "standard",
-      "tags": ["page"],
-      "includes": ["common-footer"],
+      "tags": [
+        "page"
+      ],
+      "includes": [
+        "common-footer"
+      ],
       "zones": {
-        "title": [{ "type": "text", "html": "Components &amp; web components" }],
+        "title": [
+          {
+            "type": "text",
+            "html": "Components &amp; web components"
+          }
+        ],
         "main": [
           {
             "type": "text",
             "html": "<p>Function components are plain TypeScript. Web components use <code>WCBase</code>. Binding as a component block:</p>"
           },
-          { "type": "component", "name": "farm-open-days" },
+          {
+            "type": "component",
+            "name": "farm-open-days"
+          },
           {
             "type": "component",
             "name": "infoCard",
-            "props": { "title": "rt-card via registry" }
+            "props": {
+              "title": "rt-card via registry"
+            }
           },
           {
             "type": "text",
             "html": "<p>Inline page nav component:</p>"
           },
-          { "type": "component", "name": "pageNav" }
+          {
+            "type": "component",
+            "name": "pageNav"
+          }
         ],
         "aside": [
           {
@@ -244,26 +379,50 @@
       "id": "nav-lab",
       "title": "Nav lab",
       "layoutId": "standard",
-      "tags": ["page"],
-      "includes": ["common-footer"],
+      "tags": [
+        "page"
+      ],
+      "includes": [
+        "common-footer"
+      ],
       "zones": {
-        "title": [{ "type": "text", "html": "Navigation presentations" }],
+        "title": [
+          {
+            "type": "text",
+            "html": "Navigation presentations"
+          }
+        ],
         "main": [
           {
             "type": "text",
             "html": "<p><strong>Pages ≠ nav.</strong> Designed nav is authored; dynamic <code>source</code> pulls content-implied links. Presentation is a component choice — not a single system style.</p><h3>Tags</h3>"
           },
-          { "type": "component", "name": "navTags" },
+          {
+            "type": "component",
+            "name": "navTags"
+          },
           {
             "type": "text",
             "html": "<h3>Full tree</h3>"
           },
-          { "type": "component", "name": "navTree", "props": { "scope": "sidebar" } },
+          {
+            "type": "component",
+            "name": "navTree",
+            "props": {
+              "scope": "sidebar"
+            }
+          },
           {
             "type": "text",
             "html": "<h3>Collapsible regions</h3>"
           },
-          { "type": "component", "name": "navCollapse", "props": { "scope": "sidebar" } }
+          {
+            "type": "component",
+            "name": "navCollapse",
+            "props": {
+              "scope": "sidebar"
+            }
+          }
         ],
         "aside": [
           {
@@ -277,10 +436,19 @@
       "id": "event-farm",
       "title": "Open farm day",
       "layoutId": "simple",
-      "tags": ["event"],
-      "includes": ["common-footer"],
+      "tags": [
+        "event"
+      ],
+      "includes": [
+        "common-footer"
+      ],
       "zones": {
-        "title": [{ "type": "text", "html": "Open farm day" }],
+        "title": [
+          {
+            "type": "text",
+            "html": "Open farm day"
+          }
+        ],
         "main": [
           {
             "type": "text",
@@ -293,10 +461,19 @@
       "id": "event-talk",
       "title": "Evening talk",
       "layoutId": "simple",
-      "tags": ["event"],
-      "includes": ["common-footer"],
+      "tags": [
+        "event"
+      ],
+      "includes": [
+        "common-footer"
+      ],
       "zones": {
-        "title": [{ "type": "text", "html": "Evening talk" }],
+        "title": [
+          {
+            "type": "text",
+            "html": "Evening talk"
+          }
+        ],
         "main": [
           {
             "type": "text",
@@ -309,14 +486,45 @@
       "id": "orphan",
       "title": "Orphan page",
       "layoutId": "simple",
-      "tags": ["hidden"],
-      "includes": ["common-footer"],
+      "tags": [
+        "hidden"
+      ],
+      "includes": [
+        "common-footer"
+      ],
       "zones": {
-        "title": [{ "type": "text", "html": "Orphan (not in nav)" }],
+        "title": [
+          {
+            "type": "text",
+            "html": "Orphan (not in nav)"
+          }
+        ],
         "main": [
           {
             "type": "text",
             "html": "<p>This page exists and is reachable at <code>#orphan</code>, but it is not listed in designed nav. Existence and visibility are distinct.</p>"
+          }
+        ]
+      }
+    },
+    {
+      "id": "gallery",
+      "title": "Gallery",
+      "layoutId": "standard",
+      "tags": ["page"],
+      "includes": ["common-footer"],
+      "zones": {
+        "title": [{ "type": "text", "html": "Gallery spike" }],
+        "main": [
+          {
+            "type": "text",
+            "html": "<p>Greenfield gallery fed from the media catalog. Folder scan (<code>npm run flatten:gallery</code>) built binding <code>sample-gallery</code> from <code>public/media/sample-gallery/</code>.</p><h3>Grid + lightbox</h3><p class=\"w3-small\">Click a thumb for dialog; use prev/next or arrow keys.</p>{{sample-gallery}}<h3>Slides + autoplay</h3><p class=\"w3-small\">Same media ids; presentation via binding props.</p>{{sample-gallery-slides}}"
+          }
+        ],
+        "aside": [
+          {
+            "type": "text",
+            "html": "<p class=\"w3-small\">Disk-first authoring: images + optional <code>meta.json</code> captions → flatten → <code>media[]</code> + item + binding.</p>"
           }
         ]
       }
@@ -329,6 +537,51 @@
       "url": "./media/sample.svg",
       "type": "image",
       "alt": "Tessera sample"
+    },
+    {
+      "id": "sample-gallery-01-red",
+      "title": "Crimson field",
+      "caption": "Crimson field",
+      "url": "./media/sample-gallery/01-red.svg",
+      "type": "image",
+      "alt": "Crimson field",
+      "sort": 1
+    },
+    {
+      "id": "sample-gallery-02-amber",
+      "title": "Amber field",
+      "caption": "Amber field",
+      "url": "./media/sample-gallery/02-amber.svg",
+      "type": "image",
+      "alt": "Amber field",
+      "sort": 2
+    },
+    {
+      "id": "sample-gallery-03-green",
+      "title": "Green field",
+      "caption": "Green field",
+      "url": "./media/sample-gallery/03-green.svg",
+      "type": "image",
+      "alt": "Green field",
+      "sort": 3
+    },
+    {
+      "id": "sample-gallery-04-blue",
+      "title": "Blue field",
+      "caption": "Blue field",
+      "url": "./media/sample-gallery/04-blue.svg",
+      "type": "image",
+      "alt": "Blue field",
+      "sort": 4
+    },
+    {
+      "id": "sample-gallery-05-teal",
+      "title": "Teal field",
+      "caption": "Teal field",
+      "url": "./media/sample-gallery/05-teal.svg",
+      "type": "image",
+      "alt": "Teal field",
+      "sort": 5
     }
   ],
   "nav": [
@@ -336,16 +589,39 @@
       "sidebar": true,
       "heading": "Site",
       "children": [
-        { "sidebar": true, "id": "home", "title": "Home" },
-        { "sidebar": true, "id": "no-aside", "title": "Simple layout" },
-        { "sidebar": true, "id": "components", "title": "Components" },
-        { "sidebar": true, "id": "nav-lab", "title": "Nav lab" }
+        {
+          "sidebar": true,
+          "id": "home",
+          "title": "Home"
+        },
+        {
+          "sidebar": true,
+          "id": "no-aside",
+          "title": "Simple layout"
+        },
+        {
+          "sidebar": true,
+          "id": "components",
+          "title": "Components"
+        },
+        {
+          "sidebar": true,
+          "id": "nav-lab",
+          "title": "Nav lab"
+        },
+        {
+          "sidebar": true,
+          "id": "gallery",
+          "title": "Gallery"
+        }
       ]
     },
     {
       "sidebar": true,
       "heading": "Events",
-      "source": { "pagesTag": "event" }
+      "source": {
+        "pagesTag": "event"
+      }
     }
   ]
 }

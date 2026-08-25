@@ -35,5 +35,15 @@ export {
   navTags,
   navFlat,
 } from "./builtins/nav.js";
+export {
+  registerGalleryComponents,
+  gallery,
+  resolveGalleryMediaIds,
+} from "./builtins/gallery.js";
+export {
+  registerGalleryElement,
+  TesseraGallery,
+  type GalleryItem,
+} from "./builtins/gallery-element.js";
 export { normalizeSiteAssetUrl, isRootAbsoluteUrl } from "./assets.js";
 export type { RenderContext, ComponentFn, ZoneMap } from "./types.js";

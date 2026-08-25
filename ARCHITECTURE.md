@@ -43,6 +43,10 @@ Static sites must stay subdirectory-safe:
 - Media URLs in the document should be relative (`./media/...`), not root-absolute (`/media/...`) or required CDN URLs
 - `normalizeSiteAssetUrl` rewrites accidental `/foo` media paths to `./foo` at render time
 
+## Gallery (spike)
+
+A gallery is catalog media + an ordered list of media ids (JSON zone) bound to the `gallery` component. Folder scan (`scripts/flatten-gallery.mjs` / `npm run flatten:gallery`) emits `media[]`, a data item, and a binding — an early flatten precursor to the editor pipeline. Presentation is `<tessera-gallery>` (grid or slides + dialog).
+
 ## Zod
 
 [`zod`](https://zod.dev) is used only in `@r-a-i-t-h/tessera-model` to **validate** the flattened `site.json` when it is loaded. TypeScript types are inferred from the same schemas, so the editor (later) and renderer share one contract. A malformed document fails at parse time with a structured error instead of half-rendering.

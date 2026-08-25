@@ -15,8 +15,8 @@ Update this file when priorities or status change; keep demo scoreboard copy ali
 
 ## Upcoming (ordered)
 
-1. **Gallery component**  
-   Replace convert stubs with a real gallery + media story (e.g. millersark).  
+1. **Gallery component** — *spike in demo-pure*  
+   Greenfield `<tessera-gallery>` (grid / slides + dialog) + folder flatten (`npm run flatten:gallery`). Assess before millersark bulk.  
    → [SPEC §8](./SPEC.md#8-shipped-capabilities-ambition), [acceptance](./SPEC.md#gallery-and-presentation)
 
 2. **Shared layout web components**  
@@ -32,7 +32,7 @@ Update this file when priorities or status change; keep demo scoreboard copy ali
    → [SPEC Needs refinement](./SPEC.md#12-needs-refinement)
 
 5. **Editor app (later)**  
-   Separate same-origin app; API-driven flatten to `SiteDocument`.  
+   Separate same-origin app; API-driven flatten to `SiteDocument`. Folder-scan gallery flatten is an early precursor.  
    → [SPEC §9](./SPEC.md#9-editor-boundary-phase-2)
 
 ## Notes

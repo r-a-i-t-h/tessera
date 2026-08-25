@@ -11,7 +11,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@r-a-i-t-h/tessera-model": "*"
+    "@r-a-i-t-h/tessera-model": "*",
+    "@r-a-i-t-h/tessera-wc-base": "*"
   },
   "devDependencies": {
     "happy-dom": "^20.0.2",

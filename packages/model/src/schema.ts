@@ -140,6 +140,10 @@ export const MediaSchema = z.object({
   url: z.string().min(1),
   type: z.enum(["image", "img", "jpg", "png", "gif", "webp", "svg"]).optional(),
   alt: z.string().optional(),
+  /** Optional caption for gallery / lightbox (may differ from title). */
+  caption: z.string().optional(),
+  /** Optional sort key; flatten tools often derive from filename. */
+  sort: z.number().optional(),
 });
 
 /**

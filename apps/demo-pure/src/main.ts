@@ -7,6 +7,7 @@ import {
   ComponentRegistry,
   SiteRenderer,
   registerNavComponents,
+  registerGalleryComponents,
 } from "@r-a-i-t-h/tessera-renderer";
 import type { SiteDocument } from "@r-a-i-t-h/tessera-model";
 import { w3Skin } from "@r-a-i-t-h/tessera-skin-w3";
@@ -20,6 +21,7 @@ registerCardElement();
 const registry = new ComponentRegistry();
 registerSiteComponents((name, fn) => registry.define(name, fn));
 registerNavComponents((name, fn) => registry.define(name, fn));
+registerGalleryComponents((name, fn) => registry.define(name, fn));
 
 registry.define("infoCard", (ctx, props = {}) => {
   const title = typeof props.title === "string" ? props.title : "Card";
