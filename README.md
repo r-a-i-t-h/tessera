@@ -2,7 +2,7 @@
 
 Lightweight, client-side site runtime: **layouts declare zones**, **content fills them**, **components are TypeScript the site imports**. One flattened JSON file holds the whole text/data payload.
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for the model.
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for the model and [ROADMAP.md](./ROADMAP.md) for open acceptance criteria.
 
 ## Quick start
 

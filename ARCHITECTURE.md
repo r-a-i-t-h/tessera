@@ -2,6 +2,8 @@
 
 Tessera is a small CMS runtime for sites whose full text/data payload is cheaper than a typical image. Content is authored as structured records, **flattened to one file**, and rendered entirely in the browser. Dynamics (menus, event lists, clocks) are client-side functions owned by the site codebase.
 
+Open / incomplete acceptance criteria live in [ROADMAP.md](./ROADMAP.md).
+
 The name evokes mosaic tiles: layouts place the tiles (zones); content fills them — or leaves them empty.
 
 The **editor** (out of scope for now) will edit many records and emit the flattened file. The **renderer** only consumes that file plus a site-owned component registry. The editor may host the renderer for preview; the renderer never depends on the editor.
