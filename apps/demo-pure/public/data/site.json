@@ -4,6 +4,7 @@
     "id": "pure-tessera",
     "title": "Tessera pure demo",
     "homePageId": "home",
+    "defaultLayoutId": "standard",
     "theme": "teal"
   },
   "layouts": [
@@ -168,6 +169,30 @@
       }
     }
   ],
+  "sections": [
+    {
+      "id": "site-pages",
+      "title": "Ordinary pages",
+      "match": { "tags": ["page"] },
+      "layoutId": "standard",
+      "skinId": "teal"
+    },
+    {
+      "id": "events",
+      "title": "Event pages",
+      "match": { "tags": ["event"] },
+      "layoutId": "simple",
+      "skinId": "amber",
+      "children": [
+        {
+          "id": "events-featured",
+          "title": "Featured events",
+          "match": { "tags": ["featured"] },
+          "skinId": "gold"
+        }
+      ]
+    }
+  ],
   "items": [
     {
       "id": "common-footer",
@@ -251,7 +276,7 @@
         "main": [
           {
             "type": "text",
-            "html": "<p>Formal <strong>layouts</strong> declare zones. Pages and shared items only <em>fill</em> them. Bindings live in site data — insert with <code>{{farm-open-days}}</code>.</p>"
+            "html": "<p>Formal <strong>layouts</strong> declare zones. Pages and shared items only <em>fill</em> them. Bindings live in site data — insert with <code>{{farm-open-days}}</code>. <strong>Sections</strong> pick a default layout/skin for matching pages (events inherit <code>simple</code>).</p>"
           },
           {
             "type": "component",
@@ -412,9 +437,9 @@
     {
       "id": "event-farm",
       "title": "Open farm day",
-      "layoutId": "simple",
       "tags": [
-        "event"
+        "event",
+        "featured"
       ],
       "includes": [
         "common-footer"
@@ -429,7 +454,11 @@
         "main": [
           {
             "type": "text",
-            "html": "<p>Event page. Visible under designed nav only because <code>source.pagesTag: \"event\"</code> — not because the page exists.</p>"
+            "html": "<p>Event page with <strong>no</strong> <code>layoutId</code> — section <code>events</code> supplies layout <code>simple</code>; nested <code>events-featured</code> sets skin <code>gold</code>.</p>"
+          },
+          {
+            "type": "component",
+            "name": "aboutRenderer"
           }
         ]
       }
@@ -437,7 +466,6 @@
     {
       "id": "event-talk",
       "title": "Evening talk",
-      "layoutId": "simple",
       "tags": [
         "event"
       ],
@@ -454,7 +482,11 @@
         "main": [
           {
             "type": "text",
-            "html": "<p>Another event page for content-implied nav.</p>"
+            "html": "<p>Another event page: inherits layout <code>simple</code> and skin <code>amber</code> from section <code>events</code> (no page-level layout override).</p>"
+          },
+          {
+            "type": "component",
+            "name": "aboutRenderer"
           }
         ]
       }

@@ -1,6 +1,8 @@
 export { ComponentRegistry } from "./registry.js";
 export { mergeZones, indexDocument } from "./merge.js";
 export { renderPage, resolvePageId, escapeHtml, type Skin, type RenderPageOptions } from "./render.js";
+export { resolvePageProfile, sectionMatchesPage } from "@r-a-i-t-h/tessera-model";
+export type { PageProfile, Section } from "@r-a-i-t-h/tessera-model";
 export {
   SiteRenderer,
   type SiteRendererOptions,

@@ -95,6 +95,33 @@ describe("SiteDocument schema", () => {
     expect(captionFromFilename("01-hello-world.svg")).toBe("Hello World");
   });
 
+  it("parses section profiles", () => {
+    const doc = parseSiteDocument({
+      version: 1,
+      site: { id: "s", title: "S", homePageId: "p1", defaultLayoutId: "L" },
+      layouts: [
+        {
+          id: "L",
+          root: {
+            type: "region",
+            children: [{ type: "zone", id: "main" }],
+          },
+        },
+      ],
+      pages: [{ id: "p1", title: "P", tags: ["event"], zones: {} }],
+      sections: [
+        {
+          id: "events",
+          match: { tags: ["event"] },
+          layoutId: "L",
+          skinId: "amber",
+        },
+      ],
+    });
+    expect(doc.sections[0]!.id).toBe("events");
+    expect(doc.pages[0]!.layoutId).toBeUndefined();
+  });
+
   it("collectDeclaredZones walks the layout tree", () => {
     const root: LayoutNode = {
       type: "region",

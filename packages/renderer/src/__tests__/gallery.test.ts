@@ -67,6 +67,10 @@ describe("gallery component", () => {
     const ctx: RenderContext = {
       document: doc,
       page: doc.pages[0]!,
+      profile: {
+        layoutId: doc.pages[0]!.layoutId ?? "with-aside",
+        layoutSource: "page",
+      },
       zones: new Map(),
       registry,
       renderBlocks: () => "",
@@ -98,6 +102,10 @@ describe("gallery component", () => {
     const ctx: RenderContext = {
       document: doc,
       page: doc.pages[0]!,
+      profile: {
+        layoutId: doc.pages[0]!.layoutId ?? "with-aside",
+        layoutSource: "page",
+      },
       zones,
       registry,
       renderBlocks: () => "",

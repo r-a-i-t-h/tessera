@@ -1,4 +1,4 @@
-import type { Block, Page, SiteDocument } from "@r-a-i-t-h/tessera-model";
+import type { Block, Page, PageProfile, SiteDocument } from "@r-a-i-t-h/tessera-model";
 import type { ComponentRegistry } from "./registry.js";
 
 export type ZoneMap = Map<string, Block[]>;
@@ -6,6 +6,8 @@ export type ZoneMap = Map<string, Block[]>;
 export type RenderContext = {
   document: SiteDocument;
   page: Page;
+  /** Resolved layout/skin after section inheritance + page override. */
+  profile: PageProfile;
   /** All zone contributions for this page (including zones not shown by the layout). */
   zones: ZoneMap;
   registry: ComponentRegistry;

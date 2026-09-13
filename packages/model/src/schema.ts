@@ -130,12 +130,54 @@ export const PageSchema = z.object({
   id: z.string().min(1),
   title: z.string(),
   slug: z.string().optional(),
-  layoutId: z.string().min(1),
+  /**
+   * Explicit layout override. When omitted, resolved from matching `sections`
+   * then `site.defaultLayoutId` (see `resolvePageProfile`).
+   */
+  layoutId: z.string().min(1).optional(),
   tags: z.array(z.string()).optional(),
   /** Shared items whose zone contributions are merged in order. */
   includes: z.array(z.string()).optional(),
   zones: ZonesSchema.default({}),
 });
+
+/**
+ * Match criteria for a section profile. Present fields are ANDed:
+ * - `tags`: page must include at least one listed tag
+ * - `pageIdPrefix`: `page.id` must start with this string
+ * An empty match object matches every page (useful as a root section).
+ */
+export const SectionMatchSchema = z.object({
+  tags: z.array(z.string().min(1)).optional(),
+  pageIdPrefix: z.string().min(1).optional(),
+});
+
+export type SectionMatch = z.infer<typeof SectionMatchSchema>;
+
+/**
+ * Hierarchical presentation profile: switch layout/skin for a slice of the site
+ * without recursive content templates. Only layouts declare zones.
+ */
+export type Section = {
+  id: string;
+  title?: string;
+  match: SectionMatch;
+  layoutId?: string;
+  /** Presentation hint (e.g. theme name); chrome/skins may consume later. */
+  skinId?: string;
+  children?: Section[];
+};
+
+export const SectionSchema: z.ZodType<Section> = z.lazy(() =>
+  z.object({
+    id: z.string().min(1),
+    title: z.string().optional(),
+    match: SectionMatchSchema.default({}),
+    layoutId: z.string().min(1).optional(),
+    skinId: z.string().min(1).optional(),
+    children: z.array(SectionSchema).optional(),
+  }),
+);
 
 export const ItemSchema = z.object({
   id: z.string().min(1),
@@ -250,6 +292,11 @@ export const SiteDocumentSchema = z.object({
   nav: z.array(NavEntrySchema).default([]),
   /** Named bindings of data → component for insertion in content. */
   bindings: z.array(BindingSchema).default([]),
+  /**
+   * Section profiles: hierarchical layout/skin defaults for matching pages.
+   * Resolution: site default → matching sections (deeper / later win) → page.layoutId override.
+   */
+  sections: z.array(SectionSchema).default([]),
 });
 
 export type Layout = z.infer<typeof LayoutSchema>;
@@ -261,6 +308,67 @@ export type Folder = z.infer<typeof FolderSchema>;
 export type Binding = z.infer<typeof BindingSchema>;
 export type SiteMeta = z.infer<typeof SiteMetaSchema>;
 export type SiteDocument = z.infer<typeof SiteDocumentSchema>;
+
+/** Effective layout/skin after section inheritance + page override. */
+export type PageProfile = {
+  layoutId: string;
+  skinId?: string;
+  /** How `layoutId` was chosen. */
+  layoutSource: "page" | "section" | "site";
+  /** Deepest matching section id, if any. */
+  sectionId?: string;
+};
+
+export function sectionMatchesPage(match: SectionMatch, page: Page): boolean {
+  const hasTags = Boolean(match.tags?.length);
+  const hasPrefix = Boolean(match.pageIdPrefix);
+  if (!hasTags && !hasPrefix) return true;
+  if (hasTags) {
+    const pageTags = page.tags ?? [];
+    if (!match.tags!.some((t) => pageTags.includes(t))) return false;
+  }
+  if (hasPrefix && !page.id.startsWith(match.pageIdPrefix!)) return false;
+  return true;
+}
+
+/**
+ * Resolve layout/skin for a page: site default → matching sections → page override.
+ * Layouts remain first-class; sections never invent zones.
+ */
+export function resolvePageProfile(document: SiteDocument, page: Page): PageProfile {
+  let layoutId: string | undefined = document.site.defaultLayoutId;
+  let skinId: string | undefined = document.site.theme;
+  let layoutSource: PageProfile["layoutSource"] = "site";
+  let sectionId: string | undefined;
+
+  const walk = (sections: Section[]) => {
+    for (const section of sections) {
+      if (!sectionMatchesPage(section.match, page)) continue;
+      if (section.layoutId) {
+        layoutId = section.layoutId;
+        layoutSource = "section";
+      }
+      if (section.skinId !== undefined) skinId = section.skinId;
+      sectionId = section.id;
+      if (section.children?.length) walk(section.children);
+    }
+  };
+
+  walk(document.sections ?? []);
+
+  if (page.layoutId) {
+    layoutId = page.layoutId;
+    layoutSource = "page";
+  }
+
+  if (!layoutId) {
+    layoutId = document.layouts[0]?.id;
+    if (!layoutId) throw new Error(`No layout available for page ${page.id}`);
+    layoutSource = "site";
+  }
+
+  return { layoutId, skinId, layoutSource, sectionId };
+}
 
 /**
  * Caption from filename: strip extension, then a leading ordering prefix (`01-`, `001_`, …),

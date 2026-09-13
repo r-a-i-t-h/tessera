@@ -14,6 +14,8 @@ export {
   FolderImageSchema,
   FolderSchema,
   BindingSchema,
+  SectionMatchSchema,
+  SectionSchema,
   NavSourceSchema,
   NavEntrySchema,
   SiteMetaSchema,
@@ -22,6 +24,8 @@ export {
   safeParseSiteDocument,
   collectDeclaredZones,
   captionFromFilename,
+  sectionMatchesPage,
+  resolvePageProfile,
 } from "./schema.js";
 
 export type {
@@ -43,6 +47,9 @@ export type {
   FolderImage,
   Folder,
   Binding,
+  SectionMatch,
+  Section,
+  PageProfile,
   NavSource,
   NavEntry,
   SiteMeta,

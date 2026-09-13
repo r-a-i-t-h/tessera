@@ -98,6 +98,36 @@ describe("renderPage", () => {
     ).toThrow(/Unknown layout/);
   });
 
+  it("resolves layout from a matching section when page.layoutId is omitted", () => {
+    const doc = makeFixtureDoc();
+    doc.site.defaultLayoutId = "with-aside";
+    doc.sections = [
+      {
+        id: "events",
+        match: { tags: ["event"] },
+        layoutId: "no-aside",
+        skinId: "amber",
+      },
+    ];
+    doc.pages.push({
+      id: "event-x",
+      title: "Event X",
+      tags: ["event"],
+      zones: {
+        title: [{ type: "text", html: "From section" }],
+        main: [{ type: "text", html: "<p>Body</p>" }],
+        footer: [{ type: "text", html: "Foot" }],
+      },
+    });
+    const html = renderPage({
+      document: doc,
+      pageId: "event-x",
+      registry: registryWithDefaults(),
+    });
+    expect(html).toContain("From section");
+    expect(html).toContain("<p>Body</p>");
+  });
+
   it("applies skin region classes", () => {
     const doc = makeFixtureDoc();
     const html = renderPage({

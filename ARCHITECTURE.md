@@ -25,14 +25,15 @@ Sample sites live under `apps/demo-*` (pure / ineffable / millersark). Shared ch
 ## Content model
 
 - **Layout** — tree of `region` | `zone` | `static` | `component`. **Only layouts declare zones** (and where they appear).
-- **Page** — chooses `layoutId`, optional `includes` (shared items), and `zones` contributions.
+- **Page** — optional `layoutId` (override), optional `includes` (shared items), and `zones` contributions.
+- **Sections** — hierarchical presentation profiles (`match` by tags / `pageIdPrefix` → `layoutId` / `skinId`). Resolved by `resolvePageProfile`: site default → matching sections → page override.
 - **Item** — reusable zone contributions (footer, promo, …), pulled in via `page.includes`.
 - **Blocks** inside a zone: `text` | `json` | `media` | `component`.
 - **Nav / media / site meta** — also in the flattened document.
 
 **Rule:** if a layout does not declare zone `aside`, contributions to `aside` are not painted. They remain on the merge map so components can still read “data zones” (e.g. JSON for a list) via `ctx.zoneJson("events")`.
 
-There is **no** recursive `parentId` template chain and **no** inventing zones from inside page HTML.
+There is **no** recursive `parentId` template chain and **no** inventing zones from inside page HTML. Section profiles replace Rec-Tem-style “templates as content” for hierarchy-wide layout/theme switching.
 
 ## Relative assets
 
@@ -89,8 +90,8 @@ Web components follow the same idea: implement with `WCBase`, `customElements.de
 
 1. Load + validate `site.json` (Zod) with cache-busting query; persist to `localStorage`; fall back to cache on failure (see SPEC §3).
 2. Resolve page from hash (unknown ids fall back to home — no error UI).
-3. Merge `page.zones` then each included item’s zones (stable order).
-4. Walk the layout tree; zone nodes render their blocks; unknown component names become HTML comments.
+3. Resolve the page’s **profile** (`resolvePageProfile`: section inheritance + page override), then merge `page.zones` then each included item’s zones (stable order).
+4. Walk the chosen layout tree; zone nodes render their blocks; unknown component names become HTML comments.
 5. Optional `onAfterRender` / `onStatusChange` for chrome outside the document (demo sidebar, stale banner).
 6. While open, re-fetch on a 5-minute TTL when `documentUrl` is set.
 
@@ -105,4 +106,4 @@ npm install
 npm run dev
 ```
 
-Open the app, switch between **Home** (aside visible) and **Simple layout** (same aside content hidden).
+Open the app, switch between **Home** (aside visible) and **Simple layout** (same aside content hidden). Event pages omit `layoutId` and inherit layout/skin from `sections` (see Open farm day / Evening talk).

@@ -1,4 +1,5 @@
-import type { Block, LayoutNode, Media, Page, SiteDocument } from "@r-a-i-t-h/tessera-model";
+import type { Block, LayoutNode, Media, SiteDocument } from "@r-a-i-t-h/tessera-model";
+import { resolvePageProfile } from "@r-a-i-t-h/tessera-model";
 import { normalizeSiteAssetUrl } from "./assets.js";
 import { expandMustache, renderNamed } from "./bindings.js";
 import type { ComponentRegistry } from "./registry.js";
@@ -64,14 +65,16 @@ export function renderPage(options: RenderPageOptions): string {
   const page = pagesById.get(pageId);
   if (!page) throw new Error(`Unknown page: ${pageId}`);
 
-  const layout = layoutsById.get(page.layoutId);
-  if (!layout) throw new Error(`Unknown layout: ${page.layoutId} (page ${pageId})`);
+  const profile = resolvePageProfile(document, page);
+  const layout = layoutsById.get(profile.layoutId);
+  if (!layout) throw new Error(`Unknown layout: ${profile.layoutId} (page ${pageId})`);
 
   const zones = mergeZones(document, page, itemsById);
 
   const ctx: RenderContext = {
     document,
     page,
+    profile,
     zones,
     registry,
     renderBlocks: (blocks) => renderBlocks(blocks, ctx),

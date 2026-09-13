@@ -8,6 +8,10 @@ function minimalCtx(registry: ComponentRegistry): RenderContext {
   return {
     document: doc,
     page: doc.pages[0]!,
+    profile: {
+      layoutId: doc.pages[0]!.layoutId ?? "with-aside",
+      layoutSource: "page",
+    },
     zones: new Map(),
     registry,
     renderBlocks: () => "",

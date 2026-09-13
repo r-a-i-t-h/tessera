@@ -53,9 +53,14 @@ export const eventList: ComponentFn = (ctx, props = {}) => {
   return `<ul class="w3-ul w3-border w3-round">${items}</ul>`;
 };
 
-/** Demo of reading site settings + current page. */
+/** Demo of reading resolved page profile (section inheritance + layout). */
 export const aboutRenderer: ComponentFn = (ctx) => {
-  return `<p class="w3-small w3-text-grey">Rendered page <code>${ctx.escapeHtml(ctx.page.id)}</code> with layout <code>${ctx.escapeHtml(ctx.page.layoutId)}</code>.</p>`;
+  const { layoutId, layoutSource, sectionId, skinId } = ctx.profile;
+  const section = sectionId
+    ? ` section <code>${ctx.escapeHtml(sectionId)}</code>`
+    : "";
+  const skin = skinId ? ` skin <code>${ctx.escapeHtml(skinId)}</code>` : "";
+  return `<p class="w3-small w3-text-grey">Rendered page <code>${ctx.escapeHtml(ctx.page.id)}</code> with layout <code>${ctx.escapeHtml(layoutId)}</code> (from ${ctx.escapeHtml(layoutSource)}${section}${skin}).</p>`;
 };
 
 export function registerSiteComponents(

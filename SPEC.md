@@ -46,12 +46,22 @@ The whole text/data payload for a site is one **`SiteDocument`**: site meta, lay
 
 - A **layout** is a tree of regions, zones, static HTML, and components.
 - **Only layouts declare zones** and where they appear on the page.
-- A **page** chooses a layout, may pull in shared **items**, and contributes blocks into zones.
+- A **page** may set `layoutId` explicitly, or omit it and inherit from **section profiles** / `site.defaultLayoutId`.
+- A page may pull in shared **items** and contribute blocks into zones.
 - Contributions to zones the layout does not declare are not painted, but may remain available as data for components (e.g. JSON for a list).
+
+### Section profiles
+
+Hierarchical **sections** switch layout/skin for slices of the site **without** recursive content templates:
+
+- `document.sections[]` is a shallow tree: `{ id, match, layoutId?, skinId?, children? }`.
+- `match` uses tags and/or `pageIdPrefix` (present fields are ANDed; empty match matches all).
+- Resolution order: `site.defaultLayoutId` (+ `site.theme` as default skin) → matching sections (deeper / later wins) → `page.layoutId` override.
+- Layouts remain first-class; sections never invent zones. Within-page variety stays regions, bindings, and layout WCs.
 
 ### Pages and items
 
-- **Page** — a navigable unit: layout + zone contributions (+ optional includes).
+- **Page** — a navigable unit: resolved layout + zone contributions (+ optional includes).
 - **Item** — reusable content contribution (the collection formerly thought of as “lists” / “collections”). Lists and collections are the same idea; the vocabulary is **`items`**.
 - Items may be shown **on a page** (component loops over data) or **as pages** (each record becomes a navigable page / nav link), depending on registered bindings.
 
@@ -215,6 +225,7 @@ Criteria define “done enough,” not a build order (see [ROADMAP.md](./ROADMAP
 
 - [x] Bindings are site data (`document.bindings`) pairing content with a registered component under a public id.
 - [x] Content can insert a binding via `{{id}}` in text HTML and via a component block named with that id.
+- [x] Section profiles resolve layout/skin for matching pages (page override > section > site default) without recursive templates.
 - [ ] Items support list-on-page and as-pages presentation patterns used by demos / shipped components.
 
 ### Navigation

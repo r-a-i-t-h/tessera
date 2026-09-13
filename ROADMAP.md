@@ -12,6 +12,7 @@ Update this file when priorities or status change; keep demo scoreboard copy ali
 | Content fetch + cache + TTL + schema abandon | Cache-bust fetch, `localStorage`, stale signal, 5‑minute TTL, schema abandon. Demos show `renderStaleBanner`. Silent unknown-hash → home. |
 | Site-data bindings + `{{id}}` | `document.bindings`; mustache + component-name insertion (demo-pure `farm-open-days`). |
 | Nav: pages ≠ visibility; multi presentation | Designed nav + `source`; `navTags` / `navTree` / `navCollapse`; demo-pure sidebar uses collapse. Orphan page proves reachability ≠ nav. |
+| Section profiles | `document.sections` + `resolvePageProfile`; page override > section > site default. demo-pure events inherit `simple` / `amber` (featured → `gold`). |
 
 ## Upcoming (ordered)
 
