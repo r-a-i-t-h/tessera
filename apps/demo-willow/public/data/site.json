@@ -1,0 +1,1689 @@
+{
+  "version": 1,
+  "site": {
+    "id": "willow-hall",
+    "title": "Willow Hall",
+    "homePageId": "home",
+    "defaultLayoutId": "standard",
+    "theme": "willow"
+  },
+  "layouts": [
+    {
+      "id": "standard",
+      "title": "Standard page",
+      "root": {
+        "type": "region",
+        "role": "content",
+        "className": "wh-shell",
+        "children": [
+          {
+            "type": "zone",
+            "id": "hero"
+          },
+          {
+            "type": "region",
+            "role": "main",
+            "children": [
+              {
+                "type": "region",
+                "tag": "h1",
+                "className": "w3-text-theme",
+                "children": [
+                  {
+                    "type": "zone",
+                    "id": "title"
+                  }
+                ]
+              },
+              {
+                "type": "zone",
+                "id": "lead"
+              },
+              {
+                "type": "zone",
+                "id": "main"
+              },
+              {
+                "type": "region",
+                "role": "row",
+                "className": "w3-row-padding wh-split",
+                "children": [
+                  {
+                    "type": "region",
+                    "className": "w3-col m7",
+                    "children": [
+                      {
+                        "type": "zone",
+                        "id": "primary"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "region",
+                    "className": "w3-col m5",
+                    "children": [
+                      {
+                        "type": "zone",
+                        "id": "aside"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "region",
+            "tag": "footer",
+            "role": "footer",
+            "className": "wh-footer",
+            "children": [
+              {
+                "type": "zone",
+                "id": "footer"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "article",
+      "title": "Dated article",
+      "root": {
+        "type": "region",
+        "role": "content",
+        "className": "wh-shell",
+        "children": [
+          {
+            "type": "region",
+            "role": "main",
+            "children": [
+              {
+                "type": "region",
+                "tag": "h1",
+                "className": "w3-text-theme",
+                "children": [
+                  {
+                    "type": "zone",
+                    "id": "title"
+                  }
+                ]
+              },
+              {
+                "type": "component",
+                "name": "articleByline"
+              },
+              {
+                "type": "zone",
+                "id": "main"
+              }
+            ]
+          },
+          {
+            "type": "region",
+            "tag": "footer",
+            "role": "footer",
+            "className": "wh-footer",
+            "children": [
+              {
+                "type": "zone",
+                "id": "footer"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "meeting",
+      "title": "Weekly meeting (agenda + minutes)",
+      "root": {
+        "type": "region",
+        "role": "content",
+        "className": "wh-shell",
+        "children": [
+          {
+            "type": "region",
+            "role": "main",
+            "children": [
+              {
+                "type": "region",
+                "tag": "h1",
+                "className": "w3-text-theme",
+                "children": [
+                  {
+                    "type": "zone",
+                    "id": "title"
+                  }
+                ]
+              },
+              {
+                "type": "component",
+                "name": "articleByline"
+              },
+              {
+                "type": "zone",
+                "id": "main"
+              },
+              {
+                "type": "region",
+                "role": "row",
+                "className": "w3-row-padding wh-split",
+                "children": [
+                  {
+                    "type": "region",
+                    "className": "w3-col m6",
+                    "children": [
+                      {
+                        "type": "region",
+                        "className": "wh-panel",
+                        "children": [
+                          {
+                            "type": "static",
+                            "html": "<h2>Agenda</h2>"
+                          },
+                          {
+                            "type": "component",
+                            "name": "agendaList"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "region",
+                    "className": "w3-col m6",
+                    "children": [
+                      {
+                        "type": "region",
+                        "className": "wh-panel",
+                        "children": [
+                          {
+                            "type": "static",
+                            "html": "<h2>Minutes</h2>"
+                          },
+                          {
+                            "type": "zone",
+                            "id": "minutes"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "static",
+                "html": "<h2>Attendees</h2>"
+              },
+              {
+                "type": "component",
+                "name": "attendeeList"
+              }
+            ]
+          },
+          {
+            "type": "region",
+            "tag": "footer",
+            "role": "footer",
+            "className": "wh-footer",
+            "children": [
+              {
+                "type": "zone",
+                "id": "footer"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "profile",
+      "title": "Personnel profile",
+      "root": {
+        "type": "region",
+        "role": "content",
+        "className": "wh-shell",
+        "children": [
+          {
+            "type": "region",
+            "role": "main",
+            "children": [
+              {
+                "type": "component",
+                "name": "profileKicker"
+              },
+              {
+                "type": "region",
+                "tag": "h1",
+                "className": "w3-text-theme",
+                "children": [
+                  {
+                    "type": "zone",
+                    "id": "title"
+                  }
+                ]
+              },
+              {
+                "type": "region",
+                "role": "row",
+                "className": "w3-row-padding wh-split",
+                "children": [
+                  {
+                    "type": "region",
+                    "className": "w3-col s12 m4",
+                    "children": [
+                      {
+                        "type": "component",
+                        "name": "profilePhoto"
+                      },
+                      {
+                        "type": "component",
+                        "name": "profileFacts"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "region",
+                    "className": "w3-col s12 m8",
+                    "children": [
+                      {
+                        "type": "zone",
+                        "id": "main"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "region",
+            "tag": "footer",
+            "role": "footer",
+            "className": "wh-footer",
+            "children": [
+              {
+                "type": "zone",
+                "id": "footer"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "id": "upcoming-events",
+      "component": "datedList",
+      "props": {
+        "tag": "event",
+        "limit": 3,
+        "upcoming": true
+      }
+    },
+    {
+      "id": "latest-news",
+      "component": "datedList",
+      "props": {
+        "tag": "blog",
+        "limit": 3
+      }
+    },
+    {
+      "id": "all-events",
+      "component": "datedList",
+      "props": {
+        "tag": "event"
+      }
+    },
+    {
+      "id": "all-news",
+      "component": "datedList",
+      "props": {
+        "tag": "blog"
+      }
+    },
+    {
+      "id": "all-meetings",
+      "component": "datedList",
+      "props": {
+        "tag": "meeting"
+      }
+    },
+    {
+      "id": "people-grid",
+      "component": "peopleGrid"
+    },
+    {
+      "id": "people-preview",
+      "component": "peopleGrid",
+      "props": {
+        "limit": 3
+      }
+    },
+    {
+      "id": "hall-gallery",
+      "component": "gallery",
+      "props": {
+        "folders": [
+          "hall-gallery"
+        ],
+        "mode": "grid"
+      }
+    },
+    {
+      "id": "hall-gallery-slides",
+      "component": "gallery",
+      "props": {
+        "folders": [
+          "hall-gallery"
+        ],
+        "mode": "slides",
+        "autoplay": true
+      }
+    }
+  ],
+  "sections": [
+    {
+      "id": "pages",
+      "title": "Ordinary pages",
+      "match": {
+        "tags": [
+          "page"
+        ]
+      },
+      "layoutId": "standard"
+    },
+    {
+      "id": "news-posts",
+      "title": "News articles",
+      "match": {
+        "tags": [
+          "blog"
+        ]
+      },
+      "layoutId": "article"
+    },
+    {
+      "id": "event-pages",
+      "title": "Event pages",
+      "match": {
+        "tags": [
+          "event"
+        ]
+      },
+      "layoutId": "article"
+    },
+    {
+      "id": "weekly-meetings",
+      "title": "Weekly meetings",
+      "match": {
+        "pageIdPrefix": "meeting-"
+      },
+      "layoutId": "meeting"
+    },
+    {
+      "id": "profiles",
+      "title": "Personnel",
+      "match": {
+        "tags": [
+          "person"
+        ]
+      },
+      "layoutId": "profile"
+    }
+  ],
+  "items": [
+    {
+      "id": "common-footer",
+      "title": "Shared footer",
+      "zones": {
+        "footer": [
+          {
+            "type": "text",
+            "html": "<p><strong>Willow Hall</strong> · 14 Mill Lane, Northbridge NB3 2WL</p><p><a href=\"#contact\">Contact</a> · <a href=\"#about\">About us</a> · <a href=\"#gallery\">Gallery</a></p><p>Lorem ipsum demo for Tessera — content is sample data.</p>"
+          }
+        ]
+      }
+    }
+  ],
+  "pages": [
+    {
+      "includes": [
+        "common-footer"
+      ],
+      "zones": {
+        "hero": [
+          {
+            "type": "text",
+            "html": "<div class=\"wh-hero\">\n              <p class=\"wh-kicker\">Neighbourhood hall · est. 1974</p>\n              <h2>A room of one’s own — for the whole street</h2>\n              <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere, nisl at aliquet dictum, nisi nisl aliquam lectus, vitae gravida erat sapien sit amet arcu. Hire the hall, join a club, or simply drop in for tea.</p>\n              <a class=\"w3-button\" href=\"#events\">See what’s on</a>\n              <a class=\"w3-button\" href=\"#contact\">Visit us</a>\n            </div>"
+          }
+        ],
+        "title": [
+          {
+            "type": "text",
+            "html": "Welcome to Willow Hall"
+          }
+        ],
+        "lead": [
+          {
+            "type": "text",
+            "html": "<p class=\"w3-large\">Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec vel mauris lectus. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.</p>"
+          }
+        ],
+        "main": [
+          {
+            "type": "text",
+            "html": "<h2>This week at a glance</h2>\n             <p>Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Curabitur non nulla sit amet nisl tempus convallis quis ac lectus. Pellentesque in ipsum id orci porta dapibus.</p>\n             <h2>Who keeps the kettle on</h2>\n             <p>Trustees and volunteer leads — lorem ipsum profiles, all using the same layout.</p>\n             {{people-preview}}\n             <p><a href=\"#people\">Meet the whole team</a></p>\n             <h2>From the hall</h2>\n             {{hall-gallery-slides}}"
+          }
+        ],
+        "primary": [
+          {
+            "type": "text",
+            "html": "<h2>Upcoming events</h2>{{upcoming-events}}<p><a href=\"#events\">Full listings</a></p>"
+          }
+        ],
+        "aside": [
+          {
+            "type": "text",
+            "html": "<h2>Latest news</h2>{{latest-news}}<p><a href=\"#news\">All news</a></p>"
+          }
+        ]
+      },
+      "id": "home",
+      "title": "Home",
+      "tags": [
+        "page"
+      ]
+    },
+    {
+      "includes": [
+        "common-footer"
+      ],
+      "zones": {
+        "title": [
+          {
+            "type": "text",
+            "html": "About us"
+          }
+        ],
+        "lead": [
+          {
+            "type": "text",
+            "html": "<p class=\"w3-large\">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere, nisl at aliquet dictum, nisi nisl aliquam lectus, vitae gravida erat sapien sit amet arcu.</p>"
+          }
+        ],
+        "main": [
+          {
+            "type": "text",
+            "html": "<h2>A hall with a long memory</h2>\n             <p>Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec vel mauris lectus. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.</p><p>Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Curabitur non nulla sit amet nisl tempus convallis quis ac lectus. Pellentesque in ipsum id orci porta dapibus.</p>\n             <h2>What we are for</h2>\n             <p>Proin eget tortor risus. Vivamus magna justo, lacinia eget consectetur sed, convallis at tellus. Nulla quis lorem ut libero malesuada feugiat. Donec sollicitudin molestie malesuada.</p><p>Sed porttitor lectus nibh. Curabitur aliquet quam id dui posuere blandit. Quisque velit nisi, pretium ut lacinia in, elementum id enim. Cras ultricies ligula sed magna dictum porta.</p>\n             <h2>How we are run</h2>\n             <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere, nisl at aliquet dictum, nisi nisl aliquam lectus, vitae gravida erat sapien sit amet arcu.</p><p>Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec vel mauris lectus. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.</p>\n             <p>See the <a href=\"#people\">trustee profiles</a> and the weekly <a href=\"#meetings\">meeting minutes</a>.</p>"
+          }
+        ]
+      },
+      "id": "about",
+      "title": "About us",
+      "tags": [
+        "page"
+      ]
+    },
+    {
+      "includes": [
+        "common-footer"
+      ],
+      "zones": {
+        "title": [
+          {
+            "type": "text",
+            "html": "Contact us"
+          }
+        ],
+        "lead": [
+          {
+            "type": "text",
+            "html": "<p class=\"w3-large\">Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Curabitur non nulla sit amet nisl tempus convallis quis ac lectus. Pellentesque in ipsum id orci porta dapibus.</p>"
+          }
+        ],
+        "primary": [
+          {
+            "type": "text",
+            "html": "<div class=\"wh-panel\">\n              <h2>Write to the hall</h2>\n              <p>This demo form does not send messages — lorem ipsum only.</p>\n              <form class=\"wh-form\" action=\"#contact\">\n                <label for=\"wh-name\">Name</label>\n                <input id=\"wh-name\" name=\"name\" autocomplete=\"name\" />\n                <label for=\"wh-email\">Email</label>\n                <input id=\"wh-email\" name=\"email\" type=\"email\" autocomplete=\"email\" />\n                <label for=\"wh-msg\">Message</label>\n                <textarea id=\"wh-msg\" name=\"message\"></textarea>\n                <button type=\"button\">Send (demo)</button>\n              </form>\n            </div>"
+          }
+        ],
+        "aside": [
+          {
+            "type": "text",
+            "html": "<div class=\"wh-panel\">\n              <h2>Find us</h2>\n              <p><strong>Willow Hall</strong><br>14 Mill Lane<br>Northbridge<br>NB3 2WL</p>\n              <p>01632 960 184<br><a href=\"mailto:hall@willow.example\">hall@willow.example</a></p>\n              <h2>Opening hours</h2>\n              <p>Porch unlocked 08:30–21:00 most days.<br>Office: Tue &amp; Thu 10:00–13:00</p>\n              <p>Proin eget tortor risus. Vivamus magna justo, lacinia eget consectetur sed, convallis at tellus. Nulla quis lorem ut libero malesuada feugiat. Donec sollicitudin molestie malesuada.</p>\n            </div>"
+          }
+        ]
+      },
+      "id": "contact",
+      "title": "Contact us",
+      "tags": [
+        "page"
+      ]
+    },
+    {
+      "includes": [
+        "common-footer"
+      ],
+      "zones": {
+        "title": [
+          {
+            "type": "text",
+            "html": "News"
+          }
+        ],
+        "lead": [
+          {
+            "type": "text",
+            "html": "<p class=\"w3-large\">Dated notices and stories from the hall. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere, nisl at aliquet dictum, nisi nisl aliquam lectus, vitae gravida erat sapien sit amet arcu.</p>"
+          }
+        ],
+        "main": [
+          {
+            "type": "text",
+            "html": "{{all-news}}"
+          }
+        ]
+      },
+      "id": "news",
+      "title": "News",
+      "tags": [
+        "page"
+      ]
+    },
+    {
+      "includes": [
+        "common-footer"
+      ],
+      "zones": {
+        "title": [
+          {
+            "type": "text",
+            "html": "What’s on"
+          }
+        ],
+        "lead": [
+          {
+            "type": "text",
+            "html": "<p class=\"w3-large\">Public listings — markets, music, and seasonal fairs. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec vel mauris lectus. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.</p>"
+          }
+        ],
+        "main": [
+          {
+            "type": "text",
+            "html": "{{all-events}}"
+          }
+        ]
+      },
+      "id": "events",
+      "title": "Events",
+      "tags": [
+        "page"
+      ]
+    },
+    {
+      "includes": [
+        "common-footer"
+      ],
+      "zones": {
+        "title": [
+          {
+            "type": "text",
+            "html": "Weekly meetings"
+          }
+        ],
+        "lead": [
+          {
+            "type": "text",
+            "html": "<p class=\"w3-large\">Every Wednesday, same template: agenda, minutes, attendees. Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Curabitur non nulla sit amet nisl tempus convallis quis ac lectus. Pellentesque in ipsum id orci porta dapibus.</p>"
+          }
+        ],
+        "main": [
+          {
+            "type": "text",
+            "html": "{{all-meetings}}"
+          }
+        ]
+      },
+      "id": "meetings",
+      "title": "Meetings",
+      "tags": [
+        "page"
+      ]
+    },
+    {
+      "includes": [
+        "common-footer"
+      ],
+      "zones": {
+        "title": [
+          {
+            "type": "text",
+            "html": "People"
+          }
+        ],
+        "lead": [
+          {
+            "type": "text",
+            "html": "<p class=\"w3-large\">Trustees and volunteer leads. Proin eget tortor risus. Vivamus magna justo, lacinia eget consectetur sed, convallis at tellus. Nulla quis lorem ut libero malesuada feugiat. Donec sollicitudin molestie malesuada.</p>"
+          }
+        ],
+        "main": [
+          {
+            "type": "text",
+            "html": "{{people-grid}}"
+          }
+        ]
+      },
+      "id": "people",
+      "title": "People",
+      "tags": [
+        "page"
+      ]
+    },
+    {
+      "includes": [
+        "common-footer"
+      ],
+      "zones": {
+        "title": [
+          {
+            "type": "text",
+            "html": "Gallery"
+          }
+        ],
+        "lead": [
+          {
+            "type": "text",
+            "html": "<p class=\"w3-large\">Life at the hall — tap any picture for a closer look. Sed porttitor lectus nibh. Curabitur aliquet quam id dui posuere blandit. Quisque velit nisi, pretium ut lacinia in, elementum id enim. Cras ultricies ligula sed magna dictum porta.</p>"
+          }
+        ],
+        "main": [
+          {
+            "type": "text",
+            "html": "{{hall-gallery}}"
+          }
+        ]
+      },
+      "id": "gallery",
+      "title": "Gallery",
+      "tags": [
+        "page"
+      ]
+    },
+    {
+      "includes": [
+        "common-footer"
+      ],
+      "zones": {
+        "title": [
+          {
+            "type": "text",
+            "html": "Harvest supper tickets are out"
+          }
+        ],
+        "meta": [
+          {
+            "type": "json",
+            "data": {
+              "date": "2026-09-08",
+              "author": "Priya Nair",
+              "summary": "Two sittings, one pudding table, and a raffle that still features a fruit cake of mysterious age."
+            }
+          }
+        ],
+        "main": [
+          {
+            "type": "text",
+            "html": "<p>Two sittings, one pudding table, and a raffle that still features a fruit cake of mysterious age.</p><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere, nisl at aliquet dictum, nisi nisl aliquam lectus, vitae gravida erat sapien sit amet arcu.</p><p>Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec vel mauris lectus. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.</p><p>Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Curabitur non nulla sit amet nisl tempus convallis quis ac lectus. Pellentesque in ipsum id orci porta dapibus.</p><p>Proin eget tortor risus. Vivamus magna justo, lacinia eget consectetur sed, convallis at tellus. Nulla quis lorem ut libero malesuada feugiat. Donec sollicitudin molestie malesuada.</p><p><a href=\"#news\">Back to news</a></p>"
+          }
+        ]
+      },
+      "id": "blog-harvest-supper",
+      "title": "Harvest supper tickets are out",
+      "tags": [
+        "blog"
+      ]
+    },
+    {
+      "includes": [
+        "common-footer"
+      ],
+      "zones": {
+        "title": [
+          {
+            "type": "text",
+            "html": "Roof appeal: the quiet halfway mark"
+          }
+        ],
+        "meta": [
+          {
+            "type": "json",
+            "data": {
+              "date": "2026-08-22",
+              "author": "Sam Okonkwo",
+              "summary": "Slates, gutters, and the small miracle of people putting envelopes through the porch."
+            }
+          }
+        ],
+        "main": [
+          {
+            "type": "text",
+            "html": "<p>Slates, gutters, and the small miracle of people putting envelopes through the porch.</p><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere, nisl at aliquet dictum, nisi nisl aliquam lectus, vitae gravida erat sapien sit amet arcu.</p><p>Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec vel mauris lectus. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.</p><p>Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Curabitur non nulla sit amet nisl tempus convallis quis ac lectus. Pellentesque in ipsum id orci porta dapibus.</p><p>Proin eget tortor risus. Vivamus magna justo, lacinia eget consectetur sed, convallis at tellus. Nulla quis lorem ut libero malesuada feugiat. Donec sollicitudin molestie malesuada.</p><p><a href=\"#news\">Back to news</a></p>"
+          }
+        ]
+      },
+      "id": "blog-roof-appeal",
+      "title": "Roof appeal: the quiet halfway mark",
+      "tags": [
+        "blog"
+      ]
+    },
+    {
+      "includes": [
+        "common-footer"
+      ],
+      "zones": {
+        "title": [
+          {
+            "type": "text",
+            "html": "Summer fair: a recap in crumbs"
+          }
+        ],
+        "meta": [
+          {
+            "type": "json",
+            "data": {
+              "date": "2026-07-14",
+              "author": "Lina Vogel",
+              "summary": "The tombola ate a teapot, the brass band did not, and the garden survived both."
+            }
+          }
+        ],
+        "main": [
+          {
+            "type": "text",
+            "html": "<p>The tombola ate a teapot, the brass band did not, and the garden survived both.</p><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere, nisl at aliquet dictum, nisi nisl aliquam lectus, vitae gravida erat sapien sit amet arcu.</p><p>Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec vel mauris lectus. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.</p><p>Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Curabitur non nulla sit amet nisl tempus convallis quis ac lectus. Pellentesque in ipsum id orci porta dapibus.</p><p>Proin eget tortor risus. Vivamus magna justo, lacinia eget consectetur sed, convallis at tellus. Nulla quis lorem ut libero malesuada feugiat. Donec sollicitudin molestie malesuada.</p><p><a href=\"#news\">Back to news</a></p>"
+          }
+        ]
+      },
+      "id": "blog-summer-fair",
+      "title": "Summer fair: a recap in crumbs",
+      "tags": [
+        "blog"
+      ]
+    },
+    {
+      "includes": [
+        "common-footer"
+      ],
+      "zones": {
+        "title": [
+          {
+            "type": "text",
+            "html": "Two new trustees, same kettle"
+          }
+        ],
+        "meta": [
+          {
+            "type": "json",
+            "data": {
+              "date": "2026-06-02",
+              "author": "Amira Chen",
+              "summary": "Welcome notes from the chair, plus a reminder that the AGM minutes live under Meetings."
+            }
+          }
+        ],
+        "main": [
+          {
+            "type": "text",
+            "html": "<p>Welcome notes from the chair, plus a reminder that the AGM minutes live under Meetings.</p><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere, nisl at aliquet dictum, nisi nisl aliquam lectus, vitae gravida erat sapien sit amet arcu.</p><p>Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec vel mauris lectus. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.</p><p>Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Curabitur non nulla sit amet nisl tempus convallis quis ac lectus. Pellentesque in ipsum id orci porta dapibus.</p><p>Proin eget tortor risus. Vivamus magna justo, lacinia eget consectetur sed, convallis at tellus. Nulla quis lorem ut libero malesuada feugiat. Donec sollicitudin molestie malesuada.</p><p><a href=\"#news\">Back to news</a></p>"
+          }
+        ]
+      },
+      "id": "blog-new-trustees",
+      "title": "Two new trustees, same kettle",
+      "tags": [
+        "blog"
+      ]
+    },
+    {
+      "includes": [
+        "common-footer"
+      ],
+      "zones": {
+        "title": [
+          {
+            "type": "text",
+            "html": "Craft market"
+          }
+        ],
+        "meta": [
+          {
+            "type": "json",
+            "data": {
+              "date": "2026-09-27",
+              "time": "10:00–16:00",
+              "where": "Main hall",
+              "summary": "Makers, mending, and a cake stall that sells out before lunch."
+            }
+          }
+        ],
+        "main": [
+          {
+            "type": "text",
+            "html": "<p>Makers, mending, and a cake stall that sells out before lunch.</p><p>Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec vel mauris lectus. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.</p><p>Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Curabitur non nulla sit amet nisl tempus convallis quis ac lectus. Pellentesque in ipsum id orci porta dapibus.</p><p>Sed porttitor lectus nibh. Curabitur aliquet quam id dui posuere blandit. Quisque velit nisi, pretium ut lacinia in, elementum id enim. Cras ultricies ligula sed magna dictum porta.</p>\n               <p>Bookings: <a href=\"#contact\">contact the hall</a>. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere, nisl at aliquet dictum, nisi nisl aliquam lectus, vitae gravida erat sapien sit amet arcu.</p>\n               <p><a href=\"#events\">Back to listings</a></p>"
+          }
+        ]
+      },
+      "id": "event-craft-market",
+      "title": "Craft market",
+      "tags": [
+        "event"
+      ]
+    },
+    {
+      "includes": [
+        "common-footer"
+      ],
+      "zones": {
+        "title": [
+          {
+            "type": "text",
+            "html": "Open mic night"
+          }
+        ],
+        "meta": [
+          {
+            "type": "json",
+            "data": {
+              "date": "2026-10-04",
+              "time": "19:30",
+              "where": "Main hall",
+              "summary": "Poetry, folk, and at least one accordion. Sign-up on the door."
+            }
+          }
+        ],
+        "main": [
+          {
+            "type": "text",
+            "html": "<p>Poetry, folk, and at least one accordion. Sign-up on the door.</p><p>Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec vel mauris lectus. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.</p><p>Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Curabitur non nulla sit amet nisl tempus convallis quis ac lectus. Pellentesque in ipsum id orci porta dapibus.</p><p>Sed porttitor lectus nibh. Curabitur aliquet quam id dui posuere blandit. Quisque velit nisi, pretium ut lacinia in, elementum id enim. Cras ultricies ligula sed magna dictum porta.</p>\n               <p>Bookings: <a href=\"#contact\">contact the hall</a>. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere, nisl at aliquet dictum, nisi nisl aliquam lectus, vitae gravida erat sapien sit amet arcu.</p>\n               <p><a href=\"#events\">Back to listings</a></p>"
+          }
+        ]
+      },
+      "id": "event-open-mic",
+      "title": "Open mic night",
+      "tags": [
+        "event"
+      ]
+    },
+    {
+      "includes": [
+        "common-footer"
+      ],
+      "zones": {
+        "title": [
+          {
+            "type": "text",
+            "html": "Harvest supper"
+          }
+        ],
+        "meta": [
+          {
+            "type": "json",
+            "data": {
+              "date": "2026-10-18",
+              "time": "18:00",
+              "where": "Main hall",
+              "summary": "Two sittings, vegetarian option, and a raffle for the roof fund."
+            }
+          }
+        ],
+        "main": [
+          {
+            "type": "text",
+            "html": "<p>Two sittings, vegetarian option, and a raffle for the roof fund.</p><p>Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec vel mauris lectus. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.</p><p>Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Curabitur non nulla sit amet nisl tempus convallis quis ac lectus. Pellentesque in ipsum id orci porta dapibus.</p><p>Sed porttitor lectus nibh. Curabitur aliquet quam id dui posuere blandit. Quisque velit nisi, pretium ut lacinia in, elementum id enim. Cras ultricies ligula sed magna dictum porta.</p>\n               <p>Bookings: <a href=\"#contact\">contact the hall</a>. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere, nisl at aliquet dictum, nisi nisl aliquam lectus, vitae gravida erat sapien sit amet arcu.</p>\n               <p><a href=\"#events\">Back to listings</a></p>"
+          }
+        ]
+      },
+      "id": "event-harvest",
+      "title": "Harvest supper",
+      "tags": [
+        "event"
+      ]
+    },
+    {
+      "includes": [
+        "common-footer"
+      ],
+      "zones": {
+        "title": [
+          {
+            "type": "text",
+            "html": "Winter fair"
+          }
+        ],
+        "meta": [
+          {
+            "type": "json",
+            "data": {
+              "date": "2026-12-06",
+              "time": "11:00–15:00",
+              "where": "Hall & garden",
+              "summary": "Lights, paper crafts, and the annual appearance of a slightly tired Santa."
+            }
+          }
+        ],
+        "main": [
+          {
+            "type": "text",
+            "html": "<p>Lights, paper crafts, and the annual appearance of a slightly tired Santa.</p><p>Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec vel mauris lectus. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.</p><p>Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Curabitur non nulla sit amet nisl tempus convallis quis ac lectus. Pellentesque in ipsum id orci porta dapibus.</p><p>Sed porttitor lectus nibh. Curabitur aliquet quam id dui posuere blandit. Quisque velit nisi, pretium ut lacinia in, elementum id enim. Cras ultricies ligula sed magna dictum porta.</p>\n               <p>Bookings: <a href=\"#contact\">contact the hall</a>. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere, nisl at aliquet dictum, nisi nisl aliquam lectus, vitae gravida erat sapien sit amet arcu.</p>\n               <p><a href=\"#events\">Back to listings</a></p>"
+          }
+        ]
+      },
+      "id": "event-winter-fair",
+      "title": "Winter fair",
+      "tags": [
+        "event"
+      ]
+    },
+    {
+      "includes": [
+        "common-footer"
+      ],
+      "zones": {
+        "title": [
+          {
+            "type": "text",
+            "html": "Weekly meeting · 10 September"
+          }
+        ],
+        "meta": [
+          {
+            "type": "json",
+            "data": {
+              "date": "2026-09-10",
+              "week": "Week 37",
+              "chair": "Amira Chen",
+              "summary": "Roof quotes, harvest seating, and a booking clash on Saturday."
+            }
+          }
+        ],
+        "agenda": [
+          {
+            "type": "json",
+            "data": [
+              {
+                "item": "Welcome and apologies",
+                "owner": "Chair"
+              },
+              {
+                "item": "Minutes of the last meeting",
+                "owner": "Secretary"
+              },
+              {
+                "item": "Roof appeal quotes",
+                "owner": "Sam"
+              },
+              {
+                "item": "Harvest supper seating",
+                "owner": "Priya"
+              },
+              {
+                "item": "Saturday hire clash",
+                "owner": "Lina"
+              },
+              {
+                "item": "Any other business"
+              }
+            ]
+          }
+        ],
+        "minutes": [
+          {
+            "type": "text",
+            "html": "<p>Apologies from two trustees. Minutes of 3 September agreed as a true record.</p><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere, nisl at aliquet dictum, nisi nisl aliquam lectus, vitae gravida erat sapien sit amet arcu.</p><p>Roof: two quotes to compare at the next meeting. Harvest: first sitting already full.</p><p>Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Curabitur non nulla sit amet nisl tempus convallis quis ac lectus. Pellentesque in ipsum id orci porta dapibus.</p>"
+          }
+        ],
+        "attendees": [
+          {
+            "type": "json",
+            "data": [
+              {
+                "name": "Amira Chen",
+                "role": "Chair"
+              },
+              {
+                "name": "Owen Blake",
+                "role": "Secretary"
+              },
+              {
+                "name": "Priya Nair",
+                "role": "Events"
+              },
+              {
+                "name": "Sam Okonkwo",
+                "role": "Treasurer"
+              },
+              {
+                "name": "Lina Vogel",
+                "role": "Volunteers"
+              }
+            ]
+          }
+        ],
+        "main": [
+          {
+            "type": "text",
+            "html": "<p>Roof quotes, harvest seating, and a booking clash on Saturday.</p>"
+          }
+        ]
+      },
+      "id": "meeting-2026-09-10",
+      "title": "Weekly meeting · 10 September",
+      "tags": [
+        "meeting"
+      ]
+    },
+    {
+      "includes": [
+        "common-footer"
+      ],
+      "zones": {
+        "title": [
+          {
+            "type": "text",
+            "html": "Weekly meeting · 3 September"
+          }
+        ],
+        "meta": [
+          {
+            "type": "json",
+            "data": {
+              "date": "2026-09-03",
+              "week": "Week 36",
+              "chair": "Amira Chen",
+              "summary": "Key cupboard, choir night sound, and the porch light that still flickers."
+            }
+          }
+        ],
+        "agenda": [
+          {
+            "type": "json",
+            "data": [
+              {
+                "item": "Welcome and apologies",
+                "owner": "Chair"
+              },
+              {
+                "item": "Minutes of the last meeting",
+                "owner": "Secretary"
+              },
+              {
+                "item": "Key cupboard",
+                "owner": "Lina"
+              },
+              {
+                "item": "Choir night sound",
+                "owner": "Priya"
+              },
+              {
+                "item": "Porch light",
+                "owner": "Owen"
+              },
+              {
+                "item": "Any other business"
+              }
+            ]
+          }
+        ],
+        "minutes": [
+          {
+            "type": "text",
+            "html": "<p>All present. Minutes of 27 August agreed.</p><p>Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec vel mauris lectus. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.</p><p>Porch light: electrician booked for Thursday. Choir to trial a second speaker, not a third.</p><p>Proin eget tortor risus. Vivamus magna justo, lacinia eget consectetur sed, convallis at tellus. Nulla quis lorem ut libero malesuada feugiat. Donec sollicitudin molestie malesuada.</p>"
+          }
+        ],
+        "attendees": [
+          {
+            "type": "json",
+            "data": [
+              {
+                "name": "Amira Chen",
+                "role": "Chair"
+              },
+              {
+                "name": "Owen Blake",
+                "role": "Secretary"
+              },
+              {
+                "name": "Priya Nair",
+                "role": "Events"
+              },
+              {
+                "name": "Sam Okonkwo",
+                "role": "Treasurer"
+              },
+              {
+                "name": "Lina Vogel",
+                "role": "Volunteers"
+              }
+            ]
+          }
+        ],
+        "main": [
+          {
+            "type": "text",
+            "html": "<p>Key cupboard, choir night sound, and the porch light that still flickers.</p>"
+          }
+        ]
+      },
+      "id": "meeting-2026-09-03",
+      "title": "Weekly meeting · 3 September",
+      "tags": [
+        "meeting"
+      ]
+    },
+    {
+      "includes": [
+        "common-footer"
+      ],
+      "zones": {
+        "title": [
+          {
+            "type": "text",
+            "html": "Weekly meeting · 27 August"
+          }
+        ],
+        "meta": [
+          {
+            "type": "json",
+            "data": {
+              "date": "2026-08-27",
+              "week": "Week 35",
+              "chair": "Owen Blake",
+              "summary": "Chair away; standing in. Fair leftover crockery and the garden tap."
+            }
+          }
+        ],
+        "agenda": [
+          {
+            "type": "json",
+            "data": [
+              {
+                "item": "Welcome and apologies",
+                "owner": "Acting chair"
+              },
+              {
+                "item": "Minutes of the last meeting",
+                "owner": "Secretary"
+              },
+              {
+                "item": "Fair leftover crockery",
+                "owner": "Lina"
+              },
+              {
+                "item": "Garden tap",
+                "owner": "Sam"
+              },
+              {
+                "item": "Any other business"
+              }
+            ]
+          }
+        ],
+        "minutes": [
+          {
+            "type": "text",
+            "html": "<p>Amira away. Owen in the chair. Minutes of 20 August agreed.</p><p>Sed porttitor lectus nibh. Curabitur aliquet quam id dui posuere blandit. Quisque velit nisi, pretium ut lacinia in, elementum id enim. Cras ultricies ligula sed magna dictum porta.</p><p>Crockery to be labelled and stored in the kitchen loft. Garden tap washer replaced.</p><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere, nisl at aliquet dictum, nisi nisl aliquam lectus, vitae gravida erat sapien sit amet arcu.</p>"
+          }
+        ],
+        "attendees": [
+          {
+            "type": "json",
+            "data": [
+              {
+                "name": "Owen Blake",
+                "role": "Acting chair"
+              },
+              {
+                "name": "Priya Nair",
+                "role": "Events"
+              },
+              {
+                "name": "Sam Okonkwo",
+                "role": "Treasurer"
+              },
+              {
+                "name": "Lina Vogel",
+                "role": "Volunteers"
+              }
+            ]
+          }
+        ],
+        "main": [
+          {
+            "type": "text",
+            "html": "<p>Chair away; standing in. Fair leftover crockery and the garden tap.</p>"
+          }
+        ]
+      },
+      "id": "meeting-2026-08-27",
+      "title": "Weekly meeting · 27 August",
+      "tags": [
+        "meeting"
+      ]
+    },
+    {
+      "includes": [
+        "common-footer"
+      ],
+      "zones": {
+        "title": [
+          {
+            "type": "text",
+            "html": "Weekly meeting · 20 August"
+          }
+        ],
+        "meta": [
+          {
+            "type": "json",
+            "data": {
+              "date": "2026-08-20",
+              "week": "Week 34",
+              "chair": "Amira Chen",
+              "summary": "Autumn programme sketch and a reminder about fire exits."
+            }
+          }
+        ],
+        "agenda": [
+          {
+            "type": "json",
+            "data": [
+              {
+                "item": "Welcome and apologies",
+                "owner": "Chair"
+              },
+              {
+                "item": "Minutes of the last meeting",
+                "owner": "Secretary"
+              },
+              {
+                "item": "Autumn programme",
+                "owner": "Priya"
+              },
+              {
+                "item": "Fire exits",
+                "owner": "Chair"
+              },
+              {
+                "item": "Any other business"
+              }
+            ]
+          }
+        ],
+        "minutes": [
+          {
+            "type": "text",
+            "html": "<p>Minutes of the previous week agreed with one spelling correction.</p><p>Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Curabitur non nulla sit amet nisl tempus convallis quis ac lectus. Pellentesque in ipsum id orci porta dapibus.</p><p>Autumn programme to be published on the events page. Fire exit posters reprinted.</p><p>Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec vel mauris lectus. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.</p>"
+          }
+        ],
+        "attendees": [
+          {
+            "type": "json",
+            "data": [
+              {
+                "name": "Amira Chen",
+                "role": "Chair"
+              },
+              {
+                "name": "Owen Blake",
+                "role": "Secretary"
+              },
+              {
+                "name": "Priya Nair",
+                "role": "Events"
+              },
+              {
+                "name": "Sam Okonkwo",
+                "role": "Treasurer"
+              }
+            ]
+          }
+        ],
+        "main": [
+          {
+            "type": "text",
+            "html": "<p>Autumn programme sketch and a reminder about fire exits.</p>"
+          }
+        ]
+      },
+      "id": "meeting-2026-08-20",
+      "title": "Weekly meeting · 20 August",
+      "tags": [
+        "meeting"
+      ]
+    },
+    {
+      "includes": [
+        "common-footer"
+      ],
+      "zones": {
+        "title": [
+          {
+            "type": "text",
+            "html": "Amira Chen"
+          }
+        ],
+        "meta": [
+          {
+            "type": "json",
+            "data": {
+              "role": "Chair of trustees",
+              "email": "amira@willow.example",
+              "photo": "photo-amira",
+              "summary": "Chair of trustees"
+            }
+          }
+        ],
+        "main": [
+          {
+            "type": "text",
+            "html": "<p>Amira has chaired the hall since 2021. Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p><p>Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec vel mauris lectus. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.</p><p>Proin eget tortor risus. Vivamus magna justo, lacinia eget consectetur sed, convallis at tellus. Nulla quis lorem ut libero malesuada feugiat. Donec sollicitudin molestie malesuada.</p><p><a href=\"#people\">All people</a></p>"
+          }
+        ]
+      },
+      "id": "person-amira-chen",
+      "title": "Amira Chen",
+      "tags": [
+        "person"
+      ]
+    },
+    {
+      "includes": [
+        "common-footer"
+      ],
+      "zones": {
+        "title": [
+          {
+            "type": "text",
+            "html": "Owen Blake"
+          }
+        ],
+        "meta": [
+          {
+            "type": "json",
+            "data": {
+              "role": "Secretary",
+              "email": "owen@willow.example",
+              "photo": "photo-owen",
+              "summary": "Secretary"
+            }
+          }
+        ],
+        "main": [
+          {
+            "type": "text",
+            "html": "<p>Owen keeps the minutes (and the key log) in suspiciously neat folders.</p><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere, nisl at aliquet dictum, nisi nisl aliquam lectus, vitae gravida erat sapien sit amet arcu.</p><p>Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Curabitur non nulla sit amet nisl tempus convallis quis ac lectus. Pellentesque in ipsum id orci porta dapibus.</p><p><a href=\"#people\">All people</a></p>"
+          }
+        ]
+      },
+      "id": "person-owen-blake",
+      "title": "Owen Blake",
+      "tags": [
+        "person"
+      ]
+    },
+    {
+      "includes": [
+        "common-footer"
+      ],
+      "zones": {
+        "title": [
+          {
+            "type": "text",
+            "html": "Priya Nair"
+          }
+        ],
+        "meta": [
+          {
+            "type": "json",
+            "data": {
+              "role": "Events lead",
+              "email": "priya@willow.example",
+              "photo": "photo-priya",
+              "summary": "Events lead"
+            }
+          }
+        ],
+        "main": [
+          {
+            "type": "text",
+            "html": "<p>Priya plots the public programme — markets, music, and the harvest sitting plan.</p><p>Sed porttitor lectus nibh. Curabitur aliquet quam id dui posuere blandit. Quisque velit nisi, pretium ut lacinia in, elementum id enim. Cras ultricies ligula sed magna dictum porta.</p><p>Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec vel mauris lectus. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.</p><p><a href=\"#people\">All people</a></p>"
+          }
+        ]
+      },
+      "id": "person-priya-nair",
+      "title": "Priya Nair",
+      "tags": [
+        "person"
+      ]
+    },
+    {
+      "includes": [
+        "common-footer"
+      ],
+      "zones": {
+        "title": [
+          {
+            "type": "text",
+            "html": "Sam Okonkwo"
+          }
+        ],
+        "meta": [
+          {
+            "type": "json",
+            "data": {
+              "role": "Treasurer",
+              "email": "sam@willow.example",
+              "photo": "photo-sam",
+              "summary": "Treasurer"
+            }
+          }
+        ],
+        "main": [
+          {
+            "type": "text",
+            "html": "<p>Sam watches the roof fund and the tea money with equal seriousness.</p><p>Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Curabitur non nulla sit amet nisl tempus convallis quis ac lectus. Pellentesque in ipsum id orci porta dapibus.</p><p>Proin eget tortor risus. Vivamus magna justo, lacinia eget consectetur sed, convallis at tellus. Nulla quis lorem ut libero malesuada feugiat. Donec sollicitudin molestie malesuada.</p><p><a href=\"#people\">All people</a></p>"
+          }
+        ]
+      },
+      "id": "person-sam-okonkwo",
+      "title": "Sam Okonkwo",
+      "tags": [
+        "person"
+      ]
+    },
+    {
+      "includes": [
+        "common-footer"
+      ],
+      "zones": {
+        "title": [
+          {
+            "type": "text",
+            "html": "Lina Vogel"
+          }
+        ],
+        "meta": [
+          {
+            "type": "json",
+            "data": {
+              "role": "Volunteer coordinator",
+              "email": "lina@willow.example",
+              "photo": "photo-lina",
+              "summary": "Volunteer coordinator"
+            }
+          }
+        ],
+        "main": [
+          {
+            "type": "text",
+            "html": "<p>Lina matches people to rotas: kitchen, garden, and the never-ending tea urn.</p><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere, nisl at aliquet dictum, nisi nisl aliquam lectus, vitae gravida erat sapien sit amet arcu.</p><p>Sed porttitor lectus nibh. Curabitur aliquet quam id dui posuere blandit. Quisque velit nisi, pretium ut lacinia in, elementum id enim. Cras ultricies ligula sed magna dictum porta.</p><p><a href=\"#people\">All people</a></p>"
+          }
+        ]
+      },
+      "id": "person-lina-vogel",
+      "title": "Lina Vogel",
+      "tags": [
+        "person"
+      ]
+    }
+  ],
+  "media": [
+    {
+      "id": "photo-amira",
+      "title": "Amira Chen",
+      "url": "./media/people/amira.svg",
+      "type": "image",
+      "alt": "Portrait of Amira Chen"
+    },
+    {
+      "id": "photo-owen",
+      "title": "Owen Blake",
+      "url": "./media/people/owen.svg",
+      "type": "image",
+      "alt": "Portrait of Owen Blake"
+    },
+    {
+      "id": "photo-priya",
+      "title": "Priya Nair",
+      "url": "./media/people/priya.svg",
+      "type": "image",
+      "alt": "Portrait of Priya Nair"
+    },
+    {
+      "id": "photo-sam",
+      "title": "Sam Okonkwo",
+      "url": "./media/people/sam.svg",
+      "type": "image",
+      "alt": "Portrait of Sam Okonkwo"
+    },
+    {
+      "id": "photo-lina",
+      "title": "Lina Vogel",
+      "url": "./media/people/lina.svg",
+      "type": "image",
+      "alt": "Portrait of Lina Vogel"
+    }
+  ],
+  "nav": [
+    {
+      "topbar": true,
+      "sidebar": true,
+      "id": "home",
+      "title": "Home"
+    },
+    {
+      "topbar": true,
+      "sidebar": true,
+      "id": "news",
+      "title": "News"
+    },
+    {
+      "topbar": true,
+      "sidebar": true,
+      "id": "events",
+      "title": "Events"
+    },
+    {
+      "topbar": true,
+      "sidebar": true,
+      "id": "meetings",
+      "title": "Meetings"
+    },
+    {
+      "sidebar": true,
+      "heading": "This term",
+      "source": {
+        "pagesTag": "meeting"
+      }
+    },
+    {
+      "topbar": true,
+      "sidebar": true,
+      "id": "people",
+      "title": "People"
+    },
+    {
+      "topbar": true,
+      "sidebar": true,
+      "id": "gallery",
+      "title": "Gallery"
+    },
+    {
+      "topbar": true,
+      "sidebar": true,
+      "id": "about",
+      "title": "About"
+    },
+    {
+      "topbar": true,
+      "sidebar": true,
+      "id": "contact",
+      "title": "Contact"
+    }
+  ],
+  "folders": [
+    {
+      "id": "hall-gallery",
+      "path": "./media/hall-gallery",
+      "title": "Life at the hall",
+      "images": [
+        {
+          "file": "01-main-hall.svg",
+          "caption": "Chairs set for a Saturday hire",
+          "alt": "Chairs set for a Saturday hire"
+        },
+        {
+          "file": "02-garden.svg",
+          "caption": "The walled garden in late summer",
+          "alt": "The walled garden in late summer"
+        },
+        {
+          "file": "03-kitchen.svg",
+          "caption": "Community kitchen before lunch club",
+          "alt": "Community kitchen before lunch club"
+        },
+        {
+          "file": "04-workshop.svg",
+          "caption": "Tuesday repair workshop",
+          "alt": "Tuesday repair workshop"
+        },
+        {
+          "file": "05-fair-day.svg",
+          "caption": "Summer fair on the lawn",
+          "alt": "Summer fair on the lawn"
+        },
+        {
+          "file": "06-library-nook.svg",
+          "caption": "Quiet corner and swap shelf",
+          "alt": "Quiet corner and swap shelf"
+        },
+        {
+          "file": "07-evening-lights.svg",
+          "caption": "Choir night from the gallery",
+          "alt": "Choir night from the gallery"
+        },
+        {
+          "file": "08-porch.svg",
+          "caption": "The porch after rain",
+          "alt": "The porch after rain"
+        }
+      ]
+    }
+  ]
+}

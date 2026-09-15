@@ -9,9 +9,10 @@
     "dev": "npm run dev -w @r-a-i-t-h/tessera-demo-pure",
     "dev:ineffable": "npm run dev -w @r-a-i-t-h/tessera-demo-ineffable",
     "dev:millersark": "npm run dev -w @r-a-i-t-h/tessera-demo-millersark",
-    "build": "npm run build -w @r-a-i-t-h/tessera-demo-pure -w @r-a-i-t-h/tessera-demo-ineffable -w @r-a-i-t-h/tessera-demo-millersark",
-    "typecheck": "npm run typecheck -w @r-a-i-t-h/tessera-model -w @r-a-i-t-h/tessera-renderer -w @r-a-i-t-h/tessera-skin-w3 -w @r-a-i-t-h/tessera-wc-base -w @r-a-i-t-h/tessera-demo-kit -w @r-a-i-t-h/tessera-demo-pure -w @r-a-i-t-h/tessera-demo-ineffable -w @r-a-i-t-h/tessera-demo-millersark",
-    "test": "npm run test -w @r-a-i-t-h/tessera-model -w @r-a-i-t-h/tessera-renderer -w @r-a-i-t-h/tessera-demo-pure",
+    "dev:willow": "npm run dev -w @r-a-i-t-h/tessera-demo-willow",
+    "build": "npm run build -w @r-a-i-t-h/tessera-demo-pure -w @r-a-i-t-h/tessera-demo-ineffable -w @r-a-i-t-h/tessera-demo-millersark -w @r-a-i-t-h/tessera-demo-willow",
+    "typecheck": "npm run typecheck -w @r-a-i-t-h/tessera-model -w @r-a-i-t-h/tessera-renderer -w @r-a-i-t-h/tessera-skin-w3 -w @r-a-i-t-h/tessera-wc-base -w @r-a-i-t-h/tessera-demo-kit -w @r-a-i-t-h/tessera-demo-pure -w @r-a-i-t-h/tessera-demo-ineffable -w @r-a-i-t-h/tessera-demo-millersark -w @r-a-i-t-h/tessera-demo-willow",
+    "test": "npm run test -w @r-a-i-t-h/tessera-model -w @r-a-i-t-h/tessera-renderer -w @r-a-i-t-h/tessera-demo-pure -w @r-a-i-t-h/tessera-demo-willow",
     "convert:legacy": "node scripts/convert-legacy-demos.mjs",
     "flatten:gallery": "node scripts/flatten-gallery.mjs"
   }

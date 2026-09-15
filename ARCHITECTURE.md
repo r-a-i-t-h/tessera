@@ -18,7 +18,7 @@ The **editor** (out of scope for the renderer phase; see SPEC) will edit many re
 | `@r-a-i-t-h/tessera-wc-base` | Cookie-cut custom element base (`a` / `b` / `c`) |
 | `@r-a-i-t-h/tessera-demo-pure` | Vite demo proving the model |
 
-Sample sites live under `apps/demo-*` (pure / ineffable / millersark). Shared chrome helpers are in `@r-a-i-t-h/tessera-demo-kit`.
+Sample sites live under `apps/demo-*` (pure / ineffable / millersark / willow). Shared chrome helpers are in `@r-a-i-t-h/tessera-demo-kit`.
 
 `ps/` keeps PurpleCMS migration scripts (to be rewritten for Tessera’s document shape).
 

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Willow Hall</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap"
+    />
+    <link rel="icon" href="./img/logo.svg" type="image/svg+xml" />
+  </head>
+  <body class="wh-body">
+    <header class="wh-header">
+      <div class="wh-brandbar">
+        <a class="wh-brand" href="#home">
+          <img src="./img/logo.svg" width="36" height="36" alt="" />
+          <span>
+            <strong>Willow Hall</strong>
+            <em>Community centre</em>
+          </span>
+        </a>
+        <button
+          type="button"
+          class="wh-menu-btn w3-hide-large"
+          onclick="w3_open()"
+          aria-label="Open menu"
+        >
+          Menu
+        </button>
+      </div>
+      <nav id="topnav" class="wh-topnav w3-hide-small w3-hide-medium" aria-label="Primary"></nav>
+    </header>
+
+    <nav
+      id="mySidebar"
+      class="w3-sidebar w3-bar-block w3-animate-left wh-drawer"
+      aria-label="Site"
+    >
+      <div class="wh-drawer-head">
+        <span>Menu</span>
+        <button type="button" class="wh-icon-btn" onclick="w3_close()" aria-label="Close menu">
+          ×
+        </button>
+      </div>
+      <div id="nav_data"></div>
+    </nav>
+
+    <div class="w3-overlay wh-overlay" onclick="w3_close()" id="myOverlay"></div>
+    <main id="app" class="wh-main"></main>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

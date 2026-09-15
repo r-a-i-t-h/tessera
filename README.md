@@ -15,6 +15,7 @@ npm install
 npm run dev                 # pure demo (port 5173)
 npm run dev:ineffable       # ineffable port (5174)
 npm run dev:millersark      # Miller's Ark port (5175)
+npm run dev:willow          # Willow Hall community demo (5176)
 ```
 
 ## Test
@@ -40,6 +41,7 @@ npm test
 | `apps/demo-pure` | Engine lab: zones, components, font switch |
 | `apps/demo-ineffable` | Port of the personal site (layouts, fonts, W3 chrome) |
 | `apps/demo-millersark` | Port of Miller's Ark CMS content + `openDaysTable` |
+| `apps/demo-willow` | Content showcase: news, events, weekly meetings, people, gallery |
 
 Legacy RecTem sources can be re-converted with `npm run convert:legacy` (needs a local `.ref-legacy/` checkout).
 
