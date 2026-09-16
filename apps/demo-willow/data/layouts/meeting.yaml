@@ -1,0 +1,55 @@
+id: meeting
+title: Weekly meeting (agenda + minutes)
+root:
+  type: region
+  role: content
+  className: wh-shell
+  children:
+    - type: region
+      role: main
+      children:
+        - type: region
+          tag: h1
+          className: w3-text-theme
+          children:
+            - type: zone
+              id: title
+        - type: component
+          name: articleByline
+        - type: zone
+          id: main
+        - type: region
+          role: row
+          className: w3-row-padding wh-split
+          children:
+            - type: region
+              className: w3-col m6
+              children:
+                - type: region
+                  className: wh-panel
+                  children:
+                    - type: static
+                      html: <h2>Agenda</h2>
+                    - type: component
+                      name: agendaList
+            - type: region
+              className: w3-col m6
+              children:
+                - type: region
+                  className: wh-panel
+                  children:
+                    - type: static
+                      html: <h2>Minutes</h2>
+                    - type: zone
+                      id: minutes
+        - type: static
+          html: <h2>Attendees</h2>
+        - type: component
+          name: attendeeList
+    - type: region
+      tag: footer
+      role: footer
+      className: wh-footer
+      children:
+        - type: zone
+          id: footer

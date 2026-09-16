@@ -1,0 +1,13 @@
+id: events
+title: Events
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  title:
+    html: What’s on
+  lead:
+    html: <p class="w3-large">Public listings — markets, music, and seasonal fairs. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec vel mauris lectus. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.</p>
+  main:
+    html: "{{all-events}}"

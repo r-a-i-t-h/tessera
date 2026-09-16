@@ -1,0 +1,6 @@
+version: 1
+id: willow-hall
+title: Willow Hall
+homePageId: home
+defaultLayoutId: standard
+theme: willow

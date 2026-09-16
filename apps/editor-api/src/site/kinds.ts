@@ -1,0 +1,43 @@
+/** Record kinds stored as one YAML file per Tessera `id`. */
+export const RECORD_KINDS = [
+  "content",
+  "items",
+  "layouts",
+  "bindings",
+  "sections",
+  "media",
+  "folders",
+] as const;
+
+export type RecordKind = (typeof RECORD_KINDS)[number];
+
+export const KIND_LABELS: Record<RecordKind, string> = {
+  content: "Content",
+  items: "Items",
+  layouts: "Layouts",
+  bindings: "Bindings",
+  sections: "Sections",
+  media: "Media",
+  folders: "Folders",
+};
+
+export const KIND_DIRS: Record<RecordKind, string> = {
+  content: "content",
+  items: "items",
+  layouts: "layouts",
+  bindings: "bindings",
+  sections: "sections",
+  media: "media",
+  folders: "folders",
+};
+
+/** Filename = Tessera `id`. Restrict to a single path segment. */
+export const RECORD_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
+export function isRecordKind(value: string): value is RecordKind {
+  return (RECORD_KINDS as readonly string[]).includes(value);
+}
+
+export function isRecordId(value: string): boolean {
+  return RECORD_ID.test(value);
+}

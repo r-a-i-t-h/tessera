@@ -1,0 +1,5 @@
+id: latest-news
+component: datedList
+props:
+  tag: blog
+  limit: 3

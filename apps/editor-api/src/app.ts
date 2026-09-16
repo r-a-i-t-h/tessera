@@ -5,6 +5,8 @@ import { mergeRateLimits, type RateLimitConfig } from "./rate-limit/limits.js";
 import { RateLimiter } from "./rate-limit/limiter.js";
 import { apiRoutes } from "./routes/api.js";
 import { authRoutes } from "./routes/auth.js";
+import { recordRoutes } from "./routes/records.js";
+import type { SiteStore } from "./site/store.js";
 import { mountSpa } from "./spa.js";
 import type { UserStore } from "./store/users.js";
 import "./context.js";
@@ -16,6 +18,8 @@ export function createApp(opts: {
   assetBase?: string;
   /** Built editor SPA directory (`index.html` + Vite assets). */
   spaDir?: string;
+  /** File-backed site records (YAML). */
+  site?: SiteStore;
   rateLimiter?: RateLimiter;
   rateLimits?: Partial<RateLimitConfig>;
 }) {
@@ -35,6 +39,7 @@ export function createApp(opts: {
     c.set("sessionCookieName", sessionCookieName);
     c.set("rateLimiter", rateLimiter);
     c.set("rateLimits", rateLimits);
+    if (opts.site) c.set("site", opts.site);
     await next();
   });
 
@@ -44,6 +49,7 @@ export function createApp(opts: {
 
   app.route("/auth", authRoutes);
   app.route("/api", apiRoutes);
+  app.route("/api", recordRoutes);
 
   if (opts.spaDir) mountSpa(app, opts.spaDir);
 

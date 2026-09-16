@@ -48,6 +48,7 @@ describe("static site relative assets", () => {
     expect(src).toContain('request("auth/me")');
     expect(src).toContain('request("auth/logout"');
     expect(src).toContain('request("api/ping"');
+    expect(src).toContain('request("api/records")');
     expect(src).not.toContain('"/auth/');
     expect(src).not.toContain('"/api/');
   });

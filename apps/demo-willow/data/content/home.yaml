@@ -1,0 +1,34 @@
+id: home
+title: Home
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  hero:
+    html: |-
+      <div class="wh-hero">
+                    <p class="wh-kicker">Neighbourhood hall · est. 1974</p>
+                    <h2>A room of one’s own — for the whole street</h2>
+                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere, nisl at aliquet dictum, nisi nisl aliquam lectus, vitae gravida erat sapien sit amet arcu. Hire the hall, join a club, or simply drop in for tea.</p>
+                    <a class="w3-button" href="#events">See what’s on</a>
+                    <a class="w3-button" href="#contact">Visit us</a>
+                  </div>
+  title:
+    html: Welcome to Willow Hall
+  lead:
+    html: <p class="w3-large">Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec vel mauris lectus. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.</p>
+  main:
+    html: |-
+      <h2>This week at a glance</h2>
+                   <p>Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Curabitur non nulla sit amet nisl tempus convallis quis ac lectus. Pellentesque in ipsum id orci porta dapibus.</p>
+                   <h2>Who keeps the kettle on</h2>
+                   <p>Trustees and volunteer leads — lorem ipsum profiles, all using the same layout.</p>
+                   {{people-preview}}
+                   <p><a href="#people">Meet the whole team</a></p>
+                   <h2>From the hall</h2>
+                   {{hall-gallery-slides}}
+  primary:
+    html: <h2>Upcoming events</h2>{{upcoming-events}}<p><a href="#events">Full listings</a></p>
+  aside:
+    html: <h2>Latest news</h2>{{latest-news}}<p><a href="#news">All news</a></p>

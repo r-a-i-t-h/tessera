@@ -15,6 +15,7 @@ Update this file when priorities or status change; keep demo scoreboard copy ali
 | Section profiles | `document.sections` + `resolvePageProfile`; page override > section > site default. demo-pure events inherit `simple` / `amber` (featured → `gold`). |
 | Editor API (auth host) | `apps/editor-api`: Hono JSON API, file users, no signup, cookie/Bearer sessions, `requireEditor` all-or-nothing gate. |
 | Editor SPA (login shell) | `apps/editor`: same-origin Vite SPA; login, session cookie, `POST /api/ping`. Hono serves `dist` when built. |
+| File-based editor + flatten | YAML records in `apps/demo-willow/data/`; editor forms; save flattens to `site.json`. |
 
 ## Upcoming (ordered)
 
@@ -34,8 +35,8 @@ Update this file when priorities or status change; keep demo scoreboard copy ali
    Motion and richer presentation beyond minimal W3 chrome — scope before large effort.  
    → [SPEC Needs refinement](./SPEC.md#12-needs-refinement)
 
-5. **Editor SPA (content + flatten)**  
-   Login shell exists in `apps/editor`. Next: records → flatten → `SiteDocument`. Folder-scan gallery flatten is an early precursor.  
+5. **Editor preview / richer authoring**  
+   File editor + flatten exist. Next: host the renderer for preview, and richer field widgets.  
    → [SPEC §9](./SPEC.md#9-editor-boundary-phase-2)
 
 ## Notes

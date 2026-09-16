@@ -1,0 +1,43 @@
+id: standard
+title: Standard page
+root:
+  type: region
+  role: content
+  className: wh-shell
+  children:
+    - type: zone
+      id: hero
+    - type: region
+      role: main
+      children:
+        - type: region
+          tag: h1
+          className: w3-text-theme
+          children:
+            - type: zone
+              id: title
+        - type: zone
+          id: lead
+        - type: zone
+          id: main
+        - type: region
+          role: row
+          className: w3-row-padding wh-split
+          children:
+            - type: region
+              className: w3-col m7
+              children:
+                - type: zone
+                  id: primary
+            - type: region
+              className: w3-col m5
+              children:
+                - type: zone
+                  id: aside
+    - type: region
+      tag: footer
+      role: footer
+      className: wh-footer
+      children:
+        - type: zone
+          id: footer

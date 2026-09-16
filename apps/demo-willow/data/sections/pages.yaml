@@ -1,0 +1,6 @@
+id: pages
+title: Ordinary pages
+match:
+  tags:
+    - page
+layoutId: standard

@@ -1,0 +1,6 @@
+id: event-pages
+title: Event pages
+match:
+  tags:
+    - event
+layoutId: article

@@ -1,0 +1,16 @@
+id: blog-harvest-supper
+title: Harvest supper tickets are out
+tags:
+  - blog
+includes:
+  - common-footer
+zones:
+  title:
+    html: Harvest supper tickets are out
+  meta:
+    json:
+      date: 2026-09-08
+      author: Priya Nair
+      summary: Two sittings, one pudding table, and a raffle that still features a fruit cake of mysterious age.
+  main:
+    html: <p>Two sittings, one pudding table, and a raffle that still features a fruit cake of mysterious age.</p><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere, nisl at aliquet dictum, nisi nisl aliquam lectus, vitae gravida erat sapien sit amet arcu.</p><p>Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec vel mauris lectus. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.</p><p>Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Curabitur non nulla sit amet nisl tempus convallis quis ac lectus. Pellentesque in ipsum id orci porta dapibus.</p><p>Proin eget tortor risus. Vivamus magna justo, lacinia eget consectetur sed, convallis at tellus. Nulla quis lorem ut libero malesuada feugiat. Donec sollicitudin molestie malesuada.</p><p><a href="#news">Back to news</a></p>

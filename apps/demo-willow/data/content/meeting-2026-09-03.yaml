@@ -1,0 +1,44 @@
+id: meeting-2026-09-03
+title: Weekly meeting · 3 September
+tags:
+  - meeting
+includes:
+  - common-footer
+zones:
+  title:
+    html: Weekly meeting · 3 September
+  meta:
+    json:
+      date: 2026-09-03
+      week: Week 36
+      chair: Amira Chen
+      summary: Key cupboard, choir night sound, and the porch light that still flickers.
+  agenda:
+    json:
+      - item: Welcome and apologies
+        owner: Chair
+      - item: Minutes of the last meeting
+        owner: Secretary
+      - item: Key cupboard
+        owner: Lina
+      - item: Choir night sound
+        owner: Priya
+      - item: Porch light
+        owner: Owen
+      - item: Any other business
+  minutes:
+    html: "<p>All present. Minutes of 27 August agreed.</p><p>Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec vel mauris lectus. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.</p><p>Porch light: electrician booked for Thursday. Choir to trial a second speaker, not a third.</p><p>Proin eget tortor risus. Vivamus magna justo, lacinia eget consectetur sed, convallis at tellus. Nulla quis lorem ut libero malesuada feugiat. Donec sollicitudin molestie malesuada.</p>"
+  attendees:
+    json:
+      - name: Amira Chen
+        role: Chair
+      - name: Owen Blake
+        role: Secretary
+      - name: Priya Nair
+        role: Events
+      - name: Sam Okonkwo
+        role: Treasurer
+      - name: Lina Vogel
+        role: Volunteers
+  main:
+    html: <p>Key cupboard, choir night sound, and the porch light that still flickers.</p>

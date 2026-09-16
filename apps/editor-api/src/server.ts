@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { SessionStore, SESSION_HANDOFF_FILE } from "./auth/sessions.js";
 import { createApp } from "./app.js";
+import { SiteStore } from "./site/store.js";
 import { UserStore } from "./store/users.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -20,11 +21,16 @@ const sessions = await SessionStore.load(join(dataDir, SESSION_HANDOFF_FILE));
 const defaultSpa = join(root, "..", "editor", "dist");
 const spaCandidate = process.env.TESSERA_SPA_DIR ?? defaultSpa;
 const spaDir = existsSync(join(spaCandidate, "index.html")) ? spaCandidate : undefined;
+const siteDir = process.env.TESSERA_SITE_DIR ?? join(root, "..", "demo-willow", "data");
+const flattenOut =
+  process.env.TESSERA_FLAT_OUT ?? join(root, "..", "demo-willow", "public", "data", "site.json");
+const site = new SiteStore(siteDir, flattenOut);
 const app = createApp({
   users,
   sessions,
   assetBase,
   spaDir,
+  site,
 });
 
 const baseLabel = assetBase ? `/${assetBase.replace(/^\/+|\/+$/g, "")}` : "";
@@ -33,6 +39,7 @@ console.log(`Data directory: ${dataDir}`);
 if (spaDir) {
   console.log(`Editor SPA: http://127.0.0.1:${port}${baseLabel}/`);
 }
+console.log(`Site records: ${siteDir}`);
 
 const server = serve({ fetch: app.fetch, port });
 

@@ -1,0 +1,27 @@
+id: article
+title: Dated article
+root:
+  type: region
+  role: content
+  className: wh-shell
+  children:
+    - type: region
+      role: main
+      children:
+        - type: region
+          tag: h1
+          className: w3-text-theme
+          children:
+            - type: zone
+              id: title
+        - type: component
+          name: articleByline
+        - type: zone
+          id: main
+    - type: region
+      tag: footer
+      role: footer
+      className: wh-footer
+      children:
+        - type: zone
+          id: footer

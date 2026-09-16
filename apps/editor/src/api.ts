@@ -91,3 +91,39 @@ export function logout(): Promise<{ ok: true }> {
 export function ping(): Promise<PingResult> {
   return request("api/ping", { method: "POST" });
 }
+
+export type RecordKindName = string;
+
+export type RecordSummary = {
+  kind: RecordKindName;
+  id: string;
+  title?: string;
+};
+
+export type RecordList = {
+  ok: true;
+  kinds: { kind: string; label: string }[];
+  records: RecordSummary[];
+};
+
+export type RecordPayload = {
+  ok: true;
+  kind: string;
+  id: string;
+  data: unknown;
+};
+
+export function listRecords(): Promise<RecordList> {
+  return request("api/records");
+}
+
+export function getRecord(kind: string, id: string): Promise<RecordPayload> {
+  return request(`api/records/${encodeURIComponent(kind)}/${encodeURIComponent(id)}`);
+}
+
+export function saveRecord(kind: string, id: string, data: unknown): Promise<{ ok: true }> {
+  return request(`api/records/${encodeURIComponent(kind)}/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: JSON.stringify({ data }),
+  });
+}

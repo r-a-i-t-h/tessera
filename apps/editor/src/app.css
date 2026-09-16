@@ -6,7 +6,11 @@ body {
 .editor-main {
   max-width: 32rem;
   margin: 2rem auto;
-  padding: 0 1rem;
+  padding: 0 1rem 3rem;
+}
+
+.editor-wide {
+  max-width: 52rem;
 }
 
 .editor-card h1 {
@@ -22,4 +26,30 @@ body {
 .editor-result {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.editor-body,
+.editor-yaml {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.editor-kind {
+  margin-bottom: 1.5rem;
+}
+
+.editor-kind ul {
+  margin-top: 0.5rem;
+}
+
+.editor-fieldset {
+  border: 1px solid #ddd;
+  margin: 1rem 0;
+  padding: 0.5rem 1rem 1rem;
+}
+
+.editor-fieldset legend {
+  padding: 0 0.4rem;
+  font-weight: 600;
 }

@@ -1,0 +1,13 @@
+id: news
+title: News
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  title:
+    html: News
+  lead:
+    html: <p class="w3-large">Dated notices and stories from the hall. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere, nisl at aliquet dictum, nisi nisl aliquam lectus, vitae gravida erat sapien sit amet arcu.</p>
+  main:
+    html: "{{all-news}}"

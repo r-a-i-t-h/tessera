@@ -1,0 +1,4 @@
+id: people-preview
+component: peopleGrid
+props:
+  limit: 3

@@ -1,0 +1,40 @@
+id: meeting-2026-08-27
+title: Weekly meeting · 27 August
+tags:
+  - meeting
+includes:
+  - common-footer
+zones:
+  title:
+    html: Weekly meeting · 27 August
+  meta:
+    json:
+      date: 2026-08-27
+      week: Week 35
+      chair: Owen Blake
+      summary: Chair away; standing in. Fair leftover crockery and the garden tap.
+  agenda:
+    json:
+      - item: Welcome and apologies
+        owner: Acting chair
+      - item: Minutes of the last meeting
+        owner: Secretary
+      - item: Fair leftover crockery
+        owner: Lina
+      - item: Garden tap
+        owner: Sam
+      - item: Any other business
+  minutes:
+    html: <p>Amira away. Owen in the chair. Minutes of 20 August agreed.</p><p>Sed porttitor lectus nibh. Curabitur aliquet quam id dui posuere blandit. Quisque velit nisi, pretium ut lacinia in, elementum id enim. Cras ultricies ligula sed magna dictum porta.</p><p>Crockery to be labelled and stored in the kitchen loft. Garden tap washer replaced.</p><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere, nisl at aliquet dictum, nisi nisl aliquam lectus, vitae gravida erat sapien sit amet arcu.</p>
+  attendees:
+    json:
+      - name: Owen Blake
+        role: Acting chair
+      - name: Priya Nair
+        role: Events
+      - name: Sam Okonkwo
+        role: Treasurer
+      - name: Lina Vogel
+        role: Volunteers
+  main:
+    html: <p>Chair away; standing in. Fair leftover crockery and the garden tap.</p>

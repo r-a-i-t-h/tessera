@@ -1,0 +1,36 @@
+id: contact
+title: Contact us
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  title:
+    html: Contact us
+  lead:
+    html: <p class="w3-large">Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Curabitur non nulla sit amet nisl tempus convallis quis ac lectus. Pellentesque in ipsum id orci porta dapibus.</p>
+  primary:
+    html: |-
+      <div class="wh-panel">
+                    <h2>Write to the hall</h2>
+                    <p>This demo form does not send messages — lorem ipsum only.</p>
+                    <form class="wh-form" action="#contact">
+                      <label for="wh-name">Name</label>
+                      <input id="wh-name" name="name" autocomplete="name" />
+                      <label for="wh-email">Email</label>
+                      <input id="wh-email" name="email" type="email" autocomplete="email" />
+                      <label for="wh-msg">Message</label>
+                      <textarea id="wh-msg" name="message"></textarea>
+                      <button type="button">Send (demo)</button>
+                    </form>
+                  </div>
+  aside:
+    html: |-
+      <div class="wh-panel">
+                    <h2>Find us</h2>
+                    <p><strong>Willow Hall</strong><br>14 Mill Lane<br>Northbridge<br>NB3 2WL</p>
+                    <p>01632 960 184<br><a href="mailto:hall@willow.example">hall@willow.example</a></p>
+                    <h2>Opening hours</h2>
+                    <p>Porch unlocked 08:30–21:00 most days.<br>Office: Tue &amp; Thu 10:00–13:00</p>
+                    <p>Proin eget tortor risus. Vivamus magna justo, lacinia eget consectetur sed, convallis at tellus. Nulla quis lorem ut libero malesuada feugiat. Donec sollicitudin molestie malesuada.</p>
+                  </div>

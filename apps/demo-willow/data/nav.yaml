@@ -1,0 +1,36 @@
+- id: home
+  title: Home
+  topbar: true
+  sidebar: true
+- id: news
+  title: News
+  topbar: true
+  sidebar: true
+- id: events
+  title: Events
+  topbar: true
+  sidebar: true
+- id: meetings
+  title: Meetings
+  topbar: true
+  sidebar: true
+- heading: This term
+  sidebar: true
+  source:
+    pagesTag: meeting
+- id: people
+  title: People
+  topbar: true
+  sidebar: true
+- id: gallery
+  title: Gallery
+  topbar: true
+  sidebar: true
+- id: about
+  title: About
+  topbar: true
+  sidebar: true
+- id: contact
+  title: Contact
+  topbar: true
+  sidebar: true

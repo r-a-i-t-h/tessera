@@ -1,0 +1,44 @@
+id: meeting-2026-09-10
+title: Weekly meeting · 10 September
+tags:
+  - meeting
+includes:
+  - common-footer
+zones:
+  title:
+    html: Weekly meeting · 10 September
+  meta:
+    json:
+      date: 2026-09-10
+      week: Week 37
+      chair: Amira Chen
+      summary: Roof quotes, harvest seating, and a booking clash on Saturday.
+  agenda:
+    json:
+      - item: Welcome and apologies
+        owner: Chair
+      - item: Minutes of the last meeting
+        owner: Secretary
+      - item: Roof appeal quotes
+        owner: Sam
+      - item: Harvest supper seating
+        owner: Priya
+      - item: Saturday hire clash
+        owner: Lina
+      - item: Any other business
+  minutes:
+    html: "<p>Apologies from two trustees. Minutes of 3 September agreed as a true record.</p><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere, nisl at aliquet dictum, nisi nisl aliquam lectus, vitae gravida erat sapien sit amet arcu.</p><p>Roof: two quotes to compare at the next meeting. Harvest: first sitting already full.</p><p>Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Curabitur non nulla sit amet nisl tempus convallis quis ac lectus. Pellentesque in ipsum id orci porta dapibus.</p>"
+  attendees:
+    json:
+      - name: Amira Chen
+        role: Chair
+      - name: Owen Blake
+        role: Secretary
+      - name: Priya Nair
+        role: Events
+      - name: Sam Okonkwo
+        role: Treasurer
+      - name: Lina Vogel
+        role: Volunteers
+  main:
+    html: <p>Roof quotes, harvest seating, and a booking clash on Saturday.</p>

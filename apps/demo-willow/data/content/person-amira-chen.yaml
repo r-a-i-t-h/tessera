@@ -1,0 +1,17 @@
+id: person-amira-chen
+title: Amira Chen
+tags:
+  - person
+includes:
+  - common-footer
+zones:
+  title:
+    html: Amira Chen
+  meta:
+    json:
+      role: Chair of trustees
+      email: amira@willow.example
+      photo: photo-amira
+      summary: Chair of trustees
+  main:
+    html: <p>Amira has chaired the hall since 2021. Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p><p>Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec vel mauris lectus. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.</p><p>Proin eget tortor risus. Vivamus magna justo, lacinia eget consectetur sed, convallis at tellus. Nulla quis lorem ut libero malesuada feugiat. Donec sollicitudin molestie malesuada.</p><p><a href="#people">All people</a></p>

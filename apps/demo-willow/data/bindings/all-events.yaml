@@ -1,0 +1,4 @@
+id: all-events
+component: datedList
+props:
+  tag: event

@@ -1,0 +1,41 @@
+id: profile
+title: Personnel profile
+root:
+  type: region
+  role: content
+  className: wh-shell
+  children:
+    - type: region
+      role: main
+      children:
+        - type: component
+          name: profileKicker
+        - type: region
+          tag: h1
+          className: w3-text-theme
+          children:
+            - type: zone
+              id: title
+        - type: region
+          role: row
+          className: w3-row-padding wh-split
+          children:
+            - type: region
+              className: w3-col s12 m4
+              children:
+                - type: component
+                  name: profilePhoto
+                - type: component
+                  name: profileFacts
+            - type: region
+              className: w3-col s12 m8
+              children:
+                - type: zone
+                  id: main
+    - type: region
+      tag: footer
+      role: footer
+      className: wh-footer
+      children:
+        - type: zone
+          id: footer

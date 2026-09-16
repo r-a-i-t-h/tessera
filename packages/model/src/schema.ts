@@ -168,7 +168,7 @@ export type Section = {
   children?: Section[];
 };
 
-export const SectionSchema: z.ZodType<Section> = z.lazy(() =>
+export const SectionSchema: z.ZodType<Section, z.ZodTypeDef, unknown> = z.lazy(() =>
   z.object({
     id: z.string().min(1),
     title: z.string().optional(),

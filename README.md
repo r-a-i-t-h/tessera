@@ -43,11 +43,11 @@ npm test
 | `apps/demo-pure` | Engine lab: zones, components, font switch |
 | `apps/demo-ineffable` | Port of the personal site (layouts, fonts, W3 chrome) |
 | `apps/demo-millersark` | Port of Miller's Ark CMS content + `openDaysTable` |
-| `apps/demo-willow` | Content showcase: news, events, weekly meetings, people, gallery |
-| `apps/editor` | Editor SPA: login + session cookie + `POST /api/ping` |
-| `apps/editor-api` | Editing back-end: JSON auth + `requireEditor` (no self-signup); serves the built SPA when present |
+| `apps/demo-willow` | Content showcase; YAML source in sibling `data/` |
+| `apps/editor` | Editor SPA: login + file-based record editor |
+| `apps/editor-api` | Editing back-end: JSON auth + YAML records + flatten |
 
-Editor: run `npm run dev:api` and `npm run dev:editor`, then open the SPA (port 7355). After `npm run build -w @r-a-i-t-h/tessera-editor`, the API also serves that build on port 7356. Add a user with `npm run seed:user -w @r-a-i-t-h/tessera-editor-api -- <name> <password>` (writes `apps/editor-api/seed/users/`). First boot copies seed users into `apps/editor-api/data/`. Seed login is `admin` / `admin`.
+Editor: run `npm run dev:api` and `npm run dev:editor`, then open the SPA (port 7355). Willow records live in `apps/demo-willow/data/` (outside `public/`). Saving a record flattens to `apps/demo-willow/public/data/site.json`. After `npm run build -w @r-a-i-t-h/tessera-editor`, the API also serves that build on port 7356. Add a user with `npm run seed:user -w @r-a-i-t-h/tessera-editor-api -- <name> <password>` (writes `apps/editor-api/seed/users/`). First boot copies seed users into `apps/editor-api/data/`. Seed login is `admin` / `admin`.
 
 Legacy RecTem sources can be re-converted with `npm run convert:legacy` (needs a local `.ref-legacy/` checkout).
 

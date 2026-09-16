@@ -203,7 +203,7 @@ Site-specific registry components remain first-class.
 - **No self-signup.** Users are files under `data/users/` (seeded from `seed/users/`); add them with `seed:user`.
 - Access is **all-or-nothing**: any authenticated user may perform every editor mutation. `requireEditor` is the choke point so later ACL can replace that helper without rewriting routes.
 - The **editor SPA** (`apps/editor`) is a same-origin Vite app (not shipped with the renderer). Dev proxies `/auth`, `/api`, `/health` to the API; production can serve `dist` from the Hono process so the `httpOnly` session cookie never crosses origins.
-- Authoring model: many records → flatten → published `SiteDocument` / `site.json`.
+- Authoring is **file-based YAML** (one file per Tessera `id`) beside the site, outside the web root. Flatten emits published `SiteDocument` / `site.json`. No database.
 - The renderer never depends on the editor; the editor may host the renderer for preview.
 - Flatten output **is** the renderer contract.
 
@@ -256,7 +256,7 @@ Criteria define “done enough,” not a build order (see [ROADMAP.md](./ROADMAP
 
 - **Fanciness** — polish, motion, richer presentation beyond minimal W3 chrome; keep scoped as an open product goal until specified further.
 - **Cold-start offline** — icing only.
-- **Editor SPA** — login shell exists; content editing and flatten still later.
+- **Editor SPA** — login + YAML record editor for Willow; flatten on save. Richer preview still later.
 
 ---
 

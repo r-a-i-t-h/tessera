@@ -1,0 +1,4 @@
+id: all-meetings
+component: datedList
+props:
+  tag: meeting

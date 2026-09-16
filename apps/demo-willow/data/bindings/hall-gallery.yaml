@@ -1,0 +1,6 @@
+id: hall-gallery
+component: gallery
+props:
+  folders:
+    - hall-gallery
+  mode: grid

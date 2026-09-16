@@ -1,0 +1,13 @@
+id: people
+title: People
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  title:
+    html: People
+  lead:
+    html: <p class="w3-large">Trustees and volunteer leads. Proin eget tortor risus. Vivamus magna justo, lacinia eget consectetur sed, convallis at tellus. Nulla quis lorem ut libero malesuada feugiat. Donec sollicitudin molestie malesuada.</p>
+  main:
+    html: "{{people-grid}}"

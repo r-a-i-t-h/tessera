@@ -33,9 +33,10 @@ Hono app (Node ≥20). JSON routes first; if `apps/editor/dist` (or `TESSERA_SPA
 | Users | `data/users/<username>.json` (hash + salt). No `/auth/register`; add via `npm run seed:user -w @r-a-i-t-h/tessera-editor-api -- <name> <password>`. |
 | Sessions | In-memory tokens; httpOnly `tessera_session` cookie (namespaced by `TESSERA_BASE_PATH`) or `Authorization: Bearer`. SIGTERM dumps hashed tokens to `data/.sessions.json` once. |
 | Permission | `requireEditor`: authenticated ⇒ full access; anonymous ⇒ 401. Every mutation must call it. |
-| Public | `GET /health`, `POST /auth/login`. Protected: `GET /auth/me`, `POST /auth/password`, `POST /api/ping`. Logout is idempotent. |
+| Records | YAML files in `TESSERA_SITE_DIR` (default `apps/demo-willow/data`). Filename = Tessera `id`. `GET/PUT /api/records`. Save flattens to `TESSERA_FLAT_OUT` (`public/data/site.json`). |
+| Public | `GET /health`, `POST /auth/login`. Protected: `GET /auth/me`, `POST /auth/password`, `POST /api/ping`, record CRUD. Logout is idempotent. |
 
-Public HTML is the editor SPA when built. The published site remains `site.json` for the renderer. Content CRUD / flatten is not in this host yet.
+Public HTML is the editor SPA when built. The published site remains `site.json` for the renderer. Authoring is file-based YAML (not JSON) so HTML does not need escaping.
 
 Same origin is deliberate: the session cookie is `httpOnly` + `SameSite=Lax`. A SPA on another port/origin would need CORS credentials and cookie relaxation. Dev uses a Vite proxy on port 7355 so the browser still sees one origin.
 
@@ -49,6 +50,27 @@ Same origin is deliberate: the session cookie is `httpOnly` + `SameSite=Lax`. A 
 - **Nav / media / site meta** — also in the flattened document.
 
 **Rule:** if a layout does not declare zone `aside`, contributions to `aside` are not painted. They remain on the merge map so components can still read “data zones” (e.g. JSON for a list) via `ctx.zoneJson("events")`.
+
+## Authoring files
+
+Willow’s editable source is `apps/demo-willow/data/` — a sibling of `public/`, so it is not on the static web path. Each record is one YAML file named with the same **`id`** the flattened document already uses (`page.id`, `item.id`, `layout.id`, `binding.id`, `section.id`, `media.id`, `folder.id`).
+
+| Folder / file | Holds |
+|---------------|--------|
+| `content/*.yaml` | Pages |
+| `items/*.yaml` | Shared items (e.g. footer) |
+| `layouts/*.yaml` | Layout trees (templates) |
+| `bindings/*.yaml` | Data → component bindings |
+| `sections/*.yaml` | Section profiles |
+| `media/*.yaml` | Media catalog entries |
+| `folders/*.yaml` | Gallery folder records |
+| `*/_order.yaml` | Record order (section order is significant) |
+| `site.yaml` | Site meta |
+| `nav.yaml` | Designed nav tree |
+
+HTML zones use YAML `|` / `|-` scalars (`html:`) so markup is not JSON-escaped. Component *implementations* stay TypeScript in the site (`src/components`); only bindings are data.
+
+`npm run flatten:site` (or an editor save) writes `apps/demo-willow/public/data/site.json`.
 
 There is **no** recursive `parentId` template chain and **no** inventing zones from inside page HTML. Section profiles replace Rec-Tem-style “templates as content” for hierarchy-wide layout/theme switching.
 

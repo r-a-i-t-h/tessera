@@ -1,0 +1,13 @@
+id: gallery
+title: Gallery
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  title:
+    html: Gallery
+  lead:
+    html: <p class="w3-large">Life at the hall — tap any picture for a closer look. Sed porttitor lectus nibh. Curabitur aliquet quam id dui posuere blandit. Quisque velit nisi, pretium ut lacinia in, elementum id enim. Cras ultricies ligula sed magna dictum porta.</p>
+  main:
+    html: "{{hall-gallery}}"

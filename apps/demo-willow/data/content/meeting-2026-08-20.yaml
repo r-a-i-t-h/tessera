@@ -1,0 +1,40 @@
+id: meeting-2026-08-20
+title: Weekly meeting · 20 August
+tags:
+  - meeting
+includes:
+  - common-footer
+zones:
+  title:
+    html: Weekly meeting · 20 August
+  meta:
+    json:
+      date: 2026-08-20
+      week: Week 34
+      chair: Amira Chen
+      summary: Autumn programme sketch and a reminder about fire exits.
+  agenda:
+    json:
+      - item: Welcome and apologies
+        owner: Chair
+      - item: Minutes of the last meeting
+        owner: Secretary
+      - item: Autumn programme
+        owner: Priya
+      - item: Fire exits
+        owner: Chair
+      - item: Any other business
+  minutes:
+    html: <p>Minutes of the previous week agreed with one spelling correction.</p><p>Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Curabitur non nulla sit amet nisl tempus convallis quis ac lectus. Pellentesque in ipsum id orci porta dapibus.</p><p>Autumn programme to be published on the events page. Fire exit posters reprinted.</p><p>Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec vel mauris lectus. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.</p>
+  attendees:
+    json:
+      - name: Amira Chen
+        role: Chair
+      - name: Owen Blake
+        role: Secretary
+      - name: Priya Nair
+        role: Events
+      - name: Sam Okonkwo
+        role: Treasurer
+  main:
+    html: <p>Autumn programme sketch and a reminder about fire exits.</p>
