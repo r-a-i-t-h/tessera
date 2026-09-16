@@ -1,4 +1,5 @@
 import { serve } from "@hono/node-server";
+import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { SessionStore, SESSION_HANDOFF_FILE } from "./auth/sessions.js";
@@ -16,15 +17,22 @@ const users = new UserStore(dataDir);
 await users.load(seedDir);
 
 const sessions = await SessionStore.load(join(dataDir, SESSION_HANDOFF_FILE));
+const defaultSpa = join(root, "..", "editor", "dist");
+const spaCandidate = process.env.TESSERA_SPA_DIR ?? defaultSpa;
+const spaDir = existsSync(join(spaCandidate, "index.html")) ? spaCandidate : undefined;
 const app = createApp({
   users,
   sessions,
   assetBase,
+  spaDir,
 });
 
 const baseLabel = assetBase ? `/${assetBase.replace(/^\/+|\/+$/g, "")}` : "";
 console.log(`Tessera editor API listening on http://127.0.0.1:${port}${baseLabel}/`);
 console.log(`Data directory: ${dataDir}`);
+if (spaDir) {
+  console.log(`Editor SPA: http://127.0.0.1:${port}${baseLabel}/`);
+}
 
 const server = serve({ fetch: app.fetch, port });
 

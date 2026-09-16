@@ -8,7 +8,7 @@ The name evokes mosaic tiles: layouts place the tiles (zones); content fills the
 
 The **editor** (see SPEC §9) will edit many records and emit the flattened file. The **renderer** only consumes that file plus a site-owned component registry. The editor may host the renderer for preview; the renderer never depends on the editor.
 
-The editor **API** lives in `apps/editor-api` (`@r-a-i-t-h/tessera-editor-api`): a Hono + Node process with file-backed users, in-memory sessions, and an all-or-nothing `requireEditor` gate on every mutation. The editor SPA is not in this repo yet.
+The editor **API** lives in `apps/editor-api` (`@r-a-i-t-h/tessera-editor-api`): a Hono + Node process with file-backed users, in-memory sessions, and an all-or-nothing `requireEditor` gate on every mutation. The editor **SPA** lives in `apps/editor` (`@r-a-i-t-h/tessera-editor`) and talks to that API on the **same origin** (Vite proxy in dev; Hono serves `apps/editor/dist` when present).
 
 ## Packages
 
@@ -20,13 +20,13 @@ The editor **API** lives in `apps/editor-api` (`@r-a-i-t-h/tessera-editor-api`):
 | `@r-a-i-t-h/tessera-wc-base` | Cookie-cut custom element base (`a` / `b` / `c`) |
 | `@r-a-i-t-h/tessera-demo-pure` | Vite demo proving the model |
 
-Sample sites live under `apps/demo-*` (pure / ineffable / millersark / willow). Shared chrome helpers are in `@r-a-i-t-h/tessera-demo-kit`. The editing back-end is `apps/editor-api`.
+Sample sites live under `apps/demo-*` (pure / ineffable / millersark / willow). Shared chrome helpers are in `@r-a-i-t-h/tessera-demo-kit`. The editing back-end is `apps/editor-api`; the login SPA is `apps/editor`.
 
 `ps/` keeps PurpleCMS migration scripts (to be rewritten for Tessera’s document shape).
 
 ## Editor API
 
-JSON-only Hono app (Node ≥20). Runtime data is file-backed with an in-memory cache; writes use atomic temp+rename.
+Hono app (Node ≥20). JSON routes first; if `apps/editor/dist` (or `TESSERA_SPA_DIR`) contains `index.html`, the same process serves the editor SPA so cookies stay first-party. Runtime data is file-backed with an in-memory cache; writes use atomic temp+rename.
 
 | Concern | Contract |
 |---------|----------|
@@ -35,7 +35,9 @@ JSON-only Hono app (Node ≥20). Runtime data is file-backed with an in-memory c
 | Permission | `requireEditor`: authenticated ⇒ full access; anonymous ⇒ 401. Every mutation must call it. |
 | Public | `GET /health`, `POST /auth/login`. Protected: `GET /auth/me`, `POST /auth/password`, `POST /api/ping`. Logout is idempotent. |
 
-The published site remains `site.json` for the renderer. Content CRUD / flatten is not in this host yet.
+Public HTML is the editor SPA when built. The published site remains `site.json` for the renderer. Content CRUD / flatten is not in this host yet.
+
+Same origin is deliberate: the session cookie is `httpOnly` + `SameSite=Lax`. A SPA on another port/origin would need CORS credentials and cookie relaxation. Dev uses a Vite proxy on port 4174 so the browser still sees one origin.
 
 ## Content model
 
