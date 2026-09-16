@@ -10,7 +10,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
 const dataDir = process.env.TESSERA_DATA ?? join(root, "data");
 const seedDir = process.env.TESSERA_SEED ?? join(root, "seed");
-const port = Number(process.env.PORT ?? 4173);
+const port = Number(process.env.PORT ?? 7356);
 const assetBase = process.env.TESSERA_BASE_PATH ?? "";
 
 const users = new UserStore(dataDir);

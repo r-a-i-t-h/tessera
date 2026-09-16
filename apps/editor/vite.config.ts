@@ -1,7 +1,7 @@
 /// <reference types="vitest/config" />
 import { defineConfig } from "vitest/config";
 
-const api = "http://127.0.0.1:4173";
+const api = "http://127.0.0.1:7356";
 
 /** Same-origin in the browser: cookie sessions work with no CORS. */
 const apiProxy = {
@@ -18,13 +18,13 @@ export default defineConfig({
     assetsDir: "assets",
   },
   server: {
-    port: 4174,
+    port: 7355,
     strictPort: true,
     open: true,
     proxy: apiProxy,
   },
   preview: {
-    port: 4174,
+    port: 7355,
     strictPort: true,
     proxy: apiProxy,
   },

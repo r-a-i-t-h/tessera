@@ -37,7 +37,7 @@ Hono app (Node ≥20). JSON routes first; if `apps/editor/dist` (or `TESSERA_SPA
 
 Public HTML is the editor SPA when built. The published site remains `site.json` for the renderer. Content CRUD / flatten is not in this host yet.
 
-Same origin is deliberate: the session cookie is `httpOnly` + `SameSite=Lax`. A SPA on another port/origin would need CORS credentials and cookie relaxation. Dev uses a Vite proxy on port 4174 so the browser still sees one origin.
+Same origin is deliberate: the session cookie is `httpOnly` + `SameSite=Lax`. A SPA on another port/origin would need CORS credentials and cookie relaxation. Dev uses a Vite proxy on port 7355 so the browser still sees one origin.
 
 ## Content model
 

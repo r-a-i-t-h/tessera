@@ -8,11 +8,11 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 describe("resolveApiUrl", () => {
   it("stays in the page directory for subdirectory hosts", () => {
-    expect(resolveApiUrl("auth/login", "http://localhost:4174/")).toBe(
-      "http://localhost:4174/auth/login",
+    expect(resolveApiUrl("auth/login", "http://localhost:7355/")).toBe(
+      "http://localhost:7355/auth/login",
     );
-    expect(resolveApiUrl("auth/login", "http://localhost:4174/index.html")).toBe(
-      "http://localhost:4174/auth/login",
+    expect(resolveApiUrl("auth/login", "http://localhost:7355/index.html")).toBe(
+      "http://localhost:7355/auth/login",
     );
     expect(resolveApiUrl("api/ping", "http://example.com/tessera/")).toBe(
       "http://example.com/tessera/api/ping",
