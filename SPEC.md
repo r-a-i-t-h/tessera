@@ -198,9 +198,11 @@ Site-specific registry components remain first-class.
 
 ## 9. Editor boundary (Phase 2)
 
-- The editor is **out of Phase 1 build scope** but is a major part of the overall solution.
-- It will most likely be a **separate app on the same site origin**, not edit-in-place on the public renderer.
-- API-driven; there may be other routes to market beyond that host.
+- The public renderer stays Phase 1: no SSR, no live datastore, no edit-in-place.
+- The **editor API** (`apps/editor-api`) is a same-origin JSON host the future SPA will call. Cookie + Bearer sessions; subdirectory-safe via `TESSERA_BASE_PATH`.
+- **No self-signup.** Users are files under `data/users/` (seeded from `seed/users/`); add them with `seed:user`.
+- Access is **all-or-nothing**: any authenticated user may perform every editor mutation. `requireEditor` is the choke point so later ACL can replace that helper without rewriting routes.
+- The **editor SPA** is still later: a separate app on the same origin, not shipped with the renderer.
 - Authoring model: many records → flatten → published `SiteDocument` / `site.json`.
 - The renderer never depends on the editor; the editor may host the renderer for preview.
 - Flatten output **is** the renderer contract.
@@ -254,7 +256,7 @@ Criteria define “done enough,” not a build order (see [ROADMAP.md](./ROADMAP
 
 - **Fanciness** — polish, motion, richer presentation beyond minimal W3 chrome; keep scoped as an open product goal until specified further.
 - **Cold-start offline** — icing only.
-- **Editor app** — Phase 2.
+- **Editor SPA** — Phase 2 (API host exists; SPA and flatten still later).
 
 ---
 

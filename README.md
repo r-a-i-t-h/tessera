@@ -16,6 +16,7 @@ npm run dev                 # pure demo (port 5173)
 npm run dev:ineffable       # ineffable port (5174)
 npm run dev:millersark      # Miller's Ark port (5175)
 npm run dev:willow          # Willow Hall community demo (5176)
+npm run dev:api             # editor API (port 4173; seed login admin / admin)
 ```
 
 ## Test
@@ -42,6 +43,9 @@ npm test
 | `apps/demo-ineffable` | Port of the personal site (layouts, fonts, W3 chrome) |
 | `apps/demo-millersark` | Port of Miller's Ark CMS content + `openDaysTable` |
 | `apps/demo-willow` | Content showcase: news, events, weekly meetings, people, gallery |
+| `apps/editor-api` | Editing back-end: JSON auth + `requireEditor` (no self-signup) |
+
+Add an editor user with `npm run seed:user -w @r-a-i-t-h/tessera-editor-api -- <name> <password>` (writes `apps/editor-api/seed/users/`). First boot copies seed users into `apps/editor-api/data/`.
 
 Legacy RecTem sources can be re-converted with `npm run convert:legacy` (needs a local `.ref-legacy/` checkout).
 

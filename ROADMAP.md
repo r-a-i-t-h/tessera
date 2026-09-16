@@ -13,6 +13,7 @@ Update this file when priorities or status change; keep demo scoreboard copy ali
 | Site-data bindings + `{{id}}` | `document.bindings`; mustache + component-name insertion (demo-pure `farm-open-days`). |
 | Nav: pages ≠ visibility; multi presentation | Designed nav + `source`; `navTags` / `navTree` / `navCollapse`; demo-pure sidebar uses collapse. Orphan page proves reachability ≠ nav. |
 | Section profiles | `document.sections` + `resolvePageProfile`; page override > section > site default. demo-pure events inherit `simple` / `amber` (featured → `gold`). |
+| Editor API (auth host) | `apps/editor-api`: Hono JSON API, file users, no signup, cookie/Bearer sessions, `requireEditor` all-or-nothing gate. |
 
 ## Upcoming (ordered)
 
@@ -32,8 +33,8 @@ Update this file when priorities or status change; keep demo scoreboard copy ali
    Motion and richer presentation beyond minimal W3 chrome — scope before large effort.  
    → [SPEC Needs refinement](./SPEC.md#12-needs-refinement)
 
-5. **Editor app (later)**  
-   Separate same-origin app; API-driven flatten to `SiteDocument`. Folder-scan gallery flatten is an early precursor.  
+5. **Editor SPA (later)**  
+   Separate same-origin SPA talking to `apps/editor-api`; flatten records to `SiteDocument`. Folder-scan gallery flatten is an early precursor.  
    → [SPEC §9](./SPEC.md#9-editor-boundary-phase-2)
 
 ## Notes

@@ -6,7 +6,9 @@ Tessera is a small CMS runtime for sites whose full text/data payload is cheaper
 
 The name evokes mosaic tiles: layouts place the tiles (zones); content fills them — or leaves them empty.
 
-The **editor** (out of scope for the renderer phase; see SPEC) will edit many records and emit the flattened file. The **renderer** only consumes that file plus a site-owned component registry. The editor may host the renderer for preview; the renderer never depends on the editor.
+The **editor** (see SPEC §9) will edit many records and emit the flattened file. The **renderer** only consumes that file plus a site-owned component registry. The editor may host the renderer for preview; the renderer never depends on the editor.
+
+The editor **API** lives in `apps/editor-api` (`@r-a-i-t-h/tessera-editor-api`): a Hono + Node process with file-backed users, in-memory sessions, and an all-or-nothing `requireEditor` gate on every mutation. The editor SPA is not in this repo yet.
 
 ## Packages
 
@@ -18,9 +20,22 @@ The **editor** (out of scope for the renderer phase; see SPEC) will edit many re
 | `@r-a-i-t-h/tessera-wc-base` | Cookie-cut custom element base (`a` / `b` / `c`) |
 | `@r-a-i-t-h/tessera-demo-pure` | Vite demo proving the model |
 
-Sample sites live under `apps/demo-*` (pure / ineffable / millersark / willow). Shared chrome helpers are in `@r-a-i-t-h/tessera-demo-kit`.
+Sample sites live under `apps/demo-*` (pure / ineffable / millersark / willow). Shared chrome helpers are in `@r-a-i-t-h/tessera-demo-kit`. The editing back-end is `apps/editor-api`.
 
 `ps/` keeps PurpleCMS migration scripts (to be rewritten for Tessera’s document shape).
+
+## Editor API
+
+JSON-only Hono app (Node ≥20). Runtime data is file-backed with an in-memory cache; writes use atomic temp+rename.
+
+| Concern | Contract |
+|---------|----------|
+| Users | `data/users/<username>.json` (hash + salt). No `/auth/register`; add via `npm run seed:user -w @r-a-i-t-h/tessera-editor-api -- <name> <password>`. |
+| Sessions | In-memory tokens; httpOnly `tessera_session` cookie (namespaced by `TESSERA_BASE_PATH`) or `Authorization: Bearer`. SIGTERM dumps hashed tokens to `data/.sessions.json` once. |
+| Permission | `requireEditor`: authenticated ⇒ full access; anonymous ⇒ 401. Every mutation must call it. |
+| Public | `GET /health`, `POST /auth/login`. Protected: `GET /auth/me`, `POST /auth/password`, `POST /api/ping`. Logout is idempotent. |
+
+The published site remains `site.json` for the renderer. Content CRUD / flatten is not in this host yet.
 
 ## Content model
 
