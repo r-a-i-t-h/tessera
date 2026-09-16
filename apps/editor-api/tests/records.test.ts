@@ -82,7 +82,42 @@ describe("record routes", () => {
     const read = await app().request("/api/records/content/home", {
       headers: { Authorization: `Bearer ${token}` },
     });
-    const record = (await read.json()) as { data: { title: string } };
+    const record = (await read.json()) as {
+      data: { title: string; zones: Record<string, unknown> };
+      layout?: { layoutId: string; declaredZones: string[]; offLayoutZones: string[] };
+    };
     expect(record.data.title).toBe("Welcome");
+    expect(record.layout?.layoutId).toBe("standard");
+    expect(record.layout?.declaredZones).toEqual(["main"]);
+    expect(record.layout?.offLayoutZones ?? []).toEqual([]);
+  });
+
+  it("marks page zones the layout does not declare as off-layout", async () => {
+    await site.write("layouts", "standard", {
+      title: "Standard",
+      root: {
+        type: "region",
+        children: [
+          { type: "zone", id: "title" },
+          { type: "zone", id: "main" },
+        ],
+      },
+    });
+    await site.write("content", "home", {
+      title: "Home",
+      tags: ["page"],
+      zones: {
+        main: { html: "<p>Hello</p>" },
+        meta: { json: { date: "2026-09-10" } },
+      },
+    });
+    const read = await app().request("/api/records/content/home", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const record = (await read.json()) as {
+      layout: { declaredZones: string[]; offLayoutZones: string[] };
+    };
+    expect(record.layout.declaredZones).toEqual(["title", "main"]);
+    expect(record.layout.offLayoutZones).toEqual(["meta"]);
   });
 });

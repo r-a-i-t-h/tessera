@@ -1,13 +1,16 @@
 import { mkdir, readdir, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import type { SiteDocument } from "@r-a-i-t-h/tessera-model";
+import { collectDeclaredZones, resolvePageProfile } from "@r-a-i-t-h/tessera-model";
 import { readText, writeJsonAtomic, writeTextAtomic } from "../store/fs.js";
 import {
   assembleDocument,
+  authoredPageToPage,
   fromYaml,
   recordToYaml,
   splitDocument,
   toYaml,
+  type AuthoredPage,
   type LoadedSite,
   yamlToRecord,
 } from "./document.js";
@@ -17,6 +20,16 @@ export type RecordSummary = {
   kind: RecordKind | "site" | "nav";
   id: string;
   title?: string;
+};
+
+export type PageLayoutHint = {
+  layoutId: string;
+  layoutTitle?: string;
+  layoutSource: "page" | "section" | "site";
+  sectionId?: string;
+  declaredZones: string[];
+  offLayoutZones: string[];
+  layouts: Record<string, { title?: string; zones: string[] }>;
 };
 
 export class SiteStore {
@@ -62,6 +75,33 @@ export class SiteStore {
     return { ...data, id };
   }
 
+  async pageLayoutHint(page: Record<string, unknown>): Promise<PageLayoutHint | undefined> {
+    const doc = await this.tryDocument();
+    if (!doc) return undefined;
+    const authored = page as AuthoredPage;
+    if (!authored.id || !authored.title) return undefined;
+    const resolved = authoredPageToPage(authored);
+    const profile = resolvePageProfile(doc, resolved);
+    const layouts: PageLayoutHint["layouts"] = {};
+    for (const layout of doc.layouts) {
+      layouts[layout.id] = {
+        title: layout.title,
+        zones: [...collectDeclaredZones(layout.root)],
+      };
+    }
+    const declaredZones = layouts[profile.layoutId]?.zones ?? [];
+    const present = Object.keys(authored.zones ?? {});
+    return {
+      layoutId: profile.layoutId,
+      layoutTitle: layouts[profile.layoutId]?.title,
+      layoutSource: profile.layoutSource,
+      sectionId: profile.sectionId,
+      declaredZones,
+      offLayoutZones: present.filter((id) => !declaredZones.includes(id)),
+      layouts,
+    };
+  }
+
   async write(kind: RecordKind, id: string, data: Record<string, unknown>): Promise<void> {
     this.assertId(id);
     const record = { ...data, id };
@@ -102,6 +142,18 @@ export class SiteStore {
       await writeJsonAtomic(this.flattenOut, doc);
     }
     return doc;
+  }
+
+  private async tryDocument(): Promise<SiteDocument | undefined> {
+    try {
+      if (!(await this.hasSiteFile())) return undefined;
+      if (!(await this.listIds("layouts")).length || !(await this.listIds("content")).length) {
+        return undefined;
+      }
+      return assembleDocument(await this.loadParts());
+    } catch {
+      return undefined;
+    }
   }
 
   async writeFromDocument(doc: SiteDocument): Promise<void> {

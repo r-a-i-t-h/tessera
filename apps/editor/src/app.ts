@@ -8,7 +8,9 @@ import {
   me,
   saveRecord,
   type PublicUser,
+  type PageLayoutHint,
   type RecordList,
+  type RecordPayload,
   type RecordSummary,
 } from "./api";
 
@@ -160,7 +162,7 @@ async function bindEdit(root: HTMLElement, user: PublicUser, kind: string, id: s
     `<p><a href="#/">← Records</a></p>
      <h1 class="w3-large">${escapeHtml(kind)} / ${escapeHtml(id)}</h1>
      <form id="record-form" class="w3-card w3-white w3-padding-large editor-card">
-       ${fieldsHtml(payload.data)}
+       ${fieldsHtml(payload.data, payload.layout)}
        ${status}
        <p class="editor-actions"><button type="submit" class="w3-button w3-theme">Save</button></p>
      </form>`,
@@ -174,7 +176,7 @@ async function bindEdit(root: HTMLElement, user: PublicUser, kind: string, id: s
     const button = form.querySelector("button[type=submit]");
     if (button) (button as HTMLButtonElement).disabled = true;
     try {
-      const data = readForm(form, payload.data);
+      const data = pruneEmptyHtmlZones(readForm(form, payload.data));
       await saveRecord(kind, id, data);
       if (statusEl) {
         statusEl.hidden = false;
@@ -193,7 +195,7 @@ async function bindEdit(root: HTMLElement, user: PublicUser, kind: string, id: s
   });
 }
 
-function fieldsHtml(data: unknown): string {
+function fieldsHtml(data: unknown, layout?: PageLayoutHint): string {
   if (Array.isArray(data)) {
     return yamlField("_yaml", "Entries", data, 16);
   }
@@ -201,9 +203,15 @@ function fieldsHtml(data: unknown): string {
     return yamlField("_yaml", "Data", data, 12);
   }
   const record = data as Record<string, unknown>;
-  return Object.entries(record)
+  const meta = Object.entries(record)
+    .filter(([key]) => key !== "zones")
     .map(([key, value]) => fieldFor(key, value, key))
     .join("");
+  const zones =
+    record.zones && typeof record.zones === "object" && !Array.isArray(record.zones)
+      ? (record.zones as Record<string, unknown>)
+      : {};
+  return `${meta}${layoutBanner(layout)}${zoneFields(zones, layout)}`;
 }
 
 function fieldFor(key: string, value: unknown, path: string): string {
@@ -213,9 +221,6 @@ function fieldFor(key: string, value: unknown, path: string): string {
   }
   if (key === "title" && typeof value === "string") {
     return textField(path, "Title", value);
-  }
-  if (key === "zones" && value && typeof value === "object" && !Array.isArray(value)) {
-    return zoneFields(value as Record<string, unknown>);
   }
   if (typeof value === "string") {
     if (key === "html" || value.includes("<") || value.includes("\n") || value.length > 80) {
@@ -232,43 +237,66 @@ function fieldFor(key: string, value: unknown, path: string): string {
   return yamlField(path, labelize(key), value, 10);
 }
 
-function zoneFields(zones: Record<string, unknown>): string {
-  const keys = Object.keys(zones);
-  const ordered = [
-    ...keys.filter((k) => k === "title"),
-    ...keys.filter((k) => k === "main"),
-    ...keys.filter((k) => k !== "title" && k !== "main"),
-  ];
-  return ordered
-    .map((name) => {
-      const zone = zones[name];
-      if (zone && typeof zone === "object" && !Array.isArray(zone) && "html" in zone) {
-        const large = name === "main" || name === "minutes" || name === "hero";
-        return textareaField(
-          `zones.${name}.html`,
-          name === "main" ? "Body" : `Zone: ${name}`,
-          String((zone as { html: unknown }).html ?? ""),
-          large ? 18 : 6,
-        );
-      }
-      if (zone && typeof zone === "object" && !Array.isArray(zone) && "json" in zone) {
-        return jsonZoneFields(name, (zone as { json: unknown }).json);
-      }
-      return yamlField(`zones.${name}`, `Zone: ${name}`, zone, 8);
-    })
-    .join("");
+function layoutBanner(layout?: PageLayoutHint): string {
+  if (!layout) return "";
+  const via =
+    layout.layoutSource === "page"
+      ? "page override"
+      : layout.layoutSource === "section"
+        ? `section ${layout.sectionId ?? ""}`.trim()
+        : "site default";
+  const title = layout.layoutTitle ?? layout.layoutId;
+  return `<p class="w3-text-grey">Zones from layout <strong>${escapeHtml(title)}</strong> (${escapeHtml(via)}).</p>`;
 }
 
-function jsonZoneFields(name: string, json: unknown): string {
+function zoneFields(zones: Record<string, unknown>, layout?: PageLayoutHint): string {
+  const declared = layout?.declaredZones ?? [];
+  const declaredSet = new Set(declared);
+  const onNames = declared.length ? declared : Object.keys(zones);
+  const off = declared.length ? Object.keys(zones).filter((name) => !declaredSet.has(name)) : [];
+  const onLayout = onNames.map((name) => zoneEditor(name, zones[name], false));
+  const offLayout = off.map((name) => zoneEditor(name, zones[name], true));
+  return `${onLayout.join("")}${
+    offLayout.length
+      ? `<section class="editor-off-layout">
+        <h2 class="w3-medium">Off layout</h2>
+        <p class="w3-text-grey">On this page but not declared by the layout. Still saved as data (for components).</p>
+        ${offLayout.join("")}
+      </section>`
+      : ""
+  }`;
+}
+
+function zoneEditor(name: string, zone: unknown, offLayout: boolean): string {
+  const label = offLayout
+    ? `Off layout: ${name}`
+    : name === "main"
+      ? "Body"
+      : `Zone: ${name}`;
+  if (zone && typeof zone === "object" && !Array.isArray(zone) && "html" in zone) {
+    const large = name === "main" || name === "minutes" || name === "hero";
+    return textareaField(`zones.${name}.html`, label, String((zone as { html: unknown }).html ?? ""), large ? 18 : 6);
+  }
+  if (zone && typeof zone === "object" && !Array.isArray(zone) && "json" in zone) {
+    return jsonZoneFields(name, (zone as { json: unknown }).json, offLayout);
+  }
+  if (zone === undefined) {
+    return textareaField(`zones.${name}.html`, label, "", name === "main" || name === "hero" ? 18 : 6);
+  }
+  return yamlField(`zones.${name}`, label, zone, 8);
+}
+
+function jsonZoneFields(name: string, json: unknown, offLayout = false): string {
+  const legend = offLayout ? `Off layout: ${name}` : labelize(name);
   if (json && typeof json === "object" && !Array.isArray(json)) {
     const entries = Object.entries(json as Record<string, unknown>);
     if (entries.every(([, v]) => v === undefined || ["string", "number", "boolean"].includes(typeof v))) {
-      return `<fieldset class="editor-fieldset"><legend>${escapeHtml(labelize(name))}</legend>${entries
+      return `<fieldset class="editor-fieldset${offLayout ? " editor-off-layout-fields" : ""}"><legend>${escapeHtml(legend)}</legend>${entries
         .map(([k, v]) => textField(`zones.${name}.json.${k}`, labelize(k), String(v ?? "")))
         .join("")}</fieldset>`;
     }
   }
-  return yamlField(`zones.${name}.json`, labelize(name), json, 8);
+  return yamlField(`zones.${name}.json`, legend, json, 8);
 }
 
 function textField(name: string, label: string, value: string, type = "text"): string {
@@ -307,6 +335,30 @@ function readForm(form: HTMLFormElement, original: unknown): unknown {
     setPath(next, el.name, parseField(el));
   }
   return next;
+}
+
+function pruneEmptyHtmlZones(data: unknown): unknown {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return data;
+  const record = data as Record<string, unknown>;
+  const zones = record.zones;
+  if (!zones || typeof zones !== "object" || Array.isArray(zones)) return data;
+  const next: Record<string, unknown> = {};
+  for (const [id, zone] of Object.entries(zones as Record<string, unknown>)) {
+    if (
+      zone &&
+      typeof zone === "object" &&
+      !Array.isArray(zone) &&
+      "html" in zone &&
+      !("json" in zone) &&
+      !("blocks" in zone) &&
+      !("component" in zone) &&
+      String((zone as { html: unknown }).html ?? "").trim() === ""
+    ) {
+      continue;
+    }
+    next[id] = zone;
+  }
+  return { ...record, zones: next };
 }
 
 function parseField(el: HTMLInputElement | HTMLTextAreaElement): unknown {

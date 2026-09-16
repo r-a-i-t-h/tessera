@@ -53,3 +53,13 @@ body {
   padding: 0 0.4rem;
   font-weight: 600;
 }
+
+.editor-off-layout {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px dashed #bbb;
+}
+
+.editor-off-layout-fields {
+  border-style: dashed;
+}

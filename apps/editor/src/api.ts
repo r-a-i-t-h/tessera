@@ -106,11 +106,22 @@ export type RecordList = {
   records: RecordSummary[];
 };
 
+export type PageLayoutHint = {
+  layoutId: string;
+  layoutTitle?: string;
+  layoutSource: "page" | "section" | "site";
+  sectionId?: string;
+  declaredZones: string[];
+  offLayoutZones: string[];
+  layouts: Record<string, { title?: string; zones: string[] }>;
+};
+
 export type RecordPayload = {
   ok: true;
   kind: string;
   id: string;
   data: unknown;
+  layout?: PageLayoutHint;
 };
 
 export function listRecords(): Promise<RecordList> {

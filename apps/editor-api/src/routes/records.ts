@@ -40,7 +40,9 @@ recordRoutes.get("/records/:kind/:id", async (c) => {
     if (!isRecordKind(kind) || !isRecordId(id)) {
       return apiError(c, 400, "Unknown record kind or invalid id.");
     }
-    return c.json({ ok: true, kind, id, data: await site.read(kind, id) });
+    const data = await site.read(kind, id);
+    const layout = kind === "content" ? await site.pageLayoutHint(data) : undefined;
+    return c.json({ ok: true, kind, id, data, ...(layout ? { layout } : {}) });
   } catch (err) {
     const code = (err as NodeJS.ErrnoException).code;
     if (code === "ENOENT") return apiError(c, 404, "Record not found.");

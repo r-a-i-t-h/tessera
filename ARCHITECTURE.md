@@ -70,6 +70,8 @@ Willow’s editable source is `apps/demo-willow/data/` — a sibling of `public/
 
 HTML zones use YAML `|` / `|-` scalars (`html:`) so markup is not JSON-escaped. Component *implementations* stay TypeScript in the site (`src/components`); only bindings are data.
 
+The editor form for a page lists zones declared by the resolved layout (page `layoutId` → matching section → site default). Extra keys on the page that the layout does not declare stay editable under **Off layout**.
+
 `npm run flatten:site` (or an editor save) writes `apps/demo-willow/public/data/site.json`.
 
 There is **no** recursive `parentId` template chain and **no** inventing zones from inside page HTML. Section profiles replace Rec-Tem-style “templates as content” for hierarchy-wide layout/theme switching.
