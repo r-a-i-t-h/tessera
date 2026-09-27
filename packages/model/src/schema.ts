@@ -129,7 +129,24 @@ export const LayoutSchema = z.object({
 export const PageSchema = z.object({
   id: z.string().min(1),
   title: z.string(),
+  /** Meta description for a published HTML page. Empty when omitted. */
+  description: z.string().optional(),
+  /**
+   * URL path segment. When omitted, the pages publisher uses `id`.
+   * The home page is always the site root, ignoring `slug`.
+   */
   slug: z.string().optional(),
+  /**
+   * Parent page id in the published tree. Omitted pages are roots.
+   * The home page is always a root; its `parentId` is ignored.
+   * Drafts are pages left out of the published document, not a status on this record.
+   */
+  parentId: z.string().min(1).optional(),
+  /**
+   * When `false`, the page still has a URL and an HTML file, and is omitted from nav.
+   * Omitted means the page appears in nav. History is not stored here.
+   */
+  showInNav: z.boolean().optional(),
   /**
    * Explicit layout override. When omitted, resolved from matching `sections`
    * then `site.defaultLayoutId` (see `resolvePageProfile`).

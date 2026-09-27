@@ -31,9 +31,13 @@ describe("static site relative assets", () => {
     }
   });
 
-  it("loads site data via a relative URL in main", () => {
+  it("points the shell at a folder-relative hashed site file", () => {
+    const pointer = /name="tessera-site" content="\.\/data\/site\.[a-f0-9]+\.json"/;
+    expect(readFileSync(join(root, "index.html"), "utf8")).toMatch(pointer);
+    expect(readFileSync(join(root, "dist/index.html"), "utf8")).toMatch(pointer);
     const main = readFileSync(join(root, "src/main.ts"), "utf8");
-    expect(main).toContain('documentUrl: "./data/site.json"');
+    expect(main).toContain("readSiteDocumentUrl()");
+    expect(main).not.toContain('"./data/site.json"');
     expect(main).not.toContain('documentUrl: "/');
   });
 });

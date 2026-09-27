@@ -1,6 +1,10 @@
 import {
   SITE_DOCUMENT_SCHEMA_VERSION,
+  SITE_REVISION_FILE,
+  hashFromSiteUrl,
   parseSiteDocument,
+  parseSiteRevision,
+  siblingDataUrl,
   type SiteDocument,
 } from "@r-a-i-t-h/tessera-model";
 
@@ -31,8 +35,6 @@ export type LoadSiteDocumentOptions = {
   storageKey?: string;
   expectedSchemaVersion?: number;
   fetchImpl?: typeof fetch;
-  /** Override clock for tests. */
-  now?: () => number;
 };
 
 function defaultStorage(): Storage | null {
@@ -68,11 +70,6 @@ function resolveCacheKey(options: LoadSiteDocumentOptions): string {
 function currentPageUrl(): string {
   if (typeof location !== "undefined" && location.href) return location.href;
   throw new Error("Pass pageUrl so each published site has its own site.json cache.");
-}
-
-export function withCacheBust(url: string, now = Date.now()): string {
-  const sep = url.includes("?") ? "&" : "?";
-  return `${url}${sep}t=${now}`;
 }
 
 function readCache(
@@ -128,8 +125,9 @@ export function clearDocumentCache(storage: Storage | null, key: string): void {
 }
 
 /**
- * Fetch site.json with cache-busting. On success, validate and persist.
- * On failure, fall back to a schema-compatible localStorage copy when present.
+ * Fetch the site file named by the shell (a content-hashed `site.<hash>.json`).
+ * On success, validate and persist. On failure, fall back to a schema-compatible
+ * localStorage copy when present. The first load does not fetch `rev.json`.
  */
 export async function loadSiteDocument(
   options: LoadSiteDocumentOptions,
@@ -138,10 +136,9 @@ export async function loadSiteDocument(
   const storage = options.storage === undefined ? defaultStorage() : options.storage;
   const key = resolveCacheKey(options);
   const fetchImpl = options.fetchImpl ?? fetch;
-  const now = options.now ?? Date.now;
 
   try {
-    const res = await fetchImpl(withCacheBust(options.documentUrl, now()));
+    const res = await fetchImpl(options.documentUrl);
     if (!res.ok) throw new Error(`Failed to load ${options.documentUrl}: ${res.status}`);
     const document = parseSiteDocument(await res.json());
     if (document.version !== expectedSchemaVersion) {
@@ -168,21 +165,46 @@ export async function loadSiteDocument(
   }
 }
 
+export type SiteRefresh =
+  | { changed: false }
+  | {
+      changed: true;
+      document: SiteDocument;
+      status: DocumentStatus;
+      /** Hashed file URL to use for the next poll. */
+      documentUrl: string;
+    };
+
 /**
- * Re-fetch for TTL. Returns null if fetch/parse fails (caller keeps current doc).
- * Abandons and clears cache when schema mismatches.
+ * Open-tab poll. Fetches `rev.json` and skips the document body when its hash
+ * still matches the file the shell (or the previous poll) is using.
+ * Returns null when the check fails; the caller keeps the current document.
  */
 export async function refreshSiteDocument(
   options: LoadSiteDocumentOptions,
-): Promise<{ document: SiteDocument; status: DocumentStatus } | null> {
+): Promise<SiteRefresh | null> {
   const expectedSchemaVersion = options.expectedSchemaVersion ?? SITE_DOCUMENT_SCHEMA_VERSION;
   const storage = options.storage === undefined ? defaultStorage() : options.storage;
-  const key = resolveCacheKey(options);
   const fetchImpl = options.fetchImpl ?? fetch;
-  const now = options.now ?? Date.now;
+  const revUrl = siblingDataUrl(options.documentUrl, SITE_REVISION_FILE);
 
+  let revision: ReturnType<typeof parseSiteRevision> = null;
   try {
-    const res = await fetchImpl(withCacheBust(options.documentUrl, now()));
+    const revRes = await fetchImpl(revUrl, { cache: "no-cache" });
+    if (!revRes.ok) return null;
+    revision = parseSiteRevision(await revRes.json());
+  } catch {
+    return null;
+  }
+  if (!revision) return null;
+
+  const currentHash = hashFromSiteUrl(options.documentUrl);
+  if (currentHash && currentHash === revision.hash) return { changed: false };
+
+  const nextUrl = siblingDataUrl(options.documentUrl, revision.file);
+  const key = options.storageKey ?? documentCacheKey(nextUrl, options.pageUrl ?? currentPageUrlSafe(options));
+  try {
+    const res = await fetchImpl(nextUrl);
     if (!res.ok) return null;
     const document = parseSiteDocument(await res.json());
     if (document.version !== expectedSchemaVersion) {
@@ -191,10 +213,17 @@ export async function refreshSiteDocument(
     }
     if (storage) writeDocumentCache(storage, key, document, expectedSchemaVersion);
     return {
+      changed: true,
       document,
       status: { usingCachedData: false, source: "network" },
+      documentUrl: nextUrl,
     };
   } catch {
     return null;
   }
+}
+
+function currentPageUrlSafe(options: LoadSiteDocumentOptions): string {
+  if (options.pageUrl) return options.pageUrl;
+  return currentPageUrl();
 }

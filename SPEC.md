@@ -1,6 +1,6 @@
 # Tessera specification (v0.1)
 
-Tessera is a **client-side site runtime** that renders an entire small website from one validated JSON document plus a site-owned component registry — no SSR, no runtime datastore, and no recursive content zones.
+Tessera publishes a small website from structured records and a site-owned registry of micro-apps. A site is one of two flavours: a **snapshot** (one JSON document, rendered in the browser) or **pages** (one static HTML file per page). Neither flavour renders on request, and neither uses a runtime datastore. Content cannot invent recursive zones.
 
 It is the successor to Rec-Tem (“recursive templates”). The mosaic metaphor remains: layouts place the tiles (zones); content fills them — or leaves them empty. Tessera drops the recursive element so content can no longer invent zones that themselves contain further content. Boundaries between **modelling data**, **rendering HTML**, and **exposing W3.CSS styling** are deliberate packages rather than a ball of mud.
 
@@ -16,7 +16,7 @@ It is the successor to Rec-Tem (“recursive templates”). The mosaic metaphor 
 
 ### Goals
 
-- Deliver a full small site from a single flattened payload (`site.json`) loaded once up-front and reused for SPA navigation.
+- Deliver a full small site either as a **snapshot** (one flattened payload loaded once and reused for in-browser navigation) or as **pages** (one HTML file per page in a tree, with nav written into each file).
 - Support static page content and structured **items** (lists / collections of record-like data) shown on-a-page or as-pages via registered components.
 - Keep sites **mobile layout friendly** (adaptive layout; default skin is W3.CSS).
 - Ship enough shared components to build a complete site (listings, blog, gallery, document browser, layout primitives) without blocking site-specific components.
@@ -26,8 +26,10 @@ It is the successor to Rec-Tem (“recursive templates”). The mosaic metaphor 
 
 ### Non-goals (Phase 1)
 
-- SSR or SEO-first multi-page HTML.
-- Runtime lookups from a datastore (the published site is one JSON file).
+- Request-time rendering, and a generic server that loads site micro-app code.
+- Publishing static stand-ins so micro-apps work with JavaScript disabled.
+- Mixing snapshot and pages output for one site, or switching flavour after the site is created.
+- Runtime lookups from a datastore. A snapshot site’s published payload is one JSON file. A pages site’s published payload is the HTML files.
 - Recursive zone invention from inside page content.
 - Edit-in-place on the rendered site.
 - Multi-version / draft content on the client (one published snapshot only).
@@ -61,9 +63,10 @@ Hierarchical **sections** switch layout/skin for slices of the site **without** 
 
 ### Pages and items
 
-- **Page** — a navigable unit: resolved layout + zone contributions (+ optional includes).
+- **Page** — a declared document: id, title, optional description, place in the published tree, body (zones), and whether it appears in nav. Resolved layout + zone contributions (+ optional includes).
+- **Published page** — a page present in the document the publisher reads. An in-progress page is absent from that document. The publisher does not see a draft flag. History is a stack of earlier copies kept by the editor, and publish means “this copy is now the published page.”
 - **Item** — reusable content contribution (the collection formerly thought of as “lists” / “collections”). Lists and collections are the same idea; the vocabulary is **`items`**.
-- Items may be shown **on a page** (component loops over data) or **as pages** (each record becomes a navigable page / nav link), depending on registered bindings.
+- Items may be shown **on a page** by a micro-app. A record that should have its own URL is its own page in the tree, not a child invented by a micro-app.
 
 ### Blocks
 
@@ -74,9 +77,17 @@ Zone content is composed of blocks such as:
 - **media** — references into the media catalog.
 - **component** — a named registry entry (see inclusion).
 
+### Micro-app
+
+A **micro-app** is an interactive client-side mount on a page: an event list, a gallery, a filterable directory. It runs in the browser after the page has loaded. It does not create pages and it does not add nav entries.
+
+“Component” remains the implementation word (a registry function, a web component). The product term for the visitor-facing mount is micro-app.
+
+Micro-apps are client-only in both flavours. The pages publisher writes an empty mount and a JSON description of the data that mount needs. It does not run the micro-app.
+
 ### Component registry
 
-Dynamics are TypeScript owned by the site (or shared Tessera packages), **imported and registered by name**. Content never embeds scripts. Adding a *new* component implementation requires a rebuild; changing text, JSON, layout trees, or which registered names a page calls does not.
+Micro-app implementations are TypeScript owned by the site (or shared Tessera packages), **imported and registered by name**. Content never embeds scripts. Adding a *new* micro-app implementation requires a rebuild; changing text, JSON, layout trees, or which registered names a page calls does not.
 
 ### Skin
 
@@ -90,22 +101,49 @@ Where authoring syntax benefits, prefer custom elements (e.g. `<imgbox>`, `<quot
 
 ## 3. Runtime: load, cache, TTL, versioning
 
-### Delivery model
+### Delivery flavours
 
-- Sites are **SPA-rendered in the browser** from a pre-published JSON file. “Static” here means *no live datastore* and *payload prepared ahead of time* — not plain multi-page HTML and not SSR.
-- Load the document from a folder-relative URL (e.g. `./data/site.json`). Vite `base: "./"` and relative media URLs keep a published site portable to any directory, including a path on a shared domain. The editor and its API are a separate install and are served at the root of their own hostname.
-- After a successful load, navigation uses the in-memory document.
+A site is either a snapshot or pages, chosen when the site is created. One site does not emit both, and it does not switch at runtime.
 
-### Fetch and cache-busting
+“Static” means the published files are prepared ahead of time. The browser talks to a static file host (nginx or equivalent). Node is the build, not the request path.
 
-1. Fetch `site.json` with a **cache-busting query** (e.g. timestamp) so HTTP caches do not serve stale content. (Hashed JS bundles handle *code* cache-busting separately.)
-2. On success: validate, render, write to **`localStorage`**. The cache key is the absolute URL of `site.json`. Storage is shared by the whole origin, so that URL is what gives each published site its own cache when several sites sit on one domain. It is not a server base path.
-3. On failure: if a prior compatible document exists in storage, use it and mark **using cached / stale data** so chrome can show a banner.
-4. A full **page refresh** always attempts a fresh fetch (latest data when online).
+Folder-relative URLs (`./…`) and Vite `base: "./"` keep a published site portable to any directory, including a path on a shared domain. The editor and its API are a separate install and are served at the root of their own hostname.
+
+#### Snapshot
+
+- One JSON document, rendered in the browser. Hash routing stays. Indexing expectation: the homepage only, after JavaScript runs. Link previews see the shell.
+- The shell names a **content-hashed** file in `<meta name="tessera-site" content="./data/site.<hash>.json">`. The first load fetches that file and does not fetch anything else first. There is no timestamp query on the document URL.
+- A content edit rewrites the meta tag, writes `site.<hash>.json`, and writes `data/rev.json` (`{ "hash", "file" }`). Unchanged bytes keep the same name, so HTTP caches can hold them.
+- On success: validate, render, write to **`localStorage`**. The cache key is the absolute URL of that hashed file. Storage is shared by the whole origin, so that URL is what gives each published site its own cache when several sites sit on one domain. It is not a server base path.
+- On failure: if a prior compatible document exists in storage, use it and mark **using cached / stale data** so chrome can show a banner.
+- A full **page refresh** loads the file the current shell names.
+
+#### Pages
+
+- A **tree of pages**. `parentId` is the parent. The home page is the site root (`index.html`). Every other page is `{path}/index.html`, where the path is the chain of `slug` (or `id`) segments under the home page.
+- Each file contains that page’s prose, `<title>`, optional meta description, canonical URL, and the **same nav**, written once at publish from the tree. `showInNav: false` keeps the URL and the file, and omits the page from the menu. A hidden parent’s visible children stay in the menu.
+- Micro-app regions are empty `data-tessera-microapp` mounts plus a JSON description. They run in the browser.
+- `sitemap.xml` lists every published page URL.
+- Visitors move between pages by loading the next HTML file.
+
+### Seeing a new homepage
+
+The homepage address stays the site root. CSS, JS, and the snapshot JSON use filenames that include a content hash, and the host may cache those names for a long time. The new HTML is what points at the new names, so HTML itself is checked on every load.
+
+Nginx (or the static host) sends two separate headers for HTML, including `/`, which does not end in `.html`:
+
+- `ETag` — nginx sends this for static files by default.
+- `Cache-Control: public, max-age=0, must-revalidate` — added in the site config. The browser may keep a copy and must ask before showing it. Unchanged is a small 304. After the file on disk is replaced, the next load receives the new HTML.
+
+Hashed files under `/assets/`, and `site.<hash>.json`, use `Cache-Control: public, max-age=31536000, immutable`.
+
+The open-tab poll is separate: every five minutes the snapshot client fetches `rev.json` with revalidation (`cache: "no-cache"`). When the hash matches, it does not download the document. A tab that is already open keeps its HTML until reload. The pages flavour has no poll; the next request for the HTML file is the update.
+
+A host that ignores `Cache-Control` and stores HTML for hours will keep serving the old homepage until its own timer ends. Page URLs never carry a timestamp query. Copy-paste nginx for a vhost and for a folder on a shared host lives in [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ### In-session TTL
 
-While the SPA stays open, re-check for updated data on a fixed interval of **5 minutes** (not driven by visibility, focus, or other events). On success, replace in-memory document and `localStorage`. On failure, keep the current document and retain the stale signal as appropriate.
+While a snapshot stays open, re-check `rev.json` on a fixed interval of **5 minutes** (not driven by visibility, focus, or other events). When the hash changes, fetch the new file, replace the in-memory document and `localStorage`. When the hash matches, do nothing. When the check fails, keep the current document and retain the stale signal as appropriate.
 
 ### Offline behaviour
 
@@ -116,7 +154,7 @@ While the SPA stays open, re-check for updated data on a fixed interval of **5 m
 
 ### Schema and app versioning
 
-- On-disk `site.json` and the `localStorage` cache identify a **schema version**.
+- The hashed site file and the `localStorage` cache identify a **schema version**. The stable `site.json` beside it is the same bytes, for tools. The browser loads the hashed name.
 - The running Tessera **app version and expected schema must stay in sync**. If cached schema ≠ what the app expects, **abandon the cache** and require a fresh download (no silent half-upgrade).
 - Deployments serve matching app + data together. If the client can load the latest app, it may assume compatible latest data is fetchable when online.
 - **Content revision history** is an editor concern. The client shows a single published snapshot.
@@ -124,7 +162,7 @@ While the SPA stays open, re-check for updated data on a fixed interval of **5 m
 
 ### Routing and missing pages
 
-- Phase 1 keeps **hash routing** (back/forward already work). A move to the Navigation API is optional later ([Needs refinement](#12-needs-refinement)).
+- The snapshot flavour keeps **hash routing** (back/forward already work). The pages flavour uses the path of each HTML file. A move to the Navigation API for the snapshot flavour is optional later ([Needs refinement](#12-needs-refinement)).
 - **Missing page ids must not surface a raw error UI.** The site handles the case (e.g. silent fallback to the home page). Exact policy may become site-configurable later.
 
 ---
@@ -143,8 +181,9 @@ While the SPA stays open, re-check for updated data on a fixed interval of **5 m
 Nav is first-class document content, not merely demo chrome — and it is **distinct from page existence**.
 
 - **Pages** may exist without appearing in any nav (reachability ≠ visibility).
-- **Designed nav** (`document.nav`) is authored structure for “perma” entries (hand-chosen pages, headings, nested children).
-- **Content-implied nav** uses `source` on a nav node (e.g. `pagesTag` / `itemsTag`) so dynamic items or tagged pages become link *data* in the tree. That is different from nav-by-design.
+- **Designed nav** (`document.nav`) is authored structure for the snapshot flavour (hand-chosen pages, headings, nested children).
+- **Pages-flavour nav** is the published page tree, written into each HTML file at publish. It is not rebuilt in the browser, and a micro-app does not extend it. `source` expansion that grows a hierarchy from a collection is a snapshot-era blur; the pages flavour does not use it.
+- **Content-implied nav** on a snapshot uses `source` on a nav node (e.g. `pagesTag` / `itemsTag`) so tagged pages that already exist become link *data*. That does not create pages.
 - **Presentation is a component choice**, not a system mandate. Shipped options include tag grouping (`navTags`), full tree (`navTree`), and collapsible regions (`navCollapse`). Sites may register others. A component might render the same resolved tree as tags, a tree, or an accordion.
 - Physical shell chrome (drawer markup, overlay) remains a thin site/skin concern that *consumes* nav components or resolved nav data.
 
@@ -198,7 +237,7 @@ Site-specific registry components remain first-class.
 
 ## 9. Editor boundary (Phase 2)
 
-- The public renderer stays Phase 1: no SSR, no live datastore, no edit-in-place.
+- The public site stays free of request-time rendering, a live datastore, and edit-in-place. Drafts and history belong to the editor and are not fields on the published page.
 - The **editor API** (`apps/editor-api`) is a same-origin JSON host the SPA calls. Cookie + Bearer sessions. The editor and its API are served at the hostname root (`tessera_session` cookie, `Path=/`). A published site has no server and may be placed in a folder.
 - **No self-signup.** Users are files under `data/users/` (seeded from `seed/users/`); add them with `seed:user`.
 - Access is **all-or-nothing**: any authenticated user may perform every editor mutation. `requireEditor` is the choke point so later ACL can replace that helper without rewriting routes.
@@ -215,11 +254,11 @@ Criteria define “done enough,” not a build order (see [ROADMAP.md](./ROADMAP
 
 ### Content fetch, cache, and TTL
 
-- [ ] Fetch uses a cache-busting query.
+- [ ] The snapshot shell points at a content-hashed site file. The first load fetches that file and does not request `rev.json` first.
 - [ ] Successful load validates, renders, and persists to `localStorage` with schema version.
 - [ ] Fetch failure falls back to a schema-compatible cached document and sets a stale/offline signal.
 - [ ] Incompatible cached schema is abandoned; fresh data must be downloaded.
-- [ ] While the SPA remains open, a **5-minute** TTL re-fetches and updates on success.
+- [ ] While a snapshot remains open, a **5-minute** poll reads `rev.json` and downloads a new site file only when the hash changes.
 - [ ] Full page refresh attempts latest data (when online).
 - [ ] Demos can surface an offline / stale-content banner from the signal.
 
@@ -242,6 +281,13 @@ Criteria define “done enough,” not a build order (see [ROADMAP.md](./ROADMAP
 - [ ] Gallery component renders image sets from the model/media story (converted stubs replaced).
 - [ ] Layout primitives (imgbox, quote, side-by-side) are available in a form content authors can use trivially.
 - [ ] Mobile adaptive layout remains the default path (W3 skin or equivalent).
+
+### Pages flavour
+
+- [ ] A published page record is `id`, `title`, optional `description`, optional `parentId`, optional `slug`, optional `showInNav`, and the existing body zones. Drafts and history are not on that record.
+- [ ] `publishPages` writes one HTML file per page, with prose, title, canonical URL, and the same static nav in every file.
+- [ ] Micro-apps are `data-tessera-microapp` mounts plus JSON. The publisher does not run them.
+- [ ] `sitemap.xml` lists every published page URL, including pages omitted from nav.
 
 ### Routing and errors
 
@@ -273,7 +319,7 @@ Parking lot for design that is sound enough to proceed in spirit but not yet nai
 
 1. **Binding content sources** — beyond `itemId` + `fromZone` (e.g. page zone, inline JSON, query over items).
 2. **Cold-start offline** — behaviour when the browser requests the site while already offline (HTTP cache vs Service Worker vs legacy appcache/manifest). Required mid-session offline is specified; cold-start is icing.
-3. **Hash vs Navigation API** — whether deep-link UX or hosting constraints ever justify leaving hash routing.
+3. **Hash vs Navigation API** — snapshot sites keep hash routing. Pages sites already have a path per page. Whether a snapshot site should leave hash routing is still open.
 4. **`localStorage` size** — strategy when documents are large (HTML-heavy converted sites); quotas, compression, or alternate cache.
 5. **Missing-page policy** — global silent home fallback vs site setting.
 6. **Nav source vs list-as-pages** — how much machinery is shared between content-implied nav links and generating pages from items.

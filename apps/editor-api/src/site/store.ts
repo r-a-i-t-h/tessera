@@ -2,7 +2,8 @@ import { mkdir, readdir, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import type { SiteDocument } from "@r-a-i-t-h/tessera-model";
 import { collectDeclaredZones, resolvePageProfile } from "@r-a-i-t-h/tessera-model";
-import { readText, writeJsonAtomic, writeTextAtomic } from "../store/fs.js";
+import { readText, writeTextAtomic } from "../store/fs.js";
+import { writeSnapshotFiles } from "./snapshot.js";
 import {
   assembleDocument,
   authoredPageToPage,
@@ -139,7 +140,8 @@ export class SiteStore {
     }
     const doc = assembleDocument(await this.loadParts());
     if (this.flattenOut) {
-      await writeJsonAtomic(this.flattenOut, doc);
+      const body = `${JSON.stringify(doc, null, 2)}\n`;
+      await writeSnapshotFiles(this.flattenOut, body);
     }
     return doc;
   }

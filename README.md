@@ -47,7 +47,7 @@ npm test
 | `apps/editor` | Editor SPA: login + file-based record editor |
 | `apps/editor-api` | Editing back-end: JSON auth + YAML records + flatten |
 
-Editor: run `npm run dev:api` and `npm run dev:editor`, then open the SPA (port 7355). Willow records live in `apps/demo-willow/data/` (outside `public/`). Saving a record flattens to `apps/demo-willow/public/data/site.json`. After `npm run build -w @r-a-i-t-h/tessera-editor`, the API also serves that build on port 7356. Add a user with `npm run seed:user -w @r-a-i-t-h/tessera-editor-api -- <name> <password>` (writes `apps/editor-api/seed/users/`). First boot copies seed users into `apps/editor-api/data/`. Seed login is `admin` / `admin`.
+Editor: run `npm run dev:api` and `npm run dev:editor`, then open the SPA (port 7355). Willow records live in `apps/demo-willow/data/` (outside `public/`). Saving a record flattens to `apps/demo-willow/public/data/site.json`, writes `site.<hash>.json` and `rev.json`, and points `index.html` at the hashed file. After `npm run build -w @r-a-i-t-h/tessera-editor`, the API also serves that build on port 7356. Add a user with `npm run seed:user -w @r-a-i-t-h/tessera-editor-api -- <name> <password>` (writes `apps/editor-api/seed/users/`). First boot copies seed users into `apps/editor-api/data/`. Seed login is `admin` / `admin`.
 
 Legacy RecTem sources can be re-converted with `npm run convert:legacy` (needs a local `.ref-legacy/` checkout).
 

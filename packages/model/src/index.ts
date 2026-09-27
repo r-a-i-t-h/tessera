@@ -27,6 +27,24 @@ export {
   sectionMatchesPage,
   resolvePageProfile,
 } from "./schema.js";
+export {
+  pagePathSegment,
+  publishedPageTree,
+  flattenPageTree,
+  type PageTreeNode,
+} from "./page-tree.js";
+export {
+  SITE_POINTER_META,
+  SITE_REVISION_FILE,
+  SNAPSHOT_HASH_LENGTH,
+  hashSnapshotBody,
+  snapshotFileName,
+  parseSiteRevision,
+  hashFromSiteUrl,
+  siblingDataUrl,
+  stampSitePointer,
+  type SiteRevision,
+} from "./snapshot.js";
 
 export type {
   Block,

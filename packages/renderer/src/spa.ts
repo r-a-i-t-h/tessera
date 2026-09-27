@@ -39,7 +39,7 @@ export class SiteRenderer {
   readonly skin?: Skin;
   private readonly onAfterRender?: SiteRendererOptions["onAfterRender"];
   private readonly onStatusChange?: SiteRendererOptions["onStatusChange"];
-  private readonly documentUrl?: string;
+  private documentUrl?: string;
   private readonly ttlMs: number;
   private readonly storage: Storage | null | undefined;
   private readonly storageKey?: string;
@@ -183,6 +183,8 @@ export class SiteRenderer {
       }
       return false;
     }
+    if (!result.changed) return true;
+    this.documentUrl = result.documentUrl;
     this._document = result.document;
     this.setStatus(result.status);
     if (this.started) this.render();

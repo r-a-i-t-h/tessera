@@ -4,7 +4,7 @@ import { normalizeSiteAssetUrl } from "./assets.js";
 import { expandMustache, renderNamed } from "./bindings.js";
 import type { ComponentRegistry } from "./registry.js";
 import { indexDocument, mergeZones } from "./merge.js";
-import type { RenderContext, ZoneMap } from "./types.js";
+import type { MicroAppMount, RenderContext, ZoneMap } from "./types.js";
 
 export type Skin = {
   /** Map a region role + optional className to a final class string. */
@@ -16,6 +16,12 @@ export type RenderPageOptions = {
   pageId: string;
   registry: ComponentRegistry;
   skin?: Skin;
+  /**
+   * Leave bindings and components as empty micro-app mounts.
+   * Recorded mounts are appended to `microApps` when that array is passed.
+   */
+  mountMicroApps?: boolean;
+  microApps?: MicroAppMount[];
 };
 
 export function escapeHtml(s: string): string {
@@ -81,6 +87,8 @@ export function renderPage(options: RenderPageOptions): string {
     zoneJson: <T = unknown>(zoneId: string) => zoneJsonFromMap(zones, zoneId) as T[],
     mediaHtml: (id) => mediaToHtml(mediaById.get(id)),
     escapeHtml,
+    mountMicroApps: options.mountMicroApps,
+    microApps: options.microApps,
   };
 
   return renderNode(layout.root, ctx, skin);

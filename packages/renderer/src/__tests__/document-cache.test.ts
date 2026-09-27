@@ -42,7 +42,7 @@ describe("document cache", () => {
     expect(documentCacheKey("./data/site.json", "https://raith.com/a/#about")).toBe(a);
   });
 
-  it("fetches with cache-bust, validates, and writes storage", async () => {
+  it("fetches the hashed site file as named, validates, and writes storage", async () => {
     const doc = makeFixtureDoc();
     const storage = memoryStorage();
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
@@ -50,16 +50,15 @@ describe("document cache", () => {
     );
 
     const result = await loadSiteDocument({
-      documentUrl: "./data/site.json",
+      documentUrl: "./data/site.abc123.json",
       pageUrl,
       storage,
-      now: () => 42,
     });
 
-    expect(fetchMock).toHaveBeenCalledWith("./data/site.json?t=42");
+    expect(fetchMock).toHaveBeenCalledWith("./data/site.abc123.json");
     expect(result.status).toEqual({ usingCachedData: false, source: "network" });
     expect(result.document.site.id).toBe("test");
-    expect(storage.getItem(documentCacheKey("./data/site.json", pageUrl))).toBeTruthy();
+    expect(storage.getItem(documentCacheKey("./data/site.abc123.json", pageUrl))).toBeTruthy();
   });
 
   it("falls back to cache when fetch fails", async () => {
@@ -101,14 +100,51 @@ describe("document cache", () => {
     expect(storage.getItem(key)).toBeNull();
   });
 
-  it("refresh returns null on failure without throwing", async () => {
+  it("refresh returns null when the revision check fails", async () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("offline"));
     const result = await refreshSiteDocument({
-      documentUrl: "./data/site.json",
+      documentUrl: "./data/site.abc123.json",
       pageUrl,
       storage: memoryStorage(),
     });
     expect(result).toBeNull();
+  });
+
+  it("refresh skips the document body when rev.json names the current hash", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ hash: "abc123", file: "site.abc123.json" }), { status: 200 }),
+    );
+    const result = await refreshSiteDocument({
+      documentUrl: "./data/site.abc123.json",
+      pageUrl,
+      storage: memoryStorage(),
+    });
+    expect(result).toEqual({ changed: false });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith("./data/rev.json", { cache: "no-cache" });
+  });
+
+  it("refresh downloads the new hashed file when rev.json changes", async () => {
+    const doc = makeFixtureDoc();
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (url) => {
+      const target = String(url);
+      if (target.endsWith("rev.json")) {
+        return new Response(JSON.stringify({ hash: "def456", file: "site.def456.json" }), { status: 200 });
+      }
+      return new Response(JSON.stringify(doc), { status: 200 });
+    });
+    const storage = memoryStorage();
+    const result = await refreshSiteDocument({
+      documentUrl: "./data/site.abc123.json",
+      pageUrl,
+      storage,
+    });
+    expect(result).toMatchObject({
+      changed: true,
+      documentUrl: "./data/site.def456.json",
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(storage.getItem(documentCacheKey("./data/site.def456.json", pageUrl))).toBeTruthy();
   });
 
   it("clearDocumentCache removes the key", () => {

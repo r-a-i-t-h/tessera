@@ -9,13 +9,14 @@ Update this file when priorities or status change; keep demo scoreboard copy ali
 | Item | Notes |
 |------|--------|
 | Dynamic menus (baseline) | Document `nav` → chrome; evolved into nav components below. |
-| Content fetch + cache + TTL + schema abandon | Cache-bust fetch, `localStorage`, stale signal, 5‑minute TTL, schema abandon. Demos show `renderStaleBanner`. Silent unknown-hash → home. |
+| Content fetch + cache + TTL + schema abandon | Content-hashed `site.<hash>.json` named from the shell, `rev.json` poll, `localStorage`, stale signal, 5‑minute TTL, schema abandon. Demos show `renderStaleBanner`. Silent unknown-hash → home. |
 | Site-data bindings + `{{id}}` | `document.bindings`; mustache + component-name insertion (demo-pure `farm-open-days`). |
 | Nav: pages ≠ visibility; multi presentation | Designed nav + `source`; `navTags` / `navTree` / `navCollapse`; demo-pure sidebar uses collapse. Orphan page proves reachability ≠ nav. |
 | Section profiles | `document.sections` + `resolvePageProfile`; page override > section > site default. demo-pure events inherit `simple` / `amber` (featured → `gold`). |
 | Editor API (auth host) | `apps/editor-api`: Hono JSON API, file users, no signup, cookie/Bearer sessions, `requireEditor` all-or-nothing gate. |
 | Editor SPA (login shell) | `apps/editor`: same-origin Vite SPA; login, session cookie, `POST /api/ping`. Hono serves `dist` when built. |
-| File-based editor + flatten | YAML records in `apps/demo-willow/data/`; editor forms; save flattens to `site.json`. |
+| File-based editor + flatten | YAML records in `apps/demo-willow/data/`; editor forms; save flattens to `site.json` plus the hashed snapshot and `rev.json`. |
+| Pages publisher | `publishPages` writes one HTML file per page in the tree, with static nav, micro-app mounts, and `sitemap.xml`. Demo sites stay snapshots. |
 
 ## Upcoming (ordered)
 

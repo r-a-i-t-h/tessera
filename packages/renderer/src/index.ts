@@ -13,11 +13,12 @@ export {
   DEFAULT_CONTENT_TTL_MS,
   loadSiteDocument,
   refreshSiteDocument,
-  withCacheBust,
   documentCacheKey,
   writeDocumentCache,
   clearDocumentCache,
+  type SiteRefresh,
 } from "./document-cache.js";
+export { readSiteDocumentUrl } from "./site-pointer.js";
 export {
   renderBinding,
   renderNamed,
@@ -51,4 +52,11 @@ export {
   type GalleryItem,
 } from "./builtins/gallery-element.js";
 export { normalizeSiteAssetUrl, isRootAbsoluteUrl } from "./assets.js";
-export type { RenderContext, ComponentFn, ZoneMap } from "./types.js";
+export {
+  publishPages,
+  hrefFor,
+  canonicalUrl,
+  type PublishPagesOptions,
+  type PublishedFile,
+} from "./publish-pages.js";
+export type { RenderContext, ComponentFn, ZoneMap, MicroAppMount } from "./types.js";

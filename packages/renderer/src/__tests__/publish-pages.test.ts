@@ -1,0 +1,140 @@
+import { describe, expect, it } from "vitest";
+import { parseSiteDocument } from "@r-a-i-t-h/tessera-model";
+import { publishPages } from "../publish-pages.js";
+
+const document = parseSiteDocument({
+  version: 1,
+  site: { id: "hall", title: "Willow Hall", homePageId: "home" },
+  layouts: [
+    {
+      id: "L",
+      root: {
+        type: "region",
+        role: "main",
+        children: [
+          { type: "zone", id: "title" },
+          { type: "zone", id: "main" },
+        ],
+      },
+    },
+  ],
+  items: [
+    {
+      id: "events-data",
+      zones: {
+        events: [{ type: "json", data: [{ title: "Fair" }] }],
+      },
+    },
+  ],
+  bindings: [
+    {
+      id: "upcoming-events",
+      component: "eventList",
+      itemId: "events-data",
+      fromZone: "events",
+    },
+  ],
+  pages: [
+    {
+      id: "home",
+      title: "Home",
+      description: "A neighbourhood hall",
+      layoutId: "L",
+      zones: {
+        title: [{ type: "text", html: "Welcome" }],
+        main: [{ type: "text", html: "<p>Come in.</p>{{upcoming-events}}" }],
+      },
+    },
+    {
+      id: "events",
+      title: "Events",
+      parentId: "home",
+      layoutId: "L",
+      zones: {
+        title: [{ type: "text", html: "Events" }],
+        main: [{ type: "component", name: "eventList", props: { limit: 3 } }],
+      },
+    },
+    {
+      id: "fair",
+      title: "Summer fair",
+      slug: "summer-fair",
+      parentId: "events",
+      description: "The fair",
+      layoutId: "L",
+      zones: {
+        title: [{ type: "text", html: "Summer fair" }],
+        main: [{ type: "text", html: "<p>On the green.</p>" }],
+      },
+    },
+    {
+      id: "draft-hidden",
+      title: "Private",
+      showInNav: false,
+      layoutId: "L",
+      zones: {
+        title: [{ type: "text", html: "Private" }],
+        main: [{ type: "text", html: "<p>Not in the menu.</p>" }],
+      },
+    },
+  ],
+});
+
+describe("publishPages", () => {
+  const files = publishPages(document, { origin: "https://example.test" });
+  const byPath = new Map(files.map((file) => [file.path, file.contents]));
+
+  it("writes one HTML file per page and a sitemap", () => {
+    expect([...byPath.keys()].sort()).toEqual([
+      "draft-hidden/index.html",
+      "events/index.html",
+      "events/summer-fair/index.html",
+      "index.html",
+      "sitemap.xml",
+    ]);
+  });
+
+  it("puts prose, title, description, and canonical in the page file", () => {
+    const home = byPath.get("index.html")!;
+    expect(home).toContain("<title>Home · Willow Hall</title>");
+    expect(home).toContain('<meta name="description" content="A neighbourhood hall" />');
+    expect(home).toContain('<link rel="canonical" href="https://example.test/" />');
+    expect(home).toContain("Welcome");
+    expect(home).toContain("<p>Come in.</p>");
+    expect(home).toContain('data-tessera-microapp="upcoming-events"');
+    expect(home).toContain('"component":"eventList"');
+    expect(home).toContain('"title":"Fair"');
+  });
+
+  it("writes the same nav into every page, with links relative to that file", () => {
+    const home = byPath.get("index.html")!;
+    const fair = byPath.get("events/summer-fair/index.html")!;
+    expect(home).toContain('href="./" aria-current="page"');
+    expect(home).toContain('href="./events/"');
+    expect(home).toContain('href="./events/summer-fair/"');
+    expect(home).not.toContain("Private");
+    expect(fair).toContain('href="../../"');
+    expect(fair).toContain('href="../../events/summer-fair/" aria-current="page"');
+    expect(fair).toContain("<title>Summer fair · Willow Hall</title>");
+    expect(fair).toContain('<link rel="canonical" href="https://example.test/events/summer-fair/" />');
+  });
+
+  it("leaves a component as a mount and still publishes a hidden page", () => {
+    const events = byPath.get("events/index.html")!;
+    expect(events).toContain('data-tessera-microapp="eventList"');
+    expect(events).toContain('"limit":3');
+    expect(events).not.toContain("eventList(");
+    const hidden = byPath.get("draft-hidden/index.html")!;
+    expect(hidden).toContain("<p>Not in the menu.</p>");
+    expect(hidden).not.toContain(">Private</a>");
+    expect(byPath.get("index.html")).not.toContain(">Private</a>");
+  });
+
+  it("lists every published URL in the sitemap", () => {
+    const sitemap = byPath.get("sitemap.xml")!;
+    expect(sitemap).toContain("<loc>https://example.test/</loc>");
+    expect(sitemap).toContain("<loc>https://example.test/events/</loc>");
+    expect(sitemap).toContain("<loc>https://example.test/events/summer-fair/</loc>");
+    expect(sitemap).toContain("<loc>https://example.test/draft-hidden/</loc>");
+  });
+});

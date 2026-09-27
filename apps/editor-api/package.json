@@ -13,6 +13,7 @@
     "seed:user": "tsx scripts/make-seed-user.ts",
     "deconstruct:willow": "tsx scripts/deconstruct-willow.ts",
     "flatten:site": "tsx scripts/flatten-site.ts",
+    "stamp:snapshot": "tsx scripts/stamp-snapshot.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

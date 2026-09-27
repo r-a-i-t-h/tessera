@@ -6,6 +6,7 @@ import {
   SiteRenderer,
   escapeHtml,
   expandNav,
+  readSiteDocumentUrl,
   registerGalleryComponents,
   registerNavComponents,
 } from "@r-a-i-t-h/tessera-renderer";
@@ -52,7 +53,7 @@ function renderChrome(pageId: string, doc: SiteDocument): void {
 }
 
 const renderer = await SiteRenderer.create({
-  documentUrl: "./data/site.json",
+  documentUrl: readSiteDocumentUrl(),
   registry,
   mount: "#app",
   skin: w3Skin,

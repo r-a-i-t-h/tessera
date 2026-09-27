@@ -6,8 +6,10 @@ import {
   escapeHtml,
   ComponentRegistry,
   SiteRenderer,
+  readSiteDocumentUrl,
   registerNavComponents,
   registerGalleryComponents,
+  resolvePageProfile,
 } from "@r-a-i-t-h/tessera-renderer";
 import type { SiteDocument } from "@r-a-i-t-h/tessera-model";
 import { w3Skin } from "@r-a-i-t-h/tessera-skin-w3";
@@ -37,6 +39,7 @@ function renderSidebar(pageId: string, doc: SiteDocument): void {
     {
       document: doc,
       page,
+      profile: resolvePageProfile(doc, page),
       zones: new Map(),
       registry,
       renderBlocks: () => "",
@@ -60,7 +63,7 @@ function renderSidebar(pageId: string, doc: SiteDocument): void {
 }
 
 const renderer = await SiteRenderer.create({
-  documentUrl: "./data/site.json",
+  documentUrl: readSiteDocumentUrl(),
   registry,
   mount: "#app",
   skin: w3Skin,
@@ -75,6 +78,7 @@ const renderer = await SiteRenderer.create({
       clock.innerHTML = registry.render("now", {
         document: doc,
         page,
+        profile: resolvePageProfile(doc, page),
         zones: new Map(),
         registry,
         renderBlocks: () => "",

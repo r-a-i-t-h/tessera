@@ -2,7 +2,7 @@
 
 As-built engine contract. Product ambition, Phase-1 design decisions, and acceptance criteria live in [SPEC.md](./SPEC.md). Upcoming work is sequenced in [ROADMAP.md](./ROADMAP.md).
 
-Tessera is a small CMS runtime for sites whose full text/data payload is cheaper than a typical image. Content is authored as structured records, **flattened to one file**, and rendered entirely in the browser. Dynamics (menus, event lists, clocks) are client-side functions owned by the site codebase.
+Tessera is a small CMS runtime for sites whose full text/data payload is cheaper than a typical image. Content is authored as structured records. A **snapshot** site is flattened to one JSON document and rendered in the browser. A **pages** site publishes one HTML file per page. Micro-apps (event lists, galleries, and other interactive mounts) stay client-side in both flavours.
 
 The name evokes mosaic tiles: layouts place the tiles (zones); content fills them — or leaves them empty.
 
@@ -45,7 +45,7 @@ The published site is a separate static build. It may live in a folder on a shar
 ## Content model
 
 - **Layout** — tree of `region` | `zone` | `static` | `component`. **Only layouts declare zones** (and where they appear).
-- **Page** — optional `layoutId` (override), optional `includes` (shared items), and `zones` contributions.
+- **Page** — `id`, `title`, optional `description`, optional `slug`, optional `parentId` (published tree; ignored on the home page), optional `showInNav` (`false` keeps the URL and drops the nav link), optional `layoutId` (override), optional `includes` (shared items), and `zones` contributions. Drafts are pages left out of the published document. History is not a field on the page.
 - **Sections** — hierarchical presentation profiles (`match` by tags / `pageIdPrefix` → `layoutId` / `skinId`). Resolved by `resolvePageProfile`: site default → matching sections → page override.
 - **Item** — reusable zone contributions (footer, promo, …), pulled in via `page.includes`.
 - **Blocks** inside a zone: `text` | `json` | `media` | `component`.
@@ -83,12 +83,14 @@ There is **no** recursive `parentId` template chain and **no** inventing zones f
 A published site is a folder of files. It stays portable to any directory, including a path on a shared domain, without a server mount setting:
 
 - Vite `base: "./"` (not `/`) on the site build. The editor SPA uses `base: "/"` because it is served at the hostname root.
-- Load data with `./data/site.json` (not `/data/...`)
+- The snapshot shell points at `./data/site.<hash>.json` via `<meta name="tessera-site">` (not `/data/...`, and not a timestamp query)
 - Media URLs in the document should be relative (`./media/...`), not root-absolute (`/media/...`) or required CDN URLs
 - `normalizeSiteAssetUrl` rewrites accidental `/foo` media paths to `./foo` at render time
 - Hash routing (`#page`) keeps the browser path on that folder
 
-`localStorage` is shared by every page on an origin. The cache key for `site.json` is that file’s absolute URL (`documentCacheKey`), so two published sites on one host do not share a cache. The URL is only a cache identity. It is not a server base path.
+`localStorage` is shared by every page on an origin. The cache key for the hashed site file is that file’s absolute URL (`documentCacheKey`), so two published sites on one host do not share a cache. The URL is only a cache identity. It is not a server base path.
+
+Flatten (`writeSnapshotFiles`) writes three files next to each other: the stable `site.json` (tools and the editor), `site.<hash>.json` (the bytes the browser fetches), and `rev.json` (`{ hash, file }`). The open-tab poll reads `rev.json` and downloads a new hashed file only when the hash changes. `npm run stamp:snapshot` refreshes those files for the demo sites from the `site.json` already on disk. When the flatten target is `public/data/site.json`, the site `index.html` meta tag is updated to the new name.
 
 ## Gallery (spike)
 
@@ -134,8 +136,8 @@ Web components follow the same idea: implement with `WCBase`, `customElements.de
 
 ## Rendering pipeline
 
-1. Load + validate `site.json` (Zod) with cache-busting query; persist to `localStorage` under the absolute URL of that file (one cache per published site on a shared origin); fall back to cache on failure (see SPEC §3).
-2. Resolve page from hash (unknown ids fall back to home — no error UI).
+1. Load + validate the hashed site file named by `<meta name="tessera-site">`; persist to `localStorage` under the absolute URL of that file (one cache per published site on a shared origin); fall back to cache on failure (see SPEC §3). While open, poll `rev.json` on a 5-minute TTL.
+2. Resolve page from hash (unknown ids fall back to home — no error UI). Snapshot sites only.
 3. Resolve the page’s **profile** (`resolvePageProfile`: section inheritance + page override), then merge `page.zones` then each included item’s zones (stable order).
 4. Walk the chosen layout tree; zone nodes render their blocks; unknown component names become HTML comments.
 5. Optional `onAfterRender` / `onStatusChange` for chrome outside the document (demo sidebar, stale banner).
@@ -144,6 +146,69 @@ Web components follow the same idea: implement with `WCBase`, `customElements.de
 ## CSS
 
 Default skin is **W3.CSS 5.01** (`packages/skin-w3/css/w3.css`). Layout regions use semantic `role`s; the skin maps them to classes. Swap skins without changing `SiteDocument`.
+
+## Pages publisher
+
+`publishPages(document, { origin })` in `@r-a-i-t-h/tessera-renderer` walks `publishedPageTree` and returns one HTML file per page plus `sitemap.xml`. It does not write to disk and it does not run micro-apps.
+
+- Home is `index.html`. Any other page is `{path}/index.html`. The path is the chain of `slug` or `id` segments. The home page’s own segment is not part of that chain.
+- `<title>`, optional meta description, and `<link rel="canonical">` come from the page and `origin`.
+- Nav is that tree, with `showInNav: false` pages omitted and their visible children kept. Links are relative to the file so a site can live in a folder.
+- Text and media are rendered into `<main>`. A binding or component becomes `<div data-tessera-microapp="…">` and an entry in `<script type="application/json" id="tessera-microapps">`.
+
+## Static host
+
+A published site is a folder. Nginx answers the browser. Node does not set cache headers and does not serve the folder.
+
+`ETag` is nginx’s default for static files. `Cache-Control` is not. `/` does not match a `*.html` location, so the “ask every time” header goes on the location that serves pages.
+
+```nginx
+server {
+    server_name willow.example.com;
+    root /var/www/willow/dist;
+    index index.html;
+
+    location ^~ /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        try_files $uri =404;
+    }
+
+    location ~* /data/site\.[a-f0-9]+\.json$ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    location / {
+        add_header Cache-Control "public, max-age=0, must-revalidate";
+        try_files $uri $uri/ =404;
+    }
+}
+```
+
+A site in a folder on a shared host uses the same two rules under a prefix:
+
+```nginx
+location = /willow {
+    return 301 /willow/;
+}
+
+location ^~ /willow/assets/ {
+    alias /var/www/willow/dist/assets/;
+    add_header Cache-Control "public, max-age=31536000, immutable";
+}
+
+location ~* ^/willow/data/(site\.[a-f0-9]+\.json)$ {
+    alias /var/www/willow/dist/data/$1;
+    add_header Cache-Control "public, max-age=31536000, immutable";
+}
+
+location /willow/ {
+    alias /var/www/willow/dist/;
+    index index.html;
+    add_header Cache-Control "public, max-age=0, must-revalidate";
+}
+```
+
+`site.<hash>.json` can be cached like `/assets/` because the name changes when the bytes change. `rev.json` and HTML stay on the “ask every time” path. Pictures with a stable filename are checked every time unless they later move under a hashed name.
 
 ## Demo
 

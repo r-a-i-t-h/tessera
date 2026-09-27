@@ -99,7 +99,7 @@ describe("SiteRenderer navigation", () => {
     renderer.stop();
   });
 
-  it("loads a document from a relative URL with cache-bust", async () => {
+  it("loads a document from the hashed relative URL", async () => {
     const doc = makeFixtureDoc();
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify(doc), {
@@ -109,7 +109,7 @@ describe("SiteRenderer navigation", () => {
     );
 
     const renderer = await SiteRenderer.create({
-      documentUrl: "./data/site.json",
+      documentUrl: "./data/site.abc123.json",
       registry: buildRegistry(),
       mount: "#app",
       storage: null,
@@ -117,7 +117,7 @@ describe("SiteRenderer navigation", () => {
     });
     renderer.start();
 
-    expect(fetchMock.mock.calls[0]![0]).toMatch(/^\.\/data\/site\.json\?t=\d+$/);
+    expect(fetchMock.mock.calls[0]![0]).toBe("./data/site.abc123.json");
     expect(mount.innerHTML).toContain("Home title");
     expect(renderer.usingCachedData).toBe(false);
     renderer.stop();
@@ -146,19 +146,26 @@ describe("SiteRenderer navigation", () => {
     renderer.stop();
   });
 
-  it("TTL refresh updates the document on success", async () => {
+  it("TTL refresh reads rev.json and updates only when the hash changes", async () => {
     vi.useFakeTimers();
     const doc1 = makeFixtureDoc();
     const doc2 = makeFixtureDoc();
     doc2.pages[0]!.zones.title = [{ type: "text", html: "Updated home" }];
 
-    const fetchMock = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(new Response(JSON.stringify(doc1), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify(doc2), { status: 200 }));
+    let revision = { hash: "aaa111", file: "site.aaa111.json" };
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (url) => {
+      const target = String(url);
+      if (target.endsWith("rev.json")) {
+        return new Response(JSON.stringify(revision), { status: 200 });
+      }
+      if (target.endsWith("site.bbb222.json")) {
+        return new Response(JSON.stringify(doc2), { status: 200 });
+      }
+      return new Response(JSON.stringify(doc1), { status: 200 });
+    });
 
     const renderer = await SiteRenderer.create({
-      documentUrl: "./data/site.json",
+      documentUrl: "./data/site.aaa111.json",
       registry: buildRegistry(),
       mount: "#app",
       storage: null,
@@ -168,7 +175,11 @@ describe("SiteRenderer navigation", () => {
     expect(mount.innerHTML).toContain("Home title");
 
     await vi.advanceTimersByTimeAsync(1000);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(mount.innerHTML).toContain("Home title");
+    expect(fetchMock.mock.calls.some((call) => String(call[0]).endsWith("site.bbb222.json"))).toBe(false);
+
+    revision = { hash: "bbb222", file: "site.bbb222.json" };
+    await vi.advanceTimersByTimeAsync(1000);
     expect(mount.innerHTML).toContain("Updated home");
     renderer.stop();
     vi.useRealTimers();

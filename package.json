@@ -17,6 +17,7 @@
     "test": "npm run test -w @r-a-i-t-h/tessera-model -w @r-a-i-t-h/tessera-renderer -w @r-a-i-t-h/tessera-demo-pure -w @r-a-i-t-h/tessera-demo-willow -w @r-a-i-t-h/tessera-editor -w @r-a-i-t-h/tessera-editor-api",
     "convert:legacy": "node scripts/convert-legacy-demos.mjs",
     "flatten:gallery": "node scripts/flatten-gallery.mjs",
-    "flatten:site": "npm run flatten:site -w @r-a-i-t-h/tessera-editor-api"
+    "flatten:site": "npm run flatten:site -w @r-a-i-t-h/tessera-editor-api",
+    "stamp:snapshot": "npm run stamp:snapshot -w @r-a-i-t-h/tessera-editor-api"
   }
 }

@@ -24,7 +24,10 @@ export type ZoneAuthoring =
 export type AuthoredPage = {
   id: string;
   title: string;
+  description?: string;
   slug?: string;
+  parentId?: string;
+  showInNav?: boolean;
   layoutId?: string;
   tags?: string[];
   includes?: string[];
@@ -104,7 +107,10 @@ export function pageToAuthoring(page: Page): AuthoredPage {
   return {
     id: page.id,
     title: page.title,
+    ...(page.description ? { description: page.description } : {}),
     ...(page.slug ? { slug: page.slug } : {}),
+    ...(page.parentId ? { parentId: page.parentId } : {}),
+    ...(page.showInNav === false ? { showInNav: false } : {}),
     ...(page.layoutId ? { layoutId: page.layoutId } : {}),
     ...(page.tags?.length ? { tags: page.tags } : {}),
     ...(page.includes?.length ? { includes: page.includes } : {}),
@@ -125,7 +131,10 @@ export function authoredPageToPage(raw: AuthoredPage): Page {
   return {
     id: raw.id,
     title: raw.title,
+    ...(raw.description ? { description: raw.description } : {}),
     ...(raw.slug ? { slug: raw.slug } : {}),
+    ...(raw.parentId ? { parentId: raw.parentId } : {}),
+    ...(raw.showInNav === false ? { showInNav: false } : {}),
     ...(raw.layoutId ? { layoutId: raw.layoutId } : {}),
     ...(raw.tags ? { tags: raw.tags } : {}),
     ...(raw.includes ? { includes: raw.includes } : {}),

@@ -3,7 +3,7 @@ import "@r-a-i-t-h/tessera-skin-w3/w3-theme-indigo.css";
 import "@r-a-i-t-h/tessera-skin-w3/common.css";
 import "./site.css";
 
-import { ComponentRegistry, SiteRenderer } from "@r-a-i-t-h/tessera-renderer";
+import { ComponentRegistry, SiteRenderer, readSiteDocumentUrl } from "@r-a-i-t-h/tessera-renderer";
 import { w3Skin } from "@r-a-i-t-h/tessera-skin-w3";
 import {
   installChromeGlobals,
@@ -19,7 +19,7 @@ const registry = new ComponentRegistry();
 registry.define("openDaysTable", openDaysTable);
 
 const renderer = await SiteRenderer.create({
-  documentUrl: "./data/site.json",
+  documentUrl: readSiteDocumentUrl(),
   registry,
   mount: "#app",
   skin: w3Skin,
