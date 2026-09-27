@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -119,5 +119,98 @@ describe("record routes", () => {
     };
     expect(record.layout.declaredZones).toEqual(["title", "main"]);
     expect(record.layout.offLayoutZones).toEqual(["meta"]);
+  });
+
+  it("appends the previous page file and republishes a new snapshot", async () => {
+    const before = await app().request("/api/records/content/home", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const opened = (await before.json()) as {
+      raw: string;
+      file: string;
+      historyFile: string;
+      schemaVersion: number;
+      history: unknown[];
+      snapshot: { file: string };
+    };
+    expect(opened.file).toBe("content/home.yaml");
+    expect(opened.historyFile).toBe("history/content/home.history");
+    expect(opened.schemaVersion).toBe(0);
+    expect(opened.history).toEqual([]);
+    expect(opened.snapshot.file).toMatch(/^site\.[a-f0-9]+\.json$/);
+
+    const saved = await app().request("/api/records/content/home", {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        raw: "id: home\ntitle: Welcome\nzones:\n  main:\n    html: <p>Updated</p>\n",
+      }),
+    });
+    expect(saved.status).toBe(200);
+    const body = (await saved.json()) as {
+      historyAppended: boolean;
+      historyCount: number;
+      snapshot: { file: string; hash: string };
+    };
+    expect(body.historyAppended).toBe(true);
+    expect(body.historyCount).toBe(1);
+    expect(body.snapshot.file).not.toBe(opened.snapshot.file);
+
+    const entry = await app().request("/api/records/content/home/history/0", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(entry.status).toBe(200);
+    const past = (await entry.json()) as { raw: string; schemaVersion: number };
+    expect(past.raw).toBe(opened.raw);
+    expect(past.schemaVersion).toBe(0);
+
+    const same = await app().request("/api/records/content/home", {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        raw: "id: home\ntitle: Welcome\nzones:\n  main:\n    html: <p>Updated</p>\n",
+      }),
+    });
+    const unchanged = (await same.json()) as { historyAppended: boolean; historyCount: number };
+    expect(unchanged.historyAppended).toBe(false);
+    expect(unchanged.historyCount).toBe(1);
+  });
+
+  it("restores the page file when publish rejects the edit", async () => {
+    const before = await readFile(join(siteDir, "content", "home.yaml"), "utf8");
+    const saved = await app().request("/api/records/content/home", {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        raw: "id: home\ntitle: Home\nzones:\n  main:\n    nope: true\n",
+      }),
+    });
+    expect(saved.status).toBe(400);
+    expect(await readFile(join(siteDir, "content", "home.yaml"), "utf8")).toBe(before);
+    const listed = await app().request("/api/records/content/home", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const record = (await listed.json()) as { history: unknown[] };
+    expect(record.history).toEqual([]);
+  });
+
+  it("records the authoring schema version on the history entry", async () => {
+    const versioned = new SiteStore(siteDir, join(siteDir, "out.json"), async () => 1);
+    await versioned.write("content", "home", {
+      title: "After schema",
+      zones: { main: { html: "<p>Next</p>" } },
+    });
+    const entry = await versioned.pageHistoryEntry("home", 0);
+    expect(entry?.schemaVersion).toBe(1);
+    expect(entry?.raw).toContain("title: Home");
   });
 });

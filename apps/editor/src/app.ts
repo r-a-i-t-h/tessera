@@ -1,17 +1,20 @@
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import {
   ApiError,
+  getHistoryEntry,
   getRecord,
   listRecords,
   login,
   logout,
   me,
+  saveRawRecord,
   saveRecord,
   type PublicUser,
   type PageLayoutHint,
   type RecordList,
   type RecordPayload,
   type RecordSummary,
+  type SaveResult,
 } from "./api";
 
 function escapeHtml(value: string): string {
@@ -70,7 +73,7 @@ async function render(root: HTMLElement): Promise<void> {
   const route = parseRoute();
   try {
     if (!route.kind || !route.id) await bindList(root, user);
-    else await bindEdit(root, user, route.kind, route.id);
+    else await bindEdit(root, user, route.kind, route.id, route.kind === "content" ? "raw" : "fields");
   } catch (err) {
     root.innerHTML = chrome(
       user,
@@ -150,49 +153,130 @@ function listHtml(listing: RecordList): string {
     })
     .join("");
   return `<h1 class="w3-large">Records</h1>
-    <p class="w3-text-grey">YAML files named with Tessera <code>id</code>, outside the web root. Saving flattens to <code>site.json</code>.</p>
+    <p class="w3-text-grey">YAML files named with Tessera <code>id</code>, outside the web root. Saving a page appends the previous file to a history file and republishes the hashed snapshot the browser caches.</p>
     ${sections || "<p>No records yet.</p>"}`;
 }
 
-async function bindEdit(root: HTMLElement, user: PublicUser, kind: string, id: string): Promise<void> {
+type EditMode = "fields" | "raw";
+
+async function bindEdit(
+  root: HTMLElement,
+  user: PublicUser,
+  kind: string,
+  id: string,
+  mode: EditMode,
+  notice = "",
+): Promise<void> {
   const payload = await getRecord(kind, id);
-  const status = `<p id="save-status" class="w3-text-grey" hidden></p>`;
+  const formInner =
+    mode === "raw"
+      ? `<p><label for="raw-file">Raw YAML</label>
+         <textarea id="raw-file" name="raw" rows="24" spellcheck="false" class="w3-input w3-border w3-margin-top editor-raw">${escapeHtml(payload.raw)}</textarea></p>`
+      : fieldsHtml(payload.data, payload.layout);
   root.innerHTML = chrome(
     user,
     `<p><a href="#/">← Records</a></p>
      <h1 class="w3-large">${escapeHtml(kind)} / ${escapeHtml(id)}</h1>
+     ${lifecycleHtml(payload)}
+     ${notice ? `<p class="w3-panel w3-pale-green" role="status">${escapeHtml(notice)}</p>` : ""}
+     <p class="editor-tabs">
+       <button type="button" class="w3-button ${mode === "fields" ? "w3-theme" : "w3-white"}" data-mode="fields">Fields</button>
+       <button type="button" class="w3-button ${mode === "raw" ? "w3-theme" : "w3-white"}" data-mode="raw">Raw file</button>
+     </p>
+     <p class="w3-text-grey"><code>${escapeHtml(payload.file)}</code></p>
      <form id="record-form" class="w3-card w3-white w3-padding-large editor-card">
-       ${fieldsHtml(payload.data, payload.layout)}
-       ${status}
+       ${formInner}
+       <p id="save-status" class="w3-text-grey" hidden></p>
        <p class="editor-actions"><button type="submit" class="w3-button w3-theme">Save</button></p>
-     </form>`,
+     </form>
+     ${historyHtml(payload)}`,
     true,
   );
   bindChrome(root);
+  for (const button of root.querySelectorAll<HTMLButtonElement>("[data-mode]")) {
+    button.addEventListener("click", () => {
+      const next = button.dataset.mode === "raw" ? "raw" : "fields";
+      if (next !== mode) void bindEdit(root, user, kind, id, next);
+    });
+  }
+  for (const button of root.querySelectorAll<HTMLButtonElement>("[data-history]")) {
+    button.addEventListener("click", () => {
+      const index = Number(button.dataset.history);
+      void showHistory(root, kind, id, index);
+    });
+  }
   const form = root.querySelector<HTMLFormElement>("#record-form");
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const statusEl = root.querySelector<HTMLElement>("#save-status");
     const button = form.querySelector("button[type=submit]");
     if (button) (button as HTMLButtonElement).disabled = true;
     try {
-      const data = pruneEmptyHtmlZones(readForm(form, payload.data));
-      await saveRecord(kind, id, data);
-      if (statusEl) {
-        statusEl.hidden = false;
-        statusEl.textContent = "Saved and flattened.";
-        statusEl.className = "w3-text-green";
-      }
+      const saved =
+        mode === "raw"
+          ? await saveRawRecord(kind, id, form.querySelector<HTMLTextAreaElement>("#raw-file")?.value ?? "")
+          : await saveRecord(kind, id, pruneEmptyHtmlZones(readForm(form, payload.data)));
+      await bindEdit(root, user, kind, id, mode, saveNotice(saved));
     } catch (err) {
+      const statusEl = root.querySelector<HTMLElement>("#save-status");
       if (statusEl) {
         statusEl.hidden = false;
         statusEl.textContent = err instanceof Error ? err.message : "Save failed.";
         statusEl.className = "w3-pale-red w3-padding";
       }
-    } finally {
       if (button) (button as HTMLButtonElement).disabled = false;
     }
   });
+}
+
+function lifecycleHtml(payload: RecordPayload): string {
+  const published = payload.snapshot
+    ? ` Published snapshot <code>${escapeHtml(payload.snapshot.file)}</code> is the name the browser caches.`
+    : "";
+  return `<p class="w3-text-grey" id="lifecycle">Authoring schema ${payload.schemaVersion}.${published}</p>`;
+}
+
+function historyHtml(payload: RecordPayload): string {
+  if (!payload.history || !payload.historyFile) return "";
+  const rows = [...payload.history].reverse();
+  const list = rows.length
+    ? `<ul class="w3-ul">${rows
+        .map(
+          (entry) =>
+            `<li><button type="button" class="w3-button w3-small w3-white" data-history="${entry.index}">${escapeHtml(formatWhen(entry.savedAt))}</button> <span class="w3-text-grey w3-small">schema ${entry.schemaVersion} · ${entry.bytes} bytes</span></li>`,
+        )
+        .join("")}</ul>`
+    : `<p class="w3-text-grey">No earlier copy yet. The next save appends this file.</p>`;
+  return `<section class="editor-history">
+    <h2 class="w3-medium">History</h2>
+    <p class="w3-text-grey">One file, <code>${escapeHtml(payload.historyFile)}</code>. Each save appends the previous raw YAML. The published snapshot keeps only the current page.</p>
+    ${list}
+    <pre id="history-view" class="w3-code editor-history-raw" hidden></pre>
+  </section>`;
+}
+
+function formatWhen(savedAt: string): string {
+  return savedAt.replace("T", " ").replace(/\.\d+Z$/, "Z");
+}
+
+function saveNotice(saved: SaveResult): string {
+  const published = saved.snapshot ? ` Published snapshot ${saved.snapshot.file}.` : "";
+  if (saved.historyAppended) {
+    return `Saved. Appended the previous file to history (${saved.historyCount} ${saved.historyCount === 1 ? "version" : "versions"}).${published}`;
+  }
+  return `Saved.${published}`;
+}
+
+async function showHistory(root: HTMLElement, kind: string, id: string, index: number): Promise<void> {
+  const view = root.querySelector<HTMLElement>("#history-view");
+  if (!view) return;
+  view.hidden = false;
+  view.textContent = "Loading…";
+  try {
+    const entry = await getHistoryEntry(kind, id, index);
+    view.textContent = `# ${formatWhen(entry.savedAt)} · schema ${entry.schemaVersion}\n\n${entry.raw}`;
+  } catch (err) {
+    view.textContent = err instanceof Error ? err.message : "Could not load history.";
+  }
 }
 
 function fieldsHtml(data: unknown, layout?: PageLayoutHint): string {

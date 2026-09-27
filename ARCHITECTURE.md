@@ -33,7 +33,7 @@ Hono app (Node ≥20). JSON routes first; if `apps/editor/dist` (or `TESSERA_SPA
 | Users | `data/users/<username>.json` (hash + salt). No `/auth/register`; add via `npm run seed:user -w @r-a-i-t-h/tessera-editor-api -- <name> <password>`. |
 | Sessions | In-memory tokens; httpOnly `tessera_session` cookie (`Path=/`) or `Authorization: Bearer`. The editor is served at the hostname root. SIGTERM dumps hashed tokens to `data/.sessions.json` once. |
 | Permission | `requireEditor`: authenticated ⇒ full access; anonymous ⇒ 401. Every mutation must call it. |
-| Records | YAML files in `TESSERA_SITE_DIR` (default `apps/demo-willow/data`). Filename = Tessera `id`. `GET/PUT /api/records`. Save flattens to `TESSERA_FLAT_OUT` (`public/data/site.json`). |
+| Records | YAML files in `TESSERA_SITE_DIR` (default `apps/demo-willow/data`). Filename = Tessera `id`. `GET/PUT /api/records` accepts structured `data` or raw YAML. A changed content page appends the previous file to `history/content/<id>.history`, then flattens to `TESSERA_FLAT_OUT` (`public/data/site.json` plus `site.<hash>.json` and `rev.json`). |
 | Public | `GET /health`, `POST /auth/login`. Protected: `GET /auth/me`, `POST /auth/password`, `POST /api/ping`, record CRUD. Logout is idempotent. |
 
 Public HTML is the editor SPA when built. The published site remains `site.json` for the renderer. Authoring is file-based YAML (not JSON) so HTML does not need escaping.
@@ -77,6 +77,22 @@ The editor form for a page lists zones declared by the resolved layout (page `la
 `npm run flatten:site` (or an editor save) writes `apps/demo-willow/public/data/site.json`.
 
 There is **no** recursive `parentId` template chain and **no** inventing zones from inside page HTML. Section profiles replace Rec-Tem-style “templates as content” for hierarchy-wide layout/theme switching.
+
+## Page history and authoring schema
+
+Saving a content page writes the new YAML, then appends the **previous raw file** to `history/content/<id>.history` (one append-only file per page, beside the site directory, outside the web root). An unchanged file does not append. A publish failure restores the previous file and does not append. History is not a field on the published page and is not copied into `site.json`.
+
+The editor can open that raw YAML, save it, and read earlier copies back. The save response names the new `site.<hash>.json`. That filename is the browser cache key: `rev.json` changes with it, and an open snapshot tab picks the new file up on its next poll.
+
+**Authoring schema** is `schemaVersion` in `$TESSERA_DATA/meta.json`. It is not `SiteDocument.version` (the number the renderer validates). The process reads `schemaVersion` and stamps it on each history entry. It does not bump the counter. Missing or non-numeric means **0**.
+
+[node-vps-kit](https://github.com/r-a-i-t-h/node-vps-kit) runs `deploy/post-update.sh` as the app user after it swaps `current` and before systemd restarts. The hook receives `TESSERA_DATA`, `TESSERA_SEED`, and `TESSERA_BACKUP`. It applies `deploy/migrations/NNN-*.sh` when `NNN` is greater than `schemaVersion`. `001` stamps `schemaVersion: 1` and leaves every other meta key alone. First boot copies `seed/meta.json` into `data/` only when `meta.json` is absent, so a later boot does not wipe the stamp.
+
+```bash
+TESSERA_DATA=apps/editor-api/data sh deploy/migrate.sh
+```
+
+Page YAML still lives in `TESSERA_SITE_DIR` during development (`apps/demo-willow/data`). The kit’s hook does not receive that path. `001` only touches `meta.json`, which is already under `TESSERA_DATA`. A later migration that rewrites page files needs those files inside `TESSERA_DATA`. The nginx template is a separate compatibility gap.
 
 ## Relative assets
 

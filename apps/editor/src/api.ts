@@ -94,12 +94,47 @@ export type PageLayoutHint = {
   layouts: Record<string, { title?: string; zones: string[] }>;
 };
 
+export type SnapshotRef = {
+  hash: string;
+  file: string;
+};
+
+export type HistorySummary = {
+  index: number;
+  savedAt: string;
+  schemaVersion: number;
+  bytes: number;
+};
+
 export type RecordPayload = {
   ok: true;
   kind: string;
   id: string;
   data: unknown;
+  raw: string;
+  file: string;
+  historyFile?: string;
+  schemaVersion: number;
+  snapshot?: SnapshotRef;
   layout?: PageLayoutHint;
+  history?: HistorySummary[];
+};
+
+export type SaveResult = {
+  ok: true;
+  kind: string;
+  id: string;
+  historyAppended: boolean;
+  historyCount: number;
+  snapshot?: SnapshotRef;
+};
+
+export type HistoryEntry = {
+  ok: true;
+  index: number;
+  savedAt: string;
+  schemaVersion: number;
+  raw: string;
 };
 
 export function listRecords(): Promise<RecordList> {
@@ -110,9 +145,22 @@ export function getRecord(kind: string, id: string): Promise<RecordPayload> {
   return request(`/api/records/${encodeURIComponent(kind)}/${encodeURIComponent(id)}`);
 }
 
-export function saveRecord(kind: string, id: string, data: unknown): Promise<{ ok: true }> {
+export function saveRecord(kind: string, id: string, data: unknown): Promise<SaveResult> {
   return request(`/api/records/${encodeURIComponent(kind)}/${encodeURIComponent(id)}`, {
     method: "PUT",
     body: JSON.stringify({ data }),
   });
+}
+
+export function saveRawRecord(kind: string, id: string, raw: string): Promise<SaveResult> {
+  return request(`/api/records/${encodeURIComponent(kind)}/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: JSON.stringify({ raw }),
+  });
+}
+
+export function getHistoryEntry(kind: string, id: string, index: number): Promise<HistoryEntry> {
+  return request(
+    `/api/records/${encodeURIComponent(kind)}/${encodeURIComponent(id)}/history/${index}`,
+  );
 }

@@ -63,3 +63,26 @@ body {
 .editor-off-layout-fields {
   border-style: dashed;
 }
+
+.editor-tabs {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.editor-raw,
+.editor-history-raw {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.editor-history {
+  margin-top: 2rem;
+}
+
+.editor-history-raw {
+  white-space: pre-wrap;
+  overflow: auto;
+  max-height: 24rem;
+  padding: 1rem;
+}

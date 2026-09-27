@@ -1,8 +1,16 @@
 import { mkdir, readdir, unlink } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import type { SiteDocument } from "@r-a-i-t-h/tessera-model";
-import { collectDeclaredZones, resolvePageProfile } from "@r-a-i-t-h/tessera-model";
+import { collectDeclaredZones, resolvePageProfile, SITE_REVISION_FILE } from "@r-a-i-t-h/tessera-model";
 import { readText, writeTextAtomic } from "../store/fs.js";
+import {
+  appendPageHistory,
+  listPageHistory,
+  pageHistoryPath,
+  readPageHistoryEntry,
+  type HistoryEntry,
+  type HistorySummary,
+} from "./history.js";
 import { writeSnapshotFiles } from "./snapshot.js";
 import {
   assembleDocument,
@@ -16,6 +24,20 @@ import {
   yamlToRecord,
 } from "./document.js";
 import { isRecordId, KIND_DIRS, RECORD_KINDS, type RecordKind } from "./kinds.js";
+
+export type SnapshotRef = { hash: string; file: string };
+
+export type SaveResult = {
+  historyAppended: boolean;
+  historyCount: number;
+  snapshot?: SnapshotRef;
+};
+
+export type RecordFileRef = {
+  /** Path relative to the site directory. */
+  file: string;
+  historyFile?: string;
+};
 
 export type RecordSummary = {
   kind: RecordKind | "site" | "nav";
@@ -37,7 +59,21 @@ export class SiteStore {
   constructor(
     readonly siteDir: string,
     readonly flattenOut?: string,
+    /** Authoring schema from `$TESSERA_DATA/meta.json`. Missing or non-numeric is 0. */
+    private readonly schemaVersion: () => Promise<number> = async () => 0,
   ) {}
+
+  currentSchemaVersion(): Promise<number> {
+    return this.schemaVersion();
+  }
+
+  fileRef(kind: RecordKind | "site" | "nav", id: string): RecordFileRef {
+    if (kind === "site") return { file: "site.yaml" };
+    if (kind === "nav") return { file: "nav.yaml" };
+    const file = `${KIND_DIRS[kind]}/${id}.yaml`;
+    if (kind !== "content") return { file };
+    return { file, historyFile: `history/content/${id}.history` };
+  }
 
   async list(): Promise<RecordSummary[]> {
     const out: RecordSummary[] = [];
@@ -103,56 +139,95 @@ export class SiteStore {
     };
   }
 
-  async write(kind: RecordKind, id: string, data: Record<string, unknown>): Promise<void> {
+  async readRaw(kind: RecordKind | "site" | "nav", id: string): Promise<string> {
+    if (kind === "site") return readText(this.siteFile());
+    if (kind === "nav") return readText(this.navFile());
+    this.assertId(id);
+    return readText(this.recordFile(kind, id));
+  }
+
+  async write(kind: RecordKind, id: string, data: Record<string, unknown>): Promise<SaveResult> {
     this.assertId(id);
     const record = { ...data, id };
-    await writeTextAtomic(this.recordFile(kind, id), recordToYaml(kind, record));
-    const ids = await this.readOrder(kind);
-    if (!ids.includes(id)) {
-      const listed = await this.listIds(kind);
-      await writeTextAtomic(this.orderFile(kind), toYaml(listed));
+    return this.commitRecord(kind, id, recordToYaml(kind, record));
+  }
+
+  async writeRaw(kind: RecordKind | "site" | "nav", id: string, raw: string): Promise<SaveResult> {
+    const text = normalizeRaw(raw);
+    if (kind === "site") {
+      const data = fromYaml<unknown>(text);
+      if (!data || typeof data !== "object" || Array.isArray(data)) {
+        throw new Error("Site file must be a YAML mapping.");
+      }
+      const { snapshot } = await this.commitText(this.siteFile(), text);
+      return { historyAppended: false, historyCount: 0, ...(snapshot ? { snapshot } : {}) };
     }
-    await this.flatten();
+    if (kind === "nav") {
+      fromYaml(text);
+      const { snapshot } = await this.commitText(this.navFile(), text);
+      return { historyAppended: false, historyCount: 0, ...(snapshot ? { snapshot } : {}) };
+    }
+    this.assertId(id);
+    const data = yamlToRecord(kind, text);
+    if (data.id === undefined || String(data.id) !== id) {
+      throw new Error(`Raw file must include id: ${id}.`);
+    }
+    return this.commitRecord(kind, id, text);
+  }
+
+  async pageHistory(id: string): Promise<HistorySummary[]> {
+    this.assertId(id);
+    return listPageHistory(pageHistoryPath(this.siteDir, id));
+  }
+
+  async pageHistoryEntry(id: string, index: number): Promise<HistoryEntry | undefined> {
+    this.assertId(id);
+    return readPageHistoryEntry(pageHistoryPath(this.siteDir, id), index);
+  }
+
+  async publishedSnapshot(): Promise<SnapshotRef | undefined> {
+    if (!this.flattenOut) return undefined;
+    try {
+      const parsed = JSON.parse(
+        await readText(join(dirname(this.flattenOut), SITE_REVISION_FILE)),
+      ) as { hash?: unknown; file?: unknown };
+      if (typeof parsed.hash === "string" && typeof parsed.file === "string") {
+        return { hash: parsed.hash, file: parsed.file };
+      }
+    } catch {
+      return undefined;
+    }
+    return undefined;
   }
 
   async readSite(): Promise<Record<string, unknown>> {
     return fromYaml<Record<string, unknown>>(await readText(this.siteFile()));
   }
 
-  async writeSite(data: Record<string, unknown>): Promise<void> {
-    await writeTextAtomic(this.siteFile(), toYaml(data));
-    await this.flatten();
+  async writeSite(data: Record<string, unknown>): Promise<SaveResult> {
+    const { snapshot } = await this.commitText(this.siteFile(), toYaml(data));
+    return { historyAppended: false, historyCount: 0, ...(snapshot ? { snapshot } : {}) };
   }
 
   async readNav(): Promise<unknown> {
     return fromYaml(await readText(this.navFile()));
   }
 
-  async writeNav(data: unknown): Promise<void> {
-    await writeTextAtomic(this.navFile(), toYaml(data));
-    await this.flatten();
+  async writeNav(data: unknown): Promise<SaveResult> {
+    const { snapshot } = await this.commitText(this.navFile(), toYaml(data));
+    return { historyAppended: false, historyCount: 0, ...(snapshot ? { snapshot } : {}) };
   }
 
   async flatten(): Promise<SiteDocument | undefined> {
-    if (!(await this.hasSiteFile())) return undefined;
-    if (!(await this.listIds("layouts")).length || !(await this.listIds("content")).length) {
-      return undefined;
-    }
-    const doc = assembleDocument(await this.loadParts());
-    if (this.flattenOut) {
-      const body = `${JSON.stringify(doc, null, 2)}\n`;
-      await writeSnapshotFiles(this.flattenOut, body);
-    }
+    const doc = await this.loadReadyDocument();
+    if (!doc) return undefined;
+    if (this.flattenOut) await writeSnapshotFiles(this.flattenOut, documentBody(doc));
     return doc;
   }
 
   private async tryDocument(): Promise<SiteDocument | undefined> {
     try {
-      if (!(await this.hasSiteFile())) return undefined;
-      if (!(await this.listIds("layouts")).length || !(await this.listIds("content")).length) {
-        return undefined;
-      }
-      return assembleDocument(await this.loadParts());
+      return await this.loadReadyDocument();
     } catch {
       return undefined;
     }
@@ -180,6 +255,72 @@ export class SiteStore {
       }
     }
     await this.flatten();
+  }
+
+  private async commitRecord(kind: RecordKind, id: string, nextText: string): Promise<SaveResult> {
+    const { snapshot, previous } = await this.commitText(this.recordFile(kind, id), nextText);
+    await this.ensureOrdered(kind, id);
+    const historyAppended = await this.maybeAppendHistory(kind, id, previous, nextText);
+    const historyCount = kind === "content" ? (await this.pageHistory(id)).length : 0;
+    return { historyAppended, historyCount, ...(snapshot ? { snapshot } : {}) };
+  }
+
+  /**
+   * Replace a file, then republish. A publish failure restores the previous
+   * bytes (or removes a file that did not exist) so a bad edit is not what
+   * the snapshot cache names.
+   */
+  private async commitText(
+    path: string,
+    nextText: string,
+  ): Promise<{ snapshot?: SnapshotRef; previous?: string }> {
+    let previous: string | undefined;
+    try {
+      previous = await readText(path);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+    }
+    await writeTextAtomic(path, nextText);
+    try {
+      const snapshot = await this.publishSnapshot();
+      return { snapshot, previous };
+    } catch (err) {
+      if (previous === undefined) await unlink(path).catch(() => undefined);
+      else await writeTextAtomic(path, previous);
+      throw err;
+    }
+  }
+
+  private async maybeAppendHistory(
+    kind: RecordKind,
+    id: string,
+    previous: string | undefined,
+    nextText: string,
+  ): Promise<boolean> {
+    if (kind !== "content" || previous === undefined || previous === nextText) return false;
+    await appendPageHistory(pageHistoryPath(this.siteDir, id), previous, await this.schemaVersion());
+    return true;
+  }
+
+  private async publishSnapshot(): Promise<SnapshotRef | undefined> {
+    const doc = await this.loadReadyDocument();
+    if (!doc || !this.flattenOut) return undefined;
+    return writeSnapshotFiles(this.flattenOut, documentBody(doc));
+  }
+
+  private async loadReadyDocument(): Promise<SiteDocument | undefined> {
+    if (!(await this.hasSiteFile())) return undefined;
+    if (!(await this.listIds("layouts")).length || !(await this.listIds("content")).length) {
+      return undefined;
+    }
+    return assembleDocument(await this.loadParts());
+  }
+
+  private async ensureOrdered(kind: RecordKind, id: string): Promise<void> {
+    const ids = await this.readOrder(kind);
+    if (ids.includes(id)) return;
+    const listed = await this.listIds(kind);
+    await writeTextAtomic(this.orderFile(kind), toYaml(listed));
   }
 
   private siteFile(): string {
@@ -267,4 +408,13 @@ export class SiteStore {
   private assertId(id: string): void {
     if (!isRecordId(id)) throw new Error(`Invalid record id "${id}".`);
   }
+}
+
+function documentBody(doc: SiteDocument): string {
+  return `${JSON.stringify(doc, null, 2)}\n`;
+}
+
+function normalizeRaw(raw: string): string {
+  if (!raw.trim()) throw new Error("Raw file is empty.");
+  return raw.endsWith("\n") ? raw : `${raw}\n`;
 }

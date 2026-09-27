@@ -243,6 +243,8 @@ Site-specific registry components remain first-class.
 - Access is **all-or-nothing**: any authenticated user may perform every editor mutation. `requireEditor` is the choke point so later ACL can replace that helper without rewriting routes.
 - The **editor SPA** (`apps/editor`) is a same-origin Vite app (not shipped with the renderer). Dev proxies `/auth`, `/api`, `/health` to the API; production can serve `dist` from the Hono process so the `httpOnly` session cookie never crosses origins.
 - Authoring is **file-based YAML** (one file per Tessera `id`) beside the site, outside the web root. Flatten emits published `SiteDocument` / `site.json`. No database.
+- A content-page save appends the previous raw file to one history file per page. That history is an editor file, not a field on the published page. The framing is a proof of concept; the authoring spec will replace it.
+- **Authoring schema** (`schemaVersion` in `$TESSERA_DATA/meta.json`) is separate from `SiteDocument.version`. `deploy/post-update.sh` is the [node-vps-kit](https://github.com/r-a-i-t-h/node-vps-kit) hook that applies `deploy/migrations/NNN-*.sh`. The app reads the counter and does not bump it.
 - The renderer never depends on the editor; the editor may host the renderer for preview.
 - Flatten output **is** the renderer contract.
 

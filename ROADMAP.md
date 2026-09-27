@@ -17,6 +17,7 @@ Update this file when priorities or status change; keep demo scoreboard copy ali
 | Editor SPA (login shell) | `apps/editor`: same-origin Vite SPA; login, session cookie, `POST /api/ping`. Hono serves `dist` when built. |
 | File-based editor + flatten | YAML records in `apps/demo-willow/data/`; editor forms; save flattens to `site.json` plus the hashed snapshot and `rev.json`. |
 | Pages publisher | `publishPages` writes one HTML file per page in the tree, with static nav, micro-app mounts, and `sitemap.xml`. Demo sites stay snapshots. |
+| Page edit lifecycle (proof of concept) | Raw YAML save, append-only `history/content/<id>.history`, republish of `site.<hash>.json`. Authoring `schemaVersion` in `data/meta.json` via `deploy/post-update.sh` (node-vps-kit). |
 
 ## Upcoming (ordered)
 
