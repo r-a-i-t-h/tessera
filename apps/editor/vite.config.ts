@@ -11,8 +11,8 @@ const apiProxy = {
 } as const;
 
 export default defineConfig({
-  // Subdirectory-relative: works when hosted under a path, not only domain root.
-  base: "./",
+  // Editor is served at the hostname root. Published sites use base "./" instead.
+  base: "/",
   build: {
     target: "es2022",
     assetsDir: "assets",

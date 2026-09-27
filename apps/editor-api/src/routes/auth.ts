@@ -5,7 +5,7 @@ import { requireEditor } from "../access/editor.js";
 import { hashPassword, verifyPassword } from "../auth/password.js";
 import { apiError, isResponse, publicUser } from "../http.js";
 import { clientIp, rateLimit } from "../middleware/rate-limit.js";
-import { requestSessionToken } from "../middleware/auth.js";
+import { requestSessionToken, SESSION_COOKIE } from "../middleware/auth.js";
 
 export const authRoutes = new Hono();
 
@@ -84,17 +84,16 @@ authRoutes.post("/password", authPasswordLimit, async (c) => {
 
 authRoutes.post("/logout", (c) => {
   const sessions = c.get("sessions");
-  const cookieName = c.get("sessionCookieName");
   sessions.destroy(requestSessionToken(c));
-  deleteCookie(c, cookieName, { path: c.get("assetBase") || "/" });
+  deleteCookie(c, SESSION_COOKIE, { path: "/" });
   return c.json({ ok: true });
 });
 
 function setSessionCookie(c: Context, token: string): void {
-  setCookie(c, c.get("sessionCookieName"), token, {
+  setCookie(c, SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "Lax",
-    path: c.get("assetBase") || "/",
+    path: "/",
     maxAge: 60 * 60 * 24 * 14,
     secure: cookieSecure(),
   });

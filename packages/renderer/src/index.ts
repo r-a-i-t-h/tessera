@@ -14,7 +14,7 @@ export {
   loadSiteDocument,
   refreshSiteDocument,
   withCacheBust,
-  storageKeyForUrl,
+  documentCacheKey,
   writeDocumentCache,
   clearDocumentCache,
 } from "./document-cache.js";

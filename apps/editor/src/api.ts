@@ -19,28 +19,6 @@ export class ApiError extends Error {
   }
 }
 
-/**
- * Resolve an API path against the page directory so subdirectory hosts
- * (`/tessera/`) and `index.html` URLs both stay same-origin + relative.
- */
-export function directoryUrl(pageHref: string): string {
-  const url = new URL(pageHref);
-  url.hash = "";
-  url.search = "";
-  if (!url.pathname.endsWith("/")) {
-    if (/\.[a-z0-9]+$/i.test(url.pathname)) {
-      url.pathname = url.pathname.replace(/\/[^/]+$/, "/");
-    } else {
-      url.pathname += "/";
-    }
-  }
-  return url.href;
-}
-
-export function resolveApiUrl(path: string, pageHref: string): string {
-  return new URL(path.replace(/^\.\//, ""), directoryUrl(pageHref)).href;
-}
-
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
   if (init.body !== undefined && !headers.has("Content-Type")) {
@@ -49,7 +27,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   let res: Response;
   try {
-    res = await fetch(resolveApiUrl(path, window.location.href), {
+    res = await fetch(path, {
       credentials: "same-origin",
       ...init,
       headers,
@@ -74,22 +52,22 @@ function errorMessage(data: unknown, fallback: string): string {
 }
 
 export function login(username: string, password: string): Promise<{ ok: true; username: string }> {
-  return request("auth/login", {
+  return request("/auth/login", {
     method: "POST",
     body: JSON.stringify({ username, password }),
   });
 }
 
 export function me(): Promise<PublicUser> {
-  return request("auth/me");
+  return request("/auth/me");
 }
 
 export function logout(): Promise<{ ok: true }> {
-  return request("auth/logout", { method: "POST" });
+  return request("/auth/logout", { method: "POST" });
 }
 
 export function ping(): Promise<PingResult> {
-  return request("api/ping", { method: "POST" });
+  return request("/api/ping", { method: "POST" });
 }
 
 export type RecordKindName = string;
@@ -125,15 +103,15 @@ export type RecordPayload = {
 };
 
 export function listRecords(): Promise<RecordList> {
-  return request("api/records");
+  return request("/api/records");
 }
 
 export function getRecord(kind: string, id: string): Promise<RecordPayload> {
-  return request(`api/records/${encodeURIComponent(kind)}/${encodeURIComponent(id)}`);
+  return request(`/api/records/${encodeURIComponent(kind)}/${encodeURIComponent(id)}`);
 }
 
 export function saveRecord(kind: string, id: string, data: unknown): Promise<{ ok: true }> {
-  return request(`api/records/${encodeURIComponent(kind)}/${encodeURIComponent(id)}`, {
+  return request(`/api/records/${encodeURIComponent(kind)}/${encodeURIComponent(id)}`, {
     method: "PUT",
     body: JSON.stringify({ data }),
   });

@@ -1,7 +1,7 @@
 import { existsSync, statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { extname, join, relative, resolve, sep } from "node:path";
-import type { Context, Hono } from "hono";
+import type { Hono } from "hono";
 
 const MIME: Record<string, string> = {
   ".css": "text/css; charset=utf-8",
@@ -26,13 +26,7 @@ export function mountSpa(app: Hono, spaDir: string): boolean {
   if (!existsSync(indexPath)) return false;
 
   app.get("*", async (c) => {
-    const base = c.get("assetBase");
-    const rawPath = new URL(c.req.url).pathname;
-    if (base && rawPath === base) {
-      return c.redirect(`${base}/`, 302);
-    }
-
-    const pathname = spaPath(c, base);
+    const pathname = new URL(c.req.url).pathname || "/";
     const filePath = safeFile(spaDir, pathname);
     if (filePath && isFile(filePath)) {
       const type = MIME[extname(filePath)] ?? "application/octet-stream";
@@ -44,14 +38,6 @@ export function mountSpa(app: Hono, spaDir: string): boolean {
   });
 
   return true;
-}
-
-export function spaPath(c: Context, assetBase: string): string {
-  let path = new URL(c.req.url).pathname;
-  if (assetBase && (path === assetBase || path.startsWith(`${assetBase}/`))) {
-    path = path.slice(assetBase.length) || "/";
-  }
-  return path || "/";
 }
 
 function isFile(path: string): boolean {

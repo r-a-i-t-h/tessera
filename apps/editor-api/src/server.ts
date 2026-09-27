@@ -12,7 +12,6 @@ const root = join(__dirname, "..");
 const dataDir = process.env.TESSERA_DATA ?? join(root, "data");
 const seedDir = process.env.TESSERA_SEED ?? join(root, "seed");
 const port = Number(process.env.PORT ?? 7356);
-const assetBase = process.env.TESSERA_BASE_PATH ?? "";
 
 const users = new UserStore(dataDir);
 await users.load(seedDir);
@@ -28,16 +27,14 @@ const site = new SiteStore(siteDir, flattenOut);
 const app = createApp({
   users,
   sessions,
-  assetBase,
   spaDir,
   site,
 });
 
-const baseLabel = assetBase ? `/${assetBase.replace(/^\/+|\/+$/g, "")}` : "";
-console.log(`Tessera editor API listening on http://127.0.0.1:${port}${baseLabel}/`);
+console.log(`Tessera editor API listening on http://127.0.0.1:${port}/`);
 console.log(`Data directory: ${dataDir}`);
 if (spaDir) {
-  console.log(`Editor SPA: http://127.0.0.1:${port}${baseLabel}/`);
+  console.log(`Editor SPA: http://127.0.0.1:${port}/`);
 }
 console.log(`Site records: ${siteDir}`);
 

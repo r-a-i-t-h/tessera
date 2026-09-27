@@ -96,6 +96,7 @@ export class SiteRenderer {
       if (!options.documentUrl) throw new Error("Provide document or documentUrl");
       const loaded = await loadSiteDocument({
         documentUrl: options.documentUrl,
+        pageUrl: window.location.href,
         storage: options.storage,
         storageKey: options.storageKey,
       });
@@ -172,6 +173,7 @@ export class SiteRenderer {
     if (!this.documentUrl) return false;
     const result = await refreshSiteDocument({
       documentUrl: this.documentUrl,
+      pageUrl: window.location.href,
       storage: this.storage,
       storageKey: this.storageKey,
     });

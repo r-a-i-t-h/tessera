@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ComponentRegistry, SiteRenderer, writeDocumentCache, storageKeyForUrl } from "../index.js";
+import { ComponentRegistry, SiteRenderer, documentCacheKey, writeDocumentCache } from "../index.js";
 import { makeFixtureDoc } from "./fixtures.js";
 
 function buildRegistry() {
@@ -126,7 +126,7 @@ describe("SiteRenderer navigation", () => {
   it("uses localStorage fallback and reports stale status", async () => {
     const doc = makeFixtureDoc();
     const storage = memoryStorage();
-    writeDocumentCache(storage, storageKeyForUrl("./data/site.json"), doc);
+    writeDocumentCache(storage, documentCacheKey("./data/site.json", window.location.href), doc);
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("offline"));
 
     const statuses: boolean[] = [];

@@ -93,13 +93,13 @@ Where authoring syntax benefits, prefer custom elements (e.g. `<imgbox>`, `<quot
 ### Delivery model
 
 - Sites are **SPA-rendered in the browser** from a pre-published JSON file. “Static” here means *no live datastore* and *payload prepared ahead of time* — not plain multi-page HTML and not SSR.
-- Load the document from a subdirectory-relative URL (e.g. `./data/site.json`). Vite `base: "./"` and relative media URLs keep sites subdirectory-safe.
+- Load the document from a folder-relative URL (e.g. `./data/site.json`). Vite `base: "./"` and relative media URLs keep a published site portable to any directory, including a path on a shared domain. The editor and its API are a separate install and are served at the root of their own hostname.
 - After a successful load, navigation uses the in-memory document.
 
 ### Fetch and cache-busting
 
 1. Fetch `site.json` with a **cache-busting query** (e.g. timestamp) so HTTP caches do not serve stale content. (Hashed JS bundles handle *code* cache-busting separately.)
-2. On success: validate, render, write to **`localStorage`**.
+2. On success: validate, render, write to **`localStorage`**. The cache key is the absolute URL of `site.json`. Storage is shared by the whole origin, so that URL is what gives each published site its own cache when several sites sit on one domain. It is not a server base path.
 3. On failure: if a prior compatible document exists in storage, use it and mark **using cached / stale data** so chrome can show a banner.
 4. A full **page refresh** always attempts a fresh fetch (latest data when online).
 
@@ -199,7 +199,7 @@ Site-specific registry components remain first-class.
 ## 9. Editor boundary (Phase 2)
 
 - The public renderer stays Phase 1: no SSR, no live datastore, no edit-in-place.
-- The **editor API** (`apps/editor-api`) is a same-origin JSON host the future SPA will call. Cookie + Bearer sessions; subdirectory-safe via `TESSERA_BASE_PATH`.
+- The **editor API** (`apps/editor-api`) is a same-origin JSON host the SPA calls. Cookie + Bearer sessions. The editor and its API are served at the hostname root (`tessera_session` cookie, `Path=/`). A published site has no server and may be placed in a folder.
 - **No self-signup.** Users are files under `data/users/` (seeded from `seed/users/`); add them with `seed:user`.
 - Access is **all-or-nothing**: any authenticated user may perform every editor mutation. `requireEditor` is the choke point so later ACL can replace that helper without rewriting routes.
 - The **editor SPA** (`apps/editor`) is a same-origin Vite app (not shipped with the renderer). Dev proxies `/auth`, `/api`, `/health` to the API; production can serve `dist` from the Hono process so the `httpOnly` session cookie never crosses origins.

@@ -21,6 +21,11 @@ export type CachedDocumentEnvelope = {
 
 export type LoadSiteDocumentOptions = {
   documentUrl: string;
+  /**
+   * Page the relative `documentUrl` is resolved against when building the
+   * cache key. Defaults to the current page. Not a server mount path.
+   */
+  pageUrl?: string;
   /** Defaults to `localStorage` in browsers; pass `null` to disable. */
   storage?: Storage | null;
   storageKey?: string;
@@ -39,8 +44,30 @@ function defaultStorage(): Storage | null {
   }
 }
 
-export function storageKeyForUrl(documentUrl: string): string {
-  return `tessera:site-document:${documentUrl}`;
+/**
+ * Cache identity for one published site's `site.json`.
+ *
+ * `localStorage` is shared by every page on an origin. The key is the absolute
+ * URL of this site's `site.json`, so two published sites on one host (for
+ * example `raith.com/a` and `raith.com/b`) do not share a cache. This is not
+ * a server mount path and it is not configured.
+ */
+export function documentCacheKey(documentUrl: string, pageUrl: string): string {
+  const absolute = new URL(documentUrl, pageUrl);
+  absolute.hash = "";
+  absolute.search = "";
+  return `tessera:site-document:${absolute.href}`;
+}
+
+function resolveCacheKey(options: LoadSiteDocumentOptions): string {
+  if (options.storageKey) return options.storageKey;
+  const pageUrl = options.pageUrl ?? currentPageUrl();
+  return documentCacheKey(options.documentUrl, pageUrl);
+}
+
+function currentPageUrl(): string {
+  if (typeof location !== "undefined" && location.href) return location.href;
+  throw new Error("Pass pageUrl so each published site has its own site.json cache.");
 }
 
 export function withCacheBust(url: string, now = Date.now()): string {
@@ -109,7 +136,7 @@ export async function loadSiteDocument(
 ): Promise<{ document: SiteDocument; status: DocumentStatus }> {
   const expectedSchemaVersion = options.expectedSchemaVersion ?? SITE_DOCUMENT_SCHEMA_VERSION;
   const storage = options.storage === undefined ? defaultStorage() : options.storage;
-  const key = options.storageKey ?? storageKeyForUrl(options.documentUrl);
+  const key = resolveCacheKey(options);
   const fetchImpl = options.fetchImpl ?? fetch;
   const now = options.now ?? Date.now;
 
@@ -150,7 +177,7 @@ export async function refreshSiteDocument(
 ): Promise<{ document: SiteDocument; status: DocumentStatus } | null> {
   const expectedSchemaVersion = options.expectedSchemaVersion ?? SITE_DOCUMENT_SCHEMA_VERSION;
   const storage = options.storage === undefined ? defaultStorage() : options.storage;
-  const key = options.storageKey ?? storageKeyForUrl(options.documentUrl);
+  const key = resolveCacheKey(options);
   const fetchImpl = options.fetchImpl ?? fetch;
   const now = options.now ?? Date.now;
 

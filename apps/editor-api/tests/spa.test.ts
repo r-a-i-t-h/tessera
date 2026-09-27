@@ -31,8 +31,8 @@ describe("editor SPA static host", () => {
     await rm(spaDir, { recursive: true, force: true });
   });
 
-  function app(assetBase = "") {
-    return createApp({ users, sessions, spaDir, assetBase });
+  function app() {
+    return createApp({ users, sessions, spaDir });
   }
 
   it("does not serve HTML when spaDir is omitted", async () => {
@@ -65,20 +65,5 @@ describe("editor SPA static host", () => {
     const fallback = await a.request("/workspace");
     expect(fallback.status).toBe(200);
     expect(await fallback.text()).toContain("<title>Editor</title>");
-  });
-
-  it("serves the SPA under a subdirectory base path", async () => {
-    const a = app("garden");
-    const redirect = await a.request("/garden");
-    expect(redirect.status).toBe(302);
-    expect(redirect.headers.get("location")).toBe("/garden/");
-
-    const page = await a.request("/garden/");
-    expect(page.status).toBe(200);
-    expect(await page.text()).toContain("<title>Editor</title>");
-
-    const asset = await a.request("/garden/assets/app.js");
-    expect(asset.status).toBe(200);
-    expect(await asset.text()).toContain("console.log(1)");
   });
 });

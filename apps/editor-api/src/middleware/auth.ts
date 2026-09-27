@@ -2,13 +2,8 @@ import type { Context } from "hono";
 import { getCookie } from "hono/cookie";
 import { createMiddleware } from "hono/factory";
 
-const DEFAULT_COOKIE = "tessera_session";
-
-export function sessionCookieNameForBase(assetBase: string): string {
-  if (!assetBase) return DEFAULT_COOKIE;
-  const slug = assetBase.replace(/^\/+/, "").replace(/[^a-zA-Z0-9]+/g, "_");
-  return `tessera_${slug}_session`;
-}
+/** Session cookie for the editor at the hostname root. */
+export const SESSION_COOKIE = "tessera_session";
 
 /** Bearer token or session cookie — same resolution as `loadUser`. */
 export function requestSessionToken(c: Context): string | undefined {
@@ -17,8 +12,7 @@ export function requestSessionToken(c: Context): string | undefined {
     const token = header.slice(7).trim();
     return token || undefined;
   }
-  const cookieName = c.get("sessionCookieName") || DEFAULT_COOKIE;
-  return getCookie(c, cookieName) || undefined;
+  return getCookie(c, SESSION_COOKIE) || undefined;
 }
 
 export const loadUser = createMiddleware(async (c, next) => {

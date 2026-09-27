@@ -31,14 +31,16 @@ Hono app (Node ≥20). JSON routes first; if `apps/editor/dist` (or `TESSERA_SPA
 | Concern | Contract |
 |---------|----------|
 | Users | `data/users/<username>.json` (hash + salt). No `/auth/register`; add via `npm run seed:user -w @r-a-i-t-h/tessera-editor-api -- <name> <password>`. |
-| Sessions | In-memory tokens; httpOnly `tessera_session` cookie (namespaced by `TESSERA_BASE_PATH`) or `Authorization: Bearer`. SIGTERM dumps hashed tokens to `data/.sessions.json` once. |
+| Sessions | In-memory tokens; httpOnly `tessera_session` cookie (`Path=/`) or `Authorization: Bearer`. The editor is served at the hostname root. SIGTERM dumps hashed tokens to `data/.sessions.json` once. |
 | Permission | `requireEditor`: authenticated ⇒ full access; anonymous ⇒ 401. Every mutation must call it. |
 | Records | YAML files in `TESSERA_SITE_DIR` (default `apps/demo-willow/data`). Filename = Tessera `id`. `GET/PUT /api/records`. Save flattens to `TESSERA_FLAT_OUT` (`public/data/site.json`). |
 | Public | `GET /health`, `POST /auth/login`. Protected: `GET /auth/me`, `POST /auth/password`, `POST /api/ping`, record CRUD. Logout is idempotent. |
 
 Public HTML is the editor SPA when built. The published site remains `site.json` for the renderer. Authoring is file-based YAML (not JSON) so HTML does not need escaping.
 
-Same origin is deliberate: the session cookie is `httpOnly` + `SameSite=Lax`. A SPA on another port/origin would need CORS credentials and cookie relaxation. Dev uses a Vite proxy on port 7355 so the browser still sees one origin.
+Same origin is deliberate: the session cookie is `httpOnly` + `SameSite=Lax` with `Path=/`. A SPA on another port/origin would need CORS credentials and cookie relaxation. Dev uses a Vite proxy on port 7355 so the browser still sees one origin. The editor is not mounted under a URL prefix.
+
+The published site is a separate static build. It may live in a folder on a shared domain. The editor process does not serve that folder and does not need to know its path.
 
 ## Content model
 
@@ -78,12 +80,15 @@ There is **no** recursive `parentId` template chain and **no** inventing zones f
 
 ## Relative assets
 
-Static sites must stay subdirectory-safe:
+A published site is a folder of files. It stays portable to any directory, including a path on a shared domain, without a server mount setting:
 
-- Vite `base: "./"` (not `/`)
+- Vite `base: "./"` (not `/`) on the site build. The editor SPA uses `base: "/"` because it is served at the hostname root.
 - Load data with `./data/site.json` (not `/data/...`)
 - Media URLs in the document should be relative (`./media/...`), not root-absolute (`/media/...`) or required CDN URLs
 - `normalizeSiteAssetUrl` rewrites accidental `/foo` media paths to `./foo` at render time
+- Hash routing (`#page`) keeps the browser path on that folder
+
+`localStorage` is shared by every page on an origin. The cache key for `site.json` is that file’s absolute URL (`documentCacheKey`), so two published sites on one host do not share a cache. The URL is only a cache identity. It is not a server base path.
 
 ## Gallery (spike)
 
@@ -129,7 +134,7 @@ Web components follow the same idea: implement with `WCBase`, `customElements.de
 
 ## Rendering pipeline
 
-1. Load + validate `site.json` (Zod) with cache-busting query; persist to `localStorage`; fall back to cache on failure (see SPEC §3).
+1. Load + validate `site.json` (Zod) with cache-busting query; persist to `localStorage` under the absolute URL of that file (one cache per published site on a shared origin); fall back to cache on failure (see SPEC §3).
 2. Resolve page from hash (unknown ids fall back to home — no error UI).
 3. Resolve the page’s **profile** (`resolvePageProfile`: section inheritance + page override), then merge `page.zones` then each included item’s zones (stable order).
 4. Walk the chosen layout tree; zone nodes render their blocks; unknown component names become HTML comments.

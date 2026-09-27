@@ -10,10 +10,6 @@ export type AppVariables = {
   sessions: SessionStore;
   user?: UserRecord;
   site?: SiteStore;
-  /** Normalized URL prefix, e.g. "" or "/tessera" */
-  assetBase: string;
-  /** Cookie name scoped to assetBase so multiple mounts on one domain do not clash */
-  sessionCookieName: string;
   rateLimiter: RateLimiter;
   rateLimits: RateLimitConfig;
 };
