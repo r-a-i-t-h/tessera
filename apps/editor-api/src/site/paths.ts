@@ -1,10 +1,26 @@
-import { dirname, isAbsolute, join } from "node:path";
+import { existsSync } from "node:fs";
+import { basename, dirname, isAbsolute, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-/** `apps/editor-api`, whether this module runs from `src/` or `dist/`. */
+/**
+ * API root: the directory that contains `seed/` and, in a release, `spa/`.
+ * Source and `tsc` output live in `…/site/paths.js` (two levels down).
+ * A bundled `dist/server.js` is one level down from the release root.
+ */
+export function apiRootFromModule(moduleDir: string): string {
+  return basename(moduleDir) === "site" ? join(moduleDir, "..", "..") : join(moduleDir, "..");
+}
+
 const here = dirname(fileURLToPath(import.meta.url));
-export const editorApiRoot = join(here, "..", "..");
-export const repoRoot = join(editorApiRoot, "..", "..");
+export const editorApiRoot = apiRootFromModule(here);
+
+/** Monorepo checkout when `sites/` sits two levels above the API; otherwise the release root. */
+export function resolveRepoRoot(apiRoot: string): string {
+  const monorepo = join(apiRoot, "..", "..");
+  return existsSync(join(monorepo, "sites")) ? monorepo : apiRoot;
+}
+
+export const repoRoot = resolveRepoRoot(editorApiRoot);
 
 export const SITE_NAMES = ["pure", "ineffable", "millersark", "willow"] as const;
 export type SiteName = (typeof SITE_NAMES)[number];
@@ -34,4 +50,19 @@ export function resolveDataRoot(): string {
   const fromEnv = process.env.TESSERA_DATA;
   if (!fromEnv) return join(repoRoot, "sites", "willow");
   return isAbsolute(fromEnv) ? fromEnv : join(repoRoot, fromEnv);
+}
+
+/**
+ * Built editor UI. A release keeps it at `<root>/spa` so one process serves it.
+ * A checkout falls back to `apps/editor/dist`. `TESSERA_SPA_DIR` replaces both.
+ */
+export function resolveSpaDir(
+  apiRoot: string,
+  env: string | undefined = process.env.TESSERA_SPA_DIR,
+): string | undefined {
+  const fromEnv = env?.trim();
+  const candidates = fromEnv
+    ? [fromEnv]
+    : [join(apiRoot, "spa"), join(apiRoot, "..", "editor", "dist")];
+  return candidates.find((dir) => existsSync(join(dir, "index.html")));
 }

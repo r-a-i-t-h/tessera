@@ -16,6 +16,7 @@
     "convert:legacy": "node scripts/convert-legacy-demos.mjs",
     "flatten:gallery": "node scripts/flatten-gallery.mjs",
     "flatten:site": "npm run flatten:site -w @r-a-i-t-h/tessera-editor-api",
-    "stamp:snapshot": "npm run stamp:snapshot -w @r-a-i-t-h/tessera-editor-api"
+    "stamp:snapshot": "npm run stamp:snapshot -w @r-a-i-t-h/tessera-editor-api",
+    "pack": "sh scripts/pack-release.sh"
   }
 }

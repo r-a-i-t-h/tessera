@@ -1,9 +1,8 @@
 import { serve } from "@hono/node-server";
-import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { SessionStore, SESSION_HANDOFF_FILE } from "./auth/sessions.js";
 import { createApp } from "./app.js";
-import { editorApiRoot, resolveDataRoot, siteLayout } from "./site/paths.js";
+import { editorApiRoot, resolveDataRoot, resolveSpaDir, siteLayout } from "./site/paths.js";
 import { SiteStore } from "./site/store.js";
 import { ensureMetaFile, metaPath, readSchemaVersion } from "./store/meta.js";
 import { UserStore } from "./store/users.js";
@@ -19,9 +18,7 @@ await users.load(seedDir);
 await ensureMetaFile(dataDir, seedDir);
 
 const sessions = await SessionStore.load(join(dataDir, SESSION_HANDOFF_FILE));
-const defaultSpa = join(root, "..", "editor", "dist");
-const spaCandidate = process.env.TESSERA_SPA_DIR ?? defaultSpa;
-const spaDir = existsSync(join(spaCandidate, "index.html")) ? spaCandidate : undefined;
+const spaDir = resolveSpaDir(root);
 const site = new SiteStore(
   layout.records,
   layout.flattenOut,

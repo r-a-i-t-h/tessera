@@ -10,7 +10,7 @@ The **editor** (see SPEC §9) edits one site directory and emits the flattened f
 
 Tessera’s version is the engine: `apps/editor-api`, `apps/editor`, and the packages below. A site is data. Replacing `$TESSERA_DATA` (and restarting) changes which site the instance edits. The public site is the static `publish/` tree inside that directory. Nginx can keep serving `publish/` with the editor process stopped, or that tree can be copied to another host.
 
-The editor **API** lives in `apps/editor-api` (`@r-a-i-t-h/tessera-editor-api`): a Hono + Node process with file-backed users, in-memory sessions, and an all-or-nothing `requireEditor` gate on every mutation. The editor **SPA** lives in `apps/editor` (`@r-a-i-t-h/tessera-editor`) and talks to that API on the **same origin** (Vite proxy in dev; Hono serves `apps/editor/dist` when present). `apps/site` (`@r-a-i-t-h/tessera-site`) is the dev/build host for a site shell. It is not a site, and it does not version the site.
+The editor **API** lives in `apps/editor-api` (`@r-a-i-t-h/tessera-editor-api`): a Hono + Node process with file-backed users, in-memory sessions, and an all-or-nothing `requireEditor` gate on every mutation. The editor **SPA** lives in `apps/editor` (`@r-a-i-t-h/tessera-editor`) and talks to that API on the **same origin** (Vite proxy in dev). Hono serves the built UI when it is present: `spa/` next to a release bundle, or `apps/editor/dist` in a checkout. `apps/site` (`@r-a-i-t-h/tessera-site`) is the dev/build host for a site shell. It is not a site, and it does not version the site. A `v*` tag packs one tarball (`npm run pack`): `dist/server.js`, `spa/`, `seed/`, and `deploy/`. Instance data stays outside that tree.
 
 ## Packages
 
@@ -29,11 +29,11 @@ Example sites live under `sites/` (pure / ineffable / millersark / willow). They
 
 ## Editor API
 
-Hono app (Node ≥20). JSON routes first; if `apps/editor/dist` (or `TESSERA_SPA_DIR`) contains `index.html`, the same process serves the editor SPA so cookies stay first-party. Runtime data is file-backed with an in-memory cache; writes use atomic temp+rename.
+Hono app (Node ≥20). JSON routes first; if `spa/index.html` (a release), `apps/editor/dist/index.html` (a checkout), or `TESSERA_SPA_DIR` is present, the same process serves the editor SPA so cookies stay first-party. Runtime data is file-backed with an in-memory cache; writes use atomic temp+rename.
 
 | Concern | Contract |
 |---------|----------|
-| Users | `$TESSERA_DATA/users/<username>.json` (hash + salt). No `/auth/register`; add via `npm run seed:user -w @r-a-i-t-h/tessera-editor-api -- <name> <password>` (writes the release seed; first boot copies it when `users/` is empty). |
+| Users | `$TESSERA_DATA/users/<username>.json` (hash + salt), one set per site directory. No `/auth/register`. The release seed (`seed/users`, `admin` / `admin`) is copied only when `users/` is empty. `npm run seed:user` rewrites that seed, not the open site. |
 | Sessions | In-memory tokens; httpOnly `tessera_session` cookie (`Path=/`) or `Authorization: Bearer`. The editor is served at the hostname root. SIGTERM dumps hashed tokens to `$TESSERA_DATA/.sessions.json` once. |
 | Permission | `requireEditor`: authenticated ⇒ full access; anonymous ⇒ 401. Every mutation must call it. |
 | Records | YAML files in `$TESSERA_DATA/data`. Filename = Tessera `id`. `GET/PUT /api/records` accepts structured `data` or raw YAML. A changed content page appends the previous file to `$TESSERA_DATA/history/content/<id>.history`, then flattens to `$TESSERA_DATA/publish/data/site.json` plus `site.<hash>.json` and `rev.json`. |
@@ -43,7 +43,7 @@ Public HTML is the editor SPA when built. The published site remains `site.json`
 
 Same origin is deliberate: the session cookie is `httpOnly` + `SameSite=Lax` with `Path=/`. A SPA on another port/origin would need CORS credentials and cookie relaxation. Dev uses a Vite proxy on port 7355 so the browser still sees one origin. The editor is not mounted under a URL prefix.
 
-The published site is `publish/` inside the same directory (or a copy of that tree). The editor process does not serve it. Stopping the editor leaves the static files working. There is one path, `TESSERA_DATA` (default `sites/willow`). Records, history, users, `meta.json`, and the export are derived from it.
+The published site is `publish/` inside the same directory (or a copy of that tree). The editor process does not serve it. Stopping the editor leaves the static files working. There is one path, `TESSERA_DATA` (default `sites/willow` in a checkout). On a VPS, node-vps-kit sets it to `/opt/tessera/<name>/data`, which is the site directory and is not replaced when the release in `current/` changes. Records, history, users, `meta.json`, and the export are derived from it.
 
 ## Content model
 

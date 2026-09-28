@@ -30,8 +30,10 @@ async function listJsonFiles(dir: string): Promise<string[]> {
 }
 
 /**
- * File-backed user map. Each editor is `data/users/<username>.json`.
- * There is no self-signup; add users with the seed:user script.
+ * Editors for one site directory. Files are `$TESSERA_DATA/users/<username>.json`.
+ * `seed/users` is copied once, when that folder is empty. A later boot does not
+ * overwrite them, and another `TESSERA_DATA` directory has its own users.
+ * There is no self-signup.
  */
 export class UserStore {
   private users = new Map<string, UserRecord>();
