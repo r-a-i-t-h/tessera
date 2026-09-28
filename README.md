@@ -12,10 +12,7 @@ Client-side site runtime that renders an entire small website from one validated
 
 ```bash
 npm install
-npm run dev                 # pure demo (port 5173)
-npm run dev:ineffable       # ineffable port (5174)
-npm run dev:millersark      # Miller's Ark port (5175)
-npm run dev:willow          # Willow Hall community demo (5176)
+npm run dev:site            # willow shell (port 5173); TESSERA_SITE=pure|ineffable|millersark
 npm run dev:api             # editor API (port 7356; seed login admin / admin)
 npm run dev:editor          # editor SPA (port 7355; proxies /auth /api /health)
 ```
@@ -35,24 +32,31 @@ npm test
 | `@r-a-i-t-h/tessera-skin-w3` | `packages/skin-w3` |
 | `@r-a-i-t-h/tessera-wc-base` | `packages/wc-base` |
 | `@r-a-i-t-h/tessera-demo-kit` | `packages/demo-kit` (fonts, nav chrome, w3 helpers) |
+| `@r-a-i-t-h/tessera-site` | `apps/site` (one host for `sites/<name>/shell`) |
+| `@r-a-i-t-h/tessera-editor` | `apps/editor` |
+| `@r-a-i-t-h/tessera-editor-api` | `apps/editor-api` |
 
-## Demo apps
+## Sites
 
-| App | Notes |
-|-----|--------|
-| `apps/demo-pure` | Engine lab: zones, components, font switch |
-| `apps/demo-ineffable` | Port of the personal site (layouts, fonts, W3 chrome) |
-| `apps/demo-millersark` | Port of Miller's Ark CMS content + `openDaysTable` |
-| `apps/demo-willow` | Content showcase; YAML source in sibling `data/` |
-| `apps/editor` | Editor SPA: login + file-based record editor |
-| `apps/editor-api` | Editing back-end: JSON auth + YAML records + flatten |
+A site is a directory, not a package. Tessera’s version is the editor and the libraries. `TESSERA_DATA` points at one directory (default `sites/willow`). Replacing it and restarting changes the site.
 
-Editor: run `npm run dev:api` and `npm run dev:editor`, then open the SPA (port 7355). Willow records live in `apps/demo-willow/data/` (outside `public/`). A content page opens as raw YAML. Saving appends the previous file to `history/content/<id>.history`, then flattens to `apps/demo-willow/public/data/site.json`, writes `site.<hash>.json` and `rev.json`, and points `index.html` at the hashed file. That hashed name is what the browser caches. After `npm run build -w @r-a-i-t-h/tessera-editor`, the API also serves that build on port 7356. Add a user with `npm run seed:user -w @r-a-i-t-h/tessera-editor-api -- <name> <password>` (writes `apps/editor-api/seed/users/`). First boot copies seed users and `seed/meta.json` into `apps/editor-api/data/` when those files are absent. Seed login is `admin` / `admin`.
+| Directory | Notes |
+|-----------|--------|
+| `sites/pure` | Engine lab: zones, components, font switch |
+| `sites/ineffable` | Personal site (layouts, fonts, W3 chrome, `randomCells`) |
+| `sites/millersark` | Miller's Ark content + `openDaysTable` |
+| `sites/willow` | Community showcase; the default editable site |
 
-Authoring schema migrations (the hook node-vps-kit runs as `deploy/post-update.sh`) stamp `schemaVersion` on `data/meta.json`. The app does not bump that counter. After the API has created `meta.json`:
+Each directory has `data/` (YAML records), `shell/` (chrome and micro-apps), and `publish/` (static export: hashed `site.json`, media). `meta.json` holds `schemaVersion`. Users and page history live in the same directory and are created when the editor runs.
+
+Editor: run `npm run dev:api` and `npm run dev:editor`, then open the SPA (port 7355). A content page opens as raw YAML. Saving appends the previous file to `history/content/<id>.history`, then flattens to `publish/data/site.json`, writes `site.<hash>.json` and `rev.json`, and points the shell at the hashed file. That hashed name is what the browser caches. `TESSERA_DATA=sites/pure npm run dev:api` edits a different example. After `npm run build -w @r-a-i-t-h/tessera-editor`, the API also serves that build on port 7356. Add a user with `npm run seed:user -w @r-a-i-t-h/tessera-editor-api -- <name> <password>` (writes `apps/editor-api/seed/users/`). First boot copies seed users into `$TESSERA_DATA/users/` when that folder is empty. Seed login is `admin` / `admin`.
+
+The public site is `publish/`. Nginx can serve it with the editor stopped, or you can copy that folder somewhere else. `npm run build -w @r-a-i-t-h/tessera-site` builds every shell into its `publish/` tree.
+
+Authoring schema migrations (the hook node-vps-kit runs as `deploy/post-update.sh`) stamp `schemaVersion` on `$TESSERA_DATA/meta.json`. The app does not bump that counter. Records are inside that directory, so a later migration can rewrite them.
 
 ```bash
-TESSERA_DATA=apps/editor-api/data sh deploy/migrate.sh
+TESSERA_DATA=sites/willow sh deploy/migrate.sh
 ```
 
 Legacy RecTem sources can be re-converted with `npm run convert:legacy` (needs a local `.ref-legacy/` checkout).

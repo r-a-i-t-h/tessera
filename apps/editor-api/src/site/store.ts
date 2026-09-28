@@ -56,12 +56,18 @@ export type PageLayoutHint = {
 };
 
 export class SiteStore {
+  /** Directory that contains `content/<id>.history`. Defaults to `<siteDir>/history`. */
+  readonly historyDir: string;
+
   constructor(
     readonly siteDir: string,
     readonly flattenOut?: string,
     /** Authoring schema from `$TESSERA_DATA/meta.json`. Missing or non-numeric is 0. */
     private readonly schemaVersion: () => Promise<number> = async () => 0,
-  ) {}
+    historyDir?: string,
+  ) {
+    this.historyDir = historyDir ?? join(siteDir, "history");
+  }
 
   currentSchemaVersion(): Promise<number> {
     return this.schemaVersion();
@@ -177,12 +183,12 @@ export class SiteStore {
 
   async pageHistory(id: string): Promise<HistorySummary[]> {
     this.assertId(id);
-    return listPageHistory(pageHistoryPath(this.siteDir, id));
+    return listPageHistory(pageHistoryPath(dirname(this.historyDir), id));
   }
 
   async pageHistoryEntry(id: string, index: number): Promise<HistoryEntry | undefined> {
     this.assertId(id);
-    return readPageHistoryEntry(pageHistoryPath(this.siteDir, id), index);
+    return readPageHistoryEntry(pageHistoryPath(dirname(this.historyDir), id), index);
   }
 
   async publishedSnapshot(): Promise<SnapshotRef | undefined> {
@@ -298,7 +304,7 @@ export class SiteStore {
     nextText: string,
   ): Promise<boolean> {
     if (kind !== "content" || previous === undefined || previous === nextText) return false;
-    await appendPageHistory(pageHistoryPath(this.siteDir, id), previous, await this.schemaVersion());
+    await appendPageHistory(pageHistoryPath(dirname(this.historyDir), id), previous, await this.schemaVersion());
     return true;
   }
 

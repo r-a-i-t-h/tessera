@@ -1,0 +1,7 @@
+id: sample-gallery-slides
+component: gallery
+props:
+  folders:
+    - sample-gallery
+  mode: slides
+  autoplay: true

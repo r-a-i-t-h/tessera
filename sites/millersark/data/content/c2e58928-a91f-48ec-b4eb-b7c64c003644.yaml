@@ -1,0 +1,37 @@
+id: c2e58928-a91f-48ec-b4eb-b7c64c003644
+title: c2e58928-a91f-48ec-b4eb-b7c64c003644
+layoutId: standard
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  title:
+    html: c2e58928-a91f-48ec-b4eb-b7c64c003644
+  main:
+    html: |
+      <div style="position: relative; background-color: #1B3564; background-position: top; background-image: url(https://www.millersark.co.uk/Web/Site/MillersArk/Res/Image/Xmas/santa-arrival/santa-arrival-blue-backdrop_700px.jpg); background-repeat: no-repeat; height: 900px; color: white;">
+      	<div style="position: absolute; width: 100%; top: 0px;"><div style="padding: 20px 20px; text-align: center; font-size: 1.5em; text-shadow: 0px 2px 6px black;">
+      		<p style="color: red; font-size: 3em; margin-bottom: 20px;">Santa’s Arrival</p>
+      		<p>Saturday 23rd November</p>
+      		<p>Sunday 24th November</p>
+      	</div></div>
+      	<div style="position: absolute; width: 100%; bottom: 0px;"><div style="padding: 10px 20px;  font-size: 1.5em;">
+      		<p>Farm entry £8, Santa grotto visit £5</p>
+      		<p>Every year Santa visits the farm at Miller's Ark, and this year he is coming back for 2 special days, so no small people miss him at the farm!</p>
+      	</div></div>
+      </div>
+      <div style="background-color: #1B3564; padding: 30px 20px;">
+      	<p style="font-weight: bold; color:#009900; font-size: 16px;">If you don’t want to see Santa until Christmas Day come after 11.30 and enjoy all the animals.</p>
+      	<p style="font-weight: bold; color: white; font-size: 16px;">Our Farm Open Days are from 10-3pm for everyone wanting to visit and cuddle the animals and enjoy straw play.</p>
+      	<p style="font-weight: bold; color: white; font-size: 16px;">Delicious food will be served in The Old Dairy, piping hot soup, bacon rolls, jacket potatoes and ciabattas. The tea barn will be warm and cosy whatever the weather.</p>
+      	<p style="font-weight: bold; color: #ff0000; font-size: 16px;">Santa is expected to arrive at 11am, and for children wanting to see him in his Magical Grotto and receive a present the charge will be an additional £5 per child. Adults are welcome to accompany their children and enjoy the Magical Grotto experience at no extra charge.</p>
+      	<p style="font-weight: bold; color:#009900; font-size: 16px;">We advise booking your child's Grotto visit in advance, as deliveries of presents from the North pole are limited and the child’s age and gender will play a part in selecting the best present.</p>
+
+      	<div style="background-color: #fed; overflow: hidden; font-size: 20px; text-align: center; line-height: 1.4em; border-radius: 20px; border: dashed 2px red; margin: 20px 0px; padding: 10px;">
+      		<a href="https://www.millersark.co.uk/boxoffice.aspx"><img alt="Book now" border="0" height="56" src="https://www.ticketsource.co.uk/images/bookNow/bookNow-black-small.png" style="float:left; margin: 12px 20px 0px 0px;" width="130" /></a> <a href="https://www.millersark.co.uk/boxoffice.aspx"><img src="https://www.millersark.co.uk/Web/Site/MillersArk/images/holly.gif" style="width: 100px; float: right; margin: 0px 0px 0px 20px;" /></a> <a href="https://www.millersark.co.uk/boxoffice.aspx" style="display: block; padding-top: 10px; text-decoration: none; color: red;"> Click here to book your place at our<br />
+      		Santa's Arrival. </a></div>
+      	
+      	<p style="text-align: center; padding: 0; margin: 0;"><img alt="" src="https://www.millersark.co.uk/Web/Site/MillersArk/Res/Image/Xmas/Santa on snowy tractor.jpg" style="width: 650px; border-width: 0px;" /></p>
+      	
+      </div>

@@ -1,0 +1,12 @@
+id: doodles
+title: doodles
+layoutId: standard
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  title:
+    html: doodles
+  main:
+    html: XXX

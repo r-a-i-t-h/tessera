@@ -1,19 +1,11 @@
 import { readFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
+import { SITE_NAMES, repoRoot, siteLayout } from "../src/site/paths.js";
 import { writeSnapshotFiles } from "../src/site/snapshot.js";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-const sites = [
-  "apps/demo-pure/public/data/site.json",
-  "apps/demo-ineffable/public/data/site.json",
-  "apps/demo-millersark/public/data/site.json",
-  "apps/demo-willow/public/data/site.json",
-];
-
-for (const relative of sites) {
-  const flattenOut = join(root, relative);
-  const body = await readFile(flattenOut, "utf8");
-  const rev = await writeSnapshotFiles(flattenOut, body);
-  console.log(`${relative} → ${rev.file}`);
+for (const name of SITE_NAMES) {
+  const layout = siteLayout(join(repoRoot, "sites", name));
+  const body = await readFile(layout.flattenOut, "utf8");
+  const rev = await writeSnapshotFiles(layout.flattenOut, body);
+  console.log(`sites/${name}/publish/data/site.json → ${rev.file}`);
 }

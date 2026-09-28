@@ -1,0 +1,48 @@
+id: 95b48b34-88bf-4350-8009-8d20b3edd54c
+title: Special Elf Workshop and Open Day
+layoutId: standard
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  title:
+    html: Special Elf Workshop and Open Day
+  main:
+    html: |
+      <div>
+      	<img alt="" src="https://www.millersark.co.uk/Web/Site/MillersArk/Res/Image/Xmas/2015/elf-workshop-header.jpg" style="width: 700px; height: 259px;" /></div>
+      <div class="area1">
+      	<p style="text-align: center;">
+      		<strong><span style="font-size: 20px; text-align: center;">Sunday 24th </span><span style="font-size: 20px; text-align: center;">November </span></strong></p>
+      	<p style="text-align: center;">
+      		<strong><span style="font-size: 20px; text-align: center;">10-3pm</span></strong></p>
+      	<p style="text-align: justify;">
+      		Expect to receive a warm and excited welcome from Santa’s elves at the Farm Open Day on Sunday 18th November, as they will be all over the farm helping us get ready for Christmas. Activities will be going on in the Elf Workshop all day with Santa’s little helpers working hard and having fun. Children and adults can play a huge part  in helping the elves make exciting Christmas decorations, ice Christmas cookies, decorate our Christmas tree, wrap presents to put in Santa’s sleigh to the sound of all your favourite carols.</p>
+      	<p style="text-align: justify;">
+      		Outside on the farm meet the elves and all your favourite animals who will be there to be cuddled and loved - little piglets, naughty goat kids, baby donkeys to groom, guinea pigs to cuddle and colourful chicken to hold.</p>
+      	<p style="text-align: justify;">
+      		The children can let off steam in giant straw play, then everyone can enjoy piping hot soup, warming hot chocolate, tasty ciabattas and lots more delicious food in The Old Dairy Tea Barn.</p>
+      	<p style="text-align: center;">
+      		<strong>A perfect day out for all the family at just £8 for adults and children over 2, </strong></p>
+      	<p style="text-align: center;">
+      		<strong>under 2's are free.!</strong></p>
+      </div>
+      <p style="text-align: center;">
+      	<span style="font-size:14px;"><strong><span style="color:#ff0000;">BOOKING IS ESSENTIAL PLEASE SEE OUR BOX OFFICE PAGE </span></strong></span></p>
+      <p style="text-align: center;">
+      	           Bring your camera to this special experience and capture memories that will last a lifetime.</p>
+      <style type="text/css">
+      .area1 {
+      		position: relative;
+      		overflow: hidden;
+      		width: 700px;
+      padding: 20px 0px 20px 0px;
+      		background-image: url(https://www.millersark.co.uk/Web/Site/MillersArk/Res/Image/Xmas/2015/elf-workshop-child-bg2.jpg);
+      		background-position: right bottom;
+      		background-repeat: no-repeat;
+      		margin-bottom: 20px;
+      	}
+      	.area1 p {
+      		padding: 0px 200px 0px 30px;
+      	}</style>

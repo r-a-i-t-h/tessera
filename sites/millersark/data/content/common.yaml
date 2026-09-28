@@ -1,0 +1,16 @@
+id: common
+title: <h1>Common Content</h1>
+layoutId: standard
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  title:
+    html: <h1>Common Content</h1>
+  main:
+    blocks:
+      - type: text
+        html: If you want to import content from this page into all other pages (per Layout) then simply change the Guid property, of any Layout's ContentRendererControl, EtxArticleControl or PlainTextboxControl, to &quot;common&quot;.<br /><br />Editing a page will cause the content to be stored in that page's associated content file. It will NOT overwrite the common content. Instead, you must edit it on THIS page.
+      - type: text
+        html: This is common content. It will appear on every page that uses a certain skin.<br /><br />What fun!!!

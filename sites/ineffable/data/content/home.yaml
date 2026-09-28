@@ -1,0 +1,33 @@
+id: home
+title: ineffable
+layoutId: standard
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  title:
+    html: ineffable
+  main:
+    html: |-
+      <p class='w3-dark-grey w3-padding-small'>TOP OF PAGE</p><div class="w3-row-padding w3-stretch"><div class="w3-twothird "><h2>Welcome to the first rec-tem website</h2><p>This is also my first responsive website. I was going to be good and build it myself, but W3CSS is so good that it was daft not to make use of it.</p><p>Next is to convert Millers Ark and see if I can make it look attractive.</p></div><div class="w3-third w3-padding-16">
+                      <div class="w3-display-container w3-container w3-padding-16 w3-card w3-center undefined">
+                          <img src="./img/img1.jpg" class="w3-image" style="width: 100%">
+                          
+                              <div class="w3-display-middle w3-container w3-padding-16 w3-display-hover w3-normal w3-round-large w3-opacity-min w3-white w3-text-white">This is not my picture.</div>
+                              <div class="w3-display-middle w3-container w3-padding-16 w3-display-hover w3-normal w3-animate-opacity w3-text-black">This is not my picture.</div>
+                              
+                      </div>
+                  </div></div>
+                      <div class="w3-content w3-padding-16" style="max-width: 70%">
+                          <div class="w3-panel w3-card-4 w3-round-large w3-sand">
+                              <p class="w3-left-align"><i class="fa fa-quote-left w3-xlarge w3-text-black w3-opacity-max"></i></p>
+                              <p class=" w3-xlarge w3-serif w3-center">good things come to those who code</p>
+                              <p class="w3-right-align"><i class="fa fa-quote-right w3-xlarge w3-text-black w3-opacity-max"></i></p>
+                          </div>
+                      </div>
+                  
+                      <div class="w3-section w3-cell-row">
+                          <div class="w3-cell w3-container w3-mobile w3-teal"><h3>OMG</h3><p>This is shaping up extremely well.</p><p>This might actually be a viable solution for a statically edited, dynamically rendered site.</p></div><div class="w3-cell w3-container w3-mobile w3-orange"><h3>TO DO</h3><a href='#rectem'>see rec-tem page</a></div><div class="w3-cell w3-container w3-mobile w3-light-blue"><h3>EDITOR</h3><p>This is a departure from the PurplceCms edit-in-place approach, so it will need a new editor.</p><p>I am thinking of a single AWS-hosted editor for all sites, with the data crunched down to static files.</p></div>
+                      </div>
+                  <p class='w3-dark-grey w3-padding-small'>BOTTOM OF PAGE</p>

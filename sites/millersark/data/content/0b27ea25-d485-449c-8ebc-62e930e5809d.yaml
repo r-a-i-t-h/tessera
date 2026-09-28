@@ -1,0 +1,34 @@
+id: 0b27ea25-d485-449c-8ebc-62e930e5809d
+title: 0b27ea25-d485-449c-8ebc-62e930e5809d
+layoutId: standard
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  title:
+    html: 0b27ea25-d485-449c-8ebc-62e930e5809d
+  main:
+    html: |
+      <div style="padding: 20px; background-color: rgb(51, 40, 0); background-image: url(https://www.millersark.co.uk/Web/Site/MillersArk/Res/Image/Backgrounds/straw-bg-dark5.jpg);">
+      	<h1 style="text-align: center;">
+      		<strong><font color="#ffffff">MOBILE LIVING NATIVITY</font></strong></h1>
+      	<p style="text-align: center;">
+      		<span style="font-size:18px;"><strong><span style="color:#ffffff;">Enhance your Christmas event with our Mobile Living Nativity.</span></strong></span></p>
+      	<p>
+      		<span style="color:#ffffff;">Use our stable scene with Mary and Joseph or the shepherds to draw the crowds to your event, then our team will invite them to cuddle the goats, sheep and baby donkeys. Children can enjoy watching the giant rabbits hop around the manger and the colourful chickens too. </span></p>
+      	<p>
+      		<span style="color:#ffffff;">School nativities can benefit from including our friendly animals; either just one of our delightful donkeys, or the complete nativity set. All our animals are quiet and used to working with children.</span></p>
+      	<p style="text-align: center;">
+      		<img alt="Mobile nativity 2" src="https://www.millersark.co.uk/Web/Site/MillersArk/Res/Image/Mobile-nativity/image2.jpg" style="width: 293px; height: 220px;" /> <img alt="Mobile nativity 1" src="https://www.millersark.co.uk/Web/Site/MillersArk/Res/Image/Mobile-nativity/image1.jpg" style="width: 306px; height: 220px;" /></p>
+      	<p>
+      		<span style="color:#ffffff;">Church congregations love to have the Living Nativity and we bring the story of the real Christmas to life in a vibrant and attractive way that reaches the whole community.</span></p>
+      	<p style="text-align: center;">
+      		<img alt="Mobile nativity 3" src="https://www.millersark.co.uk/Web/Site/MillersArk/Res/Image/Mobile-nativity/image3.jpg" style="width: 189px; height: 220px;" /></p>
+      	<p>
+      		<span style="color:#ffffff;">Pre schools and playgroups book our jolly Santa and his best donkey friend (or the naughty elf) to visit for their end of term celebration and give out the presents.</span></p>
+      	<p style="text-align: center;">
+      		<img alt="Mobile nativity 6" src="https://www.millersark.co.uk/Web/Site/MillersArk/Res/Image/Mobile-nativity/image6.jpg" style="width: 310px; height: 220px;" /> <img alt="Mobile nativity 5" src="https://www.millersark.co.uk/Web/Site/MillersArk/Res/Image/Mobile-nativity/image5.jpg" style="width: 310px; height: 220px;" /></p>
+      	<p>
+      		<span style="color:#ffffff;">Ring the office on 01256 767596 or email </span><a href="mailto:elizabeth@millersark.co.uk?subject=Mobile%20Living%20Nativity&body=Please%20provide%20details%20of%20your%20event%20(date%2C%20time%2C%20venue)%20and%20we%20can%20get%20back%20to%20you%20with%20more%20information%20about%20how%20it%20can%20be%20enhanced%20with%20our%20Mobile%20Living%20Nativity."><span style="color:#ffffff;">elizabeth@millersark.co.uk</span></a><span style="color:#ffffff;"> to discuss how our Mobile Living Nativity can make that special difference to your event!</span></p>
+      </div>

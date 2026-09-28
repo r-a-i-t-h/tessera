@@ -7,15 +7,8 @@ import { parseSiteDocument } from "@r-a-i-t-h/tessera-model";
 import { authoringToZones, zonesToAuthoring } from "../src/site/document.js";
 import { SiteStore } from "../src/site/store.js";
 
-const willowJson = join(
-  dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "..",
-  "demo-willow",
-  "public",
-  "data",
-  "site.json",
-);
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+const siteNames = ["pure", "ineffable", "millersark", "willow"] as const;
 
 describe("site YAML flatten", () => {
   let dir: string;
@@ -24,16 +17,16 @@ describe("site YAML flatten", () => {
     if (dir) await rm(dir, { recursive: true, force: true });
   });
 
-  it("round-trips the willow document through YAML files", async () => {
+  it.each(siteNames)("round-trips the %s document through YAML files", async (name) => {
     dir = await mkdtemp(join(tmpdir(), "tessera-site-"));
-    const original = parseSiteDocument(JSON.parse(await readFile(willowJson, "utf8")));
+    const siteJson = join(repoRoot, "sites", name, "publish", "data", "site.json");
+    const original = parseSiteDocument(JSON.parse(await readFile(siteJson, "utf8")));
     const flat = join(dir, "site.json");
     const store = new SiteStore(join(dir, "data"), flat);
     await store.writeFromDocument(original);
     const again = parseSiteDocument(JSON.parse(await readFile(flat, "utf8")));
     expect(again).toEqual(original);
     const home = await store.read("content", "home");
-    expect(home.title).toBe("Home");
     expect(home.id).toBe("home");
   });
 

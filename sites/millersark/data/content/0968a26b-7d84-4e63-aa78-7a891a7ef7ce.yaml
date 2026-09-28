@@ -1,0 +1,24 @@
+id: 0968a26b-7d84-4e63-aa78-7a891a7ef7ce
+title: Goats
+layoutId: standard
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  title:
+    html: Goats
+  main:
+    blocks:
+      - type: text
+        html: |
+          <p>
+          	Our goats are mainly Pygmies and Anglo Nubian. The  Pygmy is the smallest (and often chubbiest) goat, very hardy and curious. The Anglo Nubian is by contrast the largest goat and requires good nutritional maintenance and feels the cold. They are distinctive for their long silky ears and aristocratic Roman noses.</p>
+      - type: text
+        html: |
+          <p>
+          	Contact us for goats for sale at this time.</p>
+      - type: text
+        html: <p class="w3-panel w3-pale-blue"><em>Gallery:</em> https://www.millersark.co.uk/Web/Site/MillersArk/Res/Image/Galleries/Goats/</p>
+      - type: text
+        html: <p class="w3-panel w3-pale-blue"><em>Gallery:</em> https://www.millersark.co.uk/Web/Site/MillersArk/Res/Image/Galleries/Goats/sale/</p>

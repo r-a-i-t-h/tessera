@@ -4,4 +4,9 @@ dist/
 .DS_Store
 apps/*/dist/
 apps/editor-api/data/
+sites/*/.sessions.json
+sites/*/users/
+sites/*/history/
+sites/*/publish/index.html
+sites/*/publish/assets/
 .ref-legacy/

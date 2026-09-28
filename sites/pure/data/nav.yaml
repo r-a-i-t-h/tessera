@@ -1,0 +1,22 @@
+- heading: Site
+  sidebar: true
+  children:
+    - id: home
+      title: Home
+      sidebar: true
+    - id: no-aside
+      title: Simple layout
+      sidebar: true
+    - id: components
+      title: Components
+      sidebar: true
+    - id: nav-lab
+      title: Nav lab
+      sidebar: true
+    - id: gallery
+      title: Gallery
+      sidebar: true
+- heading: Events
+  sidebar: true
+  source:
+    pagesTag: event

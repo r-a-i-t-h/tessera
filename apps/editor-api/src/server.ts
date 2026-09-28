@@ -1,16 +1,16 @@
 import { serve } from "@hono/node-server";
 import { existsSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { SessionStore, SESSION_HANDOFF_FILE } from "./auth/sessions.js";
 import { createApp } from "./app.js";
+import { editorApiRoot, resolveDataRoot, siteLayout } from "./site/paths.js";
 import { SiteStore } from "./site/store.js";
 import { ensureMetaFile, metaPath, readSchemaVersion } from "./store/meta.js";
 import { UserStore } from "./store/users.js";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const root = join(__dirname, "..");
-const dataDir = process.env.TESSERA_DATA ?? join(root, "data");
+const root = editorApiRoot;
+const dataDir = resolveDataRoot();
+const layout = siteLayout(dataDir);
 const seedDir = process.env.TESSERA_SEED ?? join(root, "seed");
 const port = Number(process.env.PORT ?? 7356);
 
@@ -22,10 +22,12 @@ const sessions = await SessionStore.load(join(dataDir, SESSION_HANDOFF_FILE));
 const defaultSpa = join(root, "..", "editor", "dist");
 const spaCandidate = process.env.TESSERA_SPA_DIR ?? defaultSpa;
 const spaDir = existsSync(join(spaCandidate, "index.html")) ? spaCandidate : undefined;
-const siteDir = process.env.TESSERA_SITE_DIR ?? join(root, "..", "demo-willow", "data");
-const flattenOut =
-  process.env.TESSERA_FLAT_OUT ?? join(root, "..", "demo-willow", "public", "data", "site.json");
-const site = new SiteStore(siteDir, flattenOut, () => readSchemaVersion(metaPath(dataDir)));
+const site = new SiteStore(
+  layout.records,
+  layout.flattenOut,
+  () => readSchemaVersion(metaPath(dataDir)),
+  layout.history,
+);
 const app = createApp({
   users,
   sessions,
@@ -38,7 +40,8 @@ console.log(`Data directory: ${dataDir}`);
 if (spaDir) {
   console.log(`Editor SPA: http://127.0.0.1:${port}/`);
 }
-console.log(`Site records: ${siteDir}`);
+console.log(`Site records: ${layout.records}`);
+console.log(`Publish: ${layout.flattenOut}`);
 
 const server = serve({ fetch: app.fetch, port });
 

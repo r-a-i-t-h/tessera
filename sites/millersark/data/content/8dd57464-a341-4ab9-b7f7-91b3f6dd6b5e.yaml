@@ -1,0 +1,66 @@
+id: 8dd57464-a341-4ab9-b7f7-91b3f6dd6b5e
+title: 8dd57464-a341-4ab9-b7f7-91b3f6dd6b5e
+layoutId: standard
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  title:
+    html: 8dd57464-a341-4ab9-b7f7-91b3f6dd6b5e
+  main:
+    blocks:
+      - type: text
+        html: |
+          <div style="text-align: center;">
+          	<span style="font-family:comic sans ms,cursive;"><strong style="font-size: 18px;">Farm News</strong></span></div>
+          <div>
+          	<span style="color:#0000cd;">We are now gearing up for our exciting Lambing Season and looking forward to visiting schools, nurseries, residential homes and public and private events such as weddings with our mobile farm throughout 2020.<span color:="" comic="" sans="">.</span></span></div>
+          <div>
+          	 </div>
+          <div>
+          	<span style="color:#0000cd;">We look forward to welcoming all animal mad adults to our next Adult Only Open Days. The donkey foals are adorable, the piglets are sooo cute and the first lambs will have been born! </span></div>
+          <div style="text-align: center;">
+          	 </div>
+          <div>
+          	<div data-block="true" data-editor="4rl41" data-offset-key="1pf1q-0-0">
+          		<div data-offset-key="1pf1q-0-0" style="text-align: center;">
+          			 </div>
+          	</div>
+          </div>
+          <div style="text-align: center;">
+          	<p comic="" font-size:="" sans="" style="margin-top: 0px; color: rgb(0, 0, 153); font-family: ">
+          		<span style="font-size:20px;"><strong color:="" comic="" font-size:="" sans="" style="font-family: "><span style="background-color:#ffff00;">  Adult Only Open Days  </span></strong></span></p>
+          	<p comic="" font-size:="" sans="" style="margin-top: 0px; color: rgb(0, 0, 153); font-family: ">
+          		<span style="font-size:20px;"><strong color:="" comic="" font-size:="" sans="" style="font-family: "><span style="background-color:#ffff00;">Enjoy some 'you' time!</span></strong></span></p>
+          </div>
+          <div style="text-align: center;">
+          	 </div>
+          <div style="text-align: center;">
+          	<span style="font-family:arial,helvetica,sans-serif;"><strong><span style="font-size:16px;"><span style="color:#0000ff;">Saturday 25th </span></span></strong><span style="color: rgb(0, 0, 255);">and</span></span></div>
+          <div style="text-align: center;">
+          	<span style="font-family:arial,helvetica,sans-serif;"><span style="font-size:16px;"><strong><span comic="" font-size:="" sans="" style="color: rgb(0, 0, 255); font-family: ">Sunday 26th January </span></strong></span></span></div>
+          <div style="text-align: center;">
+          	<span style="font-family:arial,helvetica,sans-serif;"><span style="font-size:16px;"><span style="color:#0000ff;">11-4pm </span></span></span></div>
+          <div style="text-align: center;">
+          	<span style="font-family:arial,helvetica,sans-serif;"><span style="font-size:16px;"><span style="color:#0000ff;">(Note an hour later than usual)</span></span></span></div>
+          <div style="text-align: center;">
+          	 </div>
+          <div style="text-align: center;">
+          	Tickets are £8</div>
+          <div style="text-align: center;">
+          	<span style="font-family:arial,helvetica,sans-serif;"><span style="font-size:16px;"><strong style="color: rgb(0, 0, 205); font-size: 14px;">We are only open on the dates published.</strong></span></span></div>
+          <div>
+          	 </div>
+          <div style="text-align: center;">
+          	<span style="font-family:arial,helvetica,sans-serif;"><span style="color:#0000cd;"><span style="font-size:14px;"><a href="http://millersark.co.uk/onfarm/parties.aspx" style="text-align: justify; font-size: 14px;">Birthday Parties</a></span></span><span style="color:#0000cd;"><span style="font-size:14px;"><span style="text-align: justify;"> for all ages and Farm Experience Days for adults, families and children can be booked on the farm, so don't miss your chance to book a special day out with us this year.</span></span></span></span></div>
+          <p style="text-align: center;">
+          	<span style="font-family:arial,helvetica,sans-serif;"><span style="color:#0000cd;"><span style="font-size:14px;">Think outside the box with a farm party for granny with all the family invited ...or if you love animals like us, just book for your own 30th, or whatever age you are!!! </span></span></span></p>
+          <p style="text-align: center;">
+          	<span style="font-family:arial,helvetica,sans-serif;"><span style="color:#0000cd;"><span style="font-size:14px;">Everyone in the family will have fun!</span></span></span></p>
+          <p style="text-align: center;">
+          	Animal Activity Licence 19/00315/AWAAL</p>
+      - type: text
+        html: |
+          <p>
+          	<a href="https://www.millersark.co.uk/opendays.aspx"> <img alt="Open Days" src="https://www.millersark.co.uk/Web/Site/MillersArk/Res/Image/2015/pig and piglets MAA(1).jpg" style="border-width: 0px; margin: 4px 8px; border-radius: 20px 0px 0px; width: 333px; height: 143px;" /> </a><a href="https://www.millersark.co.uk/onfarm/parties.aspx"> <img alt="Birthday Parties" src="https://www.millersark.co.uk/Web/Site/MillersArk/Res/Image/Banners/birthday-parties.jpg" style="border-width: 0px; margin: 4px 0px; border-radius: 0px 20px 0px 0px; width: 333px; height: 143px;" /></a><a href="https://www.millersark.co.uk/onfarm/farmer.aspx"><img alt="Farmer 4 a Day" src="https://www.millersark.co.uk/Web/Site/MillersArk/Res/Image/Banners/farmer-4-a-day.jpg" style="border-width: 0px; margin: 4px 8px; border-radius: 0px 0px 0px 20px; width: 333px; height: 143px;" /> </a><a href="https://www.millersark.co.uk/onfarm/redletter.aspx"> <img alt="Red Letter Days" src="https://www.millersark.co.uk/Web/Site/MillersArk/Res/Image/Banners/red-letter-days.jpg" style="border-width: 0px; margin: 4px 0px; border-radius: 0px 0px 20px; width: 333px; height: 143px;" /> </a></p>

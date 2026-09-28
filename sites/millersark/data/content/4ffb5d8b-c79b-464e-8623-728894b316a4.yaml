@@ -1,0 +1,36 @@
+id: 4ffb5d8b-c79b-464e-8623-728894b316a4
+title: Farmer 4 a Day
+layoutId: standard
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  title:
+    html: Farmer 4 a Day
+  main:
+    html: |
+      <p>
+      	Does your child enjoy the <span style="font-family: tahoma,geneva,sans-serif;">outdoor</span> <span style="font-family: tahoma,geneva,sans-serif;">life?</span></p>
+      <p>
+      	Then let them be a "Farmer 4 a Day". It is aimed at all children from ages 5-14. The cost is £50 per child. Each session starts at 11am and ends at 3pm. We actively encourage adults to arrive 15 mins before the scheduled end, so the children can proudly show you what they have been doing!</p>
+      <p style="text-align: center;">
+      	 </p>
+      <p>
+      	Each senior handler will have a group of children approx the same age, so that the activities carried out will be suitable for that age group. The morning will start by ensuring all animals have fresh food and water.</p>
+      <p>
+      	Mucking out pens, collecting eggs and grooming the animals will result in the children ending the day tired and dirty!</p>
+      <p style="text-align: center;">
+      	<img alt="Farmer 4 a Day - Rabbits" src="https://www.millersark.co.uk/Web/Site/MillersArk/Res/Image/F4aD Daisy Dec 15.jpg" style="width: 500px; height: 281px;" /></p>
+      <p>
+      	Please make sure your child has a waterproof/old clothes and wellies. The children bring their own packed lunch and eat it in the cosy tea barn, once they have thoroughly washed their hands in warm soapy water in compliance with current HSE guidelines.</p>
+      <p>
+      	A Farmer 4 a Day certificate will be waiting for each "farmer" at the end of the day!</p>
+      <p style="margin: 20px; padding: 10px; border-radius: 20px; border: 2px dashed rgb(102, 204, 102); border-image: none; text-align: center; line-height: 1.8em; background-color: rgb(221, 255, 221);">
+      	<span style="font-size: 14px;"><strong>     NEXT FARMER 4 A DAY DATE</strong></span></p>
+      <p style="margin: 20px; padding: 10px; border-radius: 20px; border: 2px dashed rgb(102, 204, 102); border-image: none; text-align: center; line-height: 1.8em; background-color: rgb(221, 255, 221);">
+      	<b style="font-size: 14px; font-family: arial, helvetica, sans-serif;">      Date tbc in the Summer holidays</b></p>
+      <p style="margin: 20px; padding: 10px; border-radius: 20px; border: 2px dashed rgb(102, 204, 102); border-image: none; text-align: center; line-height: 1.8em; background-color: rgb(221, 255, 221);">
+      	<span style="font-size: 14px;"><b>        11-3pm              </b></span></p>
+      <p style="margin: 20px; padding: 10px; border-radius: 20px; border: 2px dashed rgb(102, 204, 102); border-image: none; text-align: center; line-height: 1.8em; background-color: rgb(221, 255, 221);">
+      	<b style="font-size: 14px;">Cost is £50 per child</b><span style="font-size: 14px;"><strong>     </strong></span></p>

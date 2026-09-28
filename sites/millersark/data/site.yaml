@@ -1,0 +1,21 @@
+version: 1
+id: millersark
+title: Miller's Ark
+homePageId: home
+theme: indigo
+settings:
+  openDays:
+    - date: 2026-08-31
+      type: Open Day
+    - date: 2026-09-03
+      type: Open Day - Adults Only
+    - date: 2026-09-06
+      type: Open Day
+    - date: 2026-09-09
+      type: Open Day
+    - date: 2026-09-12
+      type: Red Letter Day
+    - date: 2026-09-15
+      type: Open Day
+    - date: 2026-09-18
+      type: Farmer for a day

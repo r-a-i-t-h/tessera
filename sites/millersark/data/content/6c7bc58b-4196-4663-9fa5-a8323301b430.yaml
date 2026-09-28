@@ -1,0 +1,44 @@
+id: 6c7bc58b-4196-4663-9fa5-a8323301b430
+title: 6c7bc58b-4196-4663-9fa5-a8323301b430
+layoutId: standard
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  title:
+    html: 6c7bc58b-4196-4663-9fa5-a8323301b430
+  main:
+    blocks:
+      - type: text
+        html: |
+          <p style="color: #ff0; font-size: 3em; font-weight: bold; text-align: center; margin: 0;">
+          	Miller’s Ark Animals</p>
+          <p style="color: #ff0; font-size: 1.3em; text-align: center; margin: 0;">
+          	The Hands on farm for ALL ages</p>
+          <p style="color: #f00; font-size: 4em; font-weight: bold; text-align: center; margin: 0; margin-bottom: 20px;">
+          	Red Letter Day</p>
+          <p style="color: #00f; font-size: 1.3em;">
+          	Miller’s Ark now offers you the chance whatever age you are to join our farmers and help look after all the friendly animals for the day!</p>
+          <p>
+          	<img alt="Goose" src="https://www.millersark.co.uk/Web/Site/MillersArk/Res/Image/goose.png" style="position: absolute; width: auto; height: 180px;" /></p>
+          <ul style="margin-left: 150px;">
+          	<li>
+          		Unique Experience for Adults.</li>
+          	<li>
+          		Hands on with all the animals.</li>
+          	<li>
+          		Feed and groom them and clean out their pens.</li>
+          	<li>
+          		Delicious lunch with home made cake to follow!</li>
+          	<li>
+          		Open all year!</li>
+          	<li>
+          		Over 400 animals on the farm and grazing of over 200 acres!</li>
+          	<li>
+          		£45 Half Day - £68 Full Day.</li>
+          </ul>
+      - type: text
+        html: |
+          <p>
+          	<img alt="" src="https://www.millersark.co.uk/Web/Site/MillersArk/Res/Image/2017/RLD_man_and_lamb.jpg" style="width: 124px; height: 220px;" /></p>

@@ -10,8 +10,9 @@ import { writeTextAtomic } from "../store/fs.js";
 
 /**
  * Write the stable `site.json`, the content-hashed copy, and `rev.json`.
- * When the output lives at `public/data/site.json`, stamp the site's `index.html`
- * so the first load fetches the hashed file directly.
+ * When the output lives at `<site>/publish/data/site.json`, stamp the shell
+ * and, when present, the built `publish/index.html`, so the first load fetches
+ * the hashed file directly.
  */
 export async function writeSnapshotFiles(
   flattenOut: string,
@@ -39,8 +40,7 @@ export async function writeSnapshotFiles(
     }
   }
 
-  const indexPath = indexHtmlBesidePublicData(flattenOut);
-  if (indexPath) {
+  for (const indexPath of shellIndexPaths(flattenOut)) {
     try {
       const html = await readFile(indexPath, "utf8");
       const next = stampSitePointer(html, `./data/${file}`);
@@ -48,18 +48,22 @@ export async function writeSnapshotFiles(
         await writeTextAtomic(indexPath, next.endsWith("\n") ? next : `${next}\n`);
       }
     } catch {
-      // This flatten target has no site index.html beside public/data.
+      // Shell source is required for dev; the built publish index may not exist yet.
     }
   }
 
   return { hash, file };
 }
 
-/** `.../public/data/site.json` → `.../index.html`. Other layouts are left alone. */
-export function indexHtmlBesidePublicData(flattenOut: string): string | null {
+/**
+ * `<site>/publish/data/site.json` stamps `<site>/shell/index.html` and
+ * `<site>/publish/index.html`. Other layouts are left alone.
+ */
+export function shellIndexPaths(flattenOut: string): string[] {
   const dataDir = dirname(flattenOut);
-  if (basename(dataDir) !== "data") return null;
-  const publicDir = dirname(dataDir);
-  if (basename(publicDir) !== "public") return null;
-  return join(dirname(publicDir), "index.html");
+  if (basename(dataDir) !== "data") return [];
+  const publishDir = dirname(dataDir);
+  if (basename(publishDir) !== "publish") return [];
+  const siteRoot = dirname(publishDir);
+  return [join(siteRoot, "shell", "index.html"), join(publishDir, "index.html")];
 }

@@ -1,0 +1,21 @@
+id: aws
+title: aws
+layoutId: standard
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  title:
+    html: aws
+  main:
+    component: randomCells
+    props:
+      items:
+        - Route53
+        - CloudFront
+        - DynamoDB
+        - Lambda
+        - ECS
+        - SQS
+        - SNS

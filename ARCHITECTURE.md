@@ -6,9 +6,11 @@ Tessera is a small CMS runtime for sites whose full text/data payload is cheaper
 
 The name evokes mosaic tiles: layouts place the tiles (zones); content fills them — or leaves them empty.
 
-The **editor** (see SPEC §9) will edit many records and emit the flattened file. The **renderer** only consumes that file plus a site-owned component registry. The editor may host the renderer for preview; the renderer never depends on the editor.
+The **editor** (see SPEC §9) edits one site directory and emits the flattened file. The **renderer** only consumes that file plus a site-owned component registry. The editor may host the renderer for preview; the renderer never depends on the editor.
 
-The editor **API** lives in `apps/editor-api` (`@r-a-i-t-h/tessera-editor-api`): a Hono + Node process with file-backed users, in-memory sessions, and an all-or-nothing `requireEditor` gate on every mutation. The editor **SPA** lives in `apps/editor` (`@r-a-i-t-h/tessera-editor`) and talks to that API on the **same origin** (Vite proxy in dev; Hono serves `apps/editor/dist` when present).
+Tessera’s version is the engine: `apps/editor-api`, `apps/editor`, and the packages below. A site is data. Replacing `$TESSERA_DATA` (and restarting) changes which site the instance edits. The public site is the static `publish/` tree inside that directory. Nginx can keep serving `publish/` with the editor process stopped, or that tree can be copied to another host.
+
+The editor **API** lives in `apps/editor-api` (`@r-a-i-t-h/tessera-editor-api`): a Hono + Node process with file-backed users, in-memory sessions, and an all-or-nothing `requireEditor` gate on every mutation. The editor **SPA** lives in `apps/editor` (`@r-a-i-t-h/tessera-editor`) and talks to that API on the **same origin** (Vite proxy in dev; Hono serves `apps/editor/dist` when present). `apps/site` (`@r-a-i-t-h/tessera-site`) is the dev/build host for a site shell. It is not a site, and it does not version the site.
 
 ## Packages
 
@@ -18,9 +20,10 @@ The editor **API** lives in `apps/editor-api` (`@r-a-i-t-h/tessera-editor-api`):
 | `@r-a-i-t-h/tessera-renderer` | Zone merge, layout walk, component registry, hash SPA |
 | `@r-a-i-t-h/tessera-skin-w3` | W3.CSS **5.01** + region→class skin |
 | `@r-a-i-t-h/tessera-wc-base` | Cookie-cut custom element base (`a` / `b` / `c`) |
-| `@r-a-i-t-h/tessera-demo-pure` | Vite demo proving the model |
+| `@r-a-i-t-h/tessera-demo-kit` | Shared chrome helpers shells may import at build time |
+| `@r-a-i-t-h/tessera-site` | One Vite host: `TESSERA_SITE` selects `sites/<name>/shell` |
 
-Sample sites live under `apps/demo-*` (pure / ineffable / millersark / willow). Shared chrome helpers are in `@r-a-i-t-h/tessera-demo-kit`. The editing back-end is `apps/editor-api`; the login SPA is `apps/editor`.
+Example sites live under `sites/` (pure / ineffable / millersark / willow). They are not npm workspaces. The editing back-end is `apps/editor-api`; the login SPA is `apps/editor`.
 
 `ps/` keeps PurpleCMS migration scripts (to be rewritten for Tessera’s document shape).
 
@@ -30,17 +33,17 @@ Hono app (Node ≥20). JSON routes first; if `apps/editor/dist` (or `TESSERA_SPA
 
 | Concern | Contract |
 |---------|----------|
-| Users | `data/users/<username>.json` (hash + salt). No `/auth/register`; add via `npm run seed:user -w @r-a-i-t-h/tessera-editor-api -- <name> <password>`. |
-| Sessions | In-memory tokens; httpOnly `tessera_session` cookie (`Path=/`) or `Authorization: Bearer`. The editor is served at the hostname root. SIGTERM dumps hashed tokens to `data/.sessions.json` once. |
+| Users | `$TESSERA_DATA/users/<username>.json` (hash + salt). No `/auth/register`; add via `npm run seed:user -w @r-a-i-t-h/tessera-editor-api -- <name> <password>` (writes the release seed; first boot copies it when `users/` is empty). |
+| Sessions | In-memory tokens; httpOnly `tessera_session` cookie (`Path=/`) or `Authorization: Bearer`. The editor is served at the hostname root. SIGTERM dumps hashed tokens to `$TESSERA_DATA/.sessions.json` once. |
 | Permission | `requireEditor`: authenticated ⇒ full access; anonymous ⇒ 401. Every mutation must call it. |
-| Records | YAML files in `TESSERA_SITE_DIR` (default `apps/demo-willow/data`). Filename = Tessera `id`. `GET/PUT /api/records` accepts structured `data` or raw YAML. A changed content page appends the previous file to `history/content/<id>.history`, then flattens to `TESSERA_FLAT_OUT` (`public/data/site.json` plus `site.<hash>.json` and `rev.json`). |
+| Records | YAML files in `$TESSERA_DATA/data`. Filename = Tessera `id`. `GET/PUT /api/records` accepts structured `data` or raw YAML. A changed content page appends the previous file to `$TESSERA_DATA/history/content/<id>.history`, then flattens to `$TESSERA_DATA/publish/data/site.json` plus `site.<hash>.json` and `rev.json`. |
 | Public | `GET /health`, `POST /auth/login`. Protected: `GET /auth/me`, `POST /auth/password`, `POST /api/ping`, record CRUD. Logout is idempotent. |
 
 Public HTML is the editor SPA when built. The published site remains `site.json` for the renderer. Authoring is file-based YAML (not JSON) so HTML does not need escaping.
 
 Same origin is deliberate: the session cookie is `httpOnly` + `SameSite=Lax` with `Path=/`. A SPA on another port/origin would need CORS credentials and cookie relaxation. Dev uses a Vite proxy on port 7355 so the browser still sees one origin. The editor is not mounted under a URL prefix.
 
-The published site is a separate static build. It may live in a folder on a shared domain. The editor process does not serve that folder and does not need to know its path.
+The published site is `publish/` inside the same directory (or a copy of that tree). The editor process does not serve it. Stopping the editor leaves the static files working. There is one path, `TESSERA_DATA` (default `sites/willow`). Records, history, users, `meta.json`, and the export are derived from it.
 
 ## Content model
 
@@ -53,9 +56,34 @@ The published site is a separate static build. It may live in a folder on a shar
 
 **Rule:** if a layout does not declare zone `aside`, contributions to `aside` are not painted. They remain on the merge map so components can still read “data zones” (e.g. JSON for a list) via `ctx.zoneJson("events")`.
 
+## Site directory
+
+`$TESSERA_DATA` is the instance. Swapping the directory swaps the site, including who may edit it.
+
+```
+sites/willow/
+  meta.json                 # schemaVersion
+  users/                    # editors; created on first boot from the release seed
+  history/                  # append-only page history, not published
+  data/                     # YAML records, not on the web path
+    site.yaml  nav.yaml
+    content/ items/ layouts/ bindings/ sections/ media/ folders/
+  shell/                    # site-owned presentation source
+    index.html  site.css  main.ts  components/
+  publish/                  # static export; nginx document root
+    index.html              # built shell
+    assets/
+    data/site.json  site.<hash>.json  rev.json
+    media/  img/
+```
+
+`shell/` is chrome and micro-apps. It may import engine packages at build time. The built files in `publish/` do not. Adding a micro-app rebuilds that shell. It is not a Tessera release. The editor API does not load site code.
+
+`npm run dev:site` serves `sites/$TESSERA_SITE/shell` (default `willow`) and the files in `publish/`. `npm run build -w @r-a-i-t-h/tessera-site` writes each shell into that site’s `publish/`.
+
 ## Authoring files
 
-Willow’s editable source is `apps/demo-willow/data/` — a sibling of `public/`, so it is not on the static web path. Each record is one YAML file named with the same **`id`** the flattened document already uses (`page.id`, `item.id`, `layout.id`, `binding.id`, `section.id`, `media.id`, `folder.id`).
+Records live in `$TESSERA_DATA/data/`, off the web path. Each record is one YAML file named with the same **`id`** the flattened document already uses (`page.id`, `item.id`, `layout.id`, `binding.id`, `section.id`, `media.id`, `folder.id`).
 
 | Folder / file | Holds |
 |---------------|--------|
@@ -70,17 +98,17 @@ Willow’s editable source is `apps/demo-willow/data/` — a sibling of `public/
 | `site.yaml` | Site meta |
 | `nav.yaml` | Designed nav tree |
 
-HTML zones use YAML `|` / `|-` scalars (`html:`) so markup is not JSON-escaped. Component *implementations* stay TypeScript in the site (`src/components`); only bindings are data.
+HTML zones use YAML `|` / `|-` scalars (`html:`) so markup is not JSON-escaped. Component implementations stay TypeScript in `shell/components`; only bindings are records.
 
-The editor form for a page lists zones declared by the resolved layout (page `layoutId` → matching section → site default). Extra keys on the page that the layout does not declare stay editable under **Off layout**.
+The editor form for a page lists zones declared by the resolved layout (page `layoutId` → matching section → site default). Extra keys on the page that the layout does not declare stay editable under **Off layout**. A flat JSON object becomes one text field per key already on the file. The editor does not have content types. A person page is a normal page: a tag selects a section, the section selects a layout, and shell components read a JSON zone (Willow’s `meta` holds `role`, `email`, `photo`, `summary`). Those keys live in the shell, not in the engine. `schemaVersion` is how records are stored, not the list of person fields.
 
-`npm run flatten:site` (or an editor save) writes `apps/demo-willow/public/data/site.json`.
+`npm run flatten:site` (or an editor save) writes `$TESSERA_DATA/publish/data/site.json` and stamps `<meta name="tessera-site">` in `shell/index.html` and, when it exists, `publish/index.html`.
 
 There is **no** recursive `parentId` template chain and **no** inventing zones from inside page HTML. Section profiles replace Rec-Tem-style “templates as content” for hierarchy-wide layout/theme switching.
 
 ## Page history and authoring schema
 
-Saving a content page writes the new YAML, then appends the **previous raw file** to `history/content/<id>.history` (one append-only file per page, beside the site directory, outside the web root). An unchanged file does not append. A publish failure restores the previous file and does not append. History is not a field on the published page and is not copied into `site.json`.
+Saving a content page writes the new YAML, then appends the **previous raw file** to `$TESSERA_DATA/history/content/<id>.history` (one append-only file per page, outside the web root). An unchanged file does not append. A publish failure restores the previous file and does not append. History is not a field on the published page and is not copied into `site.json`.
 
 The editor can open that raw YAML, save it, and read earlier copies back. The save response names the new `site.<hash>.json`. That filename is the browser cache key: `rev.json` changes with it, and an open snapshot tab picks the new file up on its next poll.
 
@@ -89,10 +117,10 @@ The editor can open that raw YAML, save it, and read earlier copies back. The sa
 [node-vps-kit](https://github.com/r-a-i-t-h/node-vps-kit) runs `deploy/post-update.sh` as the app user after it swaps `current` and before systemd restarts. The hook receives `TESSERA_DATA`, `TESSERA_SEED`, and `TESSERA_BACKUP`. It applies `deploy/migrations/NNN-*.sh` when `NNN` is greater than `schemaVersion`. `001` stamps `schemaVersion: 1` and leaves every other meta key alone. First boot copies `seed/meta.json` into `data/` only when `meta.json` is absent, so a later boot does not wipe the stamp.
 
 ```bash
-TESSERA_DATA=apps/editor-api/data sh deploy/migrate.sh
+TESSERA_DATA=sites/willow sh deploy/migrate.sh
 ```
 
-Page YAML still lives in `TESSERA_SITE_DIR` during development (`apps/demo-willow/data`). The kit’s hook does not receive that path. `001` only touches `meta.json`, which is already under `TESSERA_DATA`. A later migration that rewrites page files needs those files inside `TESSERA_DATA`. The nginx template is a separate compatibility gap.
+Records live at `$TESSERA_DATA/data`, so a later migration can rewrite page files. `001` only stamps `schemaVersion` on `meta.json`. Three numbers stay distinct: the Tessera release (editor and libraries), `schemaVersion` (authoring files), and `SiteDocument.version` (the flattened document the renderer validates). An editor-only release does not require a new export. A renderer or document-schema change needs a migration, then a flatten. Already-exported `publish/` trees keep the shell they were built with until that export.
 
 ## Relative assets
 
@@ -106,7 +134,7 @@ A published site is a folder of files. It stays portable to any directory, inclu
 
 `localStorage` is shared by every page on an origin. The cache key for the hashed site file is that file’s absolute URL (`documentCacheKey`), so two published sites on one host do not share a cache. The URL is only a cache identity. It is not a server base path.
 
-Flatten (`writeSnapshotFiles`) writes three files next to each other: the stable `site.json` (tools and the editor), `site.<hash>.json` (the bytes the browser fetches), and `rev.json` (`{ hash, file }`). The open-tab poll reads `rev.json` and downloads a new hashed file only when the hash changes. `npm run stamp:snapshot` refreshes those files for the demo sites from the `site.json` already on disk. When the flatten target is `public/data/site.json`, the site `index.html` meta tag is updated to the new name.
+Flatten (`writeSnapshotFiles`) writes three files next to each other: the stable `site.json` (tools and the editor), `site.<hash>.json` (the bytes the browser fetches), and `rev.json` (`{ hash, file }`). The open-tab poll reads `rev.json` and downloads a new hashed file only when the hash changes. `npm run stamp:snapshot` refreshes those files for every example site from the `site.json` already on disk. When the flatten target is `publish/data/site.json`, the shell and built `publish/index.html` meta tags are updated to the new name.
 
 ## Gallery (spike)
 
@@ -181,7 +209,7 @@ A published site is a folder. Nginx answers the browser. Node does not set cache
 ```nginx
 server {
     server_name willow.example.com;
-    root /var/www/willow/dist;
+    root /var/www/willow/publish;
     index index.html;
 
     location ^~ /assets/ {
@@ -208,17 +236,17 @@ location = /willow {
 }
 
 location ^~ /willow/assets/ {
-    alias /var/www/willow/dist/assets/;
+    alias /var/www/willow/publish/assets/;
     add_header Cache-Control "public, max-age=31536000, immutable";
 }
 
 location ~* ^/willow/data/(site\.[a-f0-9]+\.json)$ {
-    alias /var/www/willow/dist/data/$1;
+    alias /var/www/willow/publish/data/$1;
     add_header Cache-Control "public, max-age=31536000, immutable";
 }
 
 location /willow/ {
-    alias /var/www/willow/dist/;
+    alias /var/www/willow/publish/;
     index index.html;
     add_header Cache-Control "public, max-age=0, must-revalidate";
 }
@@ -226,11 +254,13 @@ location /willow/ {
 
 `site.<hash>.json` can be cached like `/assets/` because the name changes when the bytes change. `rev.json` and HTML stay on the “ask every time” path. Pictures with a stable filename are checked every time unless they later move under a hashed name.
 
-## Demo
+## Examples
 
 ```bash
 npm install
-npm run dev
+npm run dev:site                         # willow (port 5173)
+TESSERA_SITE=pure npm run dev:site       # engine lab: zones, font switch
+TESSERA_DATA=sites/pure npm run dev:api  # edit that directory
 ```
 
-Open the app, switch between **Home** (aside visible) and **Simple layout** (same aside content hidden). Event pages omit `layoutId` and inherit layout/skin from `sections` (see Open farm day / Evening talk).
+Pure’s event pages omit `layoutId` and inherit layout/skin from `sections` (Open farm day / Evening talk). Willow, Ineffable, and Miller’s Ark are the same kind of directory: records in `data/`, chrome and micro-apps in `shell/`, static files in `publish/`.

@@ -1,0 +1,28 @@
+id: 91ce9fb3-96d1-4b14-bcb8-12d89e82284d
+title: Kune Kune Pigs
+layoutId: standard
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  title:
+    html: Kune Kune Pigs
+  main:
+    blocks:
+      - type: text
+        html: |
+          <p>
+          	The High Park herd of Kune Kune pigs was the 5th Kune Kune herd established in the UK. Elizabeth moved from traditional rare breed pigs such as the Oxford Sandy and Black and Tamworth to the much smaller and more economic Kune Kune. Their size and easy going nature suit the 'mobile farm' perfectly and they make a popular area on Farm Open Days, where they tuck up next to people in the straw or have their tummies tickled. Piglets always for sale and occasionally sows in pig. Our friendly boars (Andrew and Tutaki lines) are available for hire too.</p>
+      - type: text
+        html: |
+          <p>
+          	Sows in pig, gilts and piglets for sale.</p>
+          <p>
+          	Our boar, Augustus John, is also available for hire to discerning ladies.</p>
+          <p>
+          	Phone Elizabeth on 07850 883440, for prices.</p>
+      - type: text
+        html: <p class="w3-panel w3-pale-blue"><em>Gallery:</em> https://www.millersark.co.uk/Web/Site/MillersArk/Res/Image/Galleries/KuneKunePigs/</p>
+      - type: text
+        html: <p class="w3-panel w3-pale-blue"><em>Gallery:</em> https://www.millersark.co.uk/Web/Site/MillersArk/Res/Image/Galleries/KuneKunePigs/sale/</p>

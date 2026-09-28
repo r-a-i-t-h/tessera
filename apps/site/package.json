@@ -1,0 +1,26 @@
+{
+  "name": "@r-a-i-t-h/tessera-site",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "node scripts/build-sites.mjs",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && vitest run --config vitest.config.ts"
+  },
+  "dependencies": {
+    "@r-a-i-t-h/tessera-demo-kit": "*",
+    "@r-a-i-t-h/tessera-model": "*",
+    "@r-a-i-t-h/tessera-renderer": "*",
+    "@r-a-i-t-h/tessera-skin-w3": "*",
+    "@r-a-i-t-h/tessera-wc-base": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.14",
+    "typescript": "^5.8.2",
+    "vite": "^6.2.2",
+    "vitest": "^3.0.9"
+  }
+}

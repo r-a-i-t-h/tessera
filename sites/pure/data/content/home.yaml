@@ -1,0 +1,25 @@
+id: home
+title: Home
+layoutId: standard
+tags:
+  - page
+includes:
+  - common-footer
+  - promo-aside
+zones:
+  title:
+    html: Tessera rebuilt
+  main:
+    blocks:
+      - type: text
+        html: <p>Formal <strong>layouts</strong> declare zones. Pages and shared items only <em>fill</em> them. Bindings live in site data — insert with <code>{{farm-open-days}}</code>. <strong>Sections</strong> pick a default layout/skin for matching pages (events inherit <code>simple</code>).</p>
+      - type: component
+        name: aboutRenderer
+  primary:
+    blocks:
+      - type: text
+        html: <h3>Farm open days</h3><p class="w3-small">Binding <code>farm-open-days</code> pairs item data with <code>eventList</code>. Mustache below:</p>{{farm-open-days}}
+      - type: media
+        id: logo
+  aside:
+    html: <p class="w3-small">Page-level aside note (merged before shared promo item).</p>

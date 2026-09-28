@@ -1,0 +1,12 @@
+id: b5e4b586-c05b-4c20-9903-254a174a636e
+title: In the news
+layoutId: standard
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  title:
+    html: In the news
+  main:
+    html: <p></p>

@@ -1,0 +1,12 @@
+id: 6051681c-a53e-441c-90a7-74e9d6d893f4
+title: Birthday Parties
+layoutId: standard
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  title:
+    html: Birthday Parties
+  main:
+    html: <p></p>

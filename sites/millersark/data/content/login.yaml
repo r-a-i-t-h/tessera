@@ -1,0 +1,12 @@
+id: login
+title: <h1>Log in for member access and editing</h1>
+layoutId: standard
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  title:
+    html: <h1>Log in for member access and editing</h1>
+  main:
+    html: <p></p>

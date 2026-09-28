@@ -1,0 +1,12 @@
+id: tooling
+title: tooling
+layoutId: standard
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  title:
+    html: tooling
+  main:
+    html: XXX

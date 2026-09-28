@@ -1,0 +1,20 @@
+id: pagenotpublished
+title: Page not published
+layoutId: standard
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  title:
+    html: Page not published
+  main:
+    html: |
+      <p>
+      	The page that you are looking for is currently unavailable.</p>
+      <p>
+      	It has either been withdrawn from the site or has not yet been published.</p>
+      <p>
+      	If you think that this is an error on our part then please <a href="mailto:webmaster@ineffable.co.uk?subject=Page%20not%20published&body=I%20was%20looking%20for%20a%20page%20..................%0Abut%20is%20was%20not%20published!">email the webmaster</a> and let him know. Otherwise, please try again later.</p>
+      <p>
+      	Thank you.</p>

@@ -1,0 +1,12 @@
+id: orphan
+title: Orphan page
+layoutId: simple
+tags:
+  - hidden
+includes:
+  - common-footer
+zones:
+  title:
+    html: Orphan (not in nav)
+  main:
+    html: <p>This page exists and is reachable at <code>#orphan</code>, but it is not listed in designed nav. Existence and visibility are distinct.</p>

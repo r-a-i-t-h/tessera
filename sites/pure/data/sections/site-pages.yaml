@@ -1,0 +1,7 @@
+id: site-pages
+title: Ordinary pages
+match:
+  tags:
+    - page
+layoutId: standard
+skinId: teal

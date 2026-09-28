@@ -1,0 +1,14 @@
+id: open-days-data
+title: Farm open days (data)
+zones:
+  events:
+    json:
+      - title: Open farm day
+        when: Sat 10:00
+        where: Main barn
+      - title: Volunteer briefing
+        when: Sun 09:30
+        where: Office
+      - title: Evening talk
+        when: Thu 19:00
+        where: Marquee

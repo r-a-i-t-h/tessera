@@ -1,0 +1,35 @@
+id: eafbd801-e34e-4620-9478-d563388d1258
+title: eafbd801-e34e-4620-9478-d563388d1258
+layoutId: standard
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  title:
+    html: eafbd801-e34e-4620-9478-d563388d1258
+  main:
+    html: |-
+      <h1 style="text-align: center; font-family: comic sans ms,cursive; color: rgb(204, 0, 51); font-weight: bold;">
+      	Box Office</h1>
+      <p>
+      	Welcome to our  Box Office. Bookings can be paid for together, and you will have a choice as to how your tickets are delivered.</p>
+      <p>
+      	This service is provided by Ticketsource - who unfortunately apply a booking fee which is beyond our control.</p>
+      <p>
+      	Thank you for booking with us. We look forward to seeing you soon.</p>
+      <hr />
+      <p>
+      <!-- Start Ticket Shop App --></p>
+      <div id="embedTS_FHLIF" style="width:100%;">
+      	 </div>
+      <script type="text/javascript">
+        (function() {
+          var el = document.createElement("script");
+          el.type = "text/javascript";
+          el.async = true;
+          el.src = "https://www.ticketsource.co.uk/ticketshop/FHLIF";
+          var s = document.getElementsByTagName("script")[0];
+          s.parentNode.insertBefore(el, s);
+        })();
+      </script><!-- End Ticket Shop App -->

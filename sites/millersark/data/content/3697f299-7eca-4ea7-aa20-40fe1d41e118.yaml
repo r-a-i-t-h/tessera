@@ -1,0 +1,12 @@
+id: 3697f299-7eca-4ea7-aa20-40fe1d41e118
+title: Open Days
+layoutId: standard
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  title:
+    html: Open Days
+  main:
+    html: <p></p>

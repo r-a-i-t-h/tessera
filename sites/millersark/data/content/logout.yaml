@@ -1,0 +1,12 @@
+id: logout
+title: <h1>Logging out...</h1>
+layoutId: standard
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  title:
+    html: <h1>Logging out...</h1>
+  main:
+    html: <p></p>

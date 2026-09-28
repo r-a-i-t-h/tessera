@@ -237,14 +237,16 @@ Site-specific registry components remain first-class.
 
 ## 9. Editor boundary (Phase 2)
 
-- The public site stays free of request-time rendering, a live datastore, and edit-in-place. Drafts and history belong to the editor and are not fields on the published page.
+- The public site stays free of request-time rendering, a live datastore, and edit-in-place. Drafts and history belong to the editor and are not fields on the published page. Once exported, visitors are served from static files. Those files may stay beside the editable site (`publish/`) or be copied elsewhere. The editor can be stopped while that static tree keeps working.
+- Tessera’s version is the engine (editor API, editor SPA, model, renderer). A site is one directory, `$TESSERA_DATA`. Replacing that directory and restarting changes the site being edited. Nav, styling, content, and custom micro-apps travel with the directory. Micro-app source lives in the site shell and is compiled into the static export. The editor API does not load it.
 - The **editor API** (`apps/editor-api`) is a same-origin JSON host the SPA calls. Cookie + Bearer sessions. The editor and its API are served at the hostname root (`tessera_session` cookie, `Path=/`). A published site has no server and may be placed in a folder.
-- **No self-signup.** Users are files under `data/users/` (seeded from `seed/users/`); add them with `seed:user`.
+- **No self-signup.** Users are files under `$TESSERA_DATA/users/` (copied from the release seed when that folder is empty); add them with `seed:user`.
 - Access is **all-or-nothing**: any authenticated user may perform every editor mutation. `requireEditor` is the choke point so later ACL can replace that helper without rewriting routes.
 - The **editor SPA** (`apps/editor`) is a same-origin Vite app (not shipped with the renderer). Dev proxies `/auth`, `/api`, `/health` to the API; production can serve `dist` from the Hono process so the `httpOnly` session cookie never crosses origins.
-- Authoring is **file-based YAML** (one file per Tessera `id`) beside the site, outside the web root. Flatten emits published `SiteDocument` / `site.json`. No database.
-- A content-page save appends the previous raw file to one history file per page. That history is an editor file, not a field on the published page. The framing is a proof of concept; the authoring spec will replace it.
-- **Authoring schema** (`schemaVersion` in `$TESSERA_DATA/meta.json`) is separate from `SiteDocument.version`. `deploy/post-update.sh` is the [node-vps-kit](https://github.com/r-a-i-t-h/node-vps-kit) hook that applies `deploy/migrations/NNN-*.sh`. The app reads the counter and does not bump it.
+- Authoring is **file-based YAML** (one file per Tessera `id`) in `$TESSERA_DATA/data`, outside the web root. Flatten emits `publish/data/site.json`. No database. There is no second path for records or for the export.
+- A page is a page. Tags, sections, and layouts decide how it is presented. Structured fields are a JSON zone the shell components read. The editor reflects the keys already on the file. It does not ship a content-type schema. `schemaVersion` is the authoring-file format, not a Person field list.
+- A content-page save appends the previous raw file to `$TESSERA_DATA/history/content/<id>.history`. That history is an editor file, not a field on the published page. The framing is a proof of concept; the authoring spec will replace it.
+- **Authoring schema** (`schemaVersion` in `$TESSERA_DATA/meta.json`) is separate from `SiteDocument.version`. `deploy/post-update.sh` is the [node-vps-kit](https://github.com/r-a-i-t-h/node-vps-kit) hook that applies `deploy/migrations/NNN-*.sh`. The app reads the counter and does not bump it. Records live inside `$TESSERA_DATA`, so a migration can rewrite them.
 - The renderer never depends on the editor; the editor may host the renderer for preview.
 - Flatten output **is** the renderer contract.
 
@@ -276,7 +278,7 @@ Criteria define “done enough,” not a build order (see [ROADMAP.md](./ROADMAP
 - [x] Page existence does not imply nav visibility (designed nav is authored separately).
 - [x] Nav nodes may declare `source` for content-implied links (e.g. by page/item tag).
 - [x] Multiple nav presentations ship as components (`navTags`, `navTree`, `navCollapse`); none is mandatory.
-- [x] Shell chrome may consume a nav component (demo-pure uses `navCollapse`).
+- [x] Shell chrome may consume a nav component (the pure site shell uses `navCollapse`).
 
 ### Gallery and presentation
 

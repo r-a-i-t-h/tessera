@@ -4,10 +4,10 @@
  *
  * Usage:
  *   node scripts/flatten-gallery.mjs \
- *     --dir apps/demo-pure/public/media/sample-gallery \
+ *     --dir sites/pure/publish/media/sample-gallery \
  *     --id sample-gallery \
  *     --path ./media/sample-gallery \
- *     --merge apps/demo-pure/public/data/site.json
+ *     --merge sites/pure/publish/data/site.json
  *
  * Optional per-folder meta.json:
  *   { "title": "Sample", "captions": { "01-red.svg": "Crimson field" } }

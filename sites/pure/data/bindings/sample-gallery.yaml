@@ -1,0 +1,6 @@
+id: sample-gallery
+component: gallery
+props:
+  folders:
+    - sample-gallery
+  mode: grid

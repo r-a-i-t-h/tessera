@@ -415,9 +415,9 @@ function writeDoc(outPath, doc) {
 }
 
 const ineffable = convertIneffable();
-writeDoc(path.join(root, "apps/demo-ineffable/public/data/site.json"), ineffable);
+writeDoc(path.join(root, "sites/ineffable/publish/data/site.json"), ineffable);
 
 const millers = convertMillersark();
-writeDoc(path.join(root, "apps/demo-millersark/public/data/site.json"), millers);
+writeDoc(path.join(root, "sites/millersark/publish/data/site.json"), millers);
 
 console.log("Done.");

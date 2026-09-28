@@ -1,0 +1,90 @@
+id: 2131b262-462d-4e28-9bd2-2737091a3bf7
+title: 2131b262-462d-4e28-9bd2-2737091a3bf7
+layoutId: standard
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  title:
+    html: 2131b262-462d-4e28-9bd2-2737091a3bf7
+  main:
+    blocks:
+      - type: text
+        html: |
+          <div style="text-align: center; position: relative;">
+          	<div style="position: absolute; top: 30px; right: 60px; font-size: 40px; text-shadow: 0px 0px 4px #000; color: #fff;">
+          		Open Days</div>
+          	<img alt="" src="https://www.millersark.co.uk/Web/Site/MillersArk/Res/Image/SV lambs x 4.jpg" style="height: 480px; border-width: 5px; border-style: solid; margin: 5px; width: 640px;" /></div>
+      - type: text
+        html: |
+          <p style="text-align: center;">
+          	 </p>
+          <div>
+          	<p background-color:="" color:="" comic="" font-size:="" sans="" style="margin-top: 0px; text-align: center;" text-align:="">
+          		<span style="font-family:arial,helvetica,sans-serif;"><strong style="color: rgb(0, 0, 205); font-size: 20px;"><span style="background-color:#ffd700;">Next Adult Only Open Days</span></strong></span></p>
+          </div>
+          <h1 style="text-align: center;">
+          	<strong style="font-family: arial, helvetica, sans-serif; color: rgb(0, 0, 205); font-size: 20px;"><span style="background-color:#ffd700;">Saturday 25th and Sunday 26th January</span></strong></h1>
+          <p style="text-align: center;">
+          	<span style="font-family:arial,helvetica,sans-serif;"><span style="color:#daa520;"><strong style="color: rgb(0, 0, 205); font-size: 20px;"><span style="background-color:#ffd700;">11-4pm</span></strong></span></span></p>
+          <p style="text-align: center;">
+          	<span style="font-size: 14px;">Advance tickets available through our box office and on the gate</span></p>
+          <p style="text-align: center;">
+          	<strong comic="" font-size:="" sans="" style="color: rgb(0, 0, 255);"><span comic="" sans="" style="font-size: 16px;"><span style="background-color:#ffd700;">Entry is £8 </span></span></strong></p>
+          <p style="text-align: center;">
+          	 </p>
+          <p style="text-align: center;">
+          	<strong comic="" font-size:="" sans="" style="color: rgb(0, 0, 255);"><span comic="" sans="" style="font-size: 16px;"><span style="background-color:#ffd700;">Lambing Open days for Everyone </span></span></strong></p>
+          <p style="text-align: center;">
+          	<strong comic="" font-size:="" sans="" style="color: rgb(0, 0, 255);"><span comic="" sans="" style="font-size: 16px;"><span style="background-color:#ffd700;">Saturday 1st and Sunday 2nd February 10-3pm</span></span></strong></p>
+          <p style="text-align: center;">
+          	<strong style="color: rgb(255, 0, 0); font-size: 20px;"><span style="background-color:#ffd700;">Box Office is now open</span></strong></p>
+          <p style="text-align: center;">
+          	 </p>
+          <p style="text-align: center;">
+          	Animal Activity Licence 19/00315/AWAAL</p>
+      - type: text
+        html: |
+          <p>
+          	<strong><span style="color: rgb(255, 0, 0);">LATEST NEWS : 17th January </span></strong></p>
+          <p>
+          	<strong><span style="color: rgb(255, 0, 0);">FIRST LAMBS BORN!!!</span></strong></p>
+          <p>
+          	We have already had our first early delightful cuddly lambs born. They are tucked up with mum under a heat lamp in the barn out of the cold wind and rain!  There are lots more heavily pregnant girls due, so you may be lucky to see more lambs born during our OPEN DAYS! </p>
+          <p>
+          	Birthday Parties on the farm are coming in thick and fast. Don't miss your chance to book a farm party at 10% discount for January and February.</p>
+          <p>
+          	For those who had small pets for Christmas, we offer advice on how to keep your pet and also hay, straw and sawdust can be purchased at the farm.</p>
+          <p>
+          	We have a few young chicken for sale still. Why not enjoy chicken in your garden? They are easy to keep and fun for all the family. We also have a couple of 2013 castrated Pygmy goat kids for sale, some friendly lambs and Kune Kune piglets. </p>
+          <p>
+          	Look at Facebook Miller's Ark to see all the animal pictures and our most recent updates. </p>
+      - type: text
+        html: |
+          <p>
+          	<span style="color: rgb(255, 0, 0);">On Open Days visitors can go in to most of the pens and handle the animals in a unique and special way.</span></p>
+          <p>
+          	 </p>
+          <p>
+          	<span style="color: rgb(0, 0, 205);">Members of the team welcome and encourage children and adults to:</span></p>
+          <p>
+          	<span style="color: rgb(0, 0, 205);">- groom baby donkeys and ponies,</span></p>
+          <p>
+          	<span style="color: rgb(0, 0, 205);">- cuddle baby goats,</span></p>
+          <p>
+          	<span style="color: rgb(0, 0, 205);">- hold tiny chicks and ducklings and beautiful bantams</span></p>
+          <p>
+          	<span style="color: rgb(0, 0, 205);">- tickle the pigs tummies.  How many can you make roll over? </span></p>
+          <p>
+          	<span style="color: rgb(0, 0, 205);">If you love animals, you'll love Miller's Ark - and come along whatever the weather as all handling pens are under cover.  </span></p>
+          <p style="text-align: center;">
+          	    <img alt="" src="https://www.millersark.co.uk/Web/Site/MillersArk/Res/Image/Laurielee 2.JPG" style="width: 215px; height: 215px; border-width: 0px; border-style: solid; margin: 0px;" /><img alt="" src="https://www.millersark.co.uk/Web/Site/MillersArk/Res/Image/new piglets.jpg" style="width: 215px; height: 215px;" /><img alt="" src="https://www.millersark.co.uk/Web/Site/MillersArk/Res/Image/Oxford lamb 3.jpg" style="width: 215px; height: 215px;" /></p>
+          <p>
+          	<span style="color: rgb(0, 0, 204);">If you enjoy freshly cooked food and great coffee, then visit us in The Old Dairy Tea Barn. Try one of our "Specials" or  treat yourself to our scrummy cakes which are too good to be missed. We cater for clients on a gluten free diet and vegetarians as well. There is a large picnic area available too. </span></p>
+          <p>
+          	<span style="color: rgb(0, 0, 204);">So whether you're young or old, single or a family, come and share our special farm. We look forward to welcoming you. </span></p>
+          <p>
+          	<span style="color: rgb(0, 0, 204);">Don't forget to follow us on <a href="https://www.facebook.com/millersark/">Facebook.com/Miller's Ark</a> or <a href="https://twitter.com/MillersArk">Twitter (@MillersArk)</a> and be the first to see the photos of the newborn babies and all our latest news and events.</span></p>
+          <p>
+          	Entry is £8 for adults and for children aged 2 and over. Children under 2 are free. Don't forget your loyalty card, visit 5 times and your 6th family visit is FREE! </p>

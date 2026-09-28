@@ -1,0 +1,73 @@
+id: 49e5b87d-9738-47a4-89ed-330a0d30d65c
+title: Christmas Gift Ideas
+layoutId: standard
+tags:
+  - page
+includes:
+  - common-footer
+zones:
+  title:
+    html: Christmas Gift Ideas
+  main:
+    html: |-
+      <p style="text-align: justify;">
+      	<span style="font-size:20px;"><span style="color: rgb(0, 0, 205);"><span style="font-family: comic sans ms,cursive;">Are you stuck for ideas on what to get a friend or family member for Christmas? Whatever their age if they like the outdoor life, w</span>e <span style="font-family: comic sans ms,cursive;">have just the perfect gift voucher for you and your loved ones!</span></span></span></p>
+      <p style="text-align: justify;">
+      	<span style="font-size:18px;"><strong><span style="font-family: comic sans ms,cursive;"><a href="https://www.millersark.co.uk/onfarm/farmer.aspx"><span style="color: rgb(255, 0, 0);">Farmer 4 a Day</span></a><font color="#008000"> experience for children age 5-15 years old.</font></span></strong></span></p>
+      <p style="text-align: justify;">
+      	<span style="font-family: comic sans ms,cursive;"><span style="font-size: 16px;"><font color="#008000"><span style="background-color:#e6e6fa;">Children participate in all aspects of a farming day, from mucking out pens to collecting eggs and grooming the ponies. The experience is 11-3pm. We encourage parents to arrive 15 minutes before the end, so children can proudly show off what they have been doing.</span></font><font color="#ff0000"><span style="background-color:#e6e6fa;"> </span></font><span style="color:#008000;"><span style="background-color:#e6e6fa;">Your gift can be personalised with the child's name and who it is from.</span></span></span></span><span style="color:#008000;"><span comic="" sans=""><span style="background-color:#e6e6fa;"> </span></span></span></p>
+      <p>
+      	<img alt="" src="https://www.millersark.co.uk/Web/Site/MillersArk/Res/Image/Farmer 4 a Day/cert-example-farmer4aday.jpg" style="width: 140px; float: right; margin: 30px 10px; transform: rotate(4deg); box-shadow: rgb(153, 153, 153) 5px 5px 10px; height: 198px;" /></p>
+      <table border="0" cellpadding="0" cellspacing="20">
+      	<tbody>
+      		<tr>
+      			<td style="white-space: nowrap; vertical-align: top;">
+      				<span style="color:#008000;"><span style="font-family: 'comic sans ms', cursive; font-size: 16px;">Cost:</span></span></td>
+      			<td>
+      				<span style="color: rgb(0, 0, 255); font-family: 'comic sans ms', cursive; font-size: 16px;">£50 payment can be made by BACS, card pament over the phone or cash. </span></td>
+      		</tr>
+      		<tr>
+      			<td style="white-space: nowrap; vertical-align: top;">
+      				<span style="color:#008000;"><span style="font-family: 'comic sans ms', cursive; font-size: 16px;">What do I get?</span></span></td>
+      			<td>
+      				<span style="color: rgb(0, 0, 255); font-family: 'comic sans ms', cursive; font-size: 16px;">You will receive a personalised A4 gift certificate.</span></td>
+      		</tr>
+      		<tr>
+      			<td style="white-space: nowrap; vertical-align: top;">
+      				<span style="color:#008000;"><span style="font-family: 'comic sans ms', cursive; font-size: 16px;">How do I book?</span></span></td>
+      			<td>
+      				<span style="color: rgb(0, 0, 255); font-family: 'comic sans ms', cursive; font-size: 16px;">Contact the office and let us know your name and the child's, your personal message, and the email address.</span></td>
+      		</tr>
+      	</tbody>
+      </table>
+      <p>
+      	 </p>
+      <p>
+      	<strong><span style="font-size:18px;"><span style="font-family: 'comic sans ms', cursive;"><a href="https://www.millersark.co.uk/onfarm/redletter.aspx"><span style="color:#ff0000;">Red Letter Day</span></a></span><span style="font-family: 'comic sans ms', cursive;"> </span><span style="font-family: 'comic sans ms', cursive; color: rgb(0, 128, 0);">experience for adults over 16 years old.</span></span></strong></p>
+      <p style="text-align: justify;">
+      	<span style="font-size: 16px;"><span style="font-family: comic sans ms,cursive;"><span style="color: rgb(0, 128, 0);"><span>Red Letter Days at Miller's Ark guarantee a unique up close experience of farming life. Go behind the scenes of a Rare Breeds farm and experience all aspects of daily farm life by joining the team for the day. Your Red Letter Day will include lots of animal interaction, grooming and feeding, making the animal pens clean and comfy, checking animals in fields and learning about them. </span></span></span></span><span style="color: rgb(0, 128, 0); font-family: "><span style="font-family:comic sans ms,cursive;"><span style="font-size:16px;">We offer two options, a half day or full day experience.</span></span></span></p>
+      <p>
+      	<img alt="" src="https://www.millersark.co.uk/Web/Site/MillersArk/Res/Image/Red letter day/cert-example-redletterday.jpg" style="width: 140px; height: 198px; float: right; margin: 30px 10px; transform: rotate(4deg); box-shadow: rgb(153, 153, 153) 5px 5px 10px;" /></p>
+      <table border="0" cellpadding="0" cellspacing="20">
+      	<tbody>
+      		<tr>
+      			<td style="white-space: nowrap; vertical-align: top;">
+      				<span style="color:#008000;"><span style="font-family: 'comic sans ms', cursive; font-size: 16px;">Cost:</span></span></td>
+      			<td>
+      				<span style="font-family: 'comic sans ms', cursive; font-size: 16px; color: rgb(0, 0, 255);"><span comic="" sans="">£55 </span></span><span style="font-family: 'comic sans ms', cursive; font-size: 16px; color: rgb(255, 0, 0);"><span comic="" sans="">Half Day Red Letter Day experience</span></span><span style="font-family: 'comic sans ms', cursive; font-size: 16px; color: rgb(0, 0, 255);"><span comic="" sans="">  from 1-5pm.</span></span><br />
+      				<span style="font-family: 'comic sans ms', cursive; font-size: 16px; color: rgb(0, 0, 255);"><span comic="" sans="">£85 </span></span><span style="font-family: 'comic sans ms', cursive; font-size: 16px; color: rgb(255, 0, 0);"><span comic="" sans="">Full</span></span><span comic="" sans="" style="font-family: 'comic sans ms', cursive; font-size: 16px; color: rgb(255, 0, 0);"> Day Red Letter </span><span style="color:#ff0000;"><span comic="" sans="" style="font-family: 'comic sans ms', cursive; font-size: 16px;">experience </span></span><span style="font-family: 'comic sans ms', cursive; font-size: 16px; color: rgb(0, 0, 255);"><span comic="" sans=""> from 10.30am - 5.30pm including lunch.</span></span></td>
+      		</tr>
+      		<tr>
+      			<td style="white-space: nowrap; vertical-align: top;">
+      				<span style="color:#008000;"><span style="font-family: 'comic sans ms', cursive; font-size: 16px;">What do I get?</span></span></td>
+      			<td>
+      				<span style="color: rgb(0, 0, 255); font-family: 'comic sans ms', cursive; font-size: 16px;">You will receive a personalised A4 gift certificate.</span></td>
+      		</tr>
+      		<tr>
+      			<td style="white-space: nowrap; vertical-align: top;">
+      				<span style="color:#008000;"><span style="font-family: 'comic sans ms', cursive; font-size: 16px;">How do I book?</span></span></td>
+      			<td>
+      				<span style="color: rgb(0, 0, 255); font-family: 'comic sans ms', cursive; font-size: 16px;">Contact the office and let us know who the Red Letter gift is to/from, your personal message and the email address we are sending it to. </span></td>
+      		</tr>
+      	</tbody>
+      </table>
