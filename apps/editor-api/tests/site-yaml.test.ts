@@ -22,7 +22,7 @@ describe("site YAML flatten", () => {
     const siteJson = join(repoRoot, "sites", name, "publish", "data", "site.json");
     const original = parseSiteDocument(JSON.parse(await readFile(siteJson, "utf8")));
     const flat = join(dir, "site.json");
-    const store = new SiteStore(join(dir, "data"), flat);
+    const store = new SiteStore(join(dir, "records"), flat);
     await store.writeFromDocument(original);
     const again = parseSiteDocument(JSON.parse(await readFile(flat, "utf8")));
     expect(again).toEqual(original);

@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { SESSION_HANDOFF_FILE } from "../auth/sessions.js";
 import { SITE_NAMES, type SiteName, isSiteName } from "./paths.js";
+import { adoptLegacyRecordsDir } from "./records-dir.js";
 
 export const BACKUP_NAME_RE = /^\d{4}-\d{2}-\d{2}T\d{6}Z\.tar\.gz$/;
 
@@ -181,6 +182,7 @@ export async function restoreDataBackup(
   try {
     await clearDataDir(dataDir);
     await extractTar(archive, dataDir);
+    await adoptLegacyRecordsDir(dataDir);
   } catch (err) {
     await rollback(dataDir, backupDir, safetyBackup.name);
     throw err;
@@ -216,6 +218,7 @@ export async function restoreExample(
 
     await clearDataDir(dataDir);
     await extractTar(archive, dataDir);
+    await adoptLegacyRecordsDir(dataDir);
     await rm(join(dataDir, "users"), { recursive: true, force: true });
     if (heldUsers) await rename(join(hold, "users"), join(dataDir, "users"));
     if (!(await isFile(join(dataDir, "meta.json")))) {
@@ -260,6 +263,7 @@ async function rollback(dataDir: string, backupDir: string, safetyName: string):
   try {
     await clearDataDir(dataDir);
     await extractTar(safety, dataDir);
+    await adoptLegacyRecordsDir(dataDir);
   } catch (err) {
     const message = err instanceof Error ? err.message : "rollback failed";
     throw new Error(`Restore failed and rollback failed (${message}). Safety archive: ${safetyName}`);

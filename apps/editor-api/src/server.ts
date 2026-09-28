@@ -5,12 +5,14 @@ import { SessionStore, SESSION_HANDOFF_FILE } from "./auth/sessions.js";
 import { createApp } from "./app.js";
 import { ensureExampleArchives } from "./site/backup.js";
 import { editorApiRoot, repoRoot, resolveBackupDir, resolveDataRoot, resolveSpaDir, siteLayout } from "./site/paths.js";
+import { adoptLegacyRecordsDir } from "./site/records-dir.js";
 import { SiteStore } from "./site/store.js";
 import { ensureMetaFile, metaPath, readSchemaVersion } from "./store/meta.js";
 import { UserStore } from "./store/users.js";
 
 const root = editorApiRoot;
 const dataDir = resolveDataRoot();
+await adoptLegacyRecordsDir(dataDir);
 const layout = siteLayout(dataDir);
 const seedDir = process.env.TESSERA_SEED ?? join(root, "seed");
 const backupDir = resolveBackupDir(dataDir);

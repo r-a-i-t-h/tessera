@@ -40,7 +40,7 @@ export function isSiteName(value: string): value is SiteName {
 export function siteLayout(dataRoot: string) {
   return {
     root: dataRoot,
-    records: join(dataRoot, "data"),
+    records: join(dataRoot, "records"),
     history: join(dataRoot, "history"),
     flattenOut: join(dataRoot, "publish", "data", "site.json"),
     shellIndex: join(dataRoot, "shell", "index.html"),

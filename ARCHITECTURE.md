@@ -36,7 +36,7 @@ Hono app (Node ≥20). JSON routes first; if `spa/index.html` (a release), `apps
 | Users | `$TESSERA_DATA/users/<username>.json` (hash + salt), one set per site directory. No `/auth/register`. The release seed (`seed/users`, `admin` / `admin`) is copied only when `users/` is empty. `npm run seed:user` rewrites that seed, not the open site. |
 | Sessions | In-memory tokens; httpOnly `tessera_session` cookie (`Path=/`) or `Authorization: Bearer`. The editor is served at the hostname root. SIGTERM dumps hashed tokens to `$TESSERA_DATA/.sessions.json` once. |
 | Permission | `requireEditor`: authenticated ⇒ full access; anonymous ⇒ 401. Every mutation must call it. |
-| Records | YAML files in `$TESSERA_DATA/data`. Filename = Tessera `id`. `GET/PUT /api/records` accepts structured `data` or raw YAML. A changed content page appends the previous file to `$TESSERA_DATA/history/content/<id>.history`, then flattens to `$TESSERA_DATA/publish/data/site.json` plus `site.<hash>.json` and `rev.json`. |
+| Records | YAML files in `$TESSERA_DATA/records`. Filename = Tessera `id`. `GET/PUT /api/records` accepts structured `data` or raw YAML. A changed content page appends the previous file to `$TESSERA_DATA/history/content/<id>.history`, then flattens to `$TESSERA_DATA/publish/data/site.json` plus `site.<hash>.json` and `rev.json`. |
 | Public | `GET /health`, `POST /auth/login`. Protected: `GET /auth/me`, `POST /auth/password`, `POST /api/ping`, record CRUD. Logout is idempotent. |
 
 Public HTML is the editor SPA when built. The published site remains `site.json` for the renderer. Authoring is file-based YAML (not JSON) so HTML does not need escaping.
@@ -67,7 +67,7 @@ sites/willow/
   meta.json                 # schemaVersion
   users/                    # editors; created on first boot from the release seed
   history/                  # append-only page history, not published
-  data/                     # YAML records, not on the web path
+  records/                  # YAML records, not on the web path
     site.yaml  nav.yaml
     content/ items/ layouts/ bindings/ sections/ media/ folders/
   shell/                    # site-owned presentation source
@@ -85,7 +85,7 @@ sites/willow/
 
 ## Authoring files
 
-Records live in `$TESSERA_DATA/data/`, off the web path. Each record is one YAML file named with the same **`id`** the flattened document already uses (`page.id`, `item.id`, `layout.id`, `binding.id`, `section.id`, `media.id`, `folder.id`).
+Records live in `$TESSERA_DATA/records/`, off the web path. Each record is one YAML file named with the same **`id`** the flattened document already uses (`page.id`, `item.id`, `layout.id`, `binding.id`, `section.id`, `media.id`, `folder.id`).
 
 | Folder / file | Holds |
 |---------------|--------|
@@ -122,7 +122,7 @@ The editor can open that raw YAML, save it, and read earlier copies back. The sa
 TESSERA_DATA=sites/willow sh deploy/migrate.sh
 ```
 
-Records live at `$TESSERA_DATA/data`, so a later migration can rewrite page files. `001` only stamps `schemaVersion` on `meta.json`. Three numbers stay distinct: the Tessera release (editor and libraries), `schemaVersion` (authoring files), and `SiteDocument.version` (the flattened document the renderer validates). An editor-only release does not require a new export. A renderer or document-schema change needs a migration, then a flatten. Already-exported `publish/` trees keep the shell they were built with until that export.
+Records live at `$TESSERA_DATA/records`, so a later migration can rewrite page files. `001` only stamps `schemaVersion` on `meta.json`. Three numbers stay distinct: the Tessera release (editor and libraries), `schemaVersion` (authoring files), and `SiteDocument.version` (the flattened document the renderer validates). An editor-only release does not require a new export. A renderer or document-schema change needs a migration, then a flatten. Already-exported `publish/` trees keep the shell they were built with until that export.
 
 ## Relative assets
 
@@ -264,4 +264,4 @@ npm run dev:site                         # instance preview (port 5173)
 npm run dev:api                          # edit data/; Render site writes the preview
 ```
 
-Pure’s event pages omit `layoutId` and inherit layout/skin from `sections` (Open farm day / Evening talk). Willow, Ineffable, and Miller’s Ark are the same kind of directory: records in `data/`, chrome and micro-apps in `shell/`, static files in `publish/`.
+Pure’s event pages omit `layoutId` and inherit layout/skin from `sections` (Open farm day / Evening talk). Willow, Ineffable, and Miller’s Ark are the same kind of directory: records in `records/`, chrome and micro-apps in `shell/`, static files in `publish/`.
