@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
 import { hashPassword } from "../src/auth/password.js";
 import { SessionStore } from "../src/auth/sessions.js";
+import { repoRoot } from "../src/site/paths.js";
 import { SiteStore } from "../src/site/store.js";
 import { UserStore } from "../src/store/users.js";
 
@@ -57,6 +58,55 @@ describe("record routes", () => {
   it("rejects anonymous record reads", async () => {
     const res = await app().request("/api/records");
     expect(res.status).toBe(401);
+    const render = await app().request("/api/render", { method: "POST" });
+    expect(render.status).toBe(401);
+  });
+
+  it("renders every page into the publish snapshot", async () => {
+    const res = await app().request("/api/render", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { pages: number; snapshot: { file: string } };
+    expect(body.pages).toBe(1);
+    expect(body.snapshot.file).toMatch(/^site\.[a-f0-9]+\.json$/);
+    const written = await readFile(join(siteDir, "out.json"), "utf8");
+    expect(written).toContain("Hello");
+  });
+
+  it("refuses to render into a reference site directory", async () => {
+    const guarded = createApp({
+      users,
+      sessions,
+      site,
+      siteRoot: join(repoRoot, "sites", "willow"),
+    });
+    const res = await guarded.request("/api/render", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toMatch(/reference material/);
+  });
+
+  it("rejects a render when the site has no pages", async () => {
+    const emptyDir = await mkdtemp(join(tmpdir(), "tessera-rec-empty-"));
+    try {
+      const empty = createApp({
+        users,
+        sessions,
+        site: new SiteStore(emptyDir, join(emptyDir, "out.json")),
+      });
+      const res = await empty.request("/api/render", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      expect(res.status).toBe(400);
+    } finally {
+      await rm(emptyDir, { recursive: true, force: true });
+    }
   });
 
   it("lists and updates a content record", async () => {

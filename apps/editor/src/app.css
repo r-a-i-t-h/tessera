@@ -83,6 +83,11 @@ body {
   line-height: 1.45;
 }
 
+.editor-render-status {
+  margin: 0;
+  padding: 0.75rem 1rem;
+}
+
 .editor-history {
   margin-top: 2rem;
 }

@@ -21,7 +21,7 @@ The editor **API** lives in `apps/editor-api` (`@r-a-i-t-h/tessera-editor-api`):
 | `@r-a-i-t-h/tessera-skin-w3` | W3.CSS **5.01** + region→class skin |
 | `@r-a-i-t-h/tessera-wc-base` | Cookie-cut custom element base (`a` / `b` / `c`) |
 | `@r-a-i-t-h/tessera-demo-kit` | Shared chrome helpers shells may import at build time |
-| `@r-a-i-t-h/tessera-site` | One Vite host. Default shell is `data/shell` (or a placeholder while `data/` is empty). `TESSERA_SITE` selects `sites/<name>/shell` |
+| `@r-a-i-t-h/tessera-site` | One Vite host for the instance (`data/shell` and `data/publish`). A placeholder shows while `data/shell` is missing. `sites/` is not this output |
 
 Example sites live under `sites/` (pure / ineffable / millersark / willow). They are not npm workspaces. The editing back-end is `apps/editor-api`; the login SPA is `apps/editor`.
 
@@ -81,7 +81,7 @@ sites/willow/
 
 `shell/` is chrome and micro-apps. It may import engine packages at build time. The built files in `publish/` do not. Adding a micro-app rebuilds that shell. It is not a Tessera release. The editor API does not load site code.
 
-`npm run dev:site` serves `data/shell` and `data/publish` (a short placeholder while `data/shell` is missing). `TESSERA_SITE=pure` serves that demo’s shell instead. `npm run build -w @r-a-i-t-h/tessera-site` writes each demo shell into that site’s `publish/`.
+`npm run dev:site` serves the instance: `data/shell` and `data/publish` (a short placeholder while `data/shell` is missing). The editor’s **Render site** action flattens every record into that `publish/` tree. `sites/` stays reference material. `npm run build -w @r-a-i-t-h/tessera-site` compiles each reference shell; that build is not the preview.
 
 ## Authoring files
 
@@ -260,9 +260,8 @@ location /willow/ {
 
 ```bash
 npm install
-npm run dev:site                         # data/ (port 5173), empty until a restore
-TESSERA_SITE=pure npm run dev:site       # engine lab: zones, font switch
-TESSERA_DATA=sites/pure npm run dev:api  # edit that directory
+npm run dev:site                         # instance preview (port 5173)
+npm run dev:api                          # edit data/; Render site writes the preview
 ```
 
 Pure’s event pages omit `layoutId` and inherit layout/skin from `sections` (Open farm day / Evening talk). Willow, Ineffable, and Miller’s Ark are the same kind of directory: records in `data/`, chrome and micro-apps in `shell/`, static files in `publish/`.

@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { basename, dirname, isAbsolute, join } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
@@ -21,6 +21,13 @@ export function resolveRepoRoot(apiRoot: string): string {
 }
 
 export const repoRoot = resolveRepoRoot(editorApiRoot);
+
+/** `sites/` holds example data. The preview and the editor render into the instance directory. */
+export function isReferenceSitePath(target: string): boolean {
+  const sites = resolve(repoRoot, "sites");
+  const resolved = resolve(target);
+  return resolved === sites || resolved.startsWith(sites + sep);
+}
 
 export const SITE_NAMES = ["pure", "ineffable", "millersark", "willow"] as const;
 export type SiteName = (typeof SITE_NAMES)[number];

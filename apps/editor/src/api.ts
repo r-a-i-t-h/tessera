@@ -137,6 +137,16 @@ export type HistoryEntry = {
   raw: string;
 };
 
+export type RenderResult = {
+  ok: true;
+  pages: number;
+  snapshot?: SnapshotRef;
+};
+
+export function renderSite(): Promise<RenderResult> {
+  return request("/api/render", { method: "POST" });
+}
+
 export function listRecords(): Promise<RecordList> {
   return request("/api/records");
 }

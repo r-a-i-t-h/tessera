@@ -11,6 +11,7 @@ import {
   logout,
   me,
   restoreBackup,
+  renderSite,
   restoreExample,
   saveRawRecord,
   saveRecord,
@@ -20,6 +21,7 @@ import {
   type RecordList,
   type RecordPayload,
   type RecordSummary,
+  type RenderResult,
   type SaveResult,
 } from "./api";
 
@@ -35,9 +37,11 @@ function chrome(user: PublicUser, inner: string, wide = false): string {
   return `<header class="w3-bar w3-theme">
       <a class="w3-bar-item w3-button" href="#/">Tessera editor</a>
       <a class="w3-bar-item w3-button" href="#/backups">Backups</a>
+      <button type="button" class="w3-bar-item w3-button" data-action="render-site">Render site</button>
       <span class="w3-bar-item w3-small">${escapeHtml(user.username)}</span>
       <button type="button" class="w3-bar-item w3-button w3-right" data-action="logout">Sign out</button>
     </header>
+    <p id="render-status" class="editor-render-status" hidden></p>
     <main class="editor-main${wide ? " editor-wide" : ""}">${inner}</main>`;
 }
 
@@ -103,12 +107,48 @@ function parseRoute(): { kind?: string; id?: string } {
   };
 }
 
+const previewUrl = "http://localhost:5173/";
+
 function bindChrome(root: HTMLElement): void {
   root.querySelector("[data-action=logout]")?.addEventListener("click", async () => {
     await logout().catch(() => undefined);
     window.location.hash = "";
     bindLogin(root);
   });
+  root.querySelector("[data-action=render-site]")?.addEventListener("click", () => {
+    void runRender(root);
+  });
+}
+
+async function runRender(root: HTMLElement): Promise<void> {
+  const button = root.querySelector<HTMLButtonElement>("[data-action=render-site]");
+  const status = root.querySelector<HTMLElement>("#render-status");
+  if (button) button.disabled = true;
+  if (status) {
+    status.hidden = false;
+    status.className = "editor-render-status w3-pale-yellow";
+    status.textContent = "Rendering the whole site…";
+  }
+  try {
+    const result = await renderSite();
+    if (status) {
+      status.className = "editor-render-status w3-pale-green";
+      status.textContent = renderNotice(result);
+    }
+  } catch (err) {
+    if (status) {
+      status.className = "editor-render-status w3-pale-red";
+      status.textContent = err instanceof Error ? err.message : "Render failed.";
+    }
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+function renderNotice(result: RenderResult): string {
+  const pages = `${result.pages} ${result.pages === 1 ? "page" : "pages"}`;
+  const file = result.snapshot ? ` Snapshot ${result.snapshot.file}.` : "";
+  return `Rendered ${pages} into the preview.${file} Reload ${previewUrl} to see it.`;
 }
 
 function bindLogin(root: HTMLElement, error?: string, username = ""): void {
@@ -276,7 +316,7 @@ function listHtml(listing: RecordList): string {
     })
     .join("");
   return `<h1 class="w3-large">Records</h1>
-    <p class="w3-text-grey">YAML files named with Tessera <code>id</code>, outside the web root. Saving a page appends the previous file to a history file and republishes the hashed snapshot the browser caches.</p>
+    <p class="w3-text-grey">YAML files named with Tessera <code>id</code>, outside the web root. Saving a page appends the previous file to a history file and updates the snapshot. <strong>Render site</strong> writes every page into the preview on port 5173.</p>
     ${sections || "<p>No records yet.</p>"}`;
 }
 
