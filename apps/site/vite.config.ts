@@ -1,42 +1,51 @@
-import { createReadStream, existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
+import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import { extname, isAbsolute, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vitest/config";
 
 const appRoot = fileURLToPath(new URL(".", import.meta.url));
 const repoRoot = join(appRoot, "..", "..");
+const skinDir = join(repoRoot, "packages", "skin-w3", "css");
+const emptyIndex = join(appRoot, "empty", "shell", "index.html");
+
+const SITE_NAMES = ["pure", "ineffable", "millersark", "willow"] as const;
 
 /**
- * The preview host always serves the instance directory (`data/`, or
- * `TESSERA_DATA`). `sites/` is reference material and is not this output.
- * `vite build` still accepts `TESSERA_SITE` so the reference shells can be compiled.
+ * Dev serves one runtime (`src/main.ts`) and the selected site's static shell.
+ * `TESSERA_SITE` selects `sites/<name>`. Otherwise the instance directory is
+ * `TESSERA_DATA` or `data/`. A missing shell index is the empty placeholder.
+ * `sites/` is not the instance unless `TESSERA_SITE` says so.
  */
-const building = process.argv.includes("build");
-const referenceSite = building ? process.env.TESSERA_SITE : undefined;
-const fromEnv = process.env.TESSERA_DATA;
-const requestedRoot = !fromEnv
-  ? join(repoRoot, "data")
-  : isAbsolute(fromEnv)
-    ? fromEnv
-    : join(repoRoot, fromEnv);
-const sitesDir = resolve(repoRoot, "sites");
-const requestedResolved = resolve(requestedRoot);
-const instanceRoot =
-  requestedResolved === sitesDir || requestedResolved.startsWith(sitesDir + sep)
+const requestedSite = process.env.TESSERA_SITE;
+if (requestedSite && !SITE_NAMES.includes(requestedSite as (typeof SITE_NAMES)[number])) {
+  throw new Error(`Unknown site "${requestedSite}". Expected one of: ${SITE_NAMES.join(", ")}`);
+}
+
+function instanceRootFromEnv(): string {
+  const fromEnv = process.env.TESSERA_DATA;
+  const requestedRoot = !fromEnv
     ? join(repoRoot, "data")
-    : requestedRoot;
-const emptyIndex = join(appRoot, "empty", "shell", "index.html");
-export const siteRoot = referenceSite ? join(repoRoot, "sites", referenceSite) : instanceRoot;
-export const siteName = referenceSite ?? "instance";
+    : isAbsolute(fromEnv)
+      ? fromEnv
+      : join(repoRoot, fromEnv);
+  const sitesDir = resolve(repoRoot, "sites");
+  const requestedResolved = resolve(requestedRoot);
+  if (requestedResolved === sitesDir || requestedResolved.startsWith(sitesDir + sep)) {
+    return join(repoRoot, "data");
+  }
+  return requestedRoot;
+}
+
+const instanceRoot = instanceRootFromEnv();
+export const siteRoot = requestedSite ? join(repoRoot, "sites", requestedSite) : instanceRoot;
+export const siteName = requestedSite ?? "instance";
 export const shellRoot = join(siteRoot, "shell");
 export const publishRoot = join(siteRoot, "publish");
-
-const launchedByVite = (process.argv[1] ?? "").includes(`${sep}vite${sep}`);
-if (launchedByVite && !referenceSite) mkdirSync(shellRoot, { recursive: true });
 
 const MIME: Record<string, string> = {
   ".css": "text/css; charset=utf-8",
   ".gif": "image/gif",
+  ".html": "text/html; charset=utf-8",
   ".jpeg": "image/jpeg",
   ".jpg": "image/jpeg",
   ".js": "text/javascript; charset=utf-8",
@@ -49,18 +58,37 @@ const MIME: Record<string, string> = {
 
 const placeholderHtml = readFileSync(emptyIndex, "utf8");
 
+function fileInDir(dir: string, rel: string): string | null {
+  const file = join(dir, rel);
+  const rootPrefix = dir.endsWith(sep) ? dir : dir + sep;
+  if (!file.startsWith(rootPrefix) || !existsSync(file) || !statSync(file).isFile()) return null;
+  return file;
+}
+
+function sendFile(res: { setHeader: (k: string, v: string) => void }, file: string): void {
+  res.setHeader("Content-Type", MIME[extname(file)] ?? "application/octet-stream");
+  createReadStream(file).pipe(res as unknown as NodeJS.WritableStream);
+}
+
+/** Point the shell's stable script at the Vite module for this dev server. */
+export function devShellHtml(html: string): string {
+  return html.replace(
+    /<script\s+type="module"\s+src="\.\/tessera\.js"\s*><\/script>/,
+    `<script type="module" src="/@vite/client"></script>\n    <script type="module" src="/src/main.ts"></script>`,
+  );
+}
+
 /**
- * Serve the instance `publish/` tree (media, flattened snapshot) and, while
- * `shell/index.html` is missing, the empty-site placeholder. HTML from the
- * shell stays on Vite so the preview renders the instance, not `sites/`.
+ * Serve the site's static shell and `publish/` tree. The Vite root is this
+ * app, so `/src/main.ts` is the shared runtime rather than a file in the site.
  */
-function serveInstance(publishDir: string, shellIndex: string): Plugin {
+function serveSite(shellDir: string, publishDir: string, shellIndex: string): Plugin {
   return {
-    name: "tessera-serve-instance",
+    name: "tessera-serve-site",
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
         const raw = req.url?.split("?")[0] ?? "";
-        const wantsHtml = raw === "/" || raw === "" || raw === "/index.html" || raw.endsWith(".html");
+        const wantsHtml = raw === "/" || raw === "" || raw === "/index.html";
         if (wantsHtml) {
           if (!existsSync(shellIndex)) {
             res.statusCode = 200;
@@ -68,7 +96,10 @@ function serveInstance(publishDir: string, shellIndex: string): Plugin {
             res.end(placeholderHtml);
             return;
           }
-          next();
+          const html = devShellHtml(readFileSync(shellIndex, "utf8"));
+          res.statusCode = 200;
+          res.setHeader("Content-Type", "text/html; charset=utf-8");
+          res.end(html);
           return;
         }
         let rel = decodeURIComponent(raw);
@@ -77,30 +108,48 @@ function serveInstance(publishDir: string, shellIndex: string): Plugin {
           next();
           return;
         }
-        const file = join(publishDir, rel);
-        const rootPrefix = publishDir.endsWith(sep) ? publishDir : publishDir + sep;
-        if (!file.startsWith(rootPrefix) || !existsSync(file) || !statSync(file).isFile()) {
-          next();
+        const fromShell = fileInDir(shellDir, rel);
+        if (fromShell) {
+          sendFile(res, fromShell);
           return;
         }
-        res.setHeader("Content-Type", MIME[extname(file)] ?? "application/octet-stream");
-        createReadStream(file).pipe(res);
+        if (rel.startsWith("skin/")) {
+          const fromSkin = fileInDir(skinDir, rel.slice("skin/".length));
+          if (fromSkin) {
+            sendFile(res, fromSkin);
+            return;
+          }
+        }
+        const fromPublish = fileInDir(publishDir, rel);
+        if (fromPublish) {
+          sendFile(res, fromPublish);
+          return;
+        }
+        next();
       });
     },
   };
 }
 
 export default defineConfig({
-  root: shellRoot,
+  root: appRoot,
   base: "./",
   publicDir: false,
-  cacheDir: join(appRoot, "node_modules", ".vite", siteName),
-  plugins: [serveInstance(publishRoot, join(shellRoot, "index.html"))],
+  cacheDir: join(appRoot, "node_modules", ".vite"),
+  plugins: [serveSite(shellRoot, publishRoot, join(shellRoot, "index.html"))],
   build: {
-    outDir: publishRoot,
-    emptyOutDir: false,
+    outDir: join(appRoot, "dist"),
+    emptyOutDir: true,
     target: "es2022",
-    assetsDir: "assets",
+    assetsDir: ".",
+    modulePreload: false,
+    rollupOptions: {
+      output: {
+        entryFileNames: "tessera.js",
+        chunkFileNames: "[name].js",
+        assetFileNames: "[name][extname]",
+      },
+    },
   },
   server: {
     port: 5173,

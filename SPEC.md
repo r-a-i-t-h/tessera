@@ -1,6 +1,6 @@
 # Tessera specification (v0.1)
 
-Tessera publishes a small website from structured records and a site-owned registry of micro-apps. A site is one of two flavours: a **snapshot** (one JSON document, rendered in the browser) or **pages** (one static HTML file per page). Neither flavour renders on request, and neither uses a runtime datastore. Content cannot invent recursive zones.
+Tessera publishes a small website from structured records and a shared catalogue of micro-apps. A site is one of two flavours: a **snapshot** (one JSON document, rendered in the browser) or **pages** (one static HTML file per page). Neither flavour renders on request, and neither uses a runtime datastore. Content cannot invent recursive zones.
 
 It is the successor to Rec-Tem (“recursive templates”). The mosaic metaphor remains: layouts place the tiles (zones); content fills them — or leaves them empty. Tessera drops the recursive element so content can no longer invent zones that themselves contain further content. Boundaries between **modelling data**, **rendering HTML**, and **exposing W3.CSS styling** are deliberate packages rather than a ball of mud.
 
@@ -87,7 +87,7 @@ Micro-apps are client-only in both flavours. The pages publisher writes an empty
 
 ### Component registry
 
-Micro-app implementations are TypeScript owned by the site (or shared Tessera packages), **imported and registered by name**. Content never embeds scripts. Adding a *new* micro-app implementation requires a rebuild; changing text, JSON, layout trees, or which registered names a page calls does not.
+Micro-app implementations live in the shared catalogue and the renderer builtins, **registered by name**. Content never embeds scripts. A site has no build step and does not ship component source. Adding a new micro-app is a Tessera release, and that name is then available to every site. Changing text, JSON, layout trees, or which registered names a page calls does not require a release.
 
 ### Skin
 
@@ -184,7 +184,7 @@ Nav is first-class document content, not merely demo chrome — and it is **dist
 - **Designed nav** (`document.nav`) is authored structure for the snapshot flavour (hand-chosen pages, headings, nested children).
 - **Pages-flavour nav** is the published page tree, written into each HTML file at publish. It is not rebuilt in the browser, and a micro-app does not extend it. `source` expansion that grows a hierarchy from a collection is a snapshot-era blur; the pages flavour does not use it.
 - **Content-implied nav** on a snapshot uses `source` on a nav node (e.g. `pagesTag` / `itemsTag`) so tagged pages that already exist become link *data*. That does not create pages.
-- **Presentation is a component choice**, not a system mandate. Shipped options include tag grouping (`navTags`), full tree (`navTree`), and collapsible regions (`navCollapse`). Sites may register others. A component might render the same resolved tree as tags, a tree, or an accordion.
+- **Presentation is a component choice**, not a system mandate. Shipped options include tag grouping (`navTags`), full tree (`navTree`), and collapsible regions (`navCollapse`). Further presentations are added to the shared catalogue, so every site can name them. A component might render the same resolved tree as tags, a tree, or an accordion.
 - Physical shell chrome (drawer markup, overlay) remains a thin site/skin concern that *consumes* nav components or resolved nav data.
 
 ---
@@ -195,7 +195,7 @@ Rec-Tem’s strength was content that could add zones without knowing what would
 
 1. **Bindings live in the site document** — not only in TypeScript. Example: list of dated events + `eventList` (or `DatedEventList`) registered as binding id `farm-open-days`.
 2. Other content inserts the populated view with `{{farm-open-days}}` (or a component block with that name). Authors do not re-wire data to the component at each call site.
-3. Component *implementations* remain TypeScript in the site/registry (rebuild to add a new Y). Binding rows (Z → X + Y) are data and can change with `site.json`.
+3. Component implementations live in the Tessera catalogue (a release to add a new Y). Binding rows (Z → X + Y) are data and can change with `site.json`.
 
 ```text
 bindings[]: { id: "farm-open-days", component: "eventList", itemId: "…", fromZone: "events" }
@@ -211,7 +211,7 @@ Inserting a binding onto a page is **separate** from inserting a page into nav �
 
 - Mobile-friendly adaptive layout is a key product requirement; W3.CSS is the default means, not the requirement itself.
 - Common layout combinations (side-by-side columns, image treatment, quotes) should be **chainable end-to-end** and trivially specified in content.
-- Prefer web components for sweet syntax (`<imgbox>…</imgbox>`, `<quote>…</quote>`) and encourage the same pattern for site-custom elements.
+- Prefer web components for sweet syntax (`<imgbox>…</imgbox>`, `<quote>…</quote>`) and encourage the same pattern for catalogue elements.
 - **`WCBase`** should make new elements trivial: shared lifecycle/plumbing; specific treatment of light DOM contents and attributes (title, tooltip, etc.).
 
 ---
@@ -231,20 +231,20 @@ Without being limiting, Tessera should ship enough shared pieces to build a full
 | Bindings | Site-data `bindings[]` + `{{id}}` / component name insertion |
 | Chrome hooks | Stale/offline signal for banners |
 
-Site-specific registry components remain first-class.
+Components ship in the shared catalogue. A site names them from its records. A site does not ship its own scripts.
 
 ---
 
 ## 9. Editor boundary (Phase 2)
 
 - The public site stays free of request-time rendering, a live datastore, and edit-in-place. Drafts and history belong to the editor and are not fields on the published page. Once exported, visitors are served from static files. Those files may stay beside the editable site (`publish/`) or be copied elsewhere. The editor can be stopped while that static tree keeps working.
-- Tessera’s version is the engine (editor API, editor SPA, model, renderer). A site is one directory, `$TESSERA_DATA`. Replacing that directory and restarting changes the site being edited. Nav, styling, content, and custom micro-apps travel with the directory. Micro-app source lives in the site shell and is compiled into the static export. The editor API does not load it.
+- Tessera’s version is the engine (editor API, editor SPA, model, renderer, and the shared component catalogue). A site is one directory, `$TESSERA_DATA`. Replacing that directory and restarting changes the site being edited. Nav, styling, and content travel with the directory. Micro-app implementations do not: they ship with Tessera, and the static export stamps that runtime into `publish/`. The editor API does not load site code.
 - The **editor API** (`apps/editor-api`) is a same-origin JSON host the SPA calls. Cookie + Bearer sessions. The editor and its API are served at the hostname root (`tessera_session` cookie, `Path=/`). A published site has no server and may be placed in a folder.
 - **No self-signup.** Users are files under `$TESSERA_DATA/users/` (copied from the release seed when that folder is empty); add them with `seed:user`.
 - Access is **all-or-nothing**: any authenticated user may perform every editor mutation. `requireEditor` is the choke point so later ACL can replace that helper without rewriting routes.
 - The **editor SPA** (`apps/editor`) is a same-origin Vite app (not shipped with the renderer). Dev proxies `/auth`, `/api`, `/health` to the API; production can serve `dist` from the Hono process so the `httpOnly` session cookie never crosses origins.
 - Authoring is **file-based YAML** (one file per Tessera `id`) in `$TESSERA_DATA/records`, outside the web root. Flatten emits `publish/data/site.json`. No database. There is no second path for records or for the export.
-- A page is a page. Tags, sections, and layouts decide how it is presented. Structured fields are a JSON zone the shell components read. The editor reflects the keys already on the file. It does not ship a content-type schema. `schemaVersion` is the authoring-file format, not a Person field list.
+- A page is a page. Tags, sections, and layouts decide how it is presented. Structured fields are a JSON zone the catalogue components read. The editor reflects the keys already on the file. It does not ship a content-type schema. `schemaVersion` is the authoring-file format, not a Person field list.
 - A content-page save appends the previous raw file to `$TESSERA_DATA/history/content/<id>.history`. That history is an editor file, not a field on the published page. The framing is a proof of concept; the authoring spec will replace it.
 - **Authoring schema** (`schemaVersion` in `$TESSERA_DATA/meta.json`) is separate from `SiteDocument.version`. `deploy/post-update.sh` is the [node-vps-kit](https://github.com/r-a-i-t-h/node-vps-kit) hook that applies `deploy/migrations/NNN-*.sh`. The app reads the counter and does not bump it. Records live inside `$TESSERA_DATA`, so a migration can rewrite them.
 - The renderer never depends on the editor; the editor may host the renderer for preview.
@@ -300,7 +300,7 @@ Criteria define “done enough,” not a build order (see [ROADMAP.md](./ROADMAP
 
 ### Carry-forward (already demonstrated)
 
-- Dynamic menus from document nav into sidebar chrome; in-page headings menu; site components such as `pageNav` (refine as nav-as-content lands).
+- Dynamic menus from document nav into sidebar chrome; in-page headings menu; catalogue components such as `pageNav` (refine as nav-as-content lands).
 
 ### Explicitly later / soft
 

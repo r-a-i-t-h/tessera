@@ -1,11 +1,10 @@
 import type { ComponentFn, RenderContext } from "./types.js";
 
 /**
- * Site-owned registry: dynamic behaviour lives in TypeScript modules the site
- * imports and registers. The flattened content file only references names + props.
+ * Named render functions. The Tessera runtime registers the shared catalogue.
+ * The flattened content file only references names + props.
  *
  * @example
- * import { eventList } from "./components/event-list";
  * registry.define("eventList", eventList);
  * // site.json: { "type": "component", "name": "eventList", "props": { "fromZone": "events" } }
  */

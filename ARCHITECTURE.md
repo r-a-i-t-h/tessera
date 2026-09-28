@@ -6,11 +6,11 @@ Tessera is a small CMS runtime for sites whose full text/data payload is cheaper
 
 The name evokes mosaic tiles: layouts place the tiles (zones); content fills them — or leaves them empty.
 
-The **editor** (see SPEC §9) edits one site directory and emits the flattened file. The **renderer** only consumes that file plus a site-owned component registry. The editor may host the renderer for preview; the renderer never depends on the editor.
+The **editor** (see SPEC §9) edits one site directory and emits the flattened file. The **renderer** consumes that file. The site runtime registers the shared component catalogue. The editor may host the renderer for preview; the renderer never depends on the editor.
 
 Tessera’s version is the engine: `apps/editor-api`, `apps/editor`, and the packages below. A site is data. Replacing `$TESSERA_DATA` (and restarting) changes which site the instance edits. The public site is the static `publish/` tree inside that directory. Nginx can keep serving `publish/` with the editor process stopped, or that tree can be copied to another host.
 
-The editor **API** lives in `apps/editor-api` (`@r-a-i-t-h/tessera-editor-api`): a Hono + Node process with file-backed users, in-memory sessions, and an all-or-nothing `requireEditor` gate on every mutation. The editor **SPA** lives in `apps/editor` (`@r-a-i-t-h/tessera-editor`) and talks to that API on the **same origin** (Vite proxy in dev). Hono serves the built UI when it is present: `spa/` next to a release bundle, or `apps/editor/dist` in a checkout. `apps/site` (`@r-a-i-t-h/tessera-site`) is the dev/build host for a site shell. It is not a site, and it does not version the site. A `v*` tag packs one tarball (`npm run pack`): `dist/server.js`, `spa/`, `seed/`, and `deploy/`. Instance data stays outside that tree.
+The editor **API** lives in `apps/editor-api` (`@r-a-i-t-h/tessera-editor-api`): a Hono + Node process with file-backed users, in-memory sessions, and an all-or-nothing `requireEditor` gate on every mutation. The editor **SPA** lives in `apps/editor` (`@r-a-i-t-h/tessera-editor`) and talks to that API on the **same origin** (Vite proxy in dev). Hono serves the built UI when it is present: `spa/` next to a release bundle, or `apps/editor/dist` in a checkout. `apps/site` (`@r-a-i-t-h/tessera-site`) is the dev/build host for the shared site runtime. It is not a site, and it does not version the site. A `v*` tag packs one tarball (`npm run pack`): `dist/server.js`, `spa/`, `seed/`, and `deploy/`. Instance data stays outside that tree.
 
 ## Packages
 
@@ -20,8 +20,9 @@ The editor **API** lives in `apps/editor-api` (`@r-a-i-t-h/tessera-editor-api`):
 | `@r-a-i-t-h/tessera-renderer` | Zone merge, layout walk, component registry, hash SPA |
 | `@r-a-i-t-h/tessera-skin-w3` | W3.CSS **5.01** + region→class skin |
 | `@r-a-i-t-h/tessera-wc-base` | Cookie-cut custom element base (`a` / `b` / `c`) |
-| `@r-a-i-t-h/tessera-demo-kit` | Shared chrome helpers shells may import at build time |
-| `@r-a-i-t-h/tessera-site` | One Vite host for the instance (`data/shell` and `data/publish`). A placeholder shows while `data/shell` is missing. `sites/` is not this output |
+| `@r-a-i-t-h/tessera-demo-kit` | Chrome helpers the runtime uses (fonts, nav sidebar, w3 helpers) |
+| `@r-a-i-t-h/tessera-extras` | Shared component catalogue. Every site may name these. A new component is a Tessera release |
+| `@r-a-i-t-h/tessera-site` | One Vite host for the shared runtime. Dev serves `data/shell` and `data/publish` (a placeholder while `data/shell` is missing). `TESSERA_SITE` serves `sites/<name>/shell` instead |
 
 Example sites live under `sites/` (pure / ineffable / millersark / willow). They are not npm workspaces. The editing back-end is `apps/editor-api`; the login SPA is `apps/editor`.
 
@@ -70,18 +71,20 @@ sites/willow/
   records/                  # YAML records, not on the web path
     site.yaml  nav.yaml
     content/ items/ layouts/ bindings/ sections/ media/ folders/
-  shell/                    # site-owned presentation source
-    index.html  site.css  main.ts  components/
+  shell/                    # static chrome, no TypeScript
+    index.html  site.css
   publish/                  # static export; nginx document root
-    index.html              # built shell
-    assets/
+    index.html              # shell HTML
+    tessera.js              # shared runtime, stamped by the Tessera build
+    skin/                   # skin CSS, stamped by the Tessera build
+    site.css
     data/site.json  site.<hash>.json  rev.json
     media/  img/
 ```
 
-`shell/` is chrome and micro-apps. It may import engine packages at build time. The built files in `publish/` do not. Adding a micro-app rebuilds that shell. It is not a Tessera release. The editor API does not load site code.
+`shell/` is static chrome (HTML, CSS, images). It does not contain TypeScript. `publish/tessera.js` and `publish/skin/` are install bytes stamped by the site build. Adding a component is a Tessera release: it lands in `@r-a-i-t-h/tessera-extras` and every site may name it. The editor API does not load site code.
 
-`npm run dev:site` serves the instance: `data/shell` and `data/publish` (a short placeholder while `data/shell` is missing). The editor’s **Render site** action flattens every record into that `publish/` tree. `sites/` stays reference material. `npm run build -w @r-a-i-t-h/tessera-site` compiles each reference shell; that build is not the preview.
+`npm run dev:site` serves the instance: `data/shell` and `data/publish` (a short placeholder while `data/shell` is missing). `TESSERA_SITE=willow` serves that reference shell against the same runtime. The editor’s **Render site** action flattens every record into the instance `publish/` tree. `npm run build -w @r-a-i-t-h/tessera-site` builds one runtime and stamps `tessera.js` and `skin/` into each reference `publish/` tree. That build is not the preview.
 
 ## Authoring files
 
@@ -100,9 +103,9 @@ Records live in `$TESSERA_DATA/records/`, off the web path. Each record is one Y
 | `site.yaml` | Site meta |
 | `nav.yaml` | Designed nav tree |
 
-HTML zones use YAML `|` / `|-` scalars (`html:`) so markup is not JSON-escaped. Component implementations stay TypeScript in `shell/components`; only bindings are records.
+HTML zones use YAML `|` / `|-` scalars (`html:`) so markup is not JSON-escaped. Component implementations live in the shared catalogue; only bindings are records.
 
-The editor form for a page lists zones declared by the resolved layout (page `layoutId` → matching section → site default). Extra keys on the page that the layout does not declare stay editable under **Off layout**. A flat JSON object becomes one text field per key already on the file. The editor does not have content types. A person page is a normal page: a tag selects a section, the section selects a layout, and shell components read a JSON zone (Willow’s `meta` holds `role`, `email`, `photo`, `summary`). Those keys live in the shell, not in the engine. `schemaVersion` is how records are stored, not the list of person fields.
+The editor form for a page lists zones declared by the resolved layout (page `layoutId` → matching section → site default). Extra keys on the page that the layout does not declare stay editable under **Off layout**. A flat JSON object becomes one text field per key already on the file. The editor does not have content types. A person page is a normal page: a tag selects a section, the section selects a layout, and catalogue components read a JSON zone (Willow’s `meta` holds `role`, `email`, `photo`, `summary`). Those keys live in the component, not in the engine. `schemaVersion` is how records are stored, not the list of person fields.
 
 `npm run flatten:site` (or an editor save) writes `$TESSERA_DATA/publish/data/site.json` and stamps `<meta name="tessera-site">` in `shell/index.html` and, when it exists, `publish/index.html`.
 
@@ -150,7 +153,7 @@ The global `media[]` catalog remains for single-image references; it is not the 
 
 ## How dynamic lists / custom behaviour are defined
 
-**Component implementations** are TypeScript the site imports and registers. **Bindings** (which data + which component, under a public id) live in `site.json`:
+**Component implementations** ship in `@r-a-i-t-h/tessera-extras` (and renderer builtins such as nav and gallery). The runtime registers them. **Bindings** (which data + which component, under a public id) live in `site.json`:
 
 ```json
 "bindings": [
@@ -173,7 +176,7 @@ Content inserts the populated view with mustache or a component block:
 { "type": "component", "name": "farm-open-days" }
 ```
 
-**What requires a rebuild:** adding a *new* component implementation.  
+**What requires a Tessera release:** adding a new component implementation. It is then available to every site. A site does not ship its own scripts.  
 **What does not:** changing text, JSON, layout trees, bindings, or which binding ids a page references.
 
 Nav presentations (`navTags`, `navTree`, `navCollapse`, …) are registered components; designed `document.nav` plus optional `source` supply data. Page existence does not imply a nav entry.

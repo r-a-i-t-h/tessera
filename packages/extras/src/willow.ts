@@ -226,15 +226,3 @@ export const attendeeList: ComponentFn = (ctx, props = {}) => {
     .join("")}</ul>`;
 };
 
-export function registerSiteComponents(
-  define: (name: string, fn: ComponentFn) => unknown,
-): void {
-  define("datedList", datedList);
-  define("peopleGrid", peopleGrid);
-  define("articleByline", articleByline);
-  define("profileKicker", profileKicker);
-  define("profilePhoto", profilePhoto);
-  define("profileFacts", profileFacts);
-  define("agendaList", agendaList);
-  define("attendeeList", attendeeList);
-}

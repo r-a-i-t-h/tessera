@@ -1,4 +1,4 @@
-import type { ComponentFn, RenderContext } from "@r-a-i-t-h/tessera-renderer";
+import type { ComponentFn } from "@r-a-i-t-h/tessera-renderer";
 
 /** Client-side clock — pure function component. */
 export const now: ComponentFn = (_ctx, props = {}) => {
@@ -63,14 +63,8 @@ export const aboutRenderer: ComponentFn = (ctx) => {
   return `<p class="w3-small w3-text-grey">Rendered page <code>${ctx.escapeHtml(ctx.page.id)}</code> with layout <code>${ctx.escapeHtml(layoutId)}</code> (from ${ctx.escapeHtml(layoutSource)}${section}${skin}).</p>`;
 };
 
-export function registerSiteComponents(
-  define: (name: string, fn: ComponentFn) => unknown,
-): void {
-  define("now", now);
-  define("pageNav", pageNav);
-  define("eventList", eventList);
-  define("aboutRenderer", aboutRenderer);
-}
-
-// silence unused if tree-shaken oddly
-export type { RenderContext };
+/** Light-DOM card mount. The `rt-card` element is registered with the catalogue. */
+export const infoCard: ComponentFn = (ctx, props = {}) => {
+  const title = typeof props.title === "string" ? props.title : "Card";
+  return `<rt-card title="${ctx.escapeHtml(title)}"><p>Child light-DOM content from the renderer.</p></rt-card>`;
+};

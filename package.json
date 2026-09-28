@@ -11,7 +11,7 @@
     "dev:api": "npm run dev -w @r-a-i-t-h/tessera-editor-api",
     "dev:editor": "npm run dev -w @r-a-i-t-h/tessera-editor",
     "build": "npm run build -w @r-a-i-t-h/tessera-site -w @r-a-i-t-h/tessera-editor -w @r-a-i-t-h/tessera-editor-api",
-    "typecheck": "npm run typecheck -w @r-a-i-t-h/tessera-model -w @r-a-i-t-h/tessera-renderer -w @r-a-i-t-h/tessera-skin-w3 -w @r-a-i-t-h/tessera-wc-base -w @r-a-i-t-h/tessera-demo-kit -w @r-a-i-t-h/tessera-site -w @r-a-i-t-h/tessera-editor -w @r-a-i-t-h/tessera-editor-api",
+    "typecheck": "npm run typecheck -w @r-a-i-t-h/tessera-model -w @r-a-i-t-h/tessera-renderer -w @r-a-i-t-h/tessera-skin-w3 -w @r-a-i-t-h/tessera-wc-base -w @r-a-i-t-h/tessera-demo-kit -w @r-a-i-t-h/tessera-extras -w @r-a-i-t-h/tessera-site -w @r-a-i-t-h/tessera-editor -w @r-a-i-t-h/tessera-editor-api",
     "test": "npm run test -w @r-a-i-t-h/tessera-model -w @r-a-i-t-h/tessera-renderer -w @r-a-i-t-h/tessera-site -w @r-a-i-t-h/tessera-editor -w @r-a-i-t-h/tessera-editor-api",
     "convert:legacy": "node scripts/convert-legacy-demos.mjs",
     "flatten:gallery": "node scripts/flatten-gallery.mjs",

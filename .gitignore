@@ -13,4 +13,7 @@ sites/*/history/
 sites/backup/
 sites/*/publish/index.html
 sites/*/publish/assets/
+sites/*/publish/tessera.js
+sites/*/publish/site.css
+sites/*/publish/skin/
 .ref-legacy/
