@@ -5,7 +5,7 @@ import type { SiteDocument } from "../schema.js";
 
 function doc(pages: SiteDocument["pages"]): SiteDocument {
   return parseSiteDocument({
-    version: 1,
+    version: 2,
     site: { id: "s", title: "S", homePageId: "home" },
     layouts: [{ id: "L", root: { type: "zone", id: "main" } }],
     pages,

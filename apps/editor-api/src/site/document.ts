@@ -18,7 +18,7 @@ import type { RecordKind } from "./kinds.js";
 export type ZoneAuthoring =
   | { html: string }
   | { json: unknown }
-  | { component: string; props?: Record<string, unknown>; zones?: Record<string, Block[]> }
+  | { component: string; props?: Record<string, unknown> }
   | { blocks: Block[] };
 
 export type AuthoredPage = {
@@ -65,7 +65,6 @@ export function zonesToAuthoring(zones: Record<string, Block[]> | undefined): Re
       out[id] = {
         component: block.name,
         ...(block.props ? { props: block.props } : {}),
-        ...(block.zones ? { zones: block.zones } : {}),
       };
     } else {
       out[id] = { blocks };
@@ -95,7 +94,6 @@ function zoneToBlocks(zone: ZoneAuthoring): Block[] {
         type: "component",
         name: zone.component,
         ...(zone.props ? { props: zone.props } : {}),
-        ...(zone.zones ? { zones: zone.zones } : {}),
       },
     ];
   }

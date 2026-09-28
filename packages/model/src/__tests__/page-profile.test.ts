@@ -4,13 +4,12 @@ import type { Page, SiteDocument } from "../index.js";
 
 function baseDoc(): SiteDocument {
   return parseSiteDocument({
-    version: 1,
+    version: 2,
     site: {
       id: "s",
       title: "S",
       homePageId: "home",
       defaultLayoutId: "standard",
-      theme: "teal",
     },
     layouts: [
       { id: "standard", root: { type: "zone", id: "main" } },
@@ -28,19 +27,16 @@ function baseDoc(): SiteDocument {
         title: "Tagged pages",
         match: { tags: ["page"] },
         layoutId: "standard",
-        skinId: "teal",
       },
       {
         id: "events",
         title: "Events",
         match: { tags: ["event"] },
         layoutId: "simple",
-        skinId: "amber",
         children: [
           {
             id: "events-vip",
             match: { tags: ["vip"] },
-            skinId: "gold",
           },
         ],
       },
@@ -71,44 +67,40 @@ describe("resolvePageProfile", () => {
     expect(profile).toMatchObject({
       layoutId: "simple",
       layoutSource: "page",
-      skinId: "teal",
       sectionId: "site-default",
     });
   });
 
-  it("inherits layout and skin from a matching section", () => {
+  it("inherits layout from a matching section", () => {
     const doc = baseDoc();
     const page = doc.pages.find((p) => p.id === "event-farm")!;
     const profile = resolvePageProfile(doc, page);
     expect(profile).toMatchObject({
       layoutId: "simple",
       layoutSource: "section",
-      skinId: "amber",
       sectionId: "events",
     });
   });
 
-  it("prefers deeper nested section for skin", () => {
+  it("prefers the deeper nested section", () => {
     const doc = baseDoc();
     const page = doc.pages.find((p) => p.id === "event-vip")!;
     const profile = resolvePageProfile(doc, page);
     expect(profile).toMatchObject({
       layoutId: "simple",
       layoutSource: "section",
-      skinId: "gold",
       sectionId: "events-vip",
     });
   });
 
   it("falls back to site.defaultLayoutId when nothing matches", () => {
     const lonely = parseSiteDocument({
-      version: 1,
+      version: 2,
       site: {
         id: "s",
         title: "S",
         homePageId: "lonely",
         defaultLayoutId: "standard",
-        theme: "teal",
       },
       layouts: [
         { id: "standard", root: { type: "zone", id: "main" } },
@@ -121,7 +113,6 @@ describe("resolvePageProfile", () => {
     expect(profile).toMatchObject({
       layoutId: "standard",
       layoutSource: "site",
-      skinId: "teal",
     });
     expect(profile.sectionId).toBeUndefined();
   });

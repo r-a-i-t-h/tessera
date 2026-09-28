@@ -33,7 +33,7 @@ describe("record routes", () => {
       zones: { main: { html: "<p>Hello</p>" } },
     });
     await site.writeSite({
-      version: 1,
+      version: 2,
       id: "demo",
       title: "Demo",
       homePageId: "home",

@@ -3,7 +3,7 @@ import type { SiteDocument } from "@r-a-i-t-h/tessera-model";
 /** Minimal fixture: two layouts (with/without aside), shared item, media, nav. */
 export function makeFixtureDoc(): SiteDocument {
   return {
-    version: 1,
+    version: 2,
     site: {
       id: "test",
       title: "Test site",

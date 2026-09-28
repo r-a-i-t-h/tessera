@@ -1,8 +1,9 @@
-version: 1
+version: 2
 id: millersark
 title: Miller's Ark
 homePageId: home
-theme: indigo
+defaultLayoutId: standard
+masterLayoutId: master
 settings:
   openDays:
     - date: 2026-08-31

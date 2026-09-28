@@ -1,11 +1,11 @@
 {
-  "version": 1,
+  "version": 2,
   "site": {
     "id": "willow-hall",
     "title": "Willow Hall",
     "homePageId": "home",
     "defaultLayoutId": "standard",
-    "theme": "willow"
+    "masterLayoutId": "master"
   },
   "layouts": [
     {
@@ -307,6 +307,86 @@
               {
                 "type": "zone",
                 "id": "footer"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "master",
+      "title": "Master",
+      "root": {
+        "type": "region",
+        "children": [
+          {
+            "type": "region",
+            "tag": "header",
+            "className": "wh-header",
+            "children": [
+              {
+                "type": "region",
+                "className": "wh-brandbar",
+                "children": [
+                  {
+                    "type": "static",
+                    "html": "<a class=\"wh-brand\" href=\"#home\"><img src=\"./img/logo.svg\" width=\"36\" height=\"36\" alt=\"\" /><span><strong>Willow Hall</strong><em>Community centre</em></span></a><button type=\"button\" class=\"wh-menu-btn w3-hide-large\" onclick=\"w3_open()\" aria-label=\"Open menu\">Menu</button>"
+                  }
+                ]
+              },
+              {
+                "type": "region",
+                "tag": "nav",
+                "id": "topnav",
+                "className": "wh-topnav w3-hide-small w3-hide-medium",
+                "children": [
+                  {
+                    "type": "component",
+                    "name": "navFlat",
+                    "props": {
+                      "scope": "topbar"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "region",
+            "tag": "nav",
+            "id": "mySidebar",
+            "className": "w3-sidebar w3-bar-block w3-animate-left wh-drawer",
+            "children": [
+              {
+                "type": "region",
+                "className": "wh-drawer-head",
+                "children": [
+                  {
+                    "type": "static",
+                    "html": "<span>Menu</span><button type=\"button\" class=\"wh-icon-btn\" onclick=\"w3_close()\" aria-label=\"Close menu\">×</button>"
+                  }
+                ]
+              },
+              {
+                "type": "component",
+                "name": "navFlat",
+                "props": {
+                  "scope": "sidebar"
+                }
+              }
+            ]
+          },
+          {
+            "type": "static",
+            "html": "<div class=\"w3-overlay wh-overlay\" onclick=\"w3_close()\" id=\"myOverlay\"></div>"
+          },
+          {
+            "type": "region",
+            "tag": "main",
+            "className": "wh-main",
+            "children": [
+              {
+                "type": "page"
               }
             ]
           }

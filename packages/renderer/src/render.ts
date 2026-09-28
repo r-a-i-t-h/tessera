@@ -56,14 +56,6 @@ function zoneJsonFromMap(zones: ZoneMap, zoneId: string): unknown[] {
   return out;
 }
 
-function withZones(ctx: RenderContext, zones: ZoneMap): RenderContext {
-  return {
-    ...ctx,
-    zones,
-    zoneJson: <T = unknown>(zoneId: string) => zoneJsonFromMap(zones, zoneId) as T[],
-  };
-}
-
 export function renderPage(options: RenderPageOptions): string {
   const { document, pageId, registry, skin } = options;
   const { layoutsById, pagesById, itemsById, mediaById } = indexDocument(document);
@@ -91,7 +83,12 @@ export function renderPage(options: RenderPageOptions): string {
     microApps: options.microApps,
   };
 
-  return renderNode(layout.root, ctx, skin);
+  const pageHtml = renderNode(layout.root, ctx, skin);
+  const masterId = document.site.masterLayoutId;
+  if (!masterId || masterId === profile.layoutId) return pageHtml;
+  const master = layoutsById.get(masterId);
+  if (!master) throw new Error(`Unknown master layout: ${masterId}`);
+  return renderNode(master.root, ctx, skin, pageHtml);
 }
 
 function renderBlocks(blocks: Block[], ctx: RenderContext): string {
@@ -108,17 +105,8 @@ function renderBlock(block: Block, ctx: RenderContext): string {
       return ctx.mediaHtml(block.id);
     case "image":
       return imageBlockToHtml(block);
-    case "component": {
-      let subCtx = ctx;
-      if (block.zones && Object.keys(block.zones).length) {
-        const nested = new Map(ctx.zones);
-        for (const [id, blocks] of Object.entries(block.zones)) {
-          nested.set(id, blocks);
-        }
-        subCtx = withZones(ctx, nested);
-      }
-      return renderNamed(block.name, subCtx, block.props ?? {});
-    }
+    case "component":
+      return renderNamed(block.name, ctx, block.props ?? {});
     default: {
       const _exhaustive: never = block;
       return _exhaustive;
@@ -126,7 +114,7 @@ function renderBlock(block: Block, ctx: RenderContext): string {
   }
 }
 
-function renderNode(node: LayoutNode, ctx: RenderContext, skin?: Skin): string {
+function renderNode(node: LayoutNode, ctx: RenderContext, skin?: Skin, pageHtml?: string): string {
   switch (node.type) {
     case "static":
       return expandMustache(node.html, ctx);
@@ -142,14 +130,17 @@ function renderNode(node: LayoutNode, ctx: RenderContext, skin?: Skin): string {
       const cls =
         skin?.regionClass?.(node.role, node.className) ??
         [node.className, node.role ? `rt-role-${node.role}` : ""].filter(Boolean).join(" ");
-      const children = node.children.map((c) => renderNode(c, ctx, skin)).join("");
+      const children = node.children.map((c) => renderNode(c, ctx, skin, pageHtml)).join("");
       // Skip empty wrappers (e.g. unused primary column on pages that only fill main).
       if (!children) return "";
+      const idAttr = node.id ? ` id="${escapeHtml(node.id)}"` : "";
       const classAttr = cls ? ` class="${escapeHtml(cls)}"` : "";
-      return `<${tag}${classAttr}>${children}</${tag}>`;
+      return `<${tag}${idAttr}${classAttr}>${children}</${tag}>`;
     }
+    case "page":
+      return pageHtml ?? "";
     case "component": {
-      const childrenHtml = (node.children ?? []).map((c) => renderNode(c, ctx, skin)).join("");
+      const childrenHtml = (node.children ?? []).map((c) => renderNode(c, ctx, skin, pageHtml)).join("");
       return renderNamed(node.name, ctx, node.props ?? {}, childrenHtml);
     }
     default: {

@@ -184,7 +184,8 @@ img {
   padding: 0 1rem 0.65rem;
 }
 
-.wh-toplink {
+.wh-toplink,
+.wh-topnav a {
   display: inline-flex;
   align-items: center;
   min-height: 2.4rem;
@@ -196,7 +197,9 @@ img {
 }
 
 .wh-toplink:hover,
-.wh-toplink.is-active {
+.wh-toplink.is-active,
+.wh-topnav a:hover,
+.wh-topnav a.is-active {
   background: var(--wh-accent);
   color: #fff;
 }

@@ -3,9 +3,19 @@ import { parseSiteDocument } from "@r-a-i-t-h/tessera-model";
 import { publishPages } from "../publish-pages.js";
 
 const document = parseSiteDocument({
-  version: 1,
-  site: { id: "hall", title: "Willow Hall", homePageId: "home" },
+  version: 2,
+  site: { id: "hall", title: "Willow Hall", homePageId: "home", masterLayoutId: "master" },
   layouts: [
+    {
+      id: "master",
+      root: {
+        type: "region",
+        children: [
+          { type: "static", html: "<header>Hall frame</header>" },
+          { type: "page" },
+        ],
+      },
+    },
     {
       id: "L",
       root: {
@@ -106,15 +116,14 @@ describe("publishPages", () => {
     expect(home).toContain('"title":"Fair"');
   });
 
-  it("writes the same nav into every page, with links relative to that file", () => {
+  it("writes the master frame into every page and does not invent a second nav", () => {
     const home = byPath.get("index.html")!;
     const fair = byPath.get("events/summer-fair/index.html")!;
-    expect(home).toContain('href="./" aria-current="page"');
-    expect(home).toContain('href="./events/"');
-    expect(home).toContain('href="./events/summer-fair/"');
+    expect(home).toContain("<header>Hall frame</header>");
+    expect(home).toContain("Welcome");
+    expect(home).not.toContain('aria-label="Primary"');
     expect(home).not.toContain("Private");
-    expect(fair).toContain('href="../../"');
-    expect(fair).toContain('href="../../events/summer-fair/" aria-current="page"');
+    expect(fair).toContain("<header>Hall frame</header>");
     expect(fair).toContain("<title>Summer fair · Willow Hall</title>");
     expect(fair).toContain('<link rel="canonical" href="https://example.test/events/summer-fair/" />');
   });

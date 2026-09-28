@@ -1,11 +1,11 @@
 {
-  "version": 1,
+  "version": 2,
   "site": {
     "id": "pure-tessera",
     "title": "Tessera pure demo",
     "homePageId": "home",
     "defaultLayoutId": "standard",
-    "theme": "teal"
+    "masterLayoutId": "master"
   },
   "layouts": [
     {
@@ -134,6 +134,66 @@
               {
                 "type": "zone",
                 "id": "footer"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "master",
+      "title": "Master",
+      "root": {
+        "type": "region",
+        "children": [
+          {
+            "type": "region",
+            "className": "w3-bar w3-theme w3-large",
+            "children": [
+              {
+                "type": "static",
+                "html": "<a class=\"w3-bar-item w3-button\" href=\"#home\">Tessera</a>"
+              },
+              {
+                "type": "region",
+                "className": "w3-bar-item w3-right w3-small",
+                "children": [
+                  {
+                    "type": "component",
+                    "name": "now"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "region",
+            "className": "w3-row",
+            "children": [
+              {
+                "type": "region",
+                "tag": "nav",
+                "id": "sidebar",
+                "className": "w3-col m3 l2 w3-theme-l5 w3-padding",
+                "children": [
+                  {
+                    "type": "component",
+                    "name": "navCollapse",
+                    "props": {
+                      "scope": "sidebar"
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "region",
+                "tag": "main",
+                "className": "w3-col m9 l10",
+                "children": [
+                  {
+                    "type": "page"
+                  }
+                ]
               }
             ]
           }
@@ -430,24 +490,6 @@
             "name": "gallery",
             "props": {
               "mode": "grid"
-            },
-            "zones": {
-              "slides": [
-                {
-                  "type": "image",
-                  "url": "./media/sample-gallery/01-red.svg",
-                  "caption": "Inline crimson"
-                },
-                {
-                  "type": "image",
-                  "url": "./media/sample-gallery/04-blue.svg"
-                },
-                {
-                  "type": "image",
-                  "url": "./media/sample-gallery/05-teal.svg",
-                  "caption": "Inline teal"
-                }
-              ]
             }
           }
         ],
@@ -645,8 +687,7 @@
           "page"
         ]
       },
-      "layoutId": "standard",
-      "skinId": "teal"
+      "layoutId": "standard"
     },
     {
       "id": "events",
@@ -657,7 +698,6 @@
         ]
       },
       "layoutId": "simple",
-      "skinId": "amber",
       "children": [
         {
           "id": "events-featured",
@@ -666,8 +706,7 @@
             "tags": [
               "featured"
             ]
-          },
-          "skinId": "gold"
+          }
         }
       ]
     }

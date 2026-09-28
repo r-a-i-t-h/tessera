@@ -10,7 +10,7 @@ import type { LayoutNode } from "../index.js";
 describe("SiteDocument schema", () => {
   it("parses a valid document", () => {
     const doc = parseSiteDocument({
-      version: 1,
+      version: 2,
       site: { id: "s", title: "S", homePageId: "p1" },
       layouts: [
         {
@@ -35,7 +35,7 @@ describe("SiteDocument schema", () => {
 
   it("rejects invalid version", () => {
     const result = safeParseSiteDocument({
-      version: 2,
+      version: 99,
       site: { id: "s", title: "S", homePageId: "p1" },
       layouts: [{ id: "L", root: { type: "static", html: "x" } }],
       pages: [{ id: "p1", title: "P", layoutId: "L", zones: {} }],
@@ -45,7 +45,7 @@ describe("SiteDocument schema", () => {
 
   it("accepts media caption and sort", () => {
     const doc = parseSiteDocument({
-      version: 1,
+      version: 2,
       site: { id: "s", title: "S", homePageId: "p1" },
       layouts: [
         {
@@ -79,7 +79,7 @@ describe("SiteDocument schema", () => {
 
   it("parses folders and derives captionFromFilename", () => {
     const doc = parseSiteDocument({
-      version: 1,
+      version: 2,
       site: { id: "s", title: "S", homePageId: "p1" },
       layouts: [{ id: "L", root: { type: "zone", id: "main" } }],
       pages: [{ id: "p1", title: "P", layoutId: "L", zones: {} }],
@@ -97,7 +97,7 @@ describe("SiteDocument schema", () => {
 
   it("parses section profiles", () => {
     const doc = parseSiteDocument({
-      version: 1,
+      version: 2,
       site: { id: "s", title: "S", homePageId: "p1", defaultLayoutId: "L" },
       layouts: [
         {
@@ -114,7 +114,6 @@ describe("SiteDocument schema", () => {
           id: "events",
           match: { tags: ["event"] },
           layoutId: "L",
-          skinId: "amber",
         },
       ],
     });

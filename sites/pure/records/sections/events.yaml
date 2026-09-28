@@ -4,11 +4,9 @@ match:
   tags:
     - event
 layoutId: simple
-skinId: amber
 children:
   - id: events-featured
     title: Featured events
     match:
       tags:
         - featured
-    skinId: gold

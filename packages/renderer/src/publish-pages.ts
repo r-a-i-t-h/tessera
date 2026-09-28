@@ -17,22 +17,16 @@ export type PublishedFile = {
   contents: string;
 };
 
-type NavItem = {
-  node: PageTreeNode;
-  children: NavItem[];
-};
-
 /**
  * One HTML file per published page, plus `sitemap.xml`.
- * Prose is in the file. Micro-apps are empty mounts plus a JSON description.
- * Nav is the same tree in every file, with links relative to that file.
+ * The body is the master layout around that page. Micro-apps are empty mounts
+ * plus a JSON description. Nav is whatever the master layout places.
  */
 export function publishPages(document: SiteDocument, options: PublishPagesOptions): PublishedFile[] {
   const origin = options.origin.replace(/\/$/, "");
   const lang = options.lang ?? "en";
   const tree = publishedPageTree(document);
   const pages = flattenPageTree(tree);
-  const nav = visibleNav(tree);
   const files: PublishedFile[] = [];
 
   for (const node of pages) {
@@ -51,7 +45,6 @@ export function publishPages(document: SiteDocument, options: PublishPagesOption
         document,
         node,
         body,
-        nav,
         origin,
         lang,
         microApps,
@@ -66,26 +59,15 @@ export function publishPages(document: SiteDocument, options: PublishPagesOption
   return files;
 }
 
-function visibleNav(nodes: PageTreeNode[]): NavItem[] {
-  const out: NavItem[] = [];
-  for (const node of nodes) {
-    const children = visibleNav(node.children);
-    if (node.page.showInNav === false) out.push(...children);
-    else out.push({ node, children });
-  }
-  return out;
-}
-
 function pageHtml(input: {
   document: SiteDocument;
   node: PageTreeNode;
   body: string;
-  nav: NavItem[];
   origin: string;
   lang: string;
   microApps: MicroAppMount[];
 }): string {
-  const { document, node, body, nav, origin, lang, microApps } = input;
+  const { document, node, body, origin, lang, microApps } = input;
   const title = `${node.page.title} · ${document.site.title}`;
   const description = node.page.description?.trim();
   const canonical = canonicalUrl(origin, node.path);
@@ -104,33 +86,10 @@ function pageHtml(input: {
     <link rel="canonical" href="${escapeHtml(canonical)}" />
   </head>
   <body>
-    ${renderNav(nav, node.path, node.page.id)}
-    <main>
-      ${body}
-    </main>${microAppScript}
+    ${body}${microAppScript}
   </body>
 </html>
 `;
-}
-
-function renderNav(items: NavItem[], fromPath: string, currentId: string): string {
-  if (!items.length) return "";
-  return `<nav aria-label="Primary">\n${renderNavList(items, fromPath, currentId)}\n    </nav>`;
-}
-
-function renderNavList(items: NavItem[], fromPath: string, currentId: string): string {
-  const rows = items
-    .map((item) => {
-      const current = item.node.page.id === currentId ? ` aria-current="page"` : "";
-      const href = hrefFor(fromPath, item.node.path);
-      const label = escapeHtml(item.node.page.title);
-      const children = item.children.length
-        ? `\n${renderNavList(item.children, fromPath, currentId)}`
-        : "";
-      return `        <li><a href="${escapeHtml(href)}"${current}>${label}</a>${children}</li>`;
-    })
-    .join("\n");
-  return `      <ul>\n${rows}\n      </ul>`;
 }
 
 /** Link from a page's directory to another page's directory. */

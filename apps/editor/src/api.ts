@@ -147,6 +147,10 @@ export function renderSite(): Promise<RenderResult> {
   return request("/api/render", { method: "POST" });
 }
 
+export function initSite(): Promise<RenderResult> {
+  return request("/api/site/init", { method: "POST" });
+}
+
 export function listRecords(): Promise<RecordList> {
   return request("/api/records");
 }

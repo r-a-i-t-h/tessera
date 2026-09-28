@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /** Schema version expected by this package — must match `SiteDocument.version`. */
-export const SITE_DOCUMENT_SCHEMA_VERSION = 1 as const;
+export const SITE_DOCUMENT_SCHEMA_VERSION = 2 as const;
 
 /** Content blocks that fill zones. */
 export const TextBlockSchema = z.object({
@@ -38,8 +38,6 @@ export type ComponentBlock = {
   type: "component";
   name: string;
   props?: Record<string, unknown>;
-  /** Nested zone contributions for components that expose slots. */
-  zones?: Record<string, Block[]>;
 };
 
 export const BlockSchema: z.ZodType<Block> = z.lazy(() =>
@@ -52,7 +50,6 @@ export const BlockSchema: z.ZodType<Block> = z.lazy(() =>
       type: z.literal("component"),
       name: z.string(),
       props: z.record(z.unknown()).optional(),
-      zones: z.record(z.array(BlockSchema)).optional(),
     }),
   ]),
 );
@@ -64,15 +61,23 @@ export type LayoutNode =
   | RegionNode
   | ZoneNode
   | StaticNode
-  | LayoutComponentNode;
+  | LayoutComponentNode
+  | PageSlotNode;
 
 export type RegionNode = {
   type: "region";
   tag?: string;
+  /** Optional element id, for site chrome hooks such as a drawer. */
+  id?: string;
   /** Semantic role for skins (e.g. main, sidebar, footer). */
   role?: string;
   className?: string;
   children: LayoutNode[];
+};
+
+/** Placeholder in a master layout. Replaced by the page's own layout. */
+export type PageSlotNode = {
+  type: "page";
 };
 
 export type ZoneNode = {
@@ -98,6 +103,7 @@ export const LayoutNodeSchema: z.ZodType<LayoutNode> = z.lazy(() =>
     z.object({
       type: z.literal("region"),
       tag: z.string().optional(),
+      id: z.string().min(1).optional(),
       role: z.string().optional(),
       className: z.string().optional(),
       children: z.array(LayoutNodeSchema),
@@ -116,6 +122,9 @@ export const LayoutNodeSchema: z.ZodType<LayoutNode> = z.lazy(() =>
       name: z.string().min(1),
       props: z.record(z.unknown()).optional(),
       children: z.array(LayoutNodeSchema).optional(),
+    }),
+    z.object({
+      type: z.literal("page"),
     }),
   ]),
 );
@@ -172,7 +181,7 @@ export const SectionMatchSchema = z.object({
 export type SectionMatch = z.infer<typeof SectionMatchSchema>;
 
 /**
- * Hierarchical presentation profile: switch layout/skin for a slice of the site
+ * Hierarchical presentation profile: switch layout for a slice of the site
  * without recursive content templates. Only layouts declare zones.
  */
 export type Section = {
@@ -180,8 +189,6 @@ export type Section = {
   title?: string;
   match: SectionMatch;
   layoutId?: string;
-  /** Presentation hint (e.g. theme name); chrome/skins may consume later. */
-  skinId?: string;
   children?: Section[];
 };
 
@@ -191,7 +198,6 @@ export const SectionSchema: z.ZodType<Section, z.ZodTypeDef, unknown> = z.lazy((
     title: z.string().optional(),
     match: SectionMatchSchema.default({}),
     layoutId: z.string().min(1).optional(),
-    skinId: z.string().min(1).optional(),
     children: z.array(SectionSchema).optional(),
   }),
 );
@@ -292,7 +298,8 @@ export const SiteMetaSchema = z.object({
   title: z.string(),
   homePageId: z.string().min(1),
   defaultLayoutId: z.string().optional(),
-  theme: z.string().optional(),
+  /** Outer page. Its `page` node is replaced by the resolved page layout. */
+  masterLayoutId: z.string().min(1).optional(),
   settings: z.record(z.unknown()).optional(),
 });
 
@@ -310,7 +317,7 @@ export const SiteDocumentSchema = z.object({
   /** Named bindings of data → component for insertion in content. */
   bindings: z.array(BindingSchema).default([]),
   /**
-   * Section profiles: hierarchical layout/skin defaults for matching pages.
+   * Section profiles: hierarchical layout defaults for matching pages.
    * Resolution: site default → matching sections (deeper / later win) → page.layoutId override.
    */
   sections: z.array(SectionSchema).default([]),
@@ -326,10 +333,9 @@ export type Binding = z.infer<typeof BindingSchema>;
 export type SiteMeta = z.infer<typeof SiteMetaSchema>;
 export type SiteDocument = z.infer<typeof SiteDocumentSchema>;
 
-/** Effective layout/skin after section inheritance + page override. */
+/** Effective layout after section inheritance + page override. */
 export type PageProfile = {
   layoutId: string;
-  skinId?: string;
   /** How `layoutId` was chosen. */
   layoutSource: "page" | "section" | "site";
   /** Deepest matching section id, if any. */
@@ -349,12 +355,11 @@ export function sectionMatchesPage(match: SectionMatch, page: Page): boolean {
 }
 
 /**
- * Resolve layout/skin for a page: site default → matching sections → page override.
+ * Resolve layout for a page: site default → matching sections → page override.
  * Layouts remain first-class; sections never invent zones.
  */
 export function resolvePageProfile(document: SiteDocument, page: Page): PageProfile {
   let layoutId: string | undefined = document.site.defaultLayoutId;
-  let skinId: string | undefined = document.site.theme;
   let layoutSource: PageProfile["layoutSource"] = "site";
   let sectionId: string | undefined;
 
@@ -365,7 +370,6 @@ export function resolvePageProfile(document: SiteDocument, page: Page): PageProf
         layoutId = section.layoutId;
         layoutSource = "section";
       }
-      if (section.skinId !== undefined) skinId = section.skinId;
       sectionId = section.id;
       if (section.children?.length) walk(section.children);
     }
@@ -384,7 +388,7 @@ export function resolvePageProfile(document: SiteDocument, page: Page): PageProf
     layoutSource = "site";
   }
 
-  return { layoutId, skinId, layoutSource, sectionId };
+  return { layoutId, layoutSource, sectionId };
 }
 
 /**
@@ -420,6 +424,7 @@ export function collectDeclaredZones(node: LayoutNode, into = new Set<string>())
       node.children?.forEach((c) => collectDeclaredZones(c, into));
       break;
     case "static":
+    case "page":
       break;
   }
   return into;

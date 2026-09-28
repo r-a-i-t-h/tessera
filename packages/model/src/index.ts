@@ -58,6 +58,7 @@ export type {
   ZoneNode,
   StaticNode,
   LayoutComponentNode,
+  PageSlotNode,
   Layout,
   Page,
   Item,

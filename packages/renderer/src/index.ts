@@ -28,7 +28,6 @@ export {
 export {
   resolveNavTree,
   flattenNav,
-  expandNav,
   type ResolvedNavNode,
 } from "./nav-expand.js";
 export {
@@ -43,7 +42,6 @@ export {
   gallery,
   slidesFromFolders,
   slidesFromImageBlocks,
-  mergeNestedZones,
   type GallerySlide,
 } from "./builtins/gallery.js";
 export {

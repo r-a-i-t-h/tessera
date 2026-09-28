@@ -1,6 +1,6 @@
-version: 1
+version: 2
 id: willow-hall
 title: Willow Hall
 homePageId: home
 defaultLayoutId: standard
-theme: willow
+masterLayoutId: master

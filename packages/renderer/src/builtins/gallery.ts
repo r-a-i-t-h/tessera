@@ -5,7 +5,7 @@ import {
   type SiteDocument,
 } from "@r-a-i-t-h/tessera-model";
 import { normalizeSiteAssetUrl } from "../assets.js";
-import type { ComponentFn, ZoneMap } from "../types.js";
+import type { ComponentFn } from "../types.js";
 import { registerGalleryElement, type GalleryItem } from "./gallery-element.js";
 
 export type GallerySlide = {
@@ -127,14 +127,4 @@ export function registerGalleryComponents(
 ): void {
   registerGalleryElement();
   define("gallery", gallery);
-}
-
-/** Merge nested component-block zones into a zone map (for inline gallery slides). */
-export function mergeNestedZones(base: ZoneMap, nested?: Record<string, Block[]>): ZoneMap {
-  if (!nested) return base;
-  const out = new Map(base);
-  for (const [id, blocks] of Object.entries(nested)) {
-    out.set(id, blocks);
-  }
-  return out;
 }

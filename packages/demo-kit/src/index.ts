@@ -3,7 +3,6 @@ export {
   bodySwitch,
   installChromeGlobals,
   flipNavSide,
-  renderNavSidebar,
   renderStaleBanner,
   insertHeadingsMenu,
   wireSidebarToggle,

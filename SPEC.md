@@ -46,8 +46,9 @@ The whole text/data payload for a site is one **`SiteDocument`**: site meta, lay
 
 ### Layout and zones
 
-- A **layout** is a tree of regions, zones, static HTML, and components.
+- A **layout** is a tree of regions, zones, static HTML, components, and at most one **page** slot.
 - **Only layouts declare zones** and where they appear on the page.
+- `site.masterLayoutId` names the outer page (the frame: header, nav, drawer). Its `page` node is replaced by the page's own layout. Content cannot fill that node. Nav is a component placed in the master. The shell is the document head, one mount, and CSS.
 - A **page** may set `layoutId` explicitly, or omit it and inherit from **section profiles** / `site.defaultLayoutId`.
 - A page may pull in shared **items** and contribute blocks into zones.
 - Contributions to zones the layout does not declare are not painted, but may remain available as data for components (e.g. JSON for a list).
@@ -56,9 +57,10 @@ The whole text/data payload for a site is one **`SiteDocument`**: site meta, lay
 
 Hierarchical **sections** switch layout/skin for slices of the site **without** recursive content templates:
 
-- `document.sections[]` is a shallow tree: `{ id, match, layoutId?, skinId?, children? }`.
+- `document.sections[]` is a shallow tree: `{ id, match, layoutId?, children? }`.
 - `match` uses tags and/or `pageIdPrefix` (present fields are ANDed; empty match matches all).
-- Resolution order: `site.defaultLayoutId` (+ `site.theme` as default skin) → matching sections (deeper / later wins) → `page.layoutId` override.
+- Resolution order: `site.defaultLayoutId` → matching sections (deeper / later wins) → `page.layoutId` override.
+- Colour is a stylesheet linked from the shell. The document does not name a skin.
 - Layouts remain first-class; sections never invent zones. Within-page variety stays regions, bindings, and layout WCs.
 
 ### Pages and items
@@ -121,7 +123,7 @@ Folder-relative URLs (`./…`) and Vite `base: "./"` keep a published site porta
 #### Pages
 
 - A **tree of pages**. `parentId` is the parent. The home page is the site root (`index.html`). Every other page is `{path}/index.html`, where the path is the chain of `slug` (or `id`) segments under the home page.
-- Each file contains that page’s prose, `<title>`, optional meta description, canonical URL, and the **same nav**, written once at publish from the tree. `showInNav: false` keeps the URL and the file, and omits the page from the menu. A hidden parent’s visible children stay in the menu.
+- Each file contains that page’s prose, `<title>`, optional meta description, canonical URL, and the **same master layout** around the page. `showInNav: false` keeps the URL and the file. A menu link appears only when the master layout's nav component includes that page.
 - Micro-app regions are empty `data-tessera-microapp` mounts plus a JSON description. They run in the browser.
 - `sitemap.xml` lists every published page URL.
 - Visitors move between pages by loading the next HTML file.
@@ -289,7 +291,7 @@ Criteria define “done enough,” not a build order (see [ROADMAP.md](./ROADMAP
 ### Pages flavour
 
 - [ ] A published page record is `id`, `title`, optional `description`, optional `parentId`, optional `slug`, optional `showInNav`, and the existing body zones. Drafts and history are not on that record.
-- [ ] `publishPages` writes one HTML file per page, with prose, title, canonical URL, and the same static nav in every file.
+- [ ] `publishPages` writes one HTML file per page, with prose, title, canonical URL, and the same master layout in every file.
 - [ ] Micro-apps are `data-tessera-microapp` mounts plus JSON. The publisher does not run them.
 - [ ] `sitemap.xml` lists every published page URL, including pages omitted from nav.
 

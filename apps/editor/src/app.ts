@@ -11,6 +11,7 @@ import {
   logout,
   me,
   restoreBackup,
+  initSite,
   renderSite,
   restoreExample,
   saveRawRecord,
@@ -170,10 +171,22 @@ function bindLogin(root: HTMLElement, error?: string, username = ""): void {
   });
 }
 
-async function bindList(root: HTMLElement, user: PublicUser): Promise<void> {
+async function bindList(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {
   const listing = await listRecords();
-  root.innerHTML = chrome(user, listHtml(listing), true);
+  root.innerHTML = chrome(user, listHtml(listing, notice, error), true);
   bindChrome(root);
+  root.querySelector("[data-action=init-site]")?.addEventListener("click", () => {
+    void (async () => {
+      const button = root.querySelector<HTMLButtonElement>("[data-action=init-site]");
+      if (button) button.disabled = true;
+      try {
+        await initSite();
+        await bindList(root, user, "Started an empty site with a master layout and a home page.");
+      } catch (err) {
+        await bindList(root, user, "", err instanceof Error ? err.message : "Could not start a site.");
+      }
+    })();
+  });
 }
 
 async function bindBackups(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {
@@ -291,7 +304,7 @@ function formatBytes(size: number): string {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function listHtml(listing: RecordList): string {
+function listHtml(listing: RecordList, notice = "", error = ""): string {
   const byKind = new Map<string, RecordSummary[]>();
   for (const rec of listing.records) {
     const list = byKind.get(rec.kind) ?? [];
@@ -315,9 +328,17 @@ function listHtml(listing: RecordList): string {
       </section>`;
     })
     .join("");
+  const empty = !listing.records.some((row) => row.kind === "site");
+  const start = empty
+    ? `<p><button type="button" class="w3-button w3-theme" data-action="init-site">Start an empty site</button></p>
+       <p class="w3-text-grey">This writes a shell, a master layout, a page layout, and a home page into the instance directory. It does not replace a site that already has records.</p>`
+    : "";
   return `<h1 class="w3-large">Records</h1>
+    ${notice ? `<p class="w3-panel w3-pale-green" role="status">${escapeHtml(notice)}</p>` : ""}
+    ${error ? `<p class="w3-panel w3-pale-red" role="alert">${escapeHtml(error)}</p>` : ""}
     <p class="w3-text-grey">YAML files named with Tessera <code>id</code>, outside the web root. Saving a page appends the previous file to a history file and updates the snapshot. <strong>Render site</strong> writes every page into the preview on port 5173.</p>
-    ${sections || "<p>No records yet.</p>"}`;
+    ${start}
+    ${sections || (empty ? "" : "<p>No records yet.</p>")}`;
 }
 
 type EditMode = "fields" | "raw";

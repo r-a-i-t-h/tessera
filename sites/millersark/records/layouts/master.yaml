@@ -1,0 +1,31 @@
+id: master
+title: Master
+root:
+  type: region
+  children:
+    - type: region
+      className: w3-top
+      children:
+        - type: region
+          className: w3-bar w3-theme w3-left-align w3-large
+          children:
+            - type: static
+              html: '<a href="#home" class="w3-bar-item logo" aria-label="home"></a><a class="w3-bar-item w3-button w3-right w3-hide-large w3-hover-white w3-large w3-theme-l1" href="javascript:void(0)" onclick="w3_open()"><i class="fa fa-bars"></i></a><div class="w3-bar-item w3-text-yellow w3-large">Miller''s Ark</div>'
+    - type: region
+      tag: nav
+      id: mySidebar
+      className: w3-sidebar w3-bar-block w3-collapse w3-normal w3-white w3-container
+      children:
+        - type: static
+          html: '<a href="javascript:void(0)" onclick="w3_close()" class="w3-right w3-xlarge w3-padding-large w3-hover-theme w3-hide-large" title="Close Menu"><i class="fa fa-remove"></i></a><h4 class="w3-bar-item"><b>Pages</b></h4>'
+        - type: component
+          name: navFlat
+          props:
+            scope: sidebar
+    - type: static
+      html: '<div class="w3-overlay w3-hide-large" onclick="w3_close()" id="myOverlay" style="cursor: pointer"></div>'
+    - type: region
+      tag: main
+      className: w3-main
+      children:
+        - type: page

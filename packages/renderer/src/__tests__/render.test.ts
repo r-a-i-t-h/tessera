@@ -106,7 +106,6 @@ describe("renderPage", () => {
         id: "events",
         match: { tags: ["event"] },
         layoutId: "no-aside",
-        skinId: "amber",
       },
     ];
     doc.pages.push({
@@ -140,6 +139,31 @@ describe("renderPage", () => {
       },
     });
     expect(html).toContain('class="skinned role-main"');
+  });
+
+  it("wraps the page layout in the master and fills the page slot", () => {
+    const doc = makeFixtureDoc();
+    doc.site.masterLayoutId = "master";
+    doc.layouts.push({
+      id: "master",
+      root: {
+        type: "region",
+        id: "frame",
+        children: [
+          { type: "static", html: "<header>Frame</header>" },
+          { type: "page" },
+        ],
+      },
+    });
+    const html = renderPage({
+      document: doc,
+      pageId: "home",
+      registry: registryWithDefaults(),
+    });
+    expect(html).toContain("<header>Frame</header>");
+    expect(html).toContain('id="frame"');
+    expect(html).toContain("Home title");
+    expect(html.indexOf("Frame")).toBeLessThan(html.indexOf("Home title"));
   });
 });
 

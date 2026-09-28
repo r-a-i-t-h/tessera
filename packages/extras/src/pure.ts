@@ -55,12 +55,11 @@ export const eventList: ComponentFn = (ctx, props = {}) => {
 
 /** Demo of reading resolved page profile (section inheritance + layout). */
 export const aboutRenderer: ComponentFn = (ctx) => {
-  const { layoutId, layoutSource, sectionId, skinId } = ctx.profile;
+  const { layoutId, layoutSource, sectionId } = ctx.profile;
   const section = sectionId
     ? ` section <code>${ctx.escapeHtml(sectionId)}</code>`
     : "";
-  const skin = skinId ? ` skin <code>${ctx.escapeHtml(skinId)}</code>` : "";
-  return `<p class="w3-small w3-text-grey">Rendered page <code>${ctx.escapeHtml(ctx.page.id)}</code> with layout <code>${ctx.escapeHtml(layoutId)}</code> (from ${ctx.escapeHtml(layoutSource)}${section}${skin}).</p>`;
+  return `<p class="w3-small w3-text-grey">Rendered page <code>${ctx.escapeHtml(ctx.page.id)}</code> with layout <code>${ctx.escapeHtml(layoutId)}</code> (from ${ctx.escapeHtml(layoutSource)}${section}).</p>`;
 };
 
 /** Light-DOM card mount. The `rt-card` element is registered with the catalogue. */

@@ -1,6 +1,6 @@
-version: 1
+version: 2
 id: pure-tessera
 title: Tessera pure demo
 homePageId: home
 defaultLayoutId: standard
-theme: teal
+masterLayoutId: master

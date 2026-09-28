@@ -50,9 +50,9 @@ Dated site archives live in the sibling `backup/` directory (`TESSERA_BACKUP` ov
 
 ## Content model
 
-- **Layout** — tree of `region` | `zone` | `static` | `component`. **Only layouts declare zones** (and where they appear).
+- **Layout** — tree of `region` | `zone` | `static` | `component` | `page`. **Only layouts declare zones** (and where they appear). `site.masterLayoutId` is the outer page. Its `page` node is replaced by the resolved page layout.
 - **Page** — `id`, `title`, optional `description`, optional `slug`, optional `parentId` (published tree; ignored on the home page), optional `showInNav` (`false` keeps the URL and drops the nav link), optional `layoutId` (override), optional `includes` (shared items), and `zones` contributions. Drafts are pages left out of the published document. History is not a field on the page.
-- **Sections** — hierarchical presentation profiles (`match` by tags / `pageIdPrefix` → `layoutId` / `skinId`). Resolved by `resolvePageProfile`: site default → matching sections → page override.
+- **Sections** — hierarchical presentation profiles (`match` by tags / `pageIdPrefix` → `layoutId`). Resolved by `resolvePageProfile`: site default → matching sections → page override. Colour is the shell's stylesheet, not a document field.
 - **Item** — reusable zone contributions (footer, promo, …), pulled in via `page.includes`.
 - **Blocks** inside a zone: `text` | `json` | `media` | `component`.
 - **Nav / media / site meta** — also in the flattened document.
@@ -71,7 +71,7 @@ sites/willow/
   records/                  # YAML records, not on the web path
     site.yaml  nav.yaml
     content/ items/ layouts/ bindings/ sections/ media/ folders/
-  shell/                    # static chrome, no TypeScript
+  shell/                    # document shell, no TypeScript and no frame
     index.html  site.css
   publish/                  # static export; nginx document root
     index.html              # shell HTML
@@ -82,7 +82,7 @@ sites/willow/
     media/  img/
 ```
 
-`shell/` is static chrome (HTML, CSS, images). It does not contain TypeScript. `publish/tessera.js` and `publish/skin/` are install bytes stamped by the site build. Adding a component is a Tessera release: it lands in `@r-a-i-t-h/tessera-extras` and every site may name it. The editor API does not load site code.
+`shell/` is the document shell: head, one mount (`#app`), and CSS. It does not contain the header, the nav, or TypeScript. That frame is the master layout. `publish/tessera.js` and `publish/skin/` are install bytes stamped by the site build. Adding a component is a Tessera release: it lands in `@r-a-i-t-h/tessera-extras` and every site may name it. The editor API does not load site code. The runtime loads the document, registers the catalogue, and mounts the render. It does not paint a sidebar or a top bar of its own.
 
 `npm run dev:site` serves the instance: `data/shell` and `data/publish` (a short placeholder while `data/shell` is missing). `TESSERA_SITE=willow` serves that reference shell against the same runtime. The editor’s **Render site** action flattens every record into the instance `publish/` tree. `npm run build -w @r-a-i-t-h/tessera-site` builds one runtime and stamps `tessera.js` and `skin/` into each reference `publish/` tree. That build is not the preview.
 
@@ -188,7 +188,7 @@ Web components follow the same idea: implement with `WCBase`, `customElements.de
 1. Load + validate the hashed site file named by `<meta name="tessera-site">`; persist to `localStorage` under the absolute URL of that file (one cache per published site on a shared origin); fall back to cache on failure (see SPEC §3). While open, poll `rev.json` on a 5-minute TTL.
 2. Resolve page from hash (unknown ids fall back to home — no error UI). Snapshot sites only.
 3. Resolve the page’s **profile** (`resolvePageProfile`: section inheritance + page override), then merge `page.zones` then each included item’s zones (stable order).
-4. Walk the chosen layout tree; zone nodes render their blocks; unknown component names become HTML comments.
+4. Walk the master layout when `site.masterLayoutId` is set. Its `page` node is the resolved page layout. Zone nodes render their blocks; unknown component names become HTML comments. Nav components in the master read `document.nav`.
 5. Optional `onAfterRender` / `onStatusChange` for chrome outside the document (demo sidebar, stale banner).
 6. While open, re-fetch on a 5-minute TTL when `documentUrl` is set.
 
@@ -267,4 +267,4 @@ npm run dev:site                         # instance preview (port 5173)
 npm run dev:api                          # edit data/; Render site writes the preview
 ```
 
-Pure’s event pages omit `layoutId` and inherit layout/skin from `sections` (Open farm day / Evening talk). Willow, Ineffable, and Miller’s Ark are the same kind of directory: records in `records/`, chrome and micro-apps in `shell/`, static files in `publish/`.
+Pure’s event pages omit `layoutId` and inherit layout from `sections` (Open farm day / Evening talk). Willow, Ineffable, and Miller’s Ark are the same kind of directory: records in `records/`, a document shell in `shell/`, and static files in `publish/`. The frame is each site's master layout.

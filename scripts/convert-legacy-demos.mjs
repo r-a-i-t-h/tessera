@@ -177,7 +177,7 @@ function convertIneffable() {
   if (home) home.title = "ineffable";
 
   const doc = {
-    version: 1,
+    version: 2,
     site: {
       id: "ineffable",
       title: "ineffable.co.uk",
@@ -340,7 +340,7 @@ function convertMillersark() {
     });
 
   return {
-    version: 1,
+    version: 2,
     site: {
       id: "millersark",
       title: "Miller's Ark",

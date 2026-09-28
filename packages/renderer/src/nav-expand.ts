@@ -90,7 +90,7 @@ export function resolveNavTree(document: SiteDocument): ResolvedNavNode[] {
   return document.nav.map((e) => resolveEntry(document, e));
 }
 
-/** Depth-first flatten (headings + links) for simple list chrome. */
+/** Depth-first flatten (headings + links) for nav components. */
 export function flattenNav(nodes: ResolvedNavNode[]): ResolvedNavNode[] {
   const out: ResolvedNavNode[] = [];
   const walk = (list: ResolvedNavNode[]) => {
@@ -101,16 +101,4 @@ export function flattenNav(nodes: ResolvedNavNode[]): ResolvedNavNode[] {
   };
   walk(nodes);
   return out;
-}
-
-/** @deprecated Use `resolveNavTree` + a nav component; kept for flat chrome helpers. */
-export function expandNav(document: SiteDocument): Array<{
-  id?: string;
-  title?: string;
-  heading?: string;
-  fa?: string;
-  sidebar?: boolean;
-  topbar?: boolean;
-}> {
-  return flattenNav(resolveNavTree(document));
 }
