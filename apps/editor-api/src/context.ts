@@ -10,6 +10,11 @@ export type AppVariables = {
   sessions: SessionStore;
   user?: UserRecord;
   site?: SiteStore;
+  /** Site directory (`TESSERA_DATA`). Backups archive this tree. */
+  siteRoot?: string;
+  /** Offline dated archives, sibling of the site directory unless `TESSERA_BACKUP` is set. */
+  backupDir?: string;
+  seedDir?: string;
   rateLimiter: RateLimiter;
   rateLimits: RateLimitConfig;
 };

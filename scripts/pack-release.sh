@@ -61,6 +61,18 @@ fi
 
 cp -R apps/editor/dist/. "$DEST/spa/"
 cp -R apps/editor-api/seed "$DEST/seed"
+mkdir -p "$DEST/seed/examples"
+for name in pure ineffable millersark willow; do
+  if [ -f "sites/$name/meta.json" ]; then
+    tar -czf "$DEST/seed/examples/$name.tar.gz" \
+      --exclude=users \
+      --exclude=history \
+      --exclude=.sessions.json \
+      --exclude=node_modules \
+      --exclude=backup \
+      -C "sites/$name" .
+  fi
+done
 cp -R deploy "$DEST/deploy"
 printf '%s\n' "$TAG" >"$DEST/VERSION"
 

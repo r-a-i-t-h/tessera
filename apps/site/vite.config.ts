@@ -6,9 +6,20 @@ import { defineConfig, type Plugin } from "vitest/config";
 const appRoot = fileURLToPath(new URL(".", import.meta.url));
 const repoRoot = join(appRoot, "..", "..");
 
-/** Which example directory to serve. Not a Tessera package. */
-export const siteName = process.env.TESSERA_SITE ?? "willow";
-export const siteRoot = join(repoRoot, "sites", siteName);
+/**
+ * The running site is `data/` (empty until a backup is restored).
+ * `TESSERA_SITE` still points the host at `sites/<name>` when you are working on a demo shell.
+ */
+const instanceRoot = join(repoRoot, "data");
+const requestedSite = process.env.TESSERA_SITE;
+const instanceShell = join(instanceRoot, "shell", "index.html");
+const emptyRoot = join(appRoot, "empty");
+export const siteRoot = requestedSite
+  ? join(repoRoot, "sites", requestedSite)
+  : existsSync(instanceShell)
+    ? instanceRoot
+    : emptyRoot;
+export const siteName = requestedSite ?? (siteRoot === instanceRoot ? "instance" : "empty");
 export const shellRoot = join(siteRoot, "shell");
 export const publishRoot = join(siteRoot, "publish");
 

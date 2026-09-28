@@ -43,12 +43,27 @@ export function siteLayout(dataRoot: string) {
 
 /**
  * Instance directory. Absolute `TESSERA_DATA` is used as given.
- * A relative value is resolved from the repo root so `sites/pure` works
+ * A relative value is resolved from the repo root so `data` works
  * when npm runs the script from `apps/editor-api`.
  */
 export function resolveDataRoot(): string {
   const fromEnv = process.env.TESSERA_DATA;
-  if (!fromEnv) return join(repoRoot, "sites", "willow");
+  if (!fromEnv) return join(repoRoot, "data");
+  return isAbsolute(fromEnv) ? fromEnv : join(repoRoot, fromEnv);
+}
+
+/** Sibling of the site directory. On a VPS that is `/opt/tessera/<name>/backup`. */
+export function defaultBackupDir(dataDir: string): string {
+  return join(dirname(dataDir), "backup");
+}
+
+/**
+ * Offline archives. Absolute `TESSERA_BACKUP` is used as given.
+ * Unset uses the sibling `backup` directory, which an update does not replace.
+ */
+export function resolveBackupDir(dataDir: string): string {
+  const fromEnv = process.env.TESSERA_BACKUP;
+  if (!fromEnv) return defaultBackupDir(dataDir);
   return isAbsolute(fromEnv) ? fromEnv : join(repoRoot, fromEnv);
 }
 

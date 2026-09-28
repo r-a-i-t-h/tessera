@@ -39,6 +39,13 @@ body {
   margin-bottom: 1.5rem;
 }
 
+.editor-backup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+}
+
 .editor-kind ul {
   margin-top: 0.5rem;
 }

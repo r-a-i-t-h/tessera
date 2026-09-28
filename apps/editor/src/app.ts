@@ -1,14 +1,20 @@
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import {
   ApiError,
+  createBackup,
+  deleteBackup,
   getHistoryEntry,
   getRecord,
+  listBackups,
   listRecords,
   login,
   logout,
   me,
+  restoreBackup,
+  restoreExample,
   saveRawRecord,
   saveRecord,
+  type BackupList,
   type PublicUser,
   type PageLayoutHint,
   type RecordList,
@@ -28,6 +34,7 @@ function escapeHtml(value: string): string {
 function chrome(user: PublicUser, inner: string, wide = false): string {
   return `<header class="w3-bar w3-theme">
       <a class="w3-bar-item w3-button" href="#/">Tessera editor</a>
+      <a class="w3-bar-item w3-button" href="#/backups">Backups</a>
       <span class="w3-bar-item w3-small">${escapeHtml(user.username)}</span>
       <button type="button" class="w3-bar-item w3-button w3-right" data-action="logout">Sign out</button>
     </header>
@@ -72,7 +79,8 @@ async function render(root: HTMLElement): Promise<void> {
 
   const route = parseRoute();
   try {
-    if (!route.kind || !route.id) await bindList(root, user);
+    if (route.kind === "backups") await bindBackups(root, user);
+    else if (!route.kind || !route.id) await bindList(root, user);
     else await bindEdit(root, user, route.kind, route.id, route.kind === "content" ? "raw" : "fields");
   } catch (err) {
     root.innerHTML = chrome(
@@ -126,6 +134,121 @@ async function bindList(root: HTMLElement, user: PublicUser): Promise<void> {
   const listing = await listRecords();
   root.innerHTML = chrome(user, listHtml(listing), true);
   bindChrome(root);
+}
+
+async function bindBackups(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {
+  const listing = await listBackups();
+  root.innerHTML = chrome(user, backupsHtml(listing, notice, error), true);
+  bindChrome(root);
+  root.querySelector("[data-action=backup]")?.addEventListener("click", async () => {
+    const button = root.querySelector<HTMLButtonElement>("[data-action=backup]");
+    if (button) button.disabled = true;
+    try {
+      const created = await createBackup();
+      await bindBackups(root, user, `Archived this site as ${created.name} (${formatBytes(created.size)}).`);
+    } catch (err) {
+      await bindBackups(root, user, "", err instanceof Error ? err.message : "Backup failed.");
+    }
+  });
+  for (const button of root.querySelectorAll<HTMLButtonElement>("[data-restore]")) {
+    button.addEventListener("click", () => {
+      const name = button.dataset.restore ?? "";
+      if (!name) return;
+      if (!window.confirm(`Replace this site with ${name}? The current site is saved as a new backup first.`)) return;
+      void runRestore(root, user, () => restoreBackup(name), name);
+    });
+  }
+  for (const button of root.querySelectorAll<HTMLButtonElement>("[data-delete]")) {
+    button.addEventListener("click", () => {
+      const name = button.dataset.delete ?? "";
+      if (!name || !window.confirm(`Delete ${name}?`)) return;
+      void (async () => {
+        try {
+          await deleteBackup(name);
+          await bindBackups(root, user, `Deleted ${name}.`);
+        } catch (err) {
+          await bindBackups(root, user, "", err instanceof Error ? err.message : "Delete failed.");
+        }
+      })();
+    });
+  }
+  for (const button of root.querySelectorAll<HTMLButtonElement>("[data-example]")) {
+    button.addEventListener("click", () => {
+      const name = button.dataset.example ?? "";
+      const title = button.dataset.title ?? name;
+      if (!name) return;
+      if (
+        !window.confirm(
+          `Replace this site's pages, shell, and published files with ${title}? Your editors stay. The current site is saved as a new backup first.`,
+        )
+      ) {
+        return;
+      }
+      void runRestore(root, user, () => restoreExample(name), title);
+    });
+  }
+}
+
+async function runRestore(
+  root: HTMLElement,
+  user: PublicUser,
+  action: () => Promise<{ safetyBackup: string }>,
+  label: string,
+): Promise<void> {
+  try {
+    const result = await action();
+    await bindBackups(
+      root,
+      user,
+      `Restored ${label}. The previous site is ${result.safetyBackup}.`,
+    );
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401) {
+      bindLogin(root, "Sign in again. This restore replaced the editors.");
+      return;
+    }
+    await bindBackups(root, user, "", err instanceof Error ? err.message : "Restore failed.");
+  }
+}
+
+function backupsHtml(listing: BackupList, notice: string, error: string): string {
+  const rows = listing.backups.length
+    ? `<ul class="w3-ul">${listing.backups
+        .map(
+          (item) => `<li class="editor-backup">
+            <a href="/api/backups/${encodeURIComponent(item.name)}">${escapeHtml(item.name)}</a>
+            <span class="w3-text-grey w3-small">${formatBytes(item.size)}</span>
+            <button type="button" class="w3-button w3-small w3-white" data-restore="${escapeHtml(item.name)}">Restore</button>
+            <button type="button" class="w3-button w3-small w3-white" data-delete="${escapeHtml(item.name)}">Delete</button>
+          </li>`,
+        )
+        .join("")}</ul>`
+    : `<p class="w3-text-grey">No backups yet.</p>`;
+  const examples = listing.examples.length
+    ? `<ul class="w3-ul">${listing.examples
+        .map(
+          (item) => `<li class="editor-backup">
+            <span>${escapeHtml(item.title)}</span>
+            <button type="button" class="w3-button w3-small w3-white" data-example="${escapeHtml(item.name)}" data-title="${escapeHtml(item.title)}">Restore</button>
+          </li>`,
+        )
+        .join("")}</ul>`
+    : `<p class="w3-text-grey">No example archives are in the backup folder yet.</p>`;
+  return `<h1 class="w3-large">Backups</h1>
+    ${notice ? `<p class="w3-panel w3-pale-green" role="status">${escapeHtml(notice)}</p>` : ""}
+    ${error ? `<p class="w3-panel w3-pale-red" role="alert">${escapeHtml(error)}</p>` : ""}
+    <p class="w3-text-grey">A backup is a dated <code>.tar.gz</code> of this site directory (records, editors, history, shell, and <code>publish/</code>). Session handoff is left out. Files live in <code>${escapeHtml(listing.directory)}</code>, outside the release, so an update does not remove them. Drop a file named like <code>2026-09-28T191500Z.tar.gz</code> there over SFTP and it shows up in this list.</p>
+    <p><button type="button" class="w3-button w3-theme" data-action="backup">Back up now</button></p>
+    ${rows}
+    <h2 class="w3-medium">Examples</h2>
+    <p class="w3-text-grey">Pure, Ineffable, Miller's Ark, and Willow are <code>.tar.gz</code> files in that same backup folder. Restoring one fills this empty site. Your editors stay. Later these become templates (a personal site, a blog, a committee, a club).</p>
+    ${examples}`;
+}
+
+function formatBytes(size: number): string {
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(size < 10 * 1024 ? 1 : 0)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function listHtml(listing: RecordList): string {

@@ -164,3 +164,47 @@ export function getHistoryEntry(kind: string, id: string, index: number): Promis
     `/api/records/${encodeURIComponent(kind)}/${encodeURIComponent(id)}/history/${index}`,
   );
 }
+
+export type BackupInfo = {
+  name: string;
+  size: number;
+  mtime: string;
+};
+
+export type ExampleInfo = {
+  name: string;
+  title: string;
+};
+
+export type BackupList = {
+  ok: true;
+  directory: string;
+  backups: BackupInfo[];
+  examples: ExampleInfo[];
+};
+
+export type RestoreResult = {
+  ok: true;
+  restored: string;
+  safetyBackup: string;
+};
+
+export function listBackups(): Promise<BackupList> {
+  return request("/api/backups");
+}
+
+export function createBackup(): Promise<{ ok: true; name: string; size: number; mtime: string }> {
+  return request("/api/backups", { method: "POST" });
+}
+
+export function restoreBackup(name: string): Promise<RestoreResult> {
+  return request(`/api/backups/${encodeURIComponent(name)}/restore`, { method: "POST" });
+}
+
+export function deleteBackup(name: string): Promise<{ ok: true; deleted: string }> {
+  return request(`/api/backups/${encodeURIComponent(name)}/delete`, { method: "POST" });
+}
+
+export function restoreExample(name: string): Promise<RestoreResult> {
+  return request(`/api/examples/${encodeURIComponent(name)}/restore`, { method: "POST" });
+}

@@ -5,6 +5,7 @@ import { mergeRateLimits, type RateLimitConfig } from "./rate-limit/limits.js";
 import { RateLimiter } from "./rate-limit/limiter.js";
 import { apiRoutes } from "./routes/api.js";
 import { authRoutes } from "./routes/auth.js";
+import { backupRoutes } from "./routes/backups.js";
 import { recordRoutes } from "./routes/records.js";
 import type { SiteStore } from "./site/store.js";
 import { mountSpa } from "./spa.js";
@@ -18,6 +19,9 @@ export function createApp(opts: {
   spaDir?: string;
   /** File-backed site records (YAML). */
   site?: SiteStore;
+  siteRoot?: string;
+  backupDir?: string;
+  seedDir?: string;
   rateLimiter?: RateLimiter;
   rateLimits?: Partial<RateLimitConfig>;
 }) {
@@ -31,6 +35,9 @@ export function createApp(opts: {
     c.set("rateLimiter", rateLimiter);
     c.set("rateLimits", rateLimits);
     if (opts.site) c.set("site", opts.site);
+    if (opts.siteRoot) c.set("siteRoot", opts.siteRoot);
+    if (opts.backupDir) c.set("backupDir", opts.backupDir);
+    if (opts.seedDir) c.set("seedDir", opts.seedDir);
     await next();
   });
 
@@ -41,6 +48,7 @@ export function createApp(opts: {
   app.route("/auth", authRoutes);
   app.route("/api", apiRoutes);
   app.route("/api", recordRoutes);
+  app.route("/api", backupRoutes);
 
   if (opts.spaDir) mountSpa(app, opts.spaDir);
 

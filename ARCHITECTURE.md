@@ -21,7 +21,7 @@ The editor **API** lives in `apps/editor-api` (`@r-a-i-t-h/tessera-editor-api`):
 | `@r-a-i-t-h/tessera-skin-w3` | W3.CSS **5.01** + region→class skin |
 | `@r-a-i-t-h/tessera-wc-base` | Cookie-cut custom element base (`a` / `b` / `c`) |
 | `@r-a-i-t-h/tessera-demo-kit` | Shared chrome helpers shells may import at build time |
-| `@r-a-i-t-h/tessera-site` | One Vite host: `TESSERA_SITE` selects `sites/<name>/shell` |
+| `@r-a-i-t-h/tessera-site` | One Vite host. Default shell is `data/shell` (or a placeholder while `data/` is empty). `TESSERA_SITE` selects `sites/<name>/shell` |
 
 Example sites live under `sites/` (pure / ineffable / millersark / willow). They are not npm workspaces. The editing back-end is `apps/editor-api`; the login SPA is `apps/editor`.
 
@@ -43,7 +43,9 @@ Public HTML is the editor SPA when built. The published site remains `site.json`
 
 Same origin is deliberate: the session cookie is `httpOnly` + `SameSite=Lax` with `Path=/`. A SPA on another port/origin would need CORS credentials and cookie relaxation. Dev uses a Vite proxy on port 7355 so the browser still sees one origin. The editor is not mounted under a URL prefix.
 
-The published site is `publish/` inside the same directory (or a copy of that tree). The editor process does not serve it. Stopping the editor leaves the static files working. There is one path, `TESSERA_DATA` (default `sites/willow` in a checkout). On a VPS, node-vps-kit sets it to `/opt/tessera/<name>/data`, which is the site directory and is not replaced when the release in `current/` changes. Records, history, users, `meta.json`, and the export are derived from it.
+The published site is `publish/` inside the same directory (or a copy of that tree). The editor process does not serve it. Stopping the editor leaves the static files working. There is one path, `TESSERA_DATA` (default `data/` in a checkout, empty apart from `meta.json` and the seed editor). On a VPS, node-vps-kit sets it to `/opt/tessera/<name>/data`, which is the site directory and is not replaced when the release in `current/` changes. Records, history, users, `meta.json`, and the export are derived from it.
+
+Dated site archives live in the sibling `backup/` directory (`TESSERA_BACKUP` overrides it). They are not inside the release and not inside `publish/`. A restore replaces the site directory from a `YYYY-MM-DDTHHMMSSZ.tar.gz` after writing a safety archive. The four demo sites are also files in that folder (`pure.tar.gz` and the others). The first boot copies each one from `seed/examples/` or, in a checkout, archives `sites/<name>/`, and only when that filename is absent. A later boot does not replace them. Restoring an example fills `data/` and keeps `users/`.
 
 ## Content model
 
@@ -79,7 +81,7 @@ sites/willow/
 
 `shell/` is chrome and micro-apps. It may import engine packages at build time. The built files in `publish/` do not. Adding a micro-app rebuilds that shell. It is not a Tessera release. The editor API does not load site code.
 
-`npm run dev:site` serves `sites/$TESSERA_SITE/shell` (default `willow`) and the files in `publish/`. `npm run build -w @r-a-i-t-h/tessera-site` writes each shell into that site’s `publish/`.
+`npm run dev:site` serves `data/shell` and `data/publish` (a short placeholder while `data/shell` is missing). `TESSERA_SITE=pure` serves that demo’s shell instead. `npm run build -w @r-a-i-t-h/tessera-site` writes each demo shell into that site’s `publish/`.
 
 ## Authoring files
 
@@ -258,7 +260,7 @@ location /willow/ {
 
 ```bash
 npm install
-npm run dev:site                         # willow (port 5173)
+npm run dev:site                         # data/ (port 5173), empty until a restore
 TESSERA_SITE=pure npm run dev:site       # engine lab: zones, font switch
 TESSERA_DATA=sites/pure npm run dev:api  # edit that directory
 ```
