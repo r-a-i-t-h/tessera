@@ -6,7 +6,7 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "npm run dev -w @r-a-i-t-h/tessera-site",
+    "dev": "node scripts/dev.mjs",
     "dev:site": "npm run dev -w @r-a-i-t-h/tessera-site",
     "dev:api": "npm run dev -w @r-a-i-t-h/tessera-editor-api",
     "dev:editor": "npm run dev -w @r-a-i-t-h/tessera-editor",

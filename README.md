@@ -12,9 +12,10 @@ Client-side site runtime that renders an entire small website from one validated
 
 ```bash
 npm install
-npm run dev:site            # data/ shell (port 5173); empty until a backup is restored
-npm run dev:api             # editor API (port 7356; seed login admin / admin)
-npm run dev:editor          # editor SPA (port 7355; proxies /auth /api /health)
+npm run dev                 # site (5173), API (7356), and editor (7355)
+npm run dev:site            # data/ shell only; empty until a backup is restored
+npm run dev:api             # editor API only (seed login admin / admin)
+npm run dev:editor          # editor SPA only (proxies /auth /api /health)
 ```
 
 ## Test
