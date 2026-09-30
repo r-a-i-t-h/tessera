@@ -27,12 +27,18 @@ export type RenderContext = {
   mediaHtml: (id: string) => string;
   escapeHtml: (s: string) => string;
   /**
-   * When true, bindings and components become empty mounts instead of running.
-   * Used by the pages publisher. Snapshot rendering leaves this unset.
+   * When true, bindings and components that are not HTML functions become
+   * empty micro-app mounts. Registered functions still render to HTML.
+   * Snapshot rendering leaves this unset.
    */
   mountMicroApps?: boolean;
   /** Filled when `mountMicroApps` is set. */
   microApps?: MicroAppMount[];
+  /**
+   * Pages dist: link to another page by id.
+   * Snapshot rendering leaves this unset and nav keeps `#id`.
+   */
+  pageHref?: (pageId: string) => string;
 };
 
 export type ComponentFn = (ctx: RenderContext, props?: Record<string, unknown>) => string;

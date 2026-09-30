@@ -37,7 +37,7 @@ Hono app (Node ≥20). JSON routes first; if `spa/index.html` (a release), `apps
 | Users | `$TESSERA_DATA/users/<username>.json` (hash + salt), one set per site directory. No `/auth/register`. The release seed (`seed/users`, `admin` / `admin`) is copied only when `users/` is empty. `npm run seed:user` rewrites that seed, not the open site. |
 | Sessions | In-memory tokens; httpOnly `tessera_session` cookie (`Path=/`) or `Authorization: Bearer`. The editor is served at the hostname root. SIGTERM dumps hashed tokens to `$TESSERA_DATA/.sessions.json` once. |
 | Permission | `requireEditor`: authenticated ⇒ full access; anonymous ⇒ 401. Every mutation must call it. |
-| Records | YAML files in `$TESSERA_DATA/records`. Filename = Tessera `id`. `GET/PUT /api/records` accepts structured `data` or raw YAML. A changed content page appends the previous file to `$TESSERA_DATA/history/content/<id>.history`, then flattens to `$TESSERA_DATA/publish/data/site.json` plus `site.<hash>.json` and `rev.json`. |
+| Records | YAML files in `$TESSERA_DATA/records`. Filename = Tessera `id`. `GET/PUT /api/records` accepts structured `data` or raw YAML. A changed content page appends the previous file to `$TESSERA_DATA/history/content/<id>.history`, then writes the SPA snapshot to `$TESSERA_DATA/preview/data/`. **Publish** writes the copyable `$TESSERA_DATA/publish/` dist. |
 | Public | `GET /health`, `POST /auth/login`. Protected: `GET /auth/me`, `POST /auth/password`, `POST /api/ping`, record CRUD. Logout is idempotent. |
 
 Public HTML is the editor SPA when built. The published site remains `site.json` for the renderer. Authoring is file-based YAML (not JSON) so HTML does not need escaping.
@@ -73,18 +73,21 @@ sites/willow/
     content/ items/ layouts/ bindings/ sections/ media/ folders/
   shell/                    # document shell, no TypeScript and no frame
     index.html  site.css
-  publish/                  # static export; nginx document root
-    index.html              # shell HTML
-    tessera.js              # shared runtime, stamped by the Tessera build
+  preview/                  # SPA snapshot for editing; the dev server reads this
+    data/site.json  site.<hash>.json  rev.json
+  publish/                  # copyable dist; nginx document root after you copy it
+    index.html              # pages: the home page. snapshot: the shell
+    tessera.js              # snapshot runtime, stamped by the Tessera build
+    tessera-pages.js        # pages runtime, hydrates mounts only
     skin/                   # skin CSS, stamped by the Tessera build
     site.css
-    data/site.json  site.<hash>.json  rev.json
+    data/                   # snapshot dist only
     media/  img/
 ```
 
 `shell/` is the document shell: head, one mount (`#app`), and CSS. It does not contain the header, the nav, or TypeScript. That frame is the master layout. `publish/tessera.js` and `publish/skin/` are install bytes stamped by the site build. Adding a component is a Tessera release: it lands in `@r-a-i-t-h/tessera-extras` and every site may name it. The editor API does not load site code. The runtime loads the document, registers the catalogue, and mounts the render. It does not paint a sidebar or a top bar of its own.
 
-`npm run dev:site` serves the instance: `data/shell` and `data/publish` (a short placeholder while `data/shell` is missing). `TESSERA_SITE=willow` serves that reference shell against the same runtime. The editor’s **Render site** action flattens every record into the instance `publish/` tree. `npm run build -w @r-a-i-t-h/tessera-site` builds one runtime and stamps `tessera.js` and `skin/` into each reference `publish/` tree. That build is not the preview.
+`npm run dev:site` serves the instance: `data/shell` and `data/preview` (a short placeholder while `data/shell` is missing). `/data/*` is the SPA snapshot in `preview/`. `media/` and `img/` still come from `data/publish`. `TESSERA_SITE=willow` serves that reference shell against the same runtime and keeps reading `sites/willow/publish`, which has no `preview/`. Saving and **Render site** refresh the preview only. **Publish** rebuilds `publish/` in the site's `delivery` flavour (`pages` by default, or `snapshot`) and leaves that folder alone until the next publish. `npm run build -w @r-a-i-t-h/tessera-site` builds `tessera.js` and `tessera-pages.js` and stamps `tessera.js` and `skin/` into each reference `publish/` tree. That build is not the preview. Copying `publish/` is how a site goes live. Tessera does not deploy it.
 
 ## Authoring files
 
@@ -107,7 +110,7 @@ HTML zones use YAML `|` / `|-` scalars (`html:`) so markup is not JSON-escaped. 
 
 The editor form for a page lists zones declared by the resolved layout (page `layoutId` → matching section → site default). Extra keys on the page that the layout does not declare stay editable under **Off layout**. A flat JSON object becomes one text field per key already on the file. The editor does not have content types. A person page is a normal page: a tag selects a section, the section selects a layout, and catalogue components read a JSON zone (Willow’s `meta` holds `role`, `email`, `photo`, `summary`). Those keys live in the component, not in the engine. `schemaVersion` is how records are stored, not the list of person fields.
 
-`npm run flatten:site` (or an editor save) writes `$TESSERA_DATA/publish/data/site.json` and stamps `<meta name="tessera-site">` in `shell/index.html` and, when it exists, `publish/index.html`.
+`npm run flatten:site` (or an editor save) writes `$TESSERA_DATA/preview/data/site.json` and stamps `<meta name="tessera-site">` in `shell/index.html`. **Publish** writes `$TESSERA_DATA/publish/` for copying. A pages dist is one HTML file per page plus `sitemap.xml`. A snapshot dist is the SPA shell, `publish/data/site.json`, the hashed file, and `rev.json`. `delivery` on `site.yaml` chooses that dist and defaults to `pages`. A pages dist needs `origin` (an absolute URL with no path). The preview is always the snapshot and ignores `delivery`.
 
 There is **no** recursive `parentId` template chain and **no** inventing zones from inside page HTML. Section profiles replace Rec-Tem-style “templates as content” for hierarchy-wide layout/theme switching.
 
@@ -139,7 +142,7 @@ A published site is a folder of files. It stays portable to any directory, inclu
 
 `localStorage` is shared by every page on an origin. The cache key for the hashed site file is that file’s absolute URL (`documentCacheKey`), so two published sites on one host do not share a cache. The URL is only a cache identity. It is not a server base path.
 
-Flatten (`writeSnapshotFiles`) writes three files next to each other: the stable `site.json` (tools and the editor), `site.<hash>.json` (the bytes the browser fetches), and `rev.json` (`{ hash, file }`). The open-tab poll reads `rev.json` and downloads a new hashed file only when the hash changes. `npm run stamp:snapshot` refreshes those files for every example site from the `site.json` already on disk. When the flatten target is `publish/data/site.json`, the shell and built `publish/index.html` meta tags are updated to the new name.
+Flatten (`writeSnapshotFiles`) writes three files next to each other: the stable `site.json` (tools and the editor), `site.<hash>.json` (the bytes the browser fetches), and `rev.json` (`{ hash, file }`). The open-tab poll reads `rev.json` and downloads a new hashed file only when the hash changes. A preview write stamps `shell/index.html` only. A snapshot dist write stamps `publish/index.html` only, so the authoring shell keeps pointing at `preview/`. `npm run stamp:snapshot` refreshes the reference sites' `publish/data` files and their shells from the `site.json` already on disk.
 
 ## Gallery (spike)
 
@@ -198,7 +201,7 @@ Default skin is **W3.CSS 5.01** (`packages/skin-w3/css/w3.css`). Layout regions 
 
 ## Pages publisher
 
-`publishPages(document, { origin })` in `@r-a-i-t-h/tessera-renderer` walks `publishedPageTree` and returns one HTML file per page plus `sitemap.xml`. It does not write to disk and it does not run micro-apps.
+`publishPages(document, { origin })` in `@r-a-i-t-h/tessera-renderer` walks `publishedPageTree` and returns one HTML file per page plus `sitemap.xml`. Registered HTML components (nav, lists, gallery) are written into the file. Custom elements and unknown names stay `data-tessera-microapp` mounts plus a JSON description. The pages runtime hydrates those mounts and does not boot the snapshot renderer. Nav links use the page path. **Publish** writes this tree into `publish/` when `delivery` is `pages` or omitted.
 
 - Home is `index.html`. Any other page is `{path}/index.html`. The path is the chain of `slug` or `id` segments. The home page’s own segment is not part of that chain.
 - `<title>`, optional meta description, and `<link rel="canonical">` come from the page and `origin`.
@@ -264,7 +267,7 @@ location /willow/ {
 ```bash
 npm install
 npm run dev:site                         # instance preview (port 5173)
-npm run dev:api                          # edit data/; Render site writes the preview
+npm run dev:api                          # edit data/; Render site writes the preview, Publish writes publish/
 ```
 
 Pure’s event pages omit `layoutId` and inherit layout from `sections` (Open farm day / Evening talk). Willow, Ineffable, and Miller’s Ark are the same kind of directory: records in `records/`, a document shell in `shell/`, and static files in `publish/`. The frame is each site's master layout.

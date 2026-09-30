@@ -8,4 +8,4 @@ if (!doc) {
   console.error(`No site.yaml in ${layout.records}`);
   process.exit(1);
 }
-console.log(`Flattened ${doc.pages.length} pages to ${layout.flattenOut}`);
+console.log(`Flattened ${doc.pages.length} pages to ${layout.previewOut}`);

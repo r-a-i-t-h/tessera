@@ -62,7 +62,7 @@ describe("record routes", () => {
     expect(render.status).toBe(401);
   });
 
-  it("renders every page into the publish snapshot", async () => {
+  it("renders every page into the preview snapshot", async () => {
     const res = await app().request("/api/render", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },

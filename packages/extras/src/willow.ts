@@ -1,5 +1,5 @@
 import type { Block, Page } from "@r-a-i-t-h/tessera-model";
-import type { ComponentFn } from "@r-a-i-t-h/tessera-renderer";
+import { hrefForPage, type ComponentFn } from "@r-a-i-t-h/tessera-renderer";
 
 export type PageMeta = {
   date?: string;
@@ -110,7 +110,7 @@ export const datedList: ComponentFn = (ctx, props = {}) => {
         return `<article class="wh-event-card">
           <div class="wh-date-tile" aria-hidden="true"><span>${ctx.escapeHtml(parts.mon)}</span><strong>${ctx.escapeHtml(parts.day)}</strong></div>
           <div>
-            <h3><a href="#${page.id}">${ctx.escapeHtml(page.title)}</a></h3>
+            <h3><a href="${hrefForPage(ctx, page.id)}">${ctx.escapeHtml(page.title)}</a></h3>
             ${when ? `<p class="wh-meta">${ctx.escapeHtml(when)}</p>` : ""}
             ${meta.summary ? `<p>${ctx.escapeHtml(meta.summary)}</p>` : ""}
           </div>
@@ -129,7 +129,7 @@ export const datedList: ComponentFn = (ctx, props = {}) => {
       ].filter(Boolean);
       return `<article class="wh-card">
         ${bits.length ? `<p class="wh-meta">${ctx.escapeHtml(bits.join(" · "))}</p>` : ""}
-        <h3><a href="#${page.id}">${ctx.escapeHtml(page.title)}</a></h3>
+        <h3><a href="${hrefForPage(ctx, page.id)}">${ctx.escapeHtml(page.title)}</a></h3>
         ${meta.summary ? `<p>${ctx.escapeHtml(meta.summary)}</p>` : ""}
       </article>`;
     })
@@ -149,7 +149,7 @@ export const peopleGrid: ComponentFn = (ctx, props = {}) => {
     .map(({ page, meta }) => {
       const img = meta.photo ? ctx.mediaHtml(meta.photo) : "";
       return `<div class="w3-col s12 m6 l4">
-        <a class="wh-person-card" href="#${page.id}">
+        <a class="wh-person-card" href="${hrefForPage(ctx, page.id)}">
           <div class="wh-person-photo">${img}</div>
           <h3>${ctx.escapeHtml(page.title)}</h3>
           ${meta.role ? `<p>${ctx.escapeHtml(meta.role)}</p>` : ""}

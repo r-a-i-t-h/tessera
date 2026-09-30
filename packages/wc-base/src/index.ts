@@ -8,7 +8,11 @@ type AttrHandler = (this: any, value: string | null) => void;
  * - `b` — build light/shadow tree (return nested element arrays; `[]` = slot for light children)
  * - `c` — connectedCallback extra work
  */
-export class WCBase extends HTMLElement {
+/** Node can import the catalogue without a DOM. The browser still subclasses `HTMLElement`. */
+const ElementBase: typeof HTMLElement =
+  typeof HTMLElement === "function" ? HTMLElement : (class {} as unknown as typeof HTMLElement);
+
+export class WCBase extends ElementBase {
   static a: Record<string, AttrHandler> = {};
 
   static get observedAttributes(): string[] {

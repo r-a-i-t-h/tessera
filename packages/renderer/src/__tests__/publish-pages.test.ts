@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { parseSiteDocument } from "@r-a-i-t-h/tessera-model";
+import { registerNavComponents } from "../builtins/nav.js";
 import { publishPages } from "../publish-pages.js";
+import { ComponentRegistry } from "../registry.js";
 
 const document = parseSiteDocument({
   version: 2,
@@ -145,5 +147,45 @@ describe("publishPages", () => {
     expect(sitemap).toContain("<loc>https://example.test/events/</loc>");
     expect(sitemap).toContain("<loc>https://example.test/events/summer-fair/</loc>");
     expect(sitemap).toContain("<loc>https://example.test/draft-hidden/</loc>");
+  });
+
+  it("links stylesheets and the pages runtime with a relative prefix", () => {
+    const fair = byPath.get("events/summer-fair/index.html")!;
+    expect(fair).toContain('href="../../skin/w3.css"');
+    expect(fair).toContain('href="../../site.css"');
+    expect(fair).toContain('src="../../tessera-pages.js"');
+    expect(byPath.get("index.html")).toContain('href="./skin/w3.css"');
+  });
+});
+
+describe("publishPages catalogue", () => {
+  it("writes nav links as page paths and leaves an unknown component as a mount", () => {
+    const registry = new ComponentRegistry();
+    registerNavComponents((name, fn) => registry.define(name, fn));
+    const withNav = parseSiteDocument({
+      ...document,
+      layouts: document.layouts.map((layout) =>
+        layout.id === "master"
+          ? {
+              ...layout,
+              root: {
+                type: "region",
+                children: [
+                  { type: "component", name: "navFlat", props: { scope: "sidebar" } },
+                  { type: "component", name: "not-a-component" },
+                  layout.root,
+                ],
+              },
+            }
+          : layout,
+      ),
+      nav: [{ id: "events", title: "Events", sidebar: true }],
+    });
+    const home = publishPages(withNav, { origin: "https://example.test", registry }).find(
+      (file) => file.path === "index.html",
+    )!;
+    expect(home.contents).toContain('href="./events/"');
+    expect(home.contents).toContain('data-tessera-microapp="not-a-component"');
+    expect(home.contents).not.toContain('href="#events"');
   });
 });

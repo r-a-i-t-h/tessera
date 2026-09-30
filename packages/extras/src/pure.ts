@@ -1,4 +1,5 @@
 import type { ComponentFn } from "@r-a-i-t-h/tessera-renderer";
+import { hrefForPage } from "@r-a-i-t-h/tessera-renderer";
 
 /** Client-side clock — pure function component. */
 export const now: ComponentFn = (_ctx, props = {}) => {
@@ -15,7 +16,7 @@ export const pageNav: ComponentFn = (ctx) => {
   return pages
     .map((p) => {
       const active = ctx.page.id === p.id ? " font-weight:bold; background:#ddd;" : "";
-      return `<a href="#${p.id}" style="display:block;padding:8px 12px;margin:2px 0;background:#eee;text-decoration:none;color:#000;${active}">${ctx.escapeHtml(p.title)}</a>`;
+      return `<a href="${hrefForPage(ctx, p.id)}" style="display:block;padding:8px 12px;margin:2px 0;background:#eee;text-decoration:none;color:#000;${active}">${ctx.escapeHtml(p.title)}</a>`;
     })
     .join("");
 };

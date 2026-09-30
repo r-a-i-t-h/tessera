@@ -66,7 +66,7 @@ function mountForName(
 
 /** Render a site-data binding (populated component). */
 export function renderBinding(binding: Binding, ctx: RenderContext): string {
-  if (ctx.mountMicroApps) return mountForName(binding.id, ctx);
+  if (ctx.mountMicroApps && !ctx.registry.hasFunction(binding.component)) return mountForName(binding.id, ctx);
   const zones = binding.itemId ? zonesFromItem(ctx.document, binding.itemId) : ctx.zones;
   const subCtx: RenderContext = {
     ...ctx,
@@ -89,10 +89,16 @@ export function renderNamed(
   props: Record<string, unknown> = {},
   childrenHtml = "",
 ): string {
-  if (ctx.mountMicroApps) return mountForName(name, ctx, childrenHtml, props);
+  if (ctx.mountMicroApps && !rendersToHtml(name, ctx)) return mountForName(name, ctx, childrenHtml, props);
   const binding = bindingsById(ctx.document).get(name);
   if (binding) return renderBinding(binding, ctx);
   return ctx.registry.render(name, ctx, props, childrenHtml);
+}
+
+function rendersToHtml(name: string, ctx: RenderContext): boolean {
+  const binding = bindingsById(ctx.document).get(name);
+  if (binding) return ctx.registry.hasFunction(binding.component);
+  return ctx.registry.hasFunction(name);
 }
 
 /** Expand `{{binding-id}}` placeholders inside authored HTML. */
@@ -100,7 +106,7 @@ export function expandMustache(html: string, ctx: RenderContext): string {
   return html.replace(MUSTACHE_RE, (_full, id: string) => {
     const binding = bindingsById(ctx.document).get(id);
     if (!binding) return `<!-- unknown binding: ${id} -->`;
-    if (ctx.mountMicroApps) return mountForName(id, ctx);
+    if (ctx.mountMicroApps && !ctx.registry.hasFunction(binding.component)) return mountForName(id, ctx);
     return renderBinding(binding, ctx);
   });
 }

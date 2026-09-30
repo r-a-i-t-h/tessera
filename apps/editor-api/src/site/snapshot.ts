@@ -10,13 +10,15 @@ import { writeTextAtomic } from "../store/fs.js";
 
 /**
  * Write the stable `site.json`, the content-hashed copy, and `rev.json`.
- * When the output lives at `<site>/publish/data/site.json`, stamp the shell
- * and, when present, the built `publish/index.html`, so the first load fetches
- * the hashed file directly.
+ * A `preview/data` target stamps `shell/index.html` only.
+ * A `publish/data` target stamps `publish/index.html` only.
+ * `extraIndexPaths` stamps further HTML files with the same pointer
+ * (reference sites keep their shell in step with `publish/`).
  */
 export async function writeSnapshotFiles(
   flattenOut: string,
   body: string,
+  extraIndexPaths: string[] = [],
 ): Promise<{ hash: string; file: string }> {
   const hash = await hashSnapshotBody(body);
   const file = snapshotFileName(hash);
@@ -40,7 +42,7 @@ export async function writeSnapshotFiles(
     }
   }
 
-  for (const indexPath of shellIndexPaths(flattenOut)) {
+  for (const indexPath of [...shellIndexPaths(flattenOut), ...extraIndexPaths]) {
     try {
       const html = await readFile(indexPath, "utf8");
       const next = stampSitePointer(html, `./data/${file}`);
@@ -56,14 +58,17 @@ export async function writeSnapshotFiles(
 }
 
 /**
- * `<site>/publish/data/site.json` stamps `<site>/shell/index.html` and
- * `<site>/publish/index.html`. Other layouts are left alone.
+ * `preview/data/site.json` stamps `shell/index.html`.
+ * `publish/data/site.json` stamps `publish/index.html`.
+ * Other layouts are left alone.
  */
 export function shellIndexPaths(flattenOut: string): string[] {
   const dataDir = dirname(flattenOut);
   if (basename(dataDir) !== "data") return [];
-  const publishDir = dirname(dataDir);
-  if (basename(publishDir) !== "publish") return [];
-  const siteRoot = dirname(publishDir);
-  return [join(siteRoot, "shell", "index.html"), join(publishDir, "index.html")];
+  const parent = dirname(dataDir);
+  const parentName = basename(parent);
+  const siteRoot = dirname(parent);
+  if (parentName === "preview") return [join(siteRoot, "shell", "index.html")];
+  if (parentName === "publish") return [join(parent, "index.html")];
+  return [];
 }

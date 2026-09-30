@@ -50,10 +50,12 @@ export {
   type GalleryItem,
 } from "./builtins/gallery-element.js";
 export { normalizeSiteAssetUrl, isRootAbsoluteUrl } from "./assets.js";
+export { hrefForPage } from "./page-href.js";
 export {
   publishPages,
   hrefFor,
   canonicalUrl,
+  assetHref,
   type PublishPagesOptions,
   type PublishedFile,
 } from "./publish-pages.js";

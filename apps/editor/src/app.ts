@@ -1,4 +1,4 @@
-import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
+import { stringify as stringifyYaml } from "yaml";
 import {
   ApiError,
   createBackup,
@@ -12,6 +12,7 @@ import {
   me,
   restoreBackup,
   initSite,
+  publishSite,
   renderSite,
   restoreExample,
   saveRawRecord,
@@ -22,9 +23,12 @@ import {
   type RecordList,
   type RecordPayload,
   type RecordSummary,
+  type PublishResult,
   type RenderResult,
   type SaveResult,
 } from "./api";
+import { readFormValues, renderForm } from "./forms/form.js";
+import { authoredSchema, schemaFor } from "./forms/schema.js";
 
 function escapeHtml(value: string): string {
   return value
@@ -39,6 +43,7 @@ function chrome(user: PublicUser, inner: string, wide = false): string {
       <a class="w3-bar-item w3-button" href="#/">Tessera editor</a>
       <a class="w3-bar-item w3-button" href="#/backups">Backups</a>
       <button type="button" class="w3-bar-item w3-button" data-action="render-site">Render site</button>
+      <button type="button" class="w3-bar-item w3-button" data-action="publish-site">Publish</button>
       <span class="w3-bar-item w3-small">${escapeHtml(user.username)}</span>
       <button type="button" class="w3-bar-item w3-button w3-right" data-action="logout">Sign out</button>
     </header>
@@ -119,12 +124,17 @@ function bindChrome(root: HTMLElement): void {
   root.querySelector("[data-action=render-site]")?.addEventListener("click", () => {
     void runRender(root);
   });
+  root.querySelector("[data-action=publish-site]")?.addEventListener("click", () => {
+    void runPublish(root);
+  });
 }
 
 async function runRender(root: HTMLElement): Promise<void> {
   const button = root.querySelector<HTMLButtonElement>("[data-action=render-site]");
+  const publish = root.querySelector<HTMLButtonElement>("[data-action=publish-site]");
   const status = root.querySelector<HTMLElement>("#render-status");
   if (button) button.disabled = true;
+  if (publish) publish.disabled = true;
   if (status) {
     status.hidden = false;
     status.className = "editor-render-status w3-pale-yellow";
@@ -143,13 +153,51 @@ async function runRender(root: HTMLElement): Promise<void> {
     }
   } finally {
     if (button) button.disabled = false;
+    if (publish) publish.disabled = false;
   }
 }
 
 function renderNotice(result: RenderResult): string {
   const pages = `${result.pages} ${result.pages === 1 ? "page" : "pages"}`;
-  const file = result.snapshot ? ` Snapshot ${result.snapshot.file}.` : "";
-  return `Rendered ${pages} into the preview.${file} Reload ${previewUrl} to see it.`;
+  const snapshot = result.snapshot ? ` Snapshot ${result.snapshot.file}.` : "";
+  return `Rendered ${pages} into the preview.${snapshot} Reload ${previewUrl} to see it.`;
+}
+
+async function runPublish(root: HTMLElement): Promise<void> {
+  const button = root.querySelector<HTMLButtonElement>("[data-action=publish-site]");
+  const render = root.querySelector<HTMLButtonElement>("[data-action=render-site]");
+  const status = root.querySelector<HTMLElement>("#render-status");
+  if (button) button.disabled = true;
+  if (render) render.disabled = true;
+  if (status) {
+    status.hidden = false;
+    status.className = "editor-render-status w3-pale-yellow";
+    status.textContent = "Publishing the copyable site…";
+  }
+  try {
+    const result = await publishSite();
+    if (status) {
+      status.className = "editor-render-status w3-pale-green";
+      status.textContent = publishNotice(result);
+    }
+  } catch (err) {
+    if (status) {
+      status.className = "editor-render-status w3-pale-red";
+      status.textContent = err instanceof Error ? err.message : "Publish failed.";
+    }
+  } finally {
+    if (button) button.disabled = false;
+    if (render) render.disabled = false;
+  }
+}
+
+function publishNotice(result: PublishResult): string {
+  if (result.dist.flavour === "pages") {
+    const count = result.dist.pages ?? 0;
+    return `Published ${count} HTML ${count === 1 ? "file" : "files"} to publish/. Copy that folder to the live host.`;
+  }
+  const file = result.dist.snapshot ? ` ${result.dist.snapshot.file}.` : "";
+  return `Published the snapshot dist to publish/.${file} Copy that folder to the live host.`;
 }
 
 function bindLogin(root: HTMLElement, error?: string, username = ""): void {
@@ -336,7 +384,7 @@ function listHtml(listing: RecordList, notice = "", error = ""): string {
   return `<h1 class="w3-large">Records</h1>
     ${notice ? `<p class="w3-panel w3-pale-green" role="status">${escapeHtml(notice)}</p>` : ""}
     ${error ? `<p class="w3-panel w3-pale-red" role="alert">${escapeHtml(error)}</p>` : ""}
-    <p class="w3-text-grey">YAML files named with Tessera <code>id</code>, outside the web root. Saving a page appends the previous file to a history file and updates the snapshot. <strong>Render site</strong> writes every page into the preview on port 5173.</p>
+    <p class="w3-text-grey">YAML files named with Tessera <code>id</code>, outside the web root. Saving a page appends the previous file to a history file and refreshes the SPA preview on port 5173. <strong>Render site</strong> rebuilds that preview for every page. <strong>Publish</strong> writes the copyable <code>publish/</code> folder, and leaves it alone until the next time you publish.</p>
     ${start}
     ${sections || (empty ? "" : "<p>No records yet.</p>")}`;
 }
@@ -356,7 +404,7 @@ async function bindEdit(
     mode === "raw"
       ? `<p><label for="raw-file">Raw YAML</label>
          <textarea id="raw-file" name="raw" rows="24" spellcheck="false" class="w3-input w3-border w3-margin-top editor-raw">${escapeHtml(payload.raw)}</textarea></p>`
-      : fieldsHtml(payload.data, payload.layout);
+      : fieldsHtml(kind, payload.data, payload.layout);
   root.innerHTML = chrome(
     user,
     `<p><a href="#/">← Records</a></p>
@@ -398,7 +446,7 @@ async function bindEdit(
       const saved =
         mode === "raw"
           ? await saveRawRecord(kind, id, form.querySelector<HTMLTextAreaElement>("#raw-file")?.value ?? "")
-          : await saveRecord(kind, id, pruneEmptyHtmlZones(readForm(form, payload.data)));
+          : await saveRecord(kind, id, pruneEmptyHtmlZones(readFormValues(form, schemaFor(kind, payload.data), payload.data)));
       await bindEdit(root, user, kind, id, mode, saveNotice(saved));
     } catch (err) {
       const statusEl = root.querySelector<HTMLElement>("#save-status");
@@ -443,11 +491,11 @@ function formatWhen(savedAt: string): string {
 }
 
 function saveNotice(saved: SaveResult): string {
-  const published = saved.snapshot ? ` Published snapshot ${saved.snapshot.file}.` : "";
+  const snapshot = saved.snapshot ? ` Snapshot ${saved.snapshot.file}.` : "";
   if (saved.historyAppended) {
-    return `Saved. Appended the previous file to history (${saved.historyCount} ${saved.historyCount === 1 ? "version" : "versions"}).${published}`;
+    return `Saved. Appended the previous file to history (${saved.historyCount} ${saved.historyCount === 1 ? "version" : "versions"}).${snapshot}`;
   }
-  return `Saved.${published}`;
+  return `Saved.${snapshot}`;
 }
 
 async function showHistory(root: HTMLElement, kind: string, id: string, index: number): Promise<void> {
@@ -463,46 +511,32 @@ async function showHistory(root: HTMLElement, kind: string, id: string, index: n
   }
 }
 
-function fieldsHtml(data: unknown, layout?: PageLayoutHint): string {
-  if (Array.isArray(data)) {
-    return yamlField("_yaml", "Entries", data, 16);
-  }
-  if (!data || typeof data !== "object") {
-    return yamlField("_yaml", "Data", data, 12);
+function fieldsHtml(kind: string, data: unknown, layout?: PageLayoutHint): string {
+  if (Array.isArray(data) || !data || typeof data !== "object") {
+    return renderForm(
+      { fields: [{ name: "_yaml", label: Array.isArray(data) ? "Entries" : "Data", type: "yaml", rows: Array.isArray(data) ? 16 : 12 }] },
+      { _yaml: data },
+    );
   }
   const record = data as Record<string, unknown>;
-  const meta = Object.entries(record)
-    .filter(([key]) => key !== "zones")
-    .map(([key, value]) => fieldFor(key, value, key))
-    .join("");
+  const schema = schemaFor(kind, record);
+  if (!schema) {
+    return renderForm({ fields: [{ name: "_yaml", label: "Data", type: "yaml", rows: 12 }] }, { _yaml: data });
+  }
+  const authoredNames = new Set((authoredSchema(kind)?.fields ?? schema.fields).map((field) => field.name));
+  const base = schema.fields.filter((field) => authoredNames.has(field.name));
+  const extras = schema.fields.filter((field) => !authoredNames.has(field.name));
   const zones =
-    record.zones && typeof record.zones === "object" && !Array.isArray(record.zones)
-      ? (record.zones as Record<string, unknown>)
-      : {};
-  return `${meta}${layoutBanner(layout)}${zoneFields(zones, layout)}`;
+    kind === "content"
+      ? `${layoutBanner(layout)}${zoneFields(zonesOf(record), layout)}`
+      : "";
+  return `${renderForm({ fields: base }, record)}${zones}${extras.length ? renderForm({ fields: extras }, record) : ""}`;
 }
 
-function fieldFor(key: string, value: unknown, path: string): string {
-  if (key === "id") {
-    return `<p><label>Id</label><input class="w3-input w3-border w3-margin-top" value="${escapeHtml(String(value ?? ""))}" disabled /></p>
-      <input type="hidden" name="${escapeHtml(path)}" value="${escapeHtml(String(value ?? ""))}" />`;
-  }
-  if (key === "title" && typeof value === "string") {
-    return textField(path, "Title", value);
-  }
-  if (typeof value === "string") {
-    if (key === "html" || value.includes("<") || value.includes("\n") || value.length > 80) {
-      return textareaField(path, labelize(key), value, key === "html" || key === "main" ? 16 : 8);
-    }
-    return textField(path, labelize(key), value);
-  }
-  if (typeof value === "number" || typeof value === "boolean") {
-    return textField(path, labelize(key), String(value));
-  }
-  if (Array.isArray(value) && value.every((item) => typeof item === "string")) {
-    return textField(path, labelize(key), value.join(", "), "csv");
-  }
-  return yamlField(path, labelize(key), value, 10);
+function zonesOf(record: Record<string, unknown>): Record<string, unknown> {
+  return record.zones && typeof record.zones === "object" && !Array.isArray(record.zones)
+    ? (record.zones as Record<string, unknown>)
+    : {};
 }
 
 function layoutBanner(layout?: PageLayoutHint): string {
@@ -591,20 +625,6 @@ function labelize(key: string): string {
   return key.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase());
 }
 
-function readForm(form: HTMLFormElement, original: unknown): unknown {
-  if (Array.isArray(original) || !(original && typeof original === "object")) {
-    const yaml = String(new FormData(form).get("_yaml") ?? "");
-    return parseYaml(yaml);
-  }
-  const next = structuredClone(original) as Record<string, unknown>;
-  for (const el of Array.from(form.elements)) {
-    if (!(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)) continue;
-    if (!el.name || el.disabled) continue;
-    setPath(next, el.name, parseField(el));
-  }
-  return next;
-}
-
 function pruneEmptyHtmlZones(data: unknown): unknown {
   if (!data || typeof data !== "object" || Array.isArray(data)) return data;
   const record = data as Record<string, unknown>;
@@ -627,31 +647,4 @@ function pruneEmptyHtmlZones(data: unknown): unknown {
     next[id] = zone;
   }
   return { ...record, zones: next };
-}
-
-function parseField(el: HTMLInputElement | HTMLTextAreaElement): unknown {
-  const kind = el.dataset.kind ?? "text";
-  const value = el.value;
-  if (kind === "csv") {
-    return value
-      .split(",")
-      .map((part) => part.trim())
-      .filter(Boolean);
-  }
-  if (kind === "yaml") return parseYaml(value);
-  return value;
-}
-
-function setPath(target: Record<string, unknown>, path: string, value: unknown): void {
-  const parts = path.split(".");
-  let cursor: Record<string, unknown> = target;
-  for (let i = 0; i < parts.length - 1; i++) {
-    const key = parts[i]!;
-    const next = cursor[key];
-    if (!next || typeof next !== "object" || Array.isArray(next)) {
-      cursor[key] = {};
-    }
-    cursor = cursor[key] as Record<string, unknown>;
-  }
-  cursor[parts[parts.length - 1]!] = value;
 }

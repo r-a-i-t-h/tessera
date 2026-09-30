@@ -12,6 +12,7 @@ import {
   type HistorySummary,
 } from "./history.js";
 import { writeSnapshotFiles } from "./snapshot.js";
+import type { DistReport, DistTarget } from "./dist.js";
 import {
   assembleDocument,
   authoredPageToPage,
@@ -65,6 +66,7 @@ export class SiteStore {
     /** Authoring schema from `$TESSERA_DATA/meta.json`. Missing or non-numeric is 0. */
     private readonly schemaVersion: () => Promise<number> = async () => 0,
     historyDir?: string,
+    readonly dist?: DistTarget,
   ) {
     this.historyDir = historyDir ?? join(siteDir, "history");
   }
@@ -211,8 +213,8 @@ export class SiteStore {
   }
 
   async writeSite(data: Record<string, unknown>): Promise<SaveResult> {
-    const { snapshot } = await this.commitText(this.siteFile(), toYaml(data));
-    return { historyAppended: false, historyCount: 0, ...(snapshot ? { snapshot } : {}) };
+    const saved = await this.commitText(this.siteFile(), toYaml(data));
+    return { historyAppended: false, historyCount: 0, ...outputFields(saved) };
   }
 
   async readNav(): Promise<unknown> {
@@ -220,15 +222,31 @@ export class SiteStore {
   }
 
   async writeNav(data: unknown): Promise<SaveResult> {
-    const { snapshot } = await this.commitText(this.navFile(), toYaml(data));
-    return { historyAppended: false, historyCount: 0, ...(snapshot ? { snapshot } : {}) };
+    const saved = await this.commitText(this.navFile(), toYaml(data));
+    return { historyAppended: false, historyCount: 0, ...outputFields(saved) };
+  }
+
+  async rebuild(): Promise<{
+    doc?: SiteDocument;
+    snapshot?: SnapshotRef;
+  }> {
+    const doc = await this.loadReadyDocument();
+    if (!doc) return {};
+    const outputs = await this.writeOutputs(doc);
+    return { doc, ...outputs };
+  }
+
+  /** Write `publish/` from the current records. Does not refresh the preview. */
+  async publish(): Promise<{ doc?: SiteDocument; dist: DistReport }> {
+    if (!this.dist) throw new Error("No publish directory configured.");
+    const doc = await this.loadReadyDocument();
+    if (!doc) throw new Error("Nothing to publish yet. This site needs a layout and at least one page.");
+    const { emitDist } = await import("./dist.js");
+    return { doc, dist: await emitDist(doc, this.dist) };
   }
 
   async flatten(): Promise<SiteDocument | undefined> {
-    const doc = await this.loadReadyDocument();
-    if (!doc) return undefined;
-    if (this.flattenOut) await writeSnapshotFiles(this.flattenOut, documentBody(doc));
-    return doc;
+    return (await this.rebuild()).doc;
   }
 
   private async tryDocument(): Promise<SiteDocument | undefined> {
@@ -264,17 +282,17 @@ export class SiteStore {
   }
 
   private async commitRecord(kind: RecordKind, id: string, nextText: string): Promise<SaveResult> {
-    const { snapshot, previous } = await this.commitText(this.recordFile(kind, id), nextText);
+    const saved = await this.commitText(this.recordFile(kind, id), nextText);
     await this.ensureOrdered(kind, id);
-    const historyAppended = await this.maybeAppendHistory(kind, id, previous, nextText);
+    const historyAppended = await this.maybeAppendHistory(kind, id, saved.previous, nextText);
     const historyCount = kind === "content" ? (await this.pageHistory(id)).length : 0;
-    return { historyAppended, historyCount, ...(snapshot ? { snapshot } : {}) };
+    return { historyAppended, historyCount, ...outputFields(saved) };
   }
 
   /**
-   * Replace a file, then republish. A publish failure restores the previous
-   * bytes (or removes a file that did not exist) so a bad edit is not what
-   * the snapshot cache names.
+   * Replace a file, then refresh the preview. A snapshot failure restores the
+   * previous bytes (or removes a file that did not exist) so a bad edit is not
+   * what the snapshot cache names. `publish/` is left as it was.
    */
   private async commitText(
     path: string,
@@ -288,8 +306,10 @@ export class SiteStore {
     }
     await writeTextAtomic(path, nextText);
     try {
-      const snapshot = await this.publishSnapshot();
-      return { snapshot, previous };
+      const doc = await this.loadReadyDocument();
+      if (!doc) return { previous };
+      const outputs = await this.writeOutputs(doc);
+      return { ...outputs, previous };
     } catch (err) {
       if (previous === undefined) await unlink(path).catch(() => undefined);
       else await writeTextAtomic(path, previous);
@@ -308,10 +328,9 @@ export class SiteStore {
     return true;
   }
 
-  private async publishSnapshot(): Promise<SnapshotRef | undefined> {
-    const doc = await this.loadReadyDocument();
-    if (!doc || !this.flattenOut) return undefined;
-    return writeSnapshotFiles(this.flattenOut, documentBody(doc));
+  private async writeOutputs(doc: SiteDocument): Promise<{ snapshot?: SnapshotRef }> {
+    if (!this.flattenOut) return {};
+    return { snapshot: await writeSnapshotFiles(this.flattenOut, documentBody(doc)) };
   }
 
   private async loadReadyDocument(): Promise<SiteDocument | undefined> {
@@ -418,6 +437,10 @@ export class SiteStore {
 
 function documentBody(doc: SiteDocument): string {
   return `${JSON.stringify(doc, null, 2)}\n`;
+}
+
+function outputFields(saved: { snapshot?: SnapshotRef }): Pick<SaveResult, "snapshot"> {
+  return saved.snapshot ? { snapshot: saved.snapshot } : {};
 }
 
 function normalizeRaw(raw: string): string {

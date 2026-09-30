@@ -293,6 +293,8 @@ export const NavEntrySchema: z.ZodType<NavEntry> = z.lazy(() =>
   }),
 );
 
+export const SiteDeliverySchema = z.enum(["pages", "snapshot"]);
+
 export const SiteMetaSchema = z.object({
   id: z.string().min(1),
   title: z.string(),
@@ -300,6 +302,14 @@ export const SiteMetaSchema = z.object({
   defaultLayoutId: z.string().optional(),
   /** Outer page. Its `page` node is replaced by the resolved page layout. */
   masterLayoutId: z.string().min(1).optional(),
+  /**
+   * Copyable dist. `pages` is one HTML file per page.
+   * `snapshot` is the single-index SPA. Omitted means `pages`.
+   * The editing preview is always the snapshot and ignores this.
+   */
+  delivery: SiteDeliverySchema.optional(),
+  /** Absolute origin with no path, used for canonical URLs in a pages dist. */
+  origin: z.string().optional(),
   settings: z.record(z.unknown()).optional(),
 });
 

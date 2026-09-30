@@ -31,6 +31,7 @@ title: New site
 homePageId: home
 defaultLayoutId: standard
 masterLayoutId: master
+delivery: pages
 `;
 
 const MASTER_YAML = `id: master

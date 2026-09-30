@@ -42,8 +42,17 @@ export function siteLayout(dataRoot: string) {
     root: dataRoot,
     records: join(dataRoot, "records"),
     history: join(dataRoot, "history"),
-    flattenOut: join(dataRoot, "publish", "data", "site.json"),
+    /** SPA snapshot the dev server reads while editing. */
+    previewOut: join(dataRoot, "preview", "data", "site.json"),
+    /** Snapshot file inside the copyable dist, when delivery is `snapshot`. */
+    publishOut: join(dataRoot, "publish", "data", "site.json"),
+    /**
+     * Where an editor save writes the SPA snapshot.
+     * Same path as `previewOut`. Reference-site tools use `publishOut`.
+     */
+    flattenOut: join(dataRoot, "preview", "data", "site.json"),
     shellIndex: join(dataRoot, "shell", "index.html"),
+    publishDir: join(dataRoot, "publish"),
     publishIndex: join(dataRoot, "publish", "index.html"),
   };
 }
@@ -87,4 +96,21 @@ export function resolveSpaDir(
     ? [fromEnv]
     : [join(apiRoot, "spa"), join(apiRoot, "..", "editor", "dist")];
   return candidates.find((dir) => existsSync(join(dir, "index.html")));
+}
+
+/** Where a rebuilt dist copies its runtime and skin from. */
+export function resolveDistTarget(dataRoot: string, apiRoot: string): {
+  publishDir: string;
+  shellIndex: string;
+  bundleDir: string;
+  skinDir: string;
+} {
+  const checkoutBundle = join(repoRoot, "apps", "site", "dist");
+  const checkoutSkin = join(repoRoot, "packages", "skin-w3", "css");
+  return {
+    publishDir: join(dataRoot, "publish"),
+    shellIndex: join(dataRoot, "shell", "index.html"),
+    bundleDir: existsSync(checkoutBundle) ? checkoutBundle : apiRoot,
+    skinDir: existsSync(checkoutSkin) ? checkoutSkin : join(apiRoot, "skin"),
+  };
 }

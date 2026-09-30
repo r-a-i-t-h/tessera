@@ -23,6 +23,7 @@ export class RtCard extends WCBase {
 }
 
 export function registerCardElement(): void {
+  if (typeof customElements === "undefined") return;
   if (!customElements.get("rt-card")) {
     customElements.define("rt-card", RtCard);
   }

@@ -22,14 +22,17 @@ const result = spawnSync(viteBin, ["build", "--config", join(appRoot, "vite.conf
 });
 if (result.status !== 0) process.exit(result.status ?? 1);
 
-const bundle = join(appRoot, "dist", "tessera.js");
+const bundleDir = join(appRoot, "dist");
 const skinSrc = join(repoRoot, "packages", "skin-w3", "css");
 
 for (const name of only ? [only] : names) {
   const publish = join(repoRoot, "sites", name, "publish");
   const shell = join(repoRoot, "sites", name, "shell");
   rmSync(join(publish, "assets"), { recursive: true, force: true });
-  copyFileSync(bundle, join(publish, "tessera.js"));
+  for (const file of readdirSync(bundleDir)) {
+    if (!file.endsWith(".js")) continue;
+    copyFileSync(join(bundleDir, file), join(publish, file));
+  }
   const skinOut = join(publish, "skin");
   mkdirSync(skinOut, { recursive: true });
   for (const file of readdirSync(skinSrc)) {

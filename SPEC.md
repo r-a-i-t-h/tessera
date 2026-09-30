@@ -28,7 +28,7 @@ It is the successor to Rec-Tem (“recursive templates”). The mosaic metaphor 
 
 - Request-time rendering, and a generic server that loads site micro-app code.
 - Publishing static stand-ins so micro-apps work with JavaScript disabled.
-- Mixing snapshot and pages output for one site, or switching flavour after the site is created.
+- Mixing both dist flavours in one `publish/` tree. The preview snapshot lives in `preview/` and is not a second public site.
 - Runtime lookups from a datastore. A snapshot site’s published payload is one JSON file. A pages site’s published payload is the HTML files.
 - Recursive zone invention from inside page content.
 - Edit-in-place on the rendered site.
@@ -105,7 +105,7 @@ Where authoring syntax benefits, prefer custom elements (e.g. `<imgbox>`, `<quot
 
 ### Delivery flavours
 
-A site is either a snapshot or pages, chosen when the site is created. One site does not emit both, and it does not switch at runtime.
+A site’s copyable dist is either **pages** (one HTML file per page) or **snapshot** (one JSON document). `delivery` on the site record chooses it and defaults to `pages`. **Publish** writes that dist into `publish/` and replaces the previous flavour’s generated files, so the folder is never a mix. Editing does not write `publish/`. The preview is always the snapshot, in `preview/`, and ignores `delivery`. Copy `publish/` to the live host. Tessera does not deploy it.
 
 “Static” means the published files are prepared ahead of time. The browser talks to a static file host (nginx or equivalent). Node is the build, not the request path.
 
@@ -245,8 +245,8 @@ Components ship in the shared catalogue. A site names them from its records. A s
 - **No self-signup.** Users are files under `$TESSERA_DATA/users/` (copied from the release seed when that folder is empty); add them with `seed:user`.
 - Access is **all-or-nothing**: any authenticated user may perform every editor mutation. `requireEditor` is the choke point so later ACL can replace that helper without rewriting routes.
 - The **editor SPA** (`apps/editor`) is a same-origin Vite app (not shipped with the renderer). Dev proxies `/auth`, `/api`, `/health` to the API; production can serve `dist` from the Hono process so the `httpOnly` session cookie never crosses origins.
-- Authoring is **file-based YAML** (one file per Tessera `id`) in `$TESSERA_DATA/records`, outside the web root. Flatten emits `publish/data/site.json`. No database. There is no second path for records or for the export.
-- A page is a page. Tags, sections, and layouts decide how it is presented. Structured fields are a JSON zone the catalogue components read. The editor reflects the keys already on the file. It does not ship a content-type schema. `schemaVersion` is the authoring-file format, not a Person field list.
+- Authoring is **file-based YAML** (one file per Tessera `id`) in `$TESSERA_DATA/records`, outside the web root. An edit writes the SPA snapshot to `preview/data/site.json`. **Publish** writes `publish/` in the site's `delivery` flavour. No database.
+- A page is a page. Tags, sections, and layouts decide how it is presented. Structured fields are a JSON zone the catalogue components read. Editor forms are drawn from a field schema for the record kind (string, number, date, Checkbox, SingleSelect), including fields that have no value yet. Keys the schema does not name stay on the form. `schemaVersion` is the authoring-file format, not a Person field list.
 - A content-page save appends the previous raw file to `$TESSERA_DATA/history/content/<id>.history`. That history is an editor file, not a field on the published page. The framing is a proof of concept; the authoring spec will replace it.
 - **Authoring schema** (`schemaVersion` in `$TESSERA_DATA/meta.json`) is separate from `SiteDocument.version`. `deploy/post-update.sh` is the [node-vps-kit](https://github.com/r-a-i-t-h/node-vps-kit) hook that applies `deploy/migrations/NNN-*.sh`. The app reads the counter and does not bump it. Records live inside `$TESSERA_DATA`, so a migration can rewrite them.
 - The renderer never depends on the editor; the editor may host the renderer for preview.

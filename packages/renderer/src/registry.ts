@@ -31,6 +31,11 @@ export class ComponentRegistry {
     return this.fns.has(name) || this.elementTags.has(name);
   }
 
+  /** True when `name` renders to an HTML string. Custom elements are not functions. */
+  hasFunction(name: string): boolean {
+    return this.fns.has(name);
+  }
+
   render(
     name: string,
     ctx: RenderContext,

@@ -333,6 +333,7 @@ function parseItems(raw: string | null): GalleryItem[] {
 }
 
 export function registerGalleryElement(): void {
+  if (typeof customElements === "undefined") return;
   if (!customElements.get("tessera-gallery")) {
     customElements.define("tessera-gallery", TesseraGallery);
   }

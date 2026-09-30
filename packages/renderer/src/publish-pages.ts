@@ -1,7 +1,7 @@
 import type { SiteDocument } from "@r-a-i-t-h/tessera-model";
 import { flattenPageTree, publishedPageTree, type PageTreeNode } from "@r-a-i-t-h/tessera-model";
 import { ComponentRegistry } from "./registry.js";
-import { escapeHtml, renderPage } from "./render.js";
+import { escapeHtml, renderPage, type Skin } from "./render.js";
 import type { MicroAppMount } from "./types.js";
 
 export type PublishPagesOptions = {
@@ -9,6 +9,13 @@ export type PublishPagesOptions = {
   origin: string;
   /** `<html lang>`. Defaults to `en`. */
   lang?: string;
+  /** HTML catalogue. Names it does not render stay micro-app mounts. */
+  registry?: ComponentRegistry;
+  skin?: Skin;
+  /** Stylesheet hrefs, folder-relative (`./skin/w3.css`) or absolute. */
+  stylesheets?: string[];
+  /** Pages runtime, folder-relative. Defaults to `./tessera-pages.js`. */
+  script?: string;
 };
 
 export type PublishedFile = {
@@ -25,8 +32,12 @@ export type PublishedFile = {
 export function publishPages(document: SiteDocument, options: PublishPagesOptions): PublishedFile[] {
   const origin = options.origin.replace(/\/$/, "");
   const lang = options.lang ?? "en";
+  const registry = options.registry ?? new ComponentRegistry();
+  const stylesheets = options.stylesheets ?? ["./skin/w3.css", "./site.css"];
+  const script = options.script ?? "./tessera-pages.js";
   const tree = publishedPageTree(document);
   const pages = flattenPageTree(tree);
+  const pathById = new Map(pages.map((node) => [node.page.id, node.path]));
   const files: PublishedFile[] = [];
 
   for (const node of pages) {
@@ -34,9 +45,11 @@ export function publishPages(document: SiteDocument, options: PublishPagesOption
     const body = renderPage({
       document,
       pageId: node.page.id,
-      registry: new ComponentRegistry(),
+      registry,
+      skin: options.skin,
       mountMicroApps: true,
       microApps,
+      pageHref: (pageId) => hrefForPageId(pathById, node.path, pageId),
     });
     const filePath = node.path ? `${node.path}/index.html` : "index.html";
     files.push({
@@ -48,6 +61,8 @@ export function publishPages(document: SiteDocument, options: PublishPagesOption
         origin,
         lang,
         microApps,
+        stylesheets,
+        script,
       }),
     });
   }
@@ -66,30 +81,51 @@ function pageHtml(input: {
   origin: string;
   lang: string;
   microApps: MicroAppMount[];
+  stylesheets: string[];
+  script: string;
 }): string {
-  const { document, node, body, origin, lang, microApps } = input;
+  const { document, node, body, origin, lang, microApps, stylesheets, script } = input;
   const title = `${node.page.title} · ${document.site.title}`;
   const description = node.page.description?.trim();
   const canonical = canonicalUrl(origin, node.path);
   const descriptionTag = description
     ? `\n    <meta name="description" content="${escapeHtml(description)}" />`
     : "";
+  const styleTags = stylesheets
+    .map((href) => `\n    <link rel="stylesheet" href="${escapeHtml(assetHref(node.path, href))}" />`)
+    .join("");
   const microAppScript = microApps.length
     ? `\n    <script type="application/json" id="tessera-microapps">${escapeScriptJson(microApps)}</script>`
     : "";
+  const scriptTag = `\n    <script type="module" src="${escapeHtml(assetHref(node.path, script))}"></script>`;
   return `<!DOCTYPE html>
 <html lang="${escapeHtml(lang)}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapeHtml(title)}</title>${descriptionTag}
-    <link rel="canonical" href="${escapeHtml(canonical)}" />
+    <link rel="canonical" href="${escapeHtml(canonical)}" />${styleTags}
   </head>
   <body>
-    ${body}${microAppScript}
+    ${body}${microAppScript}${scriptTag}
   </body>
 </html>
 `;
+}
+
+function hrefForPageId(pathById: Map<string, string>, fromPath: string, pageId: string): string {
+  const toPath = pathById.get(pageId);
+  if (toPath === undefined) return `#${pageId}`;
+  return hrefFor(fromPath, toPath);
+}
+
+/** Prefix a folder-relative asset for a page that lives `fromPath` deep. */
+export function assetHref(fromPath: string, href: string): string {
+  if (/^(?:[a-z][a-z0-9+.-]*:)?\/\//i.test(href) || href.startsWith("/") || href.startsWith("#")) {
+    return href;
+  }
+  const prefix = fromPath ? "../".repeat(fromPath.split("/").length) : "./";
+  return `${prefix}${href.replace(/^\.\//, "")}`;
 }
 
 /** Link from a page's directory to another page's directory. */

@@ -1,4 +1,5 @@
 import type { ComponentFn } from "../types.js";
+import { hrefForPage } from "../page-href.js";
 import { flattenNav, resolveNavTree, type ResolvedNavNode } from "../nav-expand.js";
 
 function filterScope(nodes: ResolvedNavNode[], scope: string | undefined): ResolvedNavNode[] {
@@ -14,7 +15,7 @@ function filterScope(nodes: ResolvedNavNode[], scope: string | undefined): Resol
 
 function linkHtml(ctx: Parameters<ComponentFn>[0], node: ResolvedNavNode): string {
   const id = node.id ?? "";
-  const href = id ? `#${id}` : "#";
+  const href = hrefForPage(ctx, id);
   const active = id && ctx.page.id === id ? " is-active w3-theme-l3" : "";
   const label = ctx.escapeHtml(node.title ?? id);
   return `<a class="w3-bar-item w3-button${active}" href="${href}">${label}</a>`;
@@ -99,7 +100,7 @@ export const navTags: ComponentFn = (ctx, props = {}) => {
       const pills = pages
         .map((p) => {
           const active = ctx.page.id === p.id ? " w3-theme" : " w3-theme-l4";
-          return `<a class="w3-tag w3-round${active} w3-margin-right" href="#${p.id}">${ctx.escapeHtml(p.title)}</a>`;
+          return `<a class="w3-tag w3-round${active} w3-margin-right" href="${hrefForPage(ctx, p.id)}">${ctx.escapeHtml(p.title)}</a>`;
         })
         .join("");
       return `<div class="w3-margin-bottom"><div class="w3-small w3-text-grey">${ctx.escapeHtml(tag)}</div>${pills}</div>`;

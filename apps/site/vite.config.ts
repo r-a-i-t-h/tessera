@@ -41,6 +41,8 @@ export const siteRoot = requestedSite ? join(repoRoot, "sites", requestedSite) :
 export const siteName = requestedSite ?? "instance";
 export const shellRoot = join(siteRoot, "shell");
 export const publishRoot = join(siteRoot, "publish");
+/** Instance preview snapshot. Reference sites have no `preview/` and keep using `publish/`. */
+export const previewRoot = requestedSite ? undefined : join(siteRoot, "preview");
 
 const MIME: Record<string, string> = {
   ".css": "text/css; charset=utf-8",
@@ -79,10 +81,17 @@ export function devShellHtml(html: string): string {
 }
 
 /**
- * Serve the site's static shell and `publish/` tree. The Vite root is this
- * app, so `/src/main.ts` is the shared runtime rather than a file in the site.
+ * Serve the site's static shell, the preview snapshot, and `publish/` files.
+ * `/data/*` comes from `preview/` when that directory is set, so the SPA
+ * preview does not read the copyable dist. The Vite root is this app, so
+ * `/src/main.ts` is the shared runtime rather than a file in the site.
  */
-function serveSite(shellDir: string, publishDir: string, shellIndex: string): Plugin {
+function serveSite(
+  shellDir: string,
+  publishDir: string,
+  shellIndex: string,
+  previewDir?: string,
+): Plugin {
   return {
     name: "tessera-serve-site",
     configureServer(server) {
@@ -120,6 +129,13 @@ function serveSite(shellDir: string, publishDir: string, shellIndex: string): Pl
             return;
           }
         }
+        if (previewDir && rel.startsWith("data/")) {
+          const fromPreview = fileInDir(previewDir, rel);
+          if (fromPreview) {
+            sendFile(res, fromPreview);
+            return;
+          }
+        }
         const fromPublish = fileInDir(publishDir, rel);
         if (fromPublish) {
           sendFile(res, fromPublish);
@@ -136,7 +152,7 @@ export default defineConfig({
   base: "./",
   publicDir: false,
   cacheDir: join(appRoot, "node_modules", ".vite"),
-  plugins: [serveSite(shellRoot, publishRoot, join(shellRoot, "index.html"))],
+  plugins: [serveSite(shellRoot, publishRoot, join(shellRoot, "index.html"), previewRoot)],
   build: {
     outDir: join(appRoot, "dist"),
     emptyOutDir: true,
@@ -144,9 +160,13 @@ export default defineConfig({
     assetsDir: ".",
     modulePreload: false,
     rollupOptions: {
+      input: {
+        tessera: join(appRoot, "index.html"),
+        "tessera-pages": join(appRoot, "src/pages.ts"),
+      },
       output: {
-        entryFileNames: "tessera.js",
-        chunkFileNames: "[name].js",
+        entryFileNames: "[name].js",
+        chunkFileNames: "chunk-[name].js",
         assetFileNames: "[name][extname]",
       },
     },

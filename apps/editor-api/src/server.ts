@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { SessionStore, SESSION_HANDOFF_FILE } from "./auth/sessions.js";
 import { createApp } from "./app.js";
 import { ensureExampleArchives } from "./site/backup.js";
-import { editorApiRoot, repoRoot, resolveBackupDir, resolveDataRoot, resolveSpaDir, siteLayout } from "./site/paths.js";
+import { editorApiRoot, repoRoot, resolveBackupDir, resolveDataRoot, resolveDistTarget, resolveSpaDir, siteLayout } from "./site/paths.js";
 import { adoptLegacyRecordsDir } from "./site/records-dir.js";
 import { SiteStore } from "./site/store.js";
 import { ensureMetaFile, metaPath, readSchemaVersion } from "./store/meta.js";
@@ -31,9 +31,10 @@ const sessions = await SessionStore.load(join(dataDir, SESSION_HANDOFF_FILE));
 const spaDir = resolveSpaDir(root);
 const site = new SiteStore(
   layout.records,
-  layout.flattenOut,
+  layout.previewOut,
   () => readSchemaVersion(metaPath(dataDir)),
   layout.history,
+  resolveDistTarget(dataDir, root),
 );
 const app = createApp({
   users,
@@ -51,7 +52,8 @@ if (spaDir) {
   console.log(`Editor SPA: http://127.0.0.1:${port}/`);
 }
 console.log(`Site records: ${layout.records}`);
-console.log(`Publish: ${layout.flattenOut}`);
+console.log(`Preview: ${layout.previewOut}`);
+console.log(`Dist: ${layout.publishDir}`);
 console.log(`Backups: ${backupDir}`);
 
 const server = serve({ fetch: app.fetch, port });

@@ -11,7 +11,7 @@ if (!name) {
 }
 
 const layout = siteLayout(join(repoRoot, "sites", name));
-const doc = parseSiteDocument(JSON.parse(await readFile(layout.flattenOut, "utf8")));
+const doc = parseSiteDocument(JSON.parse(await readFile(layout.publishOut, "utf8")));
 const store = new SiteStore(layout.records, undefined);
 await store.writeFromDocument(doc);
 console.log(`Wrote YAML records to ${layout.records}`);

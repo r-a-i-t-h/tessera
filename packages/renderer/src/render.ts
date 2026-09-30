@@ -22,6 +22,8 @@ export type RenderPageOptions = {
    */
   mountMicroApps?: boolean;
   microApps?: MicroAppMount[];
+  /** Pages dist. Snapshot leaves this unset. */
+  pageHref?: (pageId: string) => string;
 };
 
 export function escapeHtml(s: string): string {
@@ -81,6 +83,7 @@ export function renderPage(options: RenderPageOptions): string {
     escapeHtml,
     mountMicroApps: options.mountMicroApps,
     microApps: options.microApps,
+    pageHref: options.pageHref,
   };
 
   const pageHtml = renderNode(layout.root, ctx, skin);

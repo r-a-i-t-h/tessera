@@ -137,14 +137,30 @@ export type HistoryEntry = {
   raw: string;
 };
 
+export type DistResult = {
+  flavour: "pages" | "snapshot";
+  pages?: number;
+  snapshot?: SnapshotRef;
+};
+
 export type RenderResult = {
   ok: true;
   pages: number;
   snapshot?: SnapshotRef;
 };
 
+export type PublishResult = {
+  ok: true;
+  pages: number;
+  dist: DistResult;
+};
+
 export function renderSite(): Promise<RenderResult> {
   return request("/api/render", { method: "POST" });
+}
+
+export function publishSite(): Promise<PublishResult> {
+  return request("/api/publish", { method: "POST" });
 }
 
 export function initSite(): Promise<RenderResult> {
