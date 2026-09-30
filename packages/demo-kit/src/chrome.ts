@@ -1,5 +1,8 @@
 
+import { resolveSiteStyle, siteStyleCss, type SiteStyle } from "@r-a-i-t-h/tessera-model";
 import { escapeHtml } from "@r-a-i-t-h/tessera-renderer";
+
+const FONT_STORAGE_KEY = "tessera-font";
 
 export const bodySwitch = {
   sets: {
@@ -11,10 +14,34 @@ export const bodySwitch = {
     if (idx >= 0 && list && idx < list.length) {
       document.body.classList.remove(...list);
       document.body.classList.add(list[idx]!);
+      if (set === "font") rememberFont(list[idx]!);
     }
     return false;
   },
 };
+
+function rememberFont(className: string): void {
+  try {
+    localStorage.setItem(FONT_STORAGE_KEY, className);
+  } catch {
+    /* private mode or a page without storage */
+  }
+}
+
+/** Re-apply the visitor's font after a render replaces the default font class. */
+export function restoreFontChoice(): void {
+  if (typeof document === "undefined" || !document.body) return;
+  let saved: string | null = null;
+  try {
+    saved = localStorage.getItem(FONT_STORAGE_KEY);
+  } catch {
+    return;
+  }
+  const list = bodySwitch.sets.font;
+  if (!saved || !list.includes(saved)) return;
+  document.body.classList.remove(...list);
+  document.body.classList.add(saved);
+}
 
 export function wireSidebarToggle(): void {
   const sidebar = document.getElementById("mySidebar");
@@ -40,11 +67,40 @@ export function flipNavSide(): boolean {
   return false;
 }
 
-/** Expose helpers used by inline onclick handlers in demo HTML. */
+/** Write chrome tokens onto the document and re-bind the sidebar toggle. */
+export function applySiteChrome(style: SiteStyle | undefined): void {
+  if (typeof document === "undefined" || !document.body || !document.head) return;
+  if (style) {
+    const resolved = resolveSiteStyle(style);
+    let el = document.getElementById("tessera-style");
+    if (!el) {
+      el = document.createElement("style");
+      el.id = "tessera-style";
+      document.head.append(el);
+    }
+    el.textContent = siteStyleCss(style);
+    if (resolved.fontsHref) {
+      const existing = document.getElementById("tessera-fonts");
+      const link = existing instanceof HTMLLinkElement ? existing : document.createElement("link");
+      if (!(existing instanceof HTMLLinkElement)) {
+        link.id = "tessera-fonts";
+        link.rel = "stylesheet";
+        document.head.append(link);
+      }
+      link.href = resolved.fontsHref;
+    }
+    document.body.classList.remove("leftnav", "rightnav", ...bodySwitch.sets.font);
+    document.body.classList.add(resolved.navSide === "left" ? "leftnav" : "rightnav", "fontA");
+  }
+  restoreFontChoice();
+  wireSidebarToggle();
+}
+
 export function installChromeGlobals(): void {
   (window as unknown as { body_switch: typeof bodySwitch }).body_switch = bodySwitch;
   (window as unknown as { flip_nav_side: typeof flipNavSide }).flip_nav_side = flipNavSide;
   wireSidebarToggle();
+  restoreFontChoice();
 }
 
 /** Show or clear a stale/offline banner (creates `#tessera-stale-banner` if needed). */

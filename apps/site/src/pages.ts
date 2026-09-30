@@ -7,7 +7,10 @@ import {
   type MicroAppMount,
   type RenderContext,
 } from "@r-a-i-t-h/tessera-renderer";
+import { installChromeGlobals } from "@r-a-i-t-h/tessera-demo-kit";
 import { registerExtras } from "@r-a-i-t-h/tessera-extras";
+
+installChromeGlobals();
 
 const stubDocument: SiteDocument = parseSiteDocument({
   version: 2,

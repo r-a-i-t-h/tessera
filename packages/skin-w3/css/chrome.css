@@ -1,0 +1,217 @@
+/* Default site chrome. Tokens fall back to the ineffable sidebar measurements
+   and the teal theme the blank shell links. The Styles page overrides :root. */
+
+:root {
+  --tessera-sidebar-width: 300px;
+  --tessera-bar-height: 42px;
+  --tessera-content-max: 1100px;
+  --tessera-font-size: 16px;
+  --tessera-font-a: "Lekton", sans-serif;
+  --tessera-font-b: "Roboto", sans-serif;
+  --tessera-font-c: "Orbitron", sans-serif;
+  --tessera-font-d: "Thasadith", sans-serif;
+  --tessera-bar: #009688;
+  --tessera-bar-text: #ffffff;
+  --tessera-sidebar: #ffffff;
+  --tessera-sidebar-text: #111111;
+  --tessera-page: #ffffff;
+  --tessera-text: #111111;
+  --tessera-muted: #666666;
+  --tessera-accent: #009688;
+  --tessera-link: #00796b;
+}
+
+body {
+  margin: 0;
+  background: var(--tessera-page);
+  color: var(--tessera-text);
+  font-size: var(--tessera-font-size);
+}
+
+body.fontA,
+body.fontA h1,
+body.fontA h2,
+body.fontA h3,
+body.fontA h4,
+body.fontA h5,
+body.fontA h6 {
+  font-family: var(--tessera-font-a);
+}
+body.fontB,
+body.fontB h1,
+body.fontB h2,
+body.fontB h3,
+body.fontB h4,
+body.fontB h5,
+body.fontB h6 {
+  font-family: var(--tessera-font-b);
+}
+body.fontC,
+body.fontC h1,
+body.fontC h2,
+body.fontC h3,
+body.fontC h4,
+body.fontC h5,
+body.fontC h6 {
+  font-family: var(--tessera-font-c);
+}
+body.fontD,
+body.fontD h1,
+body.fontD h2,
+body.fontD h3,
+body.fontD h4,
+body.fontD h5,
+body.fontD h6 {
+  font-family: var(--tessera-font-d);
+}
+
+.tessera-top .tessera-bar {
+  height: var(--tessera-bar-height);
+  background-color: var(--tessera-bar);
+  color: var(--tessera-bar-text);
+}
+
+.tessera-top .tessera-bar .w3-bar-item,
+.tessera-menu-btn,
+.tessera-brand,
+.tessera-font-btn {
+  color: var(--tessera-bar-text);
+}
+
+.tessera-fonts {
+  float: right;
+  display: flex;
+  align-items: center;
+  height: var(--tessera-bar-height);
+  gap: 0.15rem;
+  padding-right: 0.5rem;
+}
+
+.tessera-font-btn {
+  background: transparent;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+  padding: 0.15rem 0.45rem;
+}
+
+.tessera-sidebar.w3-sidebar {
+  z-index: 3;
+  width: var(--tessera-sidebar-width);
+  top: var(--tessera-bar-height);
+  bottom: 0;
+  height: auto;
+  background-color: var(--tessera-sidebar);
+  color: var(--tessera-sidebar-text);
+}
+
+.tessera-sidebar a {
+  color: var(--tessera-sidebar-text);
+}
+
+.tessera-sidebar a.is-active {
+  background-color: var(--tessera-accent) !important;
+  color: var(--tessera-bar-text) !important;
+}
+
+.tessera-main {
+  margin-top: var(--tessera-bar-height);
+}
+
+.tessera-content {
+  max-width: var(--tessera-content-max);
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 1rem 2rem;
+}
+
+body.leftnav .tessera-sidebar {
+  left: 0;
+  right: auto;
+  animation: animateleft 0.4s;
+}
+
+body.rightnav .tessera-sidebar {
+  right: 0;
+  left: auto;
+  animation: animateright 0.4s;
+}
+
+@media (min-width: 993px) {
+  body.leftnav .tessera-main {
+    margin-left: var(--tessera-sidebar-width);
+  }
+
+  body.rightnav .tessera-main {
+    margin-right: var(--tessera-sidebar-width);
+  }
+}
+
+.tessera-footer {
+  background: var(--tessera-bar);
+  color: var(--tessera-bar-text);
+  padding: 1rem 1.5rem;
+}
+
+.tessera-footer p {
+  margin: 0;
+}
+
+.tessera-main a {
+  color: var(--tessera-link);
+}
+
+.tessera-breadcrumbs {
+  padding: 1rem 0 0;
+  color: var(--tessera-muted);
+  font-size: 0.9em;
+}
+
+.tessera-breadcrumbs a {
+  color: var(--tessera-link);
+  text-decoration: none;
+}
+
+.tessera-crumb-sep {
+  margin: 0 0.4rem;
+}
+
+.tessera-links {
+  margin: 1rem 0;
+  color: var(--tessera-text);
+}
+
+.tessera-links-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+}
+
+.tessera-links-list ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.tessera-links-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tessera-link-pill {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: var(--tessera-accent);
+  color: var(--tessera-bar-text);
+  text-decoration: none;
+}
+
+.tessera-link-card {
+  display: block;
+  min-width: 8rem;
+  padding: 0.75rem 1rem;
+  background: var(--tessera-page);
+  color: var(--tessera-text);
+  border: 1px solid var(--tessera-muted);
+  text-decoration: none;
+}

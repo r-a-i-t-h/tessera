@@ -10,19 +10,18 @@ const SHELL_HTML = `<!DOCTYPE html>
     <title>New site</title>
     <link rel="stylesheet" href="./skin/w3.css" />
     <link rel="stylesheet" href="./skin/w3-theme-teal.css" />
+    <link rel="stylesheet" href="./skin/chrome.css" />
     <link rel="stylesheet" href="./site.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lekton|Roboto|Orbitron|Thasadith" />
   </head>
-  <body>
+  <body class="rightnav fontA">
     <div id="app"></div>
     <script type="module" src="./tessera.js"></script>
   </body>
 </html>
 `;
 
-const SITE_CSS = `body {
-  margin: 0;
-  font-family: system-ui, sans-serif;
-}
+const SITE_CSS = `/* Site-specific rules. Shared chrome tokens live in skin/chrome.css. */
 `;
 
 const SITE_YAML = `version: 2
@@ -40,27 +39,43 @@ root:
   type: region
   children:
     - type: region
-      tag: header
-      className: w3-bar w3-theme w3-large
+      className: w3-top tessera-top
+      children:
+        - type: region
+          tag: header
+          className: w3-bar tessera-bar
+          children:
+            - type: static
+              html: '<a class="w3-bar-item w3-button tessera-menu-btn w3-hide-large" href="javascript:void(0)" onclick="w3_open()" aria-label="Open menu">Menu</a><div class="w3-bar-item tessera-brand">New site</div><span class="tessera-fonts" role="group" aria-label="Font"><button type="button" class="tessera-font-btn" onclick="body_switch.switch(&quot;font&quot;, 0)">A</button><button type="button" class="tessera-font-btn" onclick="body_switch.switch(&quot;font&quot;, 1)">B</button><button type="button" class="tessera-font-btn" onclick="body_switch.switch(&quot;font&quot;, 2)">C</button><button type="button" class="tessera-font-btn" onclick="body_switch.switch(&quot;font&quot;, 3)">D</button></span>'
+    - type: region
+      tag: nav
+      id: mySidebar
+      className: w3-sidebar w3-bar-block w3-collapse tessera-sidebar
       children:
         - type: static
-          html: '<a class="w3-bar-item w3-button" href="#home">New site</a>'
+          html: '<a href="javascript:void(0)" onclick="w3_close()" class="w3-button w3-right w3-hide-large" aria-label="Close menu">Close</a>'
+        - type: component
+          name: navFlat
+          props:
+            scope: sidebar
+    - type: static
+      html: '<div class="w3-overlay w3-hide-large" onclick="w3_close()" id="myOverlay"></div>'
     - type: region
-      className: w3-row
+      tag: main
+      className: w3-main tessera-main
       children:
         - type: region
-          tag: nav
-          className: w3-col m3 l2 w3-padding
+          className: tessera-content
           children:
             - type: component
-              name: navFlat
-              props:
-                scope: sidebar
-        - type: region
-          tag: main
-          className: w3-col m9 l10 w3-padding
-          children:
+              name: breadcrumbs
             - type: page
+        - type: region
+          tag: footer
+          className: tessera-footer
+          children:
+            - type: static
+              html: '<p>New site</p>'
 `;
 
 const STANDARD_YAML = `id: standard

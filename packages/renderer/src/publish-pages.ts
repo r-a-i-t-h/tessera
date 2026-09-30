@@ -1,5 +1,12 @@
 import type { SiteDocument } from "@r-a-i-t-h/tessera-model";
-import { flattenPageTree, publishedPageTree, type PageTreeNode } from "@r-a-i-t-h/tessera-model";
+import {
+  flattenPageTree,
+  publishedPageTree,
+  resolveSiteStyle,
+  siteBodyClass,
+  siteStyleCss,
+  type PageTreeNode,
+} from "@r-a-i-t-h/tessera-model";
 import { ComponentRegistry } from "./registry.js";
 import { escapeHtml, renderPage, type Skin } from "./render.js";
 import type { MicroAppMount } from "./types.js";
@@ -94,23 +101,32 @@ function pageHtml(input: {
   const styleTags = stylesheets
     .map((href) => `\n    <link rel="stylesheet" href="${escapeHtml(assetHref(node.path, href))}" />`)
     .join("");
+  const chrome = chromeHead(document);
   const microAppScript = microApps.length
     ? `\n    <script type="application/json" id="tessera-microapps">${escapeScriptJson(microApps)}</script>`
     : "";
   const scriptTag = `\n    <script type="module" src="${escapeHtml(assetHref(node.path, script))}"></script>`;
+  const bodyClass = document.site.style ? ` class="${siteBodyClass(document.site.style)}"` : "";
   return `<!DOCTYPE html>
 <html lang="${escapeHtml(lang)}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapeHtml(title)}</title>${descriptionTag}
-    <link rel="canonical" href="${escapeHtml(canonical)}" />${styleTags}
+    <link rel="canonical" href="${escapeHtml(canonical)}" />${styleTags}${chrome}
   </head>
-  <body>
+  <body${bodyClass}>
     ${body}${microAppScript}${scriptTag}
   </body>
 </html>
 `;
+}
+
+function chromeHead(document: SiteDocument): string {
+  if (!document.site.style) return "";
+  const href = resolveSiteStyle(document.site.style).fontsHref;
+  const link = href ? `\n    <link rel="stylesheet" href="${escapeHtml(href)}" />` : "";
+  return `${link}\n    <style id="tessera-style">\n${siteStyleCss(document.site.style)}\n    </style>`;
 }
 
 function hrefForPageId(pathById: Map<string, string>, fromPath: string, pageId: string): string {

@@ -1,3 +1,4 @@
+import type { Page } from "@r-a-i-t-h/tessera-model";
 import type { ComponentFn } from "../types.js";
 import { hrefForPage } from "../page-href.js";
 import { flattenNav, resolveNavTree, type ResolvedNavNode } from "../nav-expand.js";
@@ -110,6 +111,96 @@ export const navTags: ComponentFn = (ctx, props = {}) => {
   return `<div class="tessera-nav-tags">${sections}</div>`;
 };
 
+/** Home, then parentId ancestors, then the current page. */
+export const breadcrumbs: ComponentFn = (ctx) => {
+  const byId = new Map<string, Page>(ctx.document.pages.map((item) => [item.id, item]));
+  const homeId = ctx.document.site.homePageId;
+  const trail: { id: string; title: string }[] = [];
+  const seen = new Set<string>();
+  let current: Page | undefined = byId.get(ctx.page.id);
+  while (current && !seen.has(current.id)) {
+    seen.add(current.id);
+    trail.push({ id: current.id, title: current.title });
+    if (current.id === homeId) break;
+    current = current.parentId ? byId.get(current.parentId) : undefined;
+  }
+  trail.reverse();
+  if (trail[0]?.id !== homeId && byId.has(homeId)) {
+    const home = byId.get(homeId);
+    if (home) trail.unshift({ id: homeId, title: home.title });
+  }
+  if (!trail.length) return "";
+  const html = trail
+    .map((item, index) => {
+      const label = ctx.escapeHtml(item.title);
+      if (index === trail.length - 1) return `<span aria-current="page">${label}</span>`;
+      return `<a href="${hrefForPage(ctx, item.id)}">${label}</a>`;
+    })
+    .join(`<span class="tessera-crumb-sep" aria-hidden="true">/</span>`);
+  return `<nav class="tessera-breadcrumbs" aria-label="Breadcrumb">${html}</nav>`;
+};
+
+/**
+ * A content-styled group of links.
+ * `source`: `children` (current page's published children), `tag`, or `nav` (a designed heading).
+ * `variant`: `list`, `pills`, or `cards`.
+ */
+export const linkCluster: ComponentFn = (ctx, props = {}) => {
+  const source = typeof props.source === "string" ? props.source : "children";
+  const variant = props.variant === "pills" || props.variant === "cards" ? props.variant : "list";
+  const title = typeof props.title === "string" ? props.title.trim() : "";
+  const links = clusterLinks(ctx, source, props);
+  if (!links.length) return "";
+  const heading = title ? `<h2 class="tessera-links-title">${ctx.escapeHtml(title)}</h2>` : "";
+  const items = links
+    .map((link) => {
+      const href = hrefForPage(ctx, link.id);
+      const label = ctx.escapeHtml(link.title);
+      if (variant === "cards") return `<a class="tessera-link-card" href="${href}">${label}</a>`;
+      if (variant === "pills") return `<a class="tessera-link-pill" href="${href}">${label}</a>`;
+      return `<li><a href="${href}">${label}</a></li>`;
+    })
+    .join("");
+  if (variant === "list") {
+    return `<nav class="tessera-links tessera-links-list">${heading}<ul>${items}</ul></nav>`;
+  }
+  return `<nav class="tessera-links tessera-links-${variant}">${heading}<div class="tessera-links-row">${items}</div></nav>`;
+};
+
+function clusterLinks(
+  ctx: Parameters<ComponentFn>[0],
+  source: string,
+  props: Record<string, unknown>,
+): { id: string; title: string }[] {
+  if (source === "tag") {
+    const tag = typeof props.tag === "string" ? props.tag : "";
+    if (!tag) return [];
+    return ctx.document.pages
+      .filter((page) => page.tags?.includes(tag))
+      .map((page) => ({ id: page.id, title: page.title }));
+  }
+  if (source === "nav") {
+    const heading = typeof props.heading === "string" ? props.heading : "";
+    if (!heading) return [];
+    const node = findHeading(resolveNavTree(ctx.document), heading);
+    return (node?.children ?? [])
+      .filter((child) => child.id)
+      .map((child) => ({ id: child.id!, title: child.title ?? child.id! }));
+  }
+  return ctx.document.pages
+    .filter((page) => page.parentId === ctx.page.id)
+    .map((page) => ({ id: page.id, title: page.title }));
+}
+
+function findHeading(nodes: ResolvedNavNode[], heading: string): ResolvedNavNode | undefined {
+  for (const node of nodes) {
+    if (node.heading === heading) return node;
+    const nested = findHeading(node.children, heading);
+    if (nested) return nested;
+  }
+  return undefined;
+}
+
 /** Flat sidebar list from designed nav (legacy chrome style, as a component). */
 export const navFlat: ComponentFn = (ctx, props = {}) => {
   const scope = typeof props.scope === "string" ? props.scope : "sidebar";
@@ -132,4 +223,6 @@ export function registerNavComponents(define: (name: string, fn: ComponentFn) =>
   define("navCollapse", navCollapse);
   define("navTags", navTags);
   define("navFlat", navFlat);
+  define("breadcrumbs", breadcrumbs);
+  define("linkCluster", linkCluster);
 }

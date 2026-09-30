@@ -48,10 +48,14 @@ describe("blank site", () => {
     expect(siteYaml).toContain("masterLayoutId: master");
     const shell = await readFile(join(root, "shell", "index.html"), "utf8");
     expect(shell).toContain('id="app"');
+    expect(shell).toContain("./skin/chrome.css");
+    expect(shell).toContain('class="rightnav fontA"');
     expect(shell).not.toContain("<header");
     const snapshot = await readFile(join(root, "publish", "data", "site.json"), "utf8");
     expect(snapshot).toContain('"type": "page"');
     expect(snapshot).toContain("This site started empty");
+    expect(snapshot).toContain("mySidebar");
+    expect(snapshot).toContain("breadcrumbs");
   });
 
   it("refuses to replace records that already exist", async () => {

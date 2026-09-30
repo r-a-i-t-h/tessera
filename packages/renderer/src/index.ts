@@ -36,6 +36,8 @@ export {
   navCollapse,
   navTags,
   navFlat,
+  breadcrumbs,
+  linkCluster,
 } from "./builtins/nav.js";
 export {
   registerGalleryComponents,

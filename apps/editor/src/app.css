@@ -242,3 +242,89 @@ body {
   max-height: 24rem;
   padding: 1rem;
 }
+
+.style-group {
+  border: 1px solid #ddd;
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem 0.25rem;
+}
+
+.style-group legend {
+  padding: 0 0.35rem;
+}
+
+.style-color {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  height: 2.5rem;
+  margin-top: 0.35rem;
+  padding: 0.2rem;
+  border: 1px solid #ccc;
+  background: #fff;
+  cursor: pointer;
+}
+
+.style-color::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.style-color::-webkit-color-swatch,
+.style-color::-moz-color-swatch {
+  border: none;
+}
+
+.style-specimen {
+  border: 1px solid #ccc;
+  margin: 1rem 0 1.5rem;
+  overflow: hidden;
+  background: var(--tessera-page, #fff);
+  color: var(--tessera-text, #111);
+  font-size: var(--tessera-font-size, 16px);
+  font-family: var(--tessera-font-a, sans-serif);
+}
+
+.style-specimen-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--tessera-bar-height, 42px);
+  background: var(--tessera-bar, #009688);
+  color: var(--tessera-bar-text, #fff);
+  padding: 0 1rem;
+}
+
+.style-specimen-body {
+  display: flex;
+  min-height: 7rem;
+}
+
+.style-specimen[data-side="right"] .style-specimen-body {
+  flex-direction: row-reverse;
+}
+
+.style-specimen-side {
+  width: min(40%, var(--tessera-sidebar-width, 300px));
+  background: var(--tessera-sidebar, #fff);
+  color: var(--tessera-sidebar-text, #111);
+  padding: 0.75rem;
+}
+
+.style-specimen-main {
+  flex: 1;
+  padding: 0.75rem 1rem;
+}
+
+.style-specimen-main a,
+.style-specimen .tessera-link-card {
+  color: var(--tessera-link, #00796b);
+}
+
+.style-specimen .tessera-link-card {
+  display: inline-block;
+  padding: 0.75rem 1rem;
+  background: var(--tessera-page, #fff);
+  color: var(--tessera-text, #111);
+  border: 1px solid var(--tessera-muted, #666);
+  text-decoration: none;
+}

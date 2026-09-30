@@ -42,6 +42,7 @@ import {
 } from "./forms/nav.js";
 import { newPageBody, pageIdError, withSidebarLink } from "./forms/page.js";
 import { authoredSchema, schemaFor } from "./forms/schema.js";
+import { paintSpecimen, previewStyle, readStyleForm, stylesPageHtml } from "./styles-page.js";
 
 function escapeHtml(value: string): string {
   return value
@@ -55,6 +56,7 @@ function chrome(user: PublicUser, inner: string, wide = false): string {
   return `<header class="w3-bar w3-theme">
       <a class="w3-bar-item w3-button" href="#/">Tessera editor</a>
       <a class="w3-bar-item w3-button" href="#/backups">Backups</a>
+      <a class="w3-bar-item w3-button" href="#/styles">Styles</a>
       <button type="button" class="w3-bar-item w3-button" data-action="render-site">Render site</button>
       <button type="button" class="w3-bar-item w3-button" data-action="publish-site">Publish</button>
       <span class="w3-bar-item w3-small">${escapeHtml(user.username)}</span>
@@ -105,6 +107,7 @@ async function render(root: HTMLElement): Promise<void> {
   pendingEdit = undefined;
   try {
     if (route.kind === "backups") await bindBackups(root, user);
+    else if (route.kind === "styles") await bindStyles(root, user);
     else if (!route.kind || !route.id) await bindList(root, user);
     else {
       const mode = route.kind === "content" ? (pending?.mode ?? "compose") : "fields";
@@ -159,6 +162,48 @@ function bindChrome(root: HTMLElement): void {
   });
   root.querySelector("[data-action=publish-site]")?.addEventListener("click", () => {
     void runPublish(root);
+  });
+}
+
+async function bindStyles(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {
+  const listing = await listRecords();
+  const site = listing.records.find((row) => row.kind === "site");
+  if (!site) {
+    root.innerHTML = chrome(
+      user,
+      `<h1 class="w3-large">Styles</h1><p>This site has no site record yet.</p>`,
+      true,
+    );
+    bindChrome(root);
+    return;
+  }
+  const payload = await getRecord("site", site.id);
+  const record =
+    payload.data && typeof payload.data === "object" && !Array.isArray(payload.data)
+      ? (payload.data as Record<string, unknown>)
+      : {};
+  root.innerHTML = chrome(user, stylesPageHtml(record, notice, error), true);
+  bindChrome(root);
+  const form = root.querySelector<HTMLFormElement>("#style-form");
+  if (!form) return;
+  const paint = () => paintSpecimen(root, previewStyle(form));
+  form.addEventListener("input", paint);
+  form.addEventListener("change", paint);
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const read = readStyleForm(form);
+    if (!read.ok) {
+      void bindStyles(root, user, "", read.error);
+      return;
+    }
+    void (async () => {
+      try {
+        await saveRecord("site", site.id, { ...record, style: read.style });
+        await bindStyles(root, user, "Saved styles.");
+      } catch (err) {
+        await bindStyles(root, user, "", err instanceof Error ? err.message : "Could not save styles.");
+      }
+    })();
   });
 }
 

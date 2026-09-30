@@ -74,3 +74,12 @@ export type {
   SiteMeta,
   SiteDocument,
 } from "./schema.js";
+export {
+  SiteStyleSchema,
+  STYLE_DEFAULTS,
+  styleIssue,
+  resolveSiteStyle,
+  siteStyleCss,
+  siteBodyClass,
+} from "./style.js";
+export type { SiteStyle } from "./style.js";

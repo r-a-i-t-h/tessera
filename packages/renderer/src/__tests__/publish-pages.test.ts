@@ -158,6 +158,24 @@ describe("publishPages", () => {
   });
 });
 
+describe("publishPages style", () => {
+  it("writes chrome tokens and body classes when the site has a style", () => {
+    const styled = parseSiteDocument({
+      ...document,
+      site: {
+        ...document.site,
+        style: { bar: "#112233", navSide: "left", sidebarWidth: "280px" },
+      },
+    });
+    const home = publishPages(styled, { origin: "https://example.test" }).find((file) => file.path === "index.html")!;
+    expect(home.contents).toContain('id="tessera-style"');
+    expect(home.contents).toContain("--tessera-bar: #112233;");
+    expect(home.contents).toContain("--tessera-sidebar-width: 280px;");
+    expect(home.contents).toContain('<body class="leftnav fontA">');
+    expect(home.contents).toContain("https://fonts.googleapis.com/css?family=Lekton|Roboto|Orbitron|Thasadith");
+  });
+});
+
 describe("publishPages catalogue", () => {
   it("writes nav links as page paths and leaves an unknown component as a mount", () => {
     const registry = new ComponentRegistry();

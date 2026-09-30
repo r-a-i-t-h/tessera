@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SiteStyleSchema } from "./style.js";
 
 /** Schema version expected by this package — must match `SiteDocument.version`. */
 export const SITE_DOCUMENT_SCHEMA_VERSION = 2 as const;
@@ -310,6 +311,8 @@ export const SiteMetaSchema = z.object({
   delivery: SiteDeliverySchema.optional(),
   /** Absolute origin with no path, used for canonical URLs in a pages dist. */
   origin: z.string().optional(),
+  /** Chrome tokens. Missing fields use the defaults in `style.ts`. */
+  style: SiteStyleSchema.optional(),
   settings: z.record(z.unknown()).optional(),
 });
 

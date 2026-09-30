@@ -9,7 +9,8 @@
     "./w3-theme-teal.css": "./css/w3-theme-teal.css",
     "./w3-theme-deep-purple.css": "./css/w3-theme-deep-purple.css",
     "./w3-theme-indigo.css": "./css/w3-theme-indigo.css",
-    "./common.css": "./css/common.css"
+    "./common.css": "./css/common.css",
+    "./chrome.css": "./css/chrome.css"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit"
