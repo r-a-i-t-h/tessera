@@ -50,6 +50,38 @@ body {
   margin-top: 0.5rem;
 }
 
+.editor-new-page {
+  margin: 0.25rem 0 1rem;
+}
+
+.editor-nav-row {
+  border: 1px solid #ddd;
+  margin: 0 0 0.75rem;
+  padding: 0.75rem 1rem 0.25rem;
+}
+
+.editor-nav-row h3 {
+  margin: 0;
+}
+
+.editor-nav-children {
+  margin: 0.5rem 0 0.75rem 0.25rem;
+  padding-left: 0.75rem;
+  border-left: 3px solid #ccc;
+}
+
+.editor-nav-actions,
+.editor-nav-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.editor-nav-flags .editor-check {
+  margin: 0;
+}
+
 .editor-fieldset {
   border: 1px solid #ddd;
   margin: 1rem 0;

@@ -28,6 +28,17 @@ import {
   type SaveResult,
 } from "./api";
 import { readFormValues, renderForm } from "./forms/form.js";
+import {
+  applyNavAction,
+  isNavAction,
+  navEntries,
+  navRows,
+  renderNavList,
+  rowsFromControls,
+  type ControlValue,
+  type PageChoice,
+} from "./forms/nav.js";
+import { newPageBody, pageIdError, withSidebarLink } from "./forms/page.js";
 import { authoredSchema, schemaFor } from "./forms/schema.js";
 
 function escapeHtml(value: string): string {
@@ -88,10 +99,15 @@ async function render(root: HTMLElement): Promise<void> {
   }
 
   const route = parseRoute();
+  const pending = pendingEdit;
+  pendingEdit = undefined;
   try {
     if (route.kind === "backups") await bindBackups(root, user);
     else if (!route.kind || !route.id) await bindList(root, user);
-    else await bindEdit(root, user, route.kind, route.id, route.kind === "content" ? "raw" : "fields");
+    else {
+      const mode = route.kind === "content" ? (pending?.mode ?? "raw") : "fields";
+      await bindEdit(root, user, route.kind, route.id, mode, pending?.notice ?? "");
+    }
   } catch (err) {
     root.innerHTML = chrome(
       user,
@@ -114,6 +130,11 @@ function parseRoute(): { kind?: string; id?: string } {
 }
 
 const previewUrl = "http://localhost:5173/";
+
+type EditMode = "fields" | "raw";
+
+/** Set just before opening a newly created page, so that page starts on Fields. */
+let pendingEdit: { mode: EditMode; notice: string } | undefined;
 
 function bindChrome(root: HTMLElement): void {
   root.querySelector("[data-action=logout]")?.addEventListener("click", async () => {
@@ -235,6 +256,108 @@ async function bindList(root: HTMLElement, user: PublicUser, notice = "", error 
       }
     })();
   });
+  root.querySelector("[data-action=new-page]")?.addEventListener("click", () => {
+    const form = root.querySelector<HTMLFormElement>("#new-page-form");
+    if (!form) return;
+    form.hidden = false;
+    form.querySelector<HTMLInputElement>("#new-page-id")?.focus();
+  });
+  root.querySelector<HTMLFormElement>("#new-page-form")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void createPage(root, user, listing);
+  });
+}
+
+async function createPage(root: HTMLElement, user: PublicUser, listing: RecordList): Promise<void> {
+  const form = root.querySelector<HTMLFormElement>("#new-page-form");
+  if (!form) return;
+  const id = form.querySelector<HTMLInputElement>("#new-page-id")?.value ?? "";
+  const title = form.querySelector<HTMLInputElement>("#new-page-title")?.value ?? "";
+  const sidebar = form.querySelector<HTMLInputElement>("[name=sidebar]")?.checked ?? false;
+  const existing = listing.records.filter((row) => row.kind === "content").map((row) => row.id);
+  const problem = pageIdError(id, existing);
+  if (problem) {
+    showNewPageError(form, problem);
+    return;
+  }
+  const button = form.querySelector<HTMLButtonElement>("button[type=submit]");
+  if (button) button.disabled = true;
+  const pageId = id.trim();
+  const pageTitle = title.trim() || pageId;
+  try {
+    await saveRecord("content", pageId, newPageBody(pageId, pageTitle));
+  } catch (err) {
+    showNewPageError(form, err instanceof Error ? err.message : "Could not create the page.");
+    if (button) button.disabled = false;
+    return;
+  }
+  let notice = `Created ${pageTitle}.`;
+  if (sidebar) {
+    try {
+      const nav = await getRecord("nav", "nav");
+      const linked = withSidebarLink(nav.data, pageId, pageTitle);
+      if (!linked.ok) notice = `Created ${pageTitle}. ${linked.message}`;
+      else await saveRecord("nav", "nav", linked.nav);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not add it to the sidebar.";
+      notice = `Created ${pageTitle}. ${message}`;
+    }
+  }
+  pendingEdit = { mode: "fields", notice };
+  const hash = `#/content/${encodeURIComponent(pageId)}`;
+  if (window.location.hash === hash) await render(root);
+  else window.location.hash = hash;
+}
+
+function showNewPageError(form: HTMLFormElement, message: string): void {
+  const error = form.querySelector<HTMLElement>("#new-page-error");
+  if (!error) return;
+  error.hidden = false;
+  error.textContent = message;
+}
+
+async function contentPages(): Promise<PageChoice[]> {
+  const listing = await listRecords();
+  return listing.records
+    .filter((row) => row.kind === "content")
+    .map((row) => ({ id: row.id, title: row.title }));
+}
+
+function bindNavEditor(form: HTMLFormElement, pages: PageChoice[]): void {
+  form.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest("button");
+    if (!(button instanceof HTMLButtonElement) || !form.contains(button)) return;
+    const action = button.dataset.navAction;
+    if (!action || !isNavAction(action)) return;
+    const editor = form.querySelector<HTMLElement>("#nav-editor");
+    if (!editor) return;
+    event.preventDefault();
+    const rows = applyNavAction(
+      rowsFromControls(navControls(form)),
+      action,
+      Number(button.dataset.navIndex ?? 0),
+      Number(button.dataset.navChild ?? 0),
+    );
+    editor.innerHTML = renderNavList(rows, pages);
+  });
+}
+
+function navControls(form: HTMLFormElement): ControlValue[] {
+  const controls: ControlValue[] = [];
+  for (const el of Array.from(form.elements)) {
+    if (!(el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement)) {
+      continue;
+    }
+    if (!el.name.startsWith("nav-")) continue;
+    controls.push({
+      name: el.name,
+      value: el.value,
+      checked: el instanceof HTMLInputElement && el.type === "checkbox" ? el.checked : undefined,
+    });
+  }
+  return controls;
 }
 
 async function bindBackups(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {
@@ -359,24 +482,15 @@ function listHtml(listing: RecordList, notice = "", error = ""): string {
     list.push(rec);
     byKind.set(rec.kind, list);
   }
+  const empty = !listing.records.some((row) => row.kind === "site");
   const sections = listing.kinds
     .map((kind) => {
       const rows = byKind.get(kind.kind) ?? [];
+      if (kind.kind === "content" && !empty) return contentSection(kind.label, rows);
       if (!rows.length) return "";
-      return `<section class="editor-kind">
-        <h2 class="w3-medium">${escapeHtml(kind.label)}</h2>
-        <ul class="w3-ul">
-          ${rows
-            .map(
-              (row) =>
-                `<li><a href="#/${encodeURIComponent(row.kind)}/${encodeURIComponent(row.id)}">${escapeHtml(row.title ?? row.id)}</a> <span class="w3-text-grey w3-small">${escapeHtml(row.id)}</span></li>`,
-            )
-            .join("")}
-        </ul>
-      </section>`;
+      return kindSection(kind.label, rows);
     })
     .join("");
-  const empty = !listing.records.some((row) => row.kind === "site");
   const start = empty
     ? `<p><button type="button" class="w3-button w3-theme" data-action="init-site">Start an empty site</button></p>
        <p class="w3-text-grey">This writes a shell, a master layout, a page layout, and a home page into the instance directory. It does not replace a site that already has records.</p>`
@@ -389,7 +503,43 @@ function listHtml(listing: RecordList, notice = "", error = ""): string {
     ${sections || (empty ? "" : "<p>No records yet.</p>")}`;
 }
 
-type EditMode = "fields" | "raw";
+function kindSection(label: string, rows: RecordSummary[]): string {
+  return `<section class="editor-kind">
+    <h2 class="w3-medium">${escapeHtml(label)}</h2>
+    ${recordList(rows)}
+  </section>`;
+}
+
+function contentSection(label: string, rows: RecordSummary[]): string {
+  return `<section class="editor-kind">
+    <h2 class="w3-medium">${escapeHtml(label)}</h2>
+    <p><button type="button" class="w3-button w3-theme" data-action="new-page">New page</button></p>
+    <form id="new-page-form" class="editor-new-page" hidden>
+      <p><label for="new-page-id">Id</label>
+        <input id="new-page-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
+      </p>
+      <p class="w3-text-grey">This becomes the page address and the filename. Start with a letter or number, then letters, numbers, dots, hyphens, or underscores.</p>
+      <p><label for="new-page-title">Title</label>
+        <input id="new-page-title" name="title" class="w3-input w3-border w3-margin-top" required />
+      </p>
+      <p class="editor-check"><label><input name="sidebar" type="checkbox" checked /> Include in the sidebar</label></p>
+      <p id="new-page-error" class="w3-panel w3-pale-red" role="alert" hidden></p>
+      <p><button type="submit" class="w3-button w3-theme">Create page</button></p>
+    </form>
+    ${rows.length ? recordList(rows) : ""}
+  </section>`;
+}
+
+function recordList(rows: RecordSummary[]): string {
+  return `<ul class="w3-ul">
+    ${rows
+      .map(
+        (row) =>
+          `<li><a href="#/${encodeURIComponent(row.kind)}/${encodeURIComponent(row.id)}">${escapeHtml(row.title ?? row.id)}</a> <span class="w3-text-grey w3-small">${escapeHtml(row.id)}</span></li>`,
+      )
+      .join("")}
+  </ul>`;
+}
 
 async function bindEdit(
   root: HTMLElement,
@@ -400,11 +550,19 @@ async function bindEdit(
   notice = "",
 ): Promise<void> {
   const payload = await getRecord(kind, id);
+  const navList = kind === "nav" && mode === "fields" && Array.isArray(payload.data);
+  const pages: PageChoice[] = navList ? await contentPages() : [];
+  const navNote =
+    kind === "nav" && mode === "fields" && !Array.isArray(payload.data)
+      ? `<p class="w3-text-grey">This navigation file is not a list. Edit it as YAML, or switch to Raw file.</p>`
+      : "";
   const formInner =
     mode === "raw"
       ? `<p><label for="raw-file">Raw YAML</label>
          <textarea id="raw-file" name="raw" rows="24" spellcheck="false" class="w3-input w3-border w3-margin-top editor-raw">${escapeHtml(payload.raw)}</textarea></p>`
-      : fieldsHtml(kind, payload.data, payload.layout);
+      : navList
+        ? `<div id="nav-editor">${renderNavList(navRows(payload.data), pages)}</div>`
+        : `${navNote}${fieldsHtml(kind, payload.data, payload.layout)}`;
   root.innerHTML = chrome(
     user,
     `<p><a href="#/">← Records</a></p>
@@ -438,6 +596,7 @@ async function bindEdit(
     });
   }
   const form = root.querySelector<HTMLFormElement>("#record-form");
+  if (form && navList) bindNavEditor(form, pages);
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const button = form.querySelector("button[type=submit]");
@@ -446,7 +605,13 @@ async function bindEdit(
       const saved =
         mode === "raw"
           ? await saveRawRecord(kind, id, form.querySelector<HTMLTextAreaElement>("#raw-file")?.value ?? "")
-          : await saveRecord(kind, id, pruneEmptyHtmlZones(readFormValues(form, schemaFor(kind, payload.data), payload.data)));
+          : await saveRecord(
+              kind,
+              id,
+              navList
+                ? navEntries(rowsFromControls(navControls(form)))
+                : pruneEmptyHtmlZones(readFormValues(form, schemaFor(kind, payload.data), payload.data)),
+            );
       await bindEdit(root, user, kind, id, mode, saveNotice(saved));
     } catch (err) {
       const statusEl = root.querySelector<HTMLElement>("#save-status");
