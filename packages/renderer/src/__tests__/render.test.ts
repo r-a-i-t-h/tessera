@@ -167,6 +167,28 @@ describe("renderPage", () => {
   });
 });
 
+describe("authored zone HTML", () => {
+  it("publishes zone HTML as written and expands binding tokens", () => {
+    const doc = makeFixtureDoc();
+    const home = doc.pages.find((page) => page.id === "home");
+    home!.zones.main = [
+      {
+        type: "text",
+        html: `<div class="w3-panel w3-card-4 w3-round-large w3-sand"><p>Words</p></div>\n{{people-preview}}`,
+      },
+    ];
+    const html = renderPage({
+      document: doc,
+      pageId: "home",
+      registry: registryWithDefaults(),
+    });
+    expect(html).toContain("w3-panel w3-card-4 w3-round-large w3-sand");
+    expect(html).toContain("<p>Words</p>");
+    expect(html).toContain("<!-- unknown binding: people-preview -->");
+    expect(html).not.toContain("{{people-preview}}");
+  });
+});
+
 describe("resolvePageId", () => {
   it("resolves hash, home fallback, and unknown hash", () => {
     const doc = makeFixtureDoc();

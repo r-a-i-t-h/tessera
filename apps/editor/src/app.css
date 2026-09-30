@@ -108,6 +108,118 @@ body {
   gap: 0.5rem;
 }
 
+.editor-main.editor-compose {
+  max-width: 76rem;
+}
+
+.editor-compose-layout {
+  display: grid;
+  grid-template-columns: 11rem minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+  margin-top: 1rem;
+}
+
+.editor-palette {
+  position: sticky;
+  top: 0.5rem;
+}
+
+.editor-palette .w3-button {
+  display: block;
+  width: 100%;
+  margin: 0 0 0.4rem;
+  text-align: left;
+}
+
+.editor-canvas {
+  min-height: 8rem;
+  background: #fff;
+  padding: 0.25rem 0.25rem 0.75rem;
+}
+
+.editor-section {
+  margin: 0 0 0.75rem;
+  background: #fff;
+}
+
+.editor-section:focus-within {
+  outline: 2px solid #009688;
+  outline-offset: 2px;
+}
+
+.editor-section-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  align-items: center;
+  margin-bottom: 0.35rem;
+  color: #555;
+  font-size: 0.85rem;
+}
+
+.editor-handle {
+  cursor: grab;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 0.1rem 0.4rem;
+  background: #f7f7f7;
+}
+
+.editor-prop {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.editor-prop .w3-input,
+.editor-prop select {
+  width: auto;
+  margin: 0;
+  padding: 0.2rem 0.4rem;
+}
+
+.editor-inline {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.editor-drop-line {
+  height: 0.45rem;
+  margin: 0;
+  border-radius: 4px;
+}
+
+.editor-drop-line.editor-drop-active {
+  background: #009688;
+}
+
+.editor-cell {
+  min-height: 4rem;
+  outline: 1px dashed #ccc;
+  padding: 0.35rem;
+}
+
+.editor-html-preview {
+  outline: 1px dashed #bbb;
+  padding: 0.25rem;
+}
+
+.editor-section-body [contenteditable]:empty::before {
+  content: attr(data-placeholder);
+  color: #888;
+}
+
+@media (max-width: 800px) {
+  .editor-compose-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .editor-palette {
+    position: static;
+  }
+}
+
 .editor-raw,
 .editor-history-raw {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;

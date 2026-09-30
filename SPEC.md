@@ -285,7 +285,7 @@ Criteria define “done enough,” not a build order (see [ROADMAP.md](./ROADMAP
 ### Gallery and presentation
 
 - [ ] Gallery component renders image sets from the model/media story (converted stubs replaced).
-- [ ] Layout primitives (imgbox, quote, side-by-side) are available in a form content authors can use trivially.
+- [x] Layout primitives (imgbox, quote, side-by-side) are available in a form content authors can use trivially.
 - [ ] Mobile adaptive layout remains the default path (W3 skin or equivalent).
 
 ### Pages flavour

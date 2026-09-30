@@ -11,6 +11,7 @@
     "test": "vite build && vitest run"
   },
   "dependencies": {
+    "@r-a-i-t-h/tessera-sections": "*",
     "@r-a-i-t-h/tessera-skin-w3": "*",
     "yaml": "^2.9.1"
   },

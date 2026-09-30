@@ -27,6 +27,8 @@ import {
   type RenderResult,
   type SaveResult,
 } from "./api";
+import { mountComposeCanvases } from "./compose/canvas.js";
+import { readContentDraft, composeFormInner, htmlByZone, rawText, type ContentMode } from "./compose/view.js";
 import { readFormValues, renderForm } from "./forms/form.js";
 import {
   applyNavAction,
@@ -105,7 +107,7 @@ async function render(root: HTMLElement): Promise<void> {
     if (route.kind === "backups") await bindBackups(root, user);
     else if (!route.kind || !route.id) await bindList(root, user);
     else {
-      const mode = route.kind === "content" ? (pending?.mode ?? "raw") : "fields";
+      const mode = route.kind === "content" ? (pending?.mode ?? "compose") : "fields";
       await bindEdit(root, user, route.kind, route.id, mode, pending?.notice ?? "");
     }
   } catch (err) {
@@ -131,10 +133,20 @@ function parseRoute(): { kind?: string; id?: string } {
 
 const previewUrl = "http://localhost:5173/";
 
-type EditMode = "fields" | "raw";
+type EditMode = "compose" | "fields" | "raw";
 
-/** Set just before opening a newly created page, so that page starts on Fields. */
+/** Set just before opening a newly created page, so that page starts on Compose. */
 let pendingEdit: { mode: EditMode; notice: string } | undefined;
+
+type ContentSession = {
+  key: string;
+  payload: RecordPayload;
+  draft: Record<string, unknown>;
+  fromEditor: boolean;
+};
+
+/** Unsaved content page. Tab changes read and write this instead of the saved file. */
+let contentSession: ContentSession | undefined;
 
 function bindChrome(root: HTMLElement): void {
   root.querySelector("[data-action=logout]")?.addEventListener("click", async () => {
@@ -303,7 +315,7 @@ async function createPage(root: HTMLElement, user: PublicUser, listing: RecordLi
       notice = `Created ${pageTitle}. ${message}`;
     }
   }
-  pendingEdit = { mode: "fields", notice };
+  pendingEdit = { mode: "compose", notice };
   const hash = `#/content/${encodeURIComponent(pageId)}`;
   if (window.location.hash === hash) await render(root);
   else window.location.hash = hash;
@@ -548,21 +560,40 @@ async function bindEdit(
   id: string,
   mode: EditMode,
   notice = "",
+  keepDraft = false,
 ): Promise<void> {
-  const payload = await getRecord(kind, id);
-  const navList = kind === "nav" && mode === "fields" && Array.isArray(payload.data);
+  const key = `${kind}/${id}`;
+  let payload: RecordPayload;
+  if (kind === "content" && keepDraft && contentSession?.key === key) {
+    payload = contentSession.payload;
+  } else {
+    payload = await getRecord(kind, id);
+    const loaded = asRecord(payload.data);
+    if (kind === "content" && loaded) {
+      contentSession = { key, payload, draft: structuredClone(loaded), fromEditor: false };
+    } else if (kind === "content") {
+      contentSession = undefined;
+    }
+  }
+  const session = kind === "content" ? contentSession : undefined;
+  const record = session?.draft ?? asRecord(payload.data);
+  const rawShown = session ? rawText(session.fromEditor, session.draft, payload.raw) : payload.raw;
+  const editMode: EditMode = mode === "compose" && kind !== "content" ? "fields" : mode;
+  const navList = kind === "nav" && editMode === "fields" && Array.isArray(payload.data);
   const pages: PageChoice[] = navList ? await contentPages() : [];
   const navNote =
-    kind === "nav" && mode === "fields" && !Array.isArray(payload.data)
+    kind === "nav" && editMode === "fields" && !Array.isArray(payload.data)
       ? `<p class="w3-text-grey">This navigation file is not a list. Edit it as YAML, or switch to Raw file.</p>`
       : "";
   const formInner =
-    mode === "raw"
+    editMode === "raw"
       ? `<p><label for="raw-file">Raw YAML</label>
-         <textarea id="raw-file" name="raw" rows="24" spellcheck="false" class="w3-input w3-border w3-margin-top editor-raw">${escapeHtml(payload.raw)}</textarea></p>`
+         <textarea id="raw-file" name="raw" rows="24" spellcheck="false" class="w3-input w3-border w3-margin-top editor-raw">${escapeHtml(rawShown)}</textarea></p>`
+      : editMode === "compose" && record
+        ? composeFormInner(record, payload.layout)
       : navList
         ? `<div id="nav-editor">${renderNavList(navRows(payload.data), pages)}</div>`
-        : `${navNote}${fieldsHtml(kind, payload.data, payload.layout)}`;
+        : `${navNote}${fieldsHtml(kind, record ?? payload.data, payload.layout)}`;
   root.innerHTML = chrome(
     user,
     `<p><a href="#/">← Records</a></p>
@@ -570,23 +601,50 @@ async function bindEdit(
      ${lifecycleHtml(payload)}
      ${notice ? `<p class="w3-panel w3-pale-green" role="status">${escapeHtml(notice)}</p>` : ""}
      <p class="editor-tabs">
-       <button type="button" class="w3-button ${mode === "fields" ? "w3-theme" : "w3-white"}" data-mode="fields">Fields</button>
-       <button type="button" class="w3-button ${mode === "raw" ? "w3-theme" : "w3-white"}" data-mode="raw">Raw file</button>
+       ${
+         kind === "content"
+           ? `<button type="button" class="w3-button ${editMode === "compose" ? "w3-theme" : "w3-white"}" data-mode="compose">Compose</button>`
+           : ""
+       }
+       <button type="button" class="w3-button ${editMode === "fields" ? "w3-theme" : "w3-white"}" data-mode="fields">Fields</button>
+       <button type="button" class="w3-button ${editMode === "raw" ? "w3-theme" : "w3-white"}" data-mode="raw">Raw file</button>
      </p>
      <p class="w3-text-grey"><code>${escapeHtml(payload.file)}</code></p>
      <form id="record-form" class="w3-card w3-white w3-padding-large editor-card">
        ${formInner}
        <p id="save-status" class="w3-text-grey" hidden></p>
-       <p class="editor-actions"><button type="submit" class="w3-button w3-theme">Save</button></p>
+       <p class="editor-actions"><button type="submit" class="w3-button w3-theme">Save</button>${
+         kind === "content"
+           ? `<button type="button" class="w3-button w3-white" data-action="revert">Revert</button>`
+           : ""
+       }</p>
      </form>
      ${historyHtml(payload)}`,
     true,
   );
   bindChrome(root);
+  if (editMode === "compose") root.querySelector(".editor-main")?.classList.add("editor-compose");
+  const form = root.querySelector<HTMLFormElement>("#record-form");
+  if (form && editMode === "compose" && record) await mountPageCanvas(form, record, payload.layout);
   for (const button of root.querySelectorAll<HTMLButtonElement>("[data-mode]")) {
     button.addEventListener("click", () => {
-      const next = button.dataset.mode === "raw" ? "raw" : "fields";
-      if (next !== mode) void bindEdit(root, user, kind, id, next);
+      const next = button.dataset.mode;
+      if (next !== "compose" && next !== "fields" && next !== "raw") return;
+      if (next === editMode) return;
+      if (kind === "content" && contentSession && form) {
+        const taken = readContentDraft(form, editMode, contentSession.draft, contentSession.payload.raw, contentSession.payload.data);
+        if (!taken.ok) {
+          showSaveError(root, taken.error);
+          return;
+        }
+        if (!taken.unchanged) {
+          contentSession.draft = taken.draft;
+          contentSession.fromEditor = taken.fromEditor;
+        }
+        void bindEdit(root, user, kind, id, next, "", true);
+        return;
+      }
+      void bindEdit(root, user, kind, id, next === "compose" ? "fields" : next);
     });
   }
   for (const button of root.querySelectorAll<HTMLButtonElement>("[data-history]")) {
@@ -595,34 +653,88 @@ async function bindEdit(
       void showHistory(root, kind, id, index);
     });
   }
-  const form = root.querySelector<HTMLFormElement>("#record-form");
   if (form && navList) bindNavEditor(form, pages);
+  form?.addEventListener("input", () => {
+    form.dataset.dirty = "true";
+  });
+  form?.addEventListener("change", () => {
+    form.dataset.dirty = "true";
+  });
+  form?.querySelector<HTMLButtonElement>("[data-action=revert]")?.addEventListener("click", () => {
+    if (!window.confirm("Discard unsaved edits and restore the last saved file?")) return;
+    contentSession = undefined;
+    void bindEdit(root, user, kind, id, editMode);
+  });
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const button = form.querySelector("button[type=submit]");
     if (button) (button as HTMLButtonElement).disabled = true;
     try {
-      const saved =
-        mode === "raw"
-          ? await saveRawRecord(kind, id, form.querySelector<HTMLTextAreaElement>("#raw-file")?.value ?? "")
-          : await saveRecord(
-              kind,
-              id,
-              navList
-                ? navEntries(rowsFromControls(navControls(form)))
-                : pruneEmptyHtmlZones(readFormValues(form, schemaFor(kind, payload.data), payload.data)),
-            );
-      await bindEdit(root, user, kind, id, mode, saveNotice(saved));
-    } catch (err) {
-      const statusEl = root.querySelector<HTMLElement>("#save-status");
-      if (statusEl) {
-        statusEl.hidden = false;
-        statusEl.textContent = err instanceof Error ? err.message : "Save failed.";
-        statusEl.className = "w3-pale-red w3-padding";
+      let saved;
+      if (kind === "content" && contentSession && (editMode === "compose" || editMode === "fields" || editMode === "raw")) {
+        const taken = readContentDraft(form, editMode, contentSession.draft, contentSession.payload.raw, contentSession.payload.data);
+        if (!taken.ok) {
+          showSaveError(root, taken.error);
+          if (button) (button as HTMLButtonElement).disabled = false;
+          return;
+        }
+        if (!taken.unchanged) {
+          contentSession.draft = taken.draft;
+          contentSession.fromEditor = taken.fromEditor;
+        }
+        saved =
+          editMode === "raw"
+            ? await saveRawRecord(kind, id, form.querySelector<HTMLTextAreaElement>("#raw-file")?.value ?? "")
+            : await saveRecord(kind, id, pruneEmptyHtmlZones(contentSession.draft));
+      } else {
+        saved =
+          editMode === "raw"
+            ? await saveRawRecord(kind, id, form.querySelector<HTMLTextAreaElement>("#raw-file")?.value ?? "")
+            : await saveRecord(
+                kind,
+                id,
+                navList
+                  ? navEntries(rowsFromControls(navControls(form)))
+                  : pruneEmptyHtmlZones(readFormValues(form, schemaFor(kind, payload.data), payload.data)),
+              );
       }
+      await bindEdit(root, user, kind, id, editMode, saveNotice(saved));
+    } catch (err) {
+      showSaveError(root, err instanceof Error ? err.message : "Save failed.");
       if (button) (button as HTMLButtonElement).disabled = false;
     }
   });
+}
+
+function showSaveError(root: HTMLElement, message: string): void {
+  const statusEl = root.querySelector<HTMLElement>("#save-status");
+  if (!statusEl) return;
+  statusEl.hidden = false;
+  statusEl.textContent = message;
+  statusEl.className = "w3-pale-red w3-padding";
+}
+
+async function mountPageCanvas(
+  form: HTMLFormElement,
+  record: Record<string, unknown>,
+  layout: PageLayoutHint | undefined,
+): Promise<void> {
+  let bindings: { id: string; title?: string }[] = [];
+  try {
+    const listing = await listRecords();
+    bindings = listing.records
+      .filter((row) => row.kind === "bindings")
+      .map((row) => ({ id: row.id, title: row.title }));
+  } catch {
+    bindings = [];
+  }
+  if (!form.isConnected) return;
+  mountComposeCanvases(form, { bindings, htmlByZone: htmlByZone(record, layout) });
+}
+
+function asRecord(data: unknown): Record<string, unknown> | undefined {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return undefined;
+  return data as Record<string, unknown>;
 }
 
 function lifecycleHtml(payload: RecordPayload): string {
