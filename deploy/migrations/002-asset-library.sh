@@ -1,14 +1,12 @@
 #!/bin/sh
-# Rewrite media and folder records into the asset library and stamp schemaVersion 2.
+# Stamp schemaVersion: 2. Authoring files are already the asset library.
+# This step does not rewrite records.
 set -eu
 
 [ -n "${TESSERA_DATA:-}" ] || {
   echo "002-asset-library: TESSERA_DATA is required" >&2
   exit 1
 }
-
-ROOT=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
-node "$ROOT/scripts/migrate-library.mjs" "$TESSERA_DATA"
 
 node -e '
 const fs = require("fs");

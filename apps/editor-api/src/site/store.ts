@@ -89,7 +89,7 @@ export class SiteStore {
       const site = fromYaml<{ id?: string; title?: string }>(await readText(this.siteFile()));
       out.push({ kind: "site", id: site.id ?? "site", title: site.title ?? "Site" });
     } catch {
-      // first boot before deconstruct
+      // site.yaml is absent until the site record is written
     }
     try {
       await readText(this.navFile());

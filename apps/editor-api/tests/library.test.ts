@@ -34,7 +34,7 @@ describe("projectLibrary", () => {
     ]);
   });
 
-  it("leaves a legacy folder record unchanged", () => {
+  it("copies a url media record and a path folder through unchanged", () => {
     const folder = { id: "g", path: "./media/g", images: [{ file: "01-a.svg" }] };
     const projected = projectLibrary([{ id: "logo", url: "./media/sample.svg", type: "image" }], [folder]);
     expect(projected.media[0]?.url).toBe("./media/sample.svg");

@@ -26,8 +26,6 @@ The editor **API** lives in `apps/editor-api` (`@r-a-i-t-h/tessera-editor-api`):
 
 The example site lives under `sites/willow`. It is not an npm workspace. The editing back-end is `apps/editor-api`; the login SPA is `apps/editor`.
 
-`ps/` keeps PurpleCMS migration scripts (to be rewritten for Tessera’s document shape).
-
 ## Editor API
 
 Hono app (Node ≥20). JSON routes first; if `spa/index.html` (a release), `apps/editor/dist/index.html` (a checkout), or `TESSERA_SPA_DIR` is present, the same process serves the editor SPA so cookies stay first-party. Runtime data is file-backed with an in-memory cache; writes use atomic temp+rename.
@@ -151,9 +149,9 @@ Images and PDFs are a **library**: a flat blob store plus virtual folders. The b
 
 Flatten derives `url: ./media/<id>.<ext>` onto each `media[]` entry. That string is relative to the site folder. A gallery folder is still a gallery source: flatten lists the image assets directly inside it, each with that stable `url` and `file` set to the display name. `slidesFromFolders` uses `url` when it is present. A virtual move changes `folderId` only.
 
-The editor resizes each image to `files/<id>.thumb.webp` on upload. Thumbnails are not published. **Publish** copies each blob to `publish/media/<id>.<ext>`. Preview reads `./media/<id>.<ext>` from `files/` first. A pages dist rewrites those URLs with `assetHref` so a nested page reaches `media/` at the site root (`../../media/…`). The snapshot and the preview leave the URL as `./media/…`, which stays valid when the site folder is hosted under a subpath.
+A media record may skip the library and store `url` itself, with no `kind`. A folder may store `path` and an `images` list. Flatten copies those records into the document unchanged. They are a hand-edited escape hatch for a file the library does not own. The library listing leaves them alone.
 
-`node scripts/flatten-gallery.mjs --dir <folder> --id <id> --data <site>` imports a directory of images into one virtual folder. It is not the live gallery source.
+The editor resizes each image to `files/<id>.thumb.webp` on upload. Thumbnails are not published. **Publish** copies each blob to `publish/media/<id>.<ext>`. Preview reads `./media/<id>.<ext>` from `files/` first. A pages dist rewrites those URLs with `assetHref` so a nested page reaches `media/` at the site root (`../../media/…`). The snapshot and the preview leave the URL as `./media/…`, which stays valid when the site folder is hosted under a subpath.
 
 The global `media[]` catalog is every asset. Gallery components still reference folder ids.
 

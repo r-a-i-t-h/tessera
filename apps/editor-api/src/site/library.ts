@@ -164,7 +164,9 @@ function toFolder(node: Record<string, unknown>, assets: LibraryAsset[]): Folder
 
 /**
  * Authoring library records become the flattened `media[]` and `folders[]`.
- * Records that still carry `url` or `path` pass through so an unmigrated site keeps rendering.
+ * A media record that already has `url` (and no `kind`), or a folder that already
+ * has `path` and `images`, is copied through. That is a permanent escape hatch
+ * for a file the library does not own.
  */
 export function projectLibrary(mediaRows: unknown[], folderRows: unknown[]): { media: Media[]; folders: Folder[] } {
   const media: Media[] = [];

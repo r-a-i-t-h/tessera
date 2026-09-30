@@ -63,7 +63,3 @@ Authoring schema migrations (the hook node-vps-kit runs as `deploy/post-update.s
 ```bash
 TESSERA_DATA=sites/willow sh deploy/migrate.sh
 ```
-
-## Migration scripts
-
-[`ps/`](./ps/) holds PowerShell helpers from the PurpleCMS → site-data era. They still target the old RecTem shapes and will be rewritten for Tessera’s `SiteDocument` later.

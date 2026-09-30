@@ -93,6 +93,7 @@ export class AssetLibrary {
     }
     for (const id of folderIds) {
       const row = await this.site.read("folders", id);
+      // Hand-authored folder (`path` and `images`). Listed here, and copied through on flatten.
       if (typeof row.path === "string" && row.path.length > 0) {
         folders.push({
           id,
@@ -110,6 +111,7 @@ export class AssetLibrary {
     }
     for (const id of mediaIds) {
       const row = await this.site.read("media", id);
+      // Library assets only. A hand-authored `url` record has no `kind` and is left for flatten.
       if (row.kind === "image" || row.kind === "document") {
         const ext = typeof row.ext === "string" ? row.ext.replace(/^\./, "").toLowerCase() : "";
         if (!ext) continue;

@@ -11,7 +11,6 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
     "seed:user": "tsx scripts/make-seed-user.ts",
-    "deconstruct:site": "tsx scripts/deconstruct-site.ts",
     "flatten:site": "tsx scripts/flatten-site.ts",
     "stamp:snapshot": "tsx scripts/stamp-snapshot.ts",
     "typecheck": "tsc --noEmit",
