@@ -2,6 +2,7 @@ import type { Block, LayoutNode, Media, SiteDocument } from "@r-a-i-t-h/tessera-
 import { resolvePageProfile } from "@r-a-i-t-h/tessera-model";
 import { normalizeSiteAssetUrl, rewriteMediaUrls } from "./assets.js";
 import { expandMustache, renderNamed } from "./bindings.js";
+import { expandPageElements } from "./page-elements.js";
 import type { ComponentRegistry } from "./registry.js";
 import { indexDocument, mergeZones } from "./merge.js";
 import type { MicroAppMount, RenderContext, ZoneMap } from "./types.js";
@@ -119,7 +120,7 @@ function renderBlocks(blocks: Block[], ctx: RenderContext): string {
 function renderBlock(block: Block, ctx: RenderContext): string {
   switch (block.type) {
     case "text":
-      return rewriteMediaUrls(expandMustache(block.html, ctx), ctx.assetUrl ?? ((url) => url));
+      return authoredHtml(block.html, ctx);
     case "json":
       return "";
     case "media":
@@ -135,10 +136,15 @@ function renderBlock(block: Block, ctx: RenderContext): string {
   }
 }
 
+function authoredHtml(html: string, ctx: RenderContext): string {
+  const expanded = expandPageElements(expandMustache(html, ctx), ctx);
+  return rewriteMediaUrls(expanded, ctx.assetUrl ?? ((url) => url));
+}
+
 function renderNode(node: LayoutNode, ctx: RenderContext, skin?: Skin, pageHtml?: string): string {
   switch (node.type) {
     case "static":
-      return rewriteMediaUrls(expandMustache(node.html, ctx), ctx.assetUrl ?? ((url) => url));
+      return authoredHtml(node.html, ctx);
     case "zone": {
       const blocks = ctx.zones.get(node.id) ?? [];
       const inner = renderBlocks(blocks, ctx);

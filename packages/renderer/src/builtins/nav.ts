@@ -218,6 +218,21 @@ export const navFlat: ComponentFn = (ctx, props = {}) => {
     .join("");
 };
 
+/** Current page's children as a W3CSS list. Empty when there are none. */
+export const subpageList: ComponentFn = (ctx, props = {}) => {
+  const title = typeof props.title === "string" ? props.title.trim() : "";
+  const links = ctx.document.pages
+    .filter((page) => page.parentId === ctx.page.id)
+    .map((page) => ({ id: page.id, title: page.title }));
+  if (!links.length) return "";
+  const heading = title ? `<h3>${ctx.escapeHtml(title)}</h3>` : "";
+  const items = links
+    .map((link) => `<li><a href="${hrefForPage(ctx, link.id)}">${ctx.escapeHtml(link.title)}</a></li>`)
+    .join("");
+  const label = title ? ` aria-label="${ctx.escapeHtml(title)}"` : ` aria-label="Subpages"`;
+  return `<nav class="tessera-subpages w3-margin-bottom"${label}>${heading}<ul class="w3-ul w3-hoverable w3-border">${items}</ul></nav>`;
+};
+
 export function registerNavComponents(define: (name: string, fn: ComponentFn) => unknown): void {
   define("navTree", navTree);
   define("navCollapse", navCollapse);

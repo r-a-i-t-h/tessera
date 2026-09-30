@@ -210,6 +210,17 @@ body {
   color: #888;
 }
 
+.editor-section,
+.editor-section-body,
+.editor-canvas {
+  overflow: visible;
+}
+
+.editor-section-body .tessera-pasted-sheet [contenteditable] {
+  min-height: 1.85rem;
+  outline: none;
+}
+
 @media (max-width: 800px) {
   .editor-compose-layout {
     grid-template-columns: 1fr;

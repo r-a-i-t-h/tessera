@@ -187,6 +187,72 @@ describe("authored zone HTML", () => {
     expect(html).toContain("<!-- unknown binding: people-preview -->");
     expect(html).not.toContain("{{people-preview}}");
   });
+
+  it("expands a subpages marker into a W3CSS list of child pages", () => {
+    const doc = makeFixtureDoc();
+    const about = doc.pages.find((page) => page.id === "about");
+    about!.parentId = "home";
+    const home = doc.pages.find((page) => page.id === "home");
+    home!.zones.main = [
+      {
+        type: "text",
+        html: `<nav class="tessera-subpages w3-margin-bottom" data-tessera="subpages" data-title="In this section"></nav>`,
+      },
+    ];
+    const html = renderPage({
+      document: doc,
+      pageId: "home",
+      registry: registryWithDefaults(),
+    });
+    expect(html).toContain("w3-ul w3-hoverable w3-border");
+    expect(html).toContain("In this section");
+    expect(html).toContain("About");
+    expect(html).not.toContain("data-tessera");
+  });
+
+  it("expands a gallery marker through the gallery component", () => {
+    const doc = makeFixtureDoc();
+    doc.folders = [
+      {
+        id: "lambs",
+        path: "./media/lambs",
+        images: [{ file: "01-nile.svg" }],
+      },
+    ];
+    const home = doc.pages.find((page) => page.id === "home");
+    home!.zones.main = [
+      {
+        type: "text",
+        html: `<div class="tessera-page-gallery w3-margin-bottom" data-tessera="gallery" data-folder="lambs" data-mode="grid"></div>`,
+      },
+    ];
+    const html = renderPage({
+      document: doc,
+      pageId: "home",
+      registry: registryWithDefaults(),
+    });
+    expect(html).toContain("<tessera-gallery");
+    expect(html).toContain("01-nile.svg");
+    expect(html).not.toContain("data-tessera");
+  });
+
+  it("leaves a pasted note's authored HTML in place", () => {
+    const doc = makeFixtureDoc();
+    const home = doc.pages.find((page) => page.id === "home");
+    home!.zones.main = [
+      {
+        type: "text",
+        html: `<div class="tessera-pasted w3-margin-bottom"><div class="tessera-pasted-sheet"><p>Written for this page.</p></div></div>`,
+      },
+    ];
+    const html = renderPage({
+      document: doc,
+      pageId: "home",
+      registry: registryWithDefaults(),
+    });
+    expect(html).toContain("tessera-pasted-sheet");
+    expect(html).toContain("<p>Written for this page.</p>");
+  });
 });
 
 describe("resolvePageId", () => {

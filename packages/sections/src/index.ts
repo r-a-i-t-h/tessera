@@ -8,5 +8,6 @@ export {
   parseSections,
   toneClass,
   toneLabel,
+  youtubeVideoId,
 } from "./sections.js";
-export type { ColumnCell, PaletteKind, Section, ToneId } from "./sections.js";
+export type { ColumnCell, GalleryMode, PaletteKind, Section, ToneId } from "./sections.js";

@@ -98,6 +98,8 @@ export type ColumnCell = {
   sections: Section[];
 };
 
+export type GalleryMode = "grid" | "slides";
+
 export type Section =
   | { kind: "heading"; level: 1 | 2 | 3; text: string }
   | { kind: "text"; tag: "p" | "ul" | "ol"; html: string }
@@ -107,9 +109,25 @@ export type Section =
   | { kind: "card"; title: string; html: string }
   | { kind: "columns"; cells: ColumnCell[] }
   | { kind: "insert"; id: string }
+  | { kind: "subpages"; title: string }
+  | { kind: "youtube"; videoId: string; title: string }
+  | { kind: "gallery"; folder: string; mode: GalleryMode }
+  | { kind: "pasted"; html: string }
   | { kind: "html"; html: string };
 
-export type PaletteKind = "heading" | "text" | "panel" | "quote" | "imgbox" | "card" | "columns" | "insert";
+export type PaletteKind =
+  | "heading"
+  | "text"
+  | "panel"
+  | "quote"
+  | "imgbox"
+  | "card"
+  | "columns"
+  | "insert"
+  | "subpages"
+  | "youtube"
+  | "gallery"
+  | "pasted";
 
 export const PALETTE: { kind: PaletteKind; label: string }[] = [
   { kind: "heading", label: "Heading" },
@@ -119,10 +137,16 @@ export const PALETTE: { kind: PaletteKind; label: string }[] = [
   { kind: "imgbox", label: "Image box" },
   { kind: "card", label: "Card" },
   { kind: "columns", label: "Side by side" },
+  { kind: "subpages", label: "Subpages" },
+  { kind: "youtube", label: "YouTube" },
+  { kind: "gallery", label: "Gallery" },
+  { kind: "pasted", label: "Pasted note" },
   { kind: "insert", label: "Insert" },
 ];
 
 const INSERT_ID = /^[A-Za-z0-9_-]+$/;
+const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
+const YOUTUBE_ALLOW = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
 
 export function toneClass(tone: ToneId): string {
   return TONES.find((item) => item.id === tone)?.className ?? "";
@@ -156,7 +180,41 @@ export function blankSection(kind: PaletteKind): Section {
       };
     case "insert":
       return { kind: "insert", id: "" };
+    case "subpages":
+      return { kind: "subpages", title: "" };
+    case "youtube":
+      return { kind: "youtube", videoId: "", title: "" };
+    case "gallery":
+      return { kind: "gallery", folder: "", mode: "grid" };
+    case "pasted":
+      return { kind: "pasted", html: "" };
   }
+}
+
+/** YouTube watch, share, embed, or shorts address, or an id on its own. */
+export function youtubeVideoId(value: string): string {
+  const raw = value.trim();
+  if (!raw) return "";
+  if (YOUTUBE_ID.test(raw)) return raw;
+  try {
+    const url = new URL(raw);
+    const host = url.hostname.replace(/^www\./, "");
+    if (host === "youtu.be") {
+      const id = url.pathname.split("/").filter(Boolean)[0] ?? "";
+      return YOUTUBE_ID.test(id) ? id : "";
+    }
+    if (host === "youtube.com" || host === "youtube-nocookie.com" || host === "m.youtube.com") {
+      const fromQuery = url.searchParams.get("v") ?? "";
+      if (YOUTUBE_ID.test(fromQuery)) return fromQuery;
+      const parts = url.pathname.split("/").filter(Boolean);
+      const head = parts[0];
+      const id = head === "embed" || head === "shorts" || head === "live" || head === "v" ? (parts[1] ?? "") : "";
+      return YOUTUBE_ID.test(id) ? id : "";
+    }
+  } catch {
+    return "";
+  }
+  return "";
 }
 
 export function paintSections(sections: Section[]): string {
@@ -183,6 +241,14 @@ export function paintSection(section: Section): string {
       return paintColumns(section.cells);
     case "insert":
       return INSERT_ID.test(section.id) ? `{{${section.id}}}` : "";
+    case "subpages":
+      return `<nav class="tessera-subpages w3-margin-bottom" data-tessera="subpages" data-title="${escapeAttr(section.title)}"></nav>`;
+    case "youtube":
+      return paintYoutube(section);
+    case "gallery":
+      return `<div class="tessera-page-gallery w3-margin-bottom" data-tessera="gallery" data-folder="${escapeAttr(section.folder)}" data-mode="${section.mode === "slides" ? "slides" : "grid"}"></div>`;
+    case "pasted":
+      return `<div class="tessera-pasted w3-margin-bottom"><div class="tessera-pasted-sheet">${section.html}</div></div>`;
     case "html":
       return section.html;
   }
@@ -191,6 +257,12 @@ export function paintSection(section: Section): string {
 export function parseSections(html: string): Section[] {
   const root = parseFragment(html);
   return walk(root.children, true);
+}
+
+function paintYoutube(section: Extract<Section, { kind: "youtube" }>): string {
+  const id = youtubeVideoId(section.videoId);
+  const src = id ? ` src="https://www.youtube-nocookie.com/embed/${escapeAttr(id)}"` : "";
+  return `<div class="tessera-video w3-card w3-margin-bottom"><iframe${src} title="${escapeAttr(section.title)}" allow="${YOUTUBE_ALLOW}" allowfullscreen></iframe></div>`;
 }
 
 function paintQuote(section: Extract<Section, { kind: "quote" }>): string {
@@ -244,6 +316,8 @@ function splitText(sections: Section[], text: string): void {
 }
 
 function classify(el: ElNode, allowColumns: boolean): Section[] {
+  const pageElement = asPageElement(el);
+  if (pageElement) return [pageElement];
   if (isBareDiv(el)) return walk(el.children, allowColumns);
   if (allowColumns) {
     const columns = asColumns(el);
@@ -267,6 +341,33 @@ function classify(el: ElNode, allowColumns: boolean): Section[] {
   }
   if (!el.raw.trim()) return [];
   return [{ kind: "html", html: el.raw }];
+}
+
+function asPageElement(el: ElNode): Section | null {
+  const marker = attr(el, "data-tessera");
+  if (marker === "subpages" || (el.tag === "nav" && hasClass(el, "tessera-subpages"))) {
+    return { kind: "subpages", title: attr(el, "data-title") };
+  }
+  if (marker === "gallery" || hasClass(el, "tessera-page-gallery")) {
+    return {
+      kind: "gallery",
+      folder: attr(el, "data-folder"),
+      mode: attr(el, "data-mode") === "slides" ? "slides" : "grid",
+    };
+  }
+  if (hasClass(el, "tessera-video")) {
+    const frame = findEl(el, (node) => node.tag === "iframe");
+    return {
+      kind: "youtube",
+      videoId: frame ? youtubeVideoId(attr(frame, "src")) : "",
+      title: frame ? attr(frame, "title") : "",
+    };
+  }
+  if (hasClass(el, "tessera-pasted")) {
+    const sheet = findEl(el, (node) => hasClass(node, "tessera-pasted-sheet"));
+    return { kind: "pasted", html: serializeChildren((sheet ?? el).children) };
+  }
+  return null;
 }
 
 function isBareDiv(el: ElNode): boolean {

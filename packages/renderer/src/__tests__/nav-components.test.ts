@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { SiteDocument } from "@r-a-i-t-h/tessera-model";
 import { parseSiteDocument } from "@r-a-i-t-h/tessera-model";
-import { breadcrumbs, linkCluster } from "../builtins/nav.js";
+import { breadcrumbs, linkCluster, subpageList } from "../builtins/nav.js";
 import { escapeHtml } from "../render.js";
 import { ComponentRegistry } from "../registry.js";
 import type { RenderContext } from "../types.js";
@@ -96,5 +96,20 @@ describe("linkCluster", () => {
     expect(linkCluster(context(document, "fair"), { source: "children" })).toBe("");
     expect(linkCluster(context(document, "home"), { source: "tag", tag: "missing" })).toBe("");
     expect(linkCluster(context(document, "home"), { source: "nav", heading: "Absent" })).toBe("");
+  });
+});
+
+describe("subpageList", () => {
+  it("lists the current page's children with W3CSS", () => {
+    const html = subpageList(context(document, "home"), { title: "In this section" });
+    expect(html).toContain("<h3>In this section</h3>");
+    expect(html).toContain("w3-ul w3-hoverable w3-border");
+    expect(html).toContain('href="#events"');
+    expect(html).toContain("Events");
+    expect(html).not.toContain("Summer fair");
+  });
+
+  it("renders nothing when the page has no children", () => {
+    expect(subpageList(context(document, "fair"), {})).toBe("");
   });
 });

@@ -215,3 +215,58 @@ body.rightnav .tessera-sidebar {
   border: 1px solid var(--tessera-muted);
   text-decoration: none;
 }
+
+.tessera-video {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+}
+
+.tessera-video iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* Ruled sheet, slightly askew. The sheet grows with its content. */
+.tessera-pasted {
+  overflow: visible;
+  max-width: 40rem;
+  margin: 1.75rem auto 2.25rem;
+  padding: 0.35rem 0.5rem 0.75rem;
+}
+
+.tessera-pasted-sheet {
+  --tessera-rule: 1.85rem;
+  position: relative;
+  margin: 0;
+  padding: 0.45rem 1.2rem 0.2rem 2.9rem;
+  color: #1c2744;
+  line-height: var(--tessera-rule);
+  background-color: #fffdf6;
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent calc(var(--tessera-rule) - 1px),
+      rgba(120, 156, 196, 0.55) calc(var(--tessera-rule) - 1px),
+      rgba(120, 156, 196, 0.55) var(--tessera-rule)
+    ),
+    linear-gradient(to right, transparent 2.2rem, rgba(196, 74, 74, 0.75) 2.2rem, rgba(196, 74, 74, 0.75) 2.28rem, transparent 2.28rem);
+  background-repeat: repeat, no-repeat;
+  background-position: 0 0.45rem, 0 0;
+  background-attachment: local, scroll;
+  border-radius: 2px 4px 1px 3px;
+  transform: rotate(-2deg);
+  box-shadow:
+    2px 3px 0 rgba(0, 0, 0, 0.06),
+    8px 14px 18px rgba(0, 0, 0, 0.18);
+}
+
+.tessera-pasted-sheet :where(p, ul, ol, h2, h3, li) {
+  margin: 0;
+  line-height: var(--tessera-rule);
+}

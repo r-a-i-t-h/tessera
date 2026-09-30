@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { blankSection, paintSections, parseSections, type Section } from "./index.js";
+import { blankSection, paintSections, parseSections, youtubeVideoId, type Section } from "./index.js";
 
 const ineffable = `
 <p class="w3-large">Tessera stands for zone-based site tiles.</p>
@@ -106,6 +106,10 @@ describe("paintSections", () => {
         ],
       },
       { kind: "insert", id: "people-preview" },
+      { kind: "subpages", title: "In this section" },
+      { kind: "youtube", videoId: "QvAdmE0vPW0", title: "Lambs in the barn" },
+      { kind: "gallery", folder: "lambs", mode: "slides" },
+      { kind: "pasted", html: "<p>A short line.</p><p>And another paragraph that the sheet grows to fit.</p>" },
       { kind: "html", html: `<div class="wh-hero"><p>Keep</p></div>` },
     ];
     expect(parseSections(paintSections(sections))).toEqual(sections);
@@ -130,5 +134,37 @@ describe("paintSections", () => {
 
   it("leaves a binding token in the painted HTML", () => {
     expect(paintSections([{ kind: "insert", id: "people-preview" }])).toBe("{{people-preview}}");
+  });
+
+  it("paints subpages, youtube, gallery, and a pasted note with stable markers", () => {
+    const html = paintSections([
+      { kind: "subpages", title: "Visit" },
+      { kind: "youtube", videoId: "https://www.youtube.com/watch?v=QvAdmE0vPW0", title: "Farm" },
+      { kind: "gallery", folder: "lambs", mode: "grid" },
+      { kind: "pasted", html: "<p>Author text</p>" },
+    ]);
+    expect(html).toContain('data-tessera="subpages"');
+    expect(html).toContain('data-title="Visit"');
+    expect(html).toContain("https://www.youtube-nocookie.com/embed/QvAdmE0vPW0");
+    expect(html).toContain('class="tessera-video w3-card w3-margin-bottom"');
+    expect(html).toContain('data-tessera="gallery"');
+    expect(html).toContain('data-mode="grid"');
+    expect(html).toContain("tessera-pasted-sheet");
+    expect(html).toContain("<p>Author text</p>");
+    expect(html).not.toContain("BABIES");
+  });
+
+  it("reads a YouTube id from a watch, share, or embed address", () => {
+    expect(youtubeVideoId("QvAdmE0vPW0")).toBe("QvAdmE0vPW0");
+    expect(youtubeVideoId("https://www.youtube.com/watch?v=QvAdmE0vPW0&t=12")).toBe("QvAdmE0vPW0");
+    expect(youtubeVideoId("https://youtu.be/QvAdmE0vPW0")).toBe("QvAdmE0vPW0");
+    expect(youtubeVideoId("https://www.youtube-nocookie.com/embed/QvAdmE0vPW0")).toBe("QvAdmE0vPW0");
+    expect(youtubeVideoId("https://www.youtube.com/shorts/QvAdmE0vPW0")).toBe("QvAdmE0vPW0");
+    expect(youtubeVideoId("not a video")).toBe("");
+  });
+
+  it("leaves an old tilted farm block as custom HTML", () => {
+    const html = `<div style="margin: 30px auto; padding: 40px; transform: rotate(-2deg);">Farm news stays here.</div>`;
+    expect(parseSections(html)).toEqual([{ kind: "html", html }]);
   });
 });

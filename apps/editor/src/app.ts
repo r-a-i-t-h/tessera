@@ -792,16 +792,21 @@ async function mountPageCanvas(
   layout: PageLayoutHint | undefined,
 ): Promise<void> {
   let bindings: { id: string; title?: string }[] = [];
+  let folders: { id: string; title?: string }[] = [];
   try {
     const listing = await listRecords();
     bindings = listing.records
       .filter((row) => row.kind === "bindings")
       .map((row) => ({ id: row.id, title: row.title }));
+    folders = listing.records
+      .filter((row) => row.kind === "folders")
+      .map((row) => ({ id: row.id, title: row.title }));
   } catch {
     bindings = [];
+    folders = [];
   }
   if (!form.isConnected) return;
-  mountComposeCanvases(form, { bindings, htmlByZone: htmlByZone(record, layout) });
+  mountComposeCanvases(form, { bindings, folders, htmlByZone: htmlByZone(record, layout) });
 }
 
 function asRecord(data: unknown): Record<string, unknown> | undefined {

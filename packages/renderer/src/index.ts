@@ -38,6 +38,7 @@ export {
   navFlat,
   breadcrumbs,
   linkCluster,
+  subpageList,
 } from "./builtins/nav.js";
 export {
   registerGalleryComponents,

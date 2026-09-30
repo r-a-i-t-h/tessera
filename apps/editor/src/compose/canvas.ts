@@ -1,16 +1,21 @@
 import {
+  PALETTE,
   PALETTE_TONES,
   blankSection,
   paintSections,
   parseSections,
   toneClass,
   toneLabel,
+  youtubeVideoId,
   type PaletteKind,
   type Section,
   type ToneId,
 } from "@r-a-i-t-h/tessera-sections";
 
 export type BindingChoice = { id: string; title?: string };
+export type FolderChoice = { id: string; title?: string };
+
+type Choices = { bindings: BindingChoice[]; folders: FolderChoice[] };
 
 type EditColumns = {
   uid: string;
@@ -30,6 +35,7 @@ type ZoneState = {
 type Mounted = {
   zones: ZoneState[];
   bindings: BindingChoice[];
+  folders: FolderChoice[];
   active: string;
 };
 
@@ -44,7 +50,7 @@ function nextId(): string {
 
 export function mountComposeCanvases(
   form: HTMLFormElement,
-  options: { bindings: BindingChoice[]; htmlByZone: Record<string, string> },
+  options: { bindings: BindingChoice[]; folders?: FolderChoice[]; htmlByZone: Record<string, string> },
 ): void {
   const zones: ZoneState[] = [];
   for (const host of form.querySelectorAll<HTMLElement>("[data-canvas]")) {
@@ -58,6 +64,7 @@ export function mountComposeCanvases(
   const state: Mounted = {
     zones,
     bindings: options.bindings,
+    folders: options.folders ?? [],
     active: zones.find((zone) => zone.name === "main")?.name ?? zones[0]?.name ?? "",
   };
   mounted.set(form, state);
@@ -135,27 +142,27 @@ function renderZone(form: HTMLElement, zone: ZoneState): void {
 function itemsWithDrops(zone: ZoneState): string {
   const parts: string[] = [dropSlot(zone.name, 0)];
   zone.items.forEach((item, index) => {
-    parts.push(renderItem(item, mountedBindings(zone.host), zone.name));
+    parts.push(renderItem(item, choicesFor(zone.host), zone.name));
     parts.push(dropSlot(zone.name, index + 1));
   });
   return parts.join("");
 }
 
-function mountedBindings(host: HTMLElement): BindingChoice[] {
+function choicesFor(host: HTMLElement): Choices {
   const form = host.closest("form");
-  if (!form) return [];
-  return mounted.get(form)?.bindings ?? [];
+  const state = form ? mounted.get(form) : undefined;
+  return { bindings: state?.bindings ?? [], folders: state?.folders ?? [] };
 }
 
-function renderItem(node: EditNode, bindings: BindingChoice[], zone: string): string {
+function renderItem(node: EditNode, choices: Choices, zone: string): string {
   return `<article class="editor-section" data-item-id="${node.uid}" data-zone="${escapeAttr(zone)}">
     <div class="editor-section-bar">
       <span class="editor-handle" draggable="true" data-drag title="Drag to move">Drag</span>
       <span class="editor-section-kind">${escapeText(labelFor(node))}</span>
-      ${propsFor(node, bindings)}
+      ${propsFor(node, choices)}
       <button type="button" class="w3-button w3-small w3-white" data-remove>Remove</button>
     </div>
-    <div class="editor-section-body">${bodyFor(node, bindings, zone)}</div>
+    <div class="editor-section-body">${bodyFor(node, choices, zone)}</div>
   </article>`;
 }
 
@@ -177,12 +184,20 @@ function labelFor(node: EditNode): string {
       return "Side by side";
     case "insert":
       return "Insert";
+    case "subpages":
+      return "Subpages";
+    case "youtube":
+      return "YouTube";
+    case "gallery":
+      return "Gallery";
+    case "pasted":
+      return "Pasted note";
     case "html":
       return "Custom HTML";
   }
 }
 
-function propsFor(node: EditNode, bindings: BindingChoice[]): string {
+function propsFor(node: EditNode, choices: Choices): string {
   switch (node.kind) {
     case "heading":
       return `<label class="editor-prop">Level <select data-field="level">${[1, 2, 3]
@@ -201,9 +216,17 @@ function propsFor(node: EditNode, bindings: BindingChoice[]): string {
     case "columns":
       return `<span class="editor-prop"><button type="button" class="w3-button w3-small w3-white" data-cols="2">2 columns</button><button type="button" class="w3-button w3-small w3-white" data-cols="3">3 columns</button></span>`;
     case "insert":
-      return bindings.length
-        ? `<label class="editor-prop">Binding <select data-field="id">${bindingOptions(bindings, node.id)}</select></label>`
+      return choices.bindings.length
+        ? `<label class="editor-prop">Binding <select data-field="id">${bindingOptions(choices.bindings, node.id)}</select></label>`
         : `<label class="editor-prop">Binding id <input data-field="id" class="w3-input" value="${escapeAttr(node.id)}" placeholder="Binding id"></label>`;
+    case "subpages":
+      return `<label class="editor-prop">Heading <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}" placeholder="Optional"></label>`;
+    case "youtube":
+      return `<label class="editor-prop">Video <input data-field="video" class="w3-input" value="${escapeAttr(node.videoId)}" placeholder="YouTube address or id"></label><label class="editor-prop">Title <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}" placeholder="What the video shows"></label>`;
+    case "gallery":
+      return `<label class="editor-prop">Folder <select data-field="folder">${folderOptions(choices.folders, node.folder)}</select></label><label class="editor-prop">Layout <select data-field="mode"><option value="grid"${node.mode === "grid" ? " selected" : ""}>Grid</option><option value="slides"${node.mode === "slides" ? " selected" : ""}>Slides</option></select></label>`;
+    case "pasted":
+      return inlineTools();
     case "html":
       return `<span class="editor-prop w3-text-grey">Edit this markup on Fields.</span>`;
   }
@@ -213,7 +236,7 @@ function inlineTools(): string {
   return `<span class="editor-inline"><button type="button" class="w3-button w3-small w3-white" data-cmd="bold">Bold</button><button type="button" class="w3-button w3-small w3-white" data-cmd="italic">Italic</button><button type="button" class="w3-button w3-small w3-white" data-cmd="link">Link</button></span>`;
 }
 
-function bodyFor(node: EditNode, bindings: BindingChoice[], zone: string): string {
+function bodyFor(node: EditNode, choices: Choices, zone: string): string {
   switch (node.kind) {
     case "heading":
       return `<h${node.level} contenteditable="true" data-field="text" data-plain="true" data-placeholder="Heading">${escapeText(node.text)}</h${node.level}>`;
@@ -228,15 +251,32 @@ function bodyFor(node: EditNode, bindings: BindingChoice[], zone: string): strin
     case "card":
       return `<div class="w3-card w3-padding w3-margin-bottom w3-white"><h3 class="w3-text-theme" data-card-title>${escapeText(node.title)}</h3><div class="rt-card-body" contenteditable="true" data-field="html" data-placeholder="Card">${node.html}</div></div>`;
     case "columns":
-      return columnsBody(node, bindings, zone);
+      return columnsBody(node, choices, zone);
     case "insert": {
-      const title = bindings.find((binding) => binding.id === node.id)?.title;
+      const title = choices.bindings.find((binding) => binding.id === node.id)?.title;
       const name = node.id ? (title && title !== node.id ? `${title} (${node.id})` : node.id) : "Choose a binding";
       return `<p class="w3-panel w3-pale-yellow">Insert: ${escapeText(name)}</p>`;
     }
+    case "subpages":
+      return `<p class="w3-panel w3-pale-blue">Subpages${node.title ? `: ${escapeText(node.title)}` : ""}. The published page lists this page's children.</p>`;
+    case "youtube":
+      return youtubeBody(node);
+    case "gallery": {
+      const folder = choices.folders.find((item) => item.id === node.folder);
+      const name = node.folder ? (folder?.title && folder.title !== node.folder ? `${folder.title} (${node.folder})` : node.folder) : "Choose a folder";
+      return `<p class="w3-panel w3-pale-yellow">Gallery: ${escapeText(name)} (${node.mode === "slides" ? "slides" : "grid"})</p>`;
+    }
+    case "pasted":
+      return `<div class="tessera-pasted"><div class="tessera-pasted-sheet"><div contenteditable="true" data-field="html" data-placeholder="Write on the paper…">${node.html}</div></div></div>`;
     case "html":
       return `<div class="editor-html-preview">${node.html}</div>`;
   }
+}
+
+function youtubeBody(node: Extract<EditLeaf, { kind: "youtube" }>): string {
+  const id = youtubeVideoId(node.videoId);
+  if (!id) return `<p class="w3-text-grey">Add a YouTube address.</p>`;
+  return `<div class="tessera-video w3-card"><iframe src="https://www.youtube-nocookie.com/embed/${escapeAttr(id)}" title="${escapeAttr(node.title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
 }
 
 function quoteBody(node: Extract<EditLeaf, { kind: "quote" }>): string {
@@ -254,12 +294,12 @@ function imgboxBody(node: Extract<EditLeaf, { kind: "imgbox" }>): string {
   return `<div class="w3-display-container w3-container w3-padding-16 w3-card w3-center">${src ? `<img src="${escapeAttr(src)}" class="w3-image" style="width: 100%" alt="${escapeAttr(node.alt)}">` : `<p class="w3-text-grey">Add an image address.</p>`}${caption}</div>`;
 }
 
-function columnsBody(node: EditColumns, bindings: BindingChoice[], zone: string): string {
+function columnsBody(node: EditColumns, choices: Choices, zone: string): string {
   const layout = node.cells.length === 3 ? "w3-third" : "w3-half";
   const cells = node.cells
     .map((cell, index) => {
       const inner = cell.items.length
-        ? cell.items.map((item, itemIndex) => `${itemIndex === 0 ? dropSlot(zone, 0, node.uid, index) : ""}${renderItem(item, bindings, zone)}${dropSlot(zone, itemIndex + 1, node.uid, index)}`).join("")
+        ? cell.items.map((item, itemIndex) => `${itemIndex === 0 ? dropSlot(zone, 0, node.uid, index) : ""}${renderItem(item, choices, zone)}${dropSlot(zone, itemIndex + 1, node.uid, index)}`).join("")
         : dropSlot(zone, 0, node.uid, index);
       return `<div class="${joinClass(layout, cell.className)} editor-cell">${inner}</div>`;
     })
@@ -296,7 +336,7 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
   const node = article ? findNode(allItems(state), article.dataset.itemId ?? "") : undefined;
   if (!node || node.kind === "columns") return;
   mark(form);
-  if (field === "html" && target.isContentEditable && (node.kind === "text" || node.kind === "panel" || node.kind === "card")) {
+  if (field === "html" && target.isContentEditable && (node.kind === "text" || node.kind === "panel" || node.kind === "card" || node.kind === "pasted")) {
     node.html = sanitize(target.innerHTML);
     return;
   }
@@ -338,6 +378,32 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
   }
   if (node.kind === "insert" && field === "id") {
     node.id = value.trim();
+    if (fromChange) rerenderArticle(form, node.uid);
+    return;
+  }
+  if (node.kind === "subpages" && field === "title") {
+    node.title = value;
+    if (fromChange) rerenderArticle(form, node.uid);
+    return;
+  }
+  if (node.kind === "youtube" && field === "video") {
+    const id = youtubeVideoId(value);
+    node.videoId = id || value.trim();
+    if (fromChange && id) rerenderArticle(form, node.uid);
+    return;
+  }
+  if (node.kind === "youtube" && field === "title") {
+    node.title = value;
+    if (fromChange) rerenderArticle(form, node.uid);
+    return;
+  }
+  if (node.kind === "gallery" && field === "folder") {
+    node.folder = value;
+    if (fromChange) rerenderArticle(form, node.uid);
+    return;
+  }
+  if (node.kind === "gallery" && field === "mode") {
+    node.mode = value === "slides" ? "slides" : "grid";
     if (fromChange) rerenderArticle(form, node.uid);
   }
 }
@@ -615,7 +681,7 @@ function syncAll(state: Mounted): void {
       const article = field.closest<HTMLElement>("[data-item-id]");
       const node = article ? findNode(zone.items, article.dataset.itemId ?? "") : undefined;
       if (!node || node.kind === "columns") continue;
-      if (field.dataset.field === "html" && field.isContentEditable && (node.kind === "text" || node.kind === "panel" || node.kind === "card")) {
+      if (field.dataset.field === "html" && field.isContentEditable && (node.kind === "text" || node.kind === "panel" || node.kind === "card" || node.kind === "pasted")) {
         node.html = sanitize(field.innerHTML);
       }
       if (field.dataset.field === "text" && field.isContentEditable && (node.kind === "heading" || node.kind === "quote")) {
@@ -637,6 +703,14 @@ function applyControl(node: EditLeaf, field: string, value: string): void {
   if (node.kind === "imgbox" && field === "caption") node.caption = value;
   if (node.kind === "card" && field === "title") node.title = value;
   if (node.kind === "insert" && field === "id") node.id = value.trim();
+  if (node.kind === "subpages" && field === "title") node.title = value;
+  if (node.kind === "youtube" && field === "video") {
+    const id = youtubeVideoId(value);
+    node.videoId = id || value.trim();
+  }
+  if (node.kind === "youtube" && field === "title") node.title = value;
+  if (node.kind === "gallery" && field === "folder") node.folder = value;
+  if (node.kind === "gallery" && field === "mode") node.mode = value === "slides" ? "slides" : "grid";
 }
 
 function clearDrop(form: HTMLElement): void {
@@ -655,6 +729,16 @@ function toneOptions(current: ToneId): string {
     .join("");
 }
 
+function folderOptions(folders: FolderChoice[], current: string): string {
+  const ids = folders.some((folder) => folder.id === current) || !current ? folders : [{ id: current }, ...folders];
+  const options = [`<option value="">Choose…</option>`];
+  for (const folder of ids) {
+    const label = folder.title && folder.title !== folder.id ? `${folder.title} (${folder.id})` : folder.id;
+    options.push(`<option value="${escapeAttr(folder.id)}"${folder.id === current ? " selected" : ""}>${escapeText(label)}</option>`);
+  }
+  return options.join("");
+}
+
 function bindingOptions(bindings: BindingChoice[], current: string): string {
   const ids = bindings.some((binding) => binding.id === current) || !current ? bindings : [{ id: current }, ...bindings];
   const options = [`<option value="">Choose…</option>`];
@@ -666,7 +750,7 @@ function bindingOptions(bindings: BindingChoice[], current: string): string {
 }
 
 function isPaletteKind(kind: string): kind is PaletteKind {
-  return ["heading", "text", "panel", "quote", "imgbox", "card", "columns", "insert"].includes(kind);
+  return PALETTE.some((item) => item.kind === kind);
 }
 
 function isTone(value: string): value is ToneId {
