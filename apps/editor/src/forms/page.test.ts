@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { newPageBody, pageIdError, withSidebarLink } from "./page.js";
+import { newPageBody, newTemplateBody, pageFromTemplate, pageIdError, withSidebarLink } from "./page.js";
 
 describe("new page", () => {
   it("accepts a fresh id and rejects blanks, punctuation, and duplicates", () => {
@@ -27,6 +27,44 @@ describe("new page", () => {
         main: { html: "" },
       },
     });
+  });
+
+  it("starts a template as an empty prototype body", () => {
+    expect(newTemplateBody(" animal ", " Animal ")).toEqual({
+      id: "animal",
+      title: "Animal",
+      zones: { main: { html: "" } },
+    });
+  });
+
+  it("copies a template body onto a page and locks it when the template says so", () => {
+    expect(
+      pageFromTemplate("daisy", "Daisy", "animal", {
+        isLocked: true,
+        layoutId: " standard ",
+        zones: { main: { html: "<h2>Animal name</h2><p>Where it lives.</p>" } },
+      }),
+    ).toEqual({
+      id: "daisy",
+      title: "Daisy",
+      templateId: "animal",
+      locked: true,
+      layoutId: "standard",
+      zones: {
+        title: { html: "Daisy" },
+        main: { html: "<h2>Animal name</h2><p>Where it lives.</p>" },
+      },
+    });
+  });
+
+  it("leaves a page unlocked when the template is only a blueprint", () => {
+    const page = pageFromTemplate("note", "Note", "free", {
+      isLocked: false,
+      zones: { main: { html: "<p>Start here.</p>" } },
+    });
+    expect(page.locked).toBeUndefined();
+    expect(page.layoutId).toBeUndefined();
+    expect(page.zones.main.html).toBe("<p>Start here.</p>");
   });
 
   it("appends a sidebar link and leaves a non-list nav alone", () => {

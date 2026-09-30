@@ -35,7 +35,7 @@ import {
   type SaveResult,
 } from "./api";
 import { mountComposeCanvases } from "./compose/canvas.js";
-import { readContentDraft, composeFormInner, htmlByZone, rawText, type ContentMode } from "./compose/view.js";
+import { readContentDraft, composeFormInner, htmlByZone, rawText, templateBodyLayout, type ContentMode } from "./compose/view.js";
 import { readFormValues, renderForm } from "./forms/form.js";
 import {
   applyNavAction,
@@ -47,7 +47,7 @@ import {
   type ControlValue,
   type PageChoice,
 } from "./forms/nav.js";
-import { newPageBody, pageIdError, withSidebarLink } from "./forms/page.js";
+import { newPageBody, newTemplateBody, pageFromTemplate, pageIdError, withSidebarLink } from "./forms/page.js";
 import { authoredSchema, schemaFor } from "./forms/schema.js";
 import { assetDetail, renderLibrary } from "./forms/library.js";
 import {
@@ -132,7 +132,7 @@ async function render(root: HTMLElement): Promise<void> {
     else if (route.kind === "library") await bindLibrary(root, user, route.id && route.id !== "library" ? route.id : null);
     else if (!route.kind || !route.id) await bindList(root, user);
     else {
-      const mode = route.kind === "content" ? (pending?.mode ?? "compose") : "fields";
+      const mode = editsBody(route.kind) ? (pending?.mode ?? "compose") : "fields";
       await bindEdit(root, user, route.kind, route.id, mode, pending?.notice ?? "");
     }
   } catch (err) {
@@ -345,6 +345,16 @@ async function bindList(root: HTMLElement, user: PublicUser, notice = "", error 
     event.preventDefault();
     void createPage(root, user, listing);
   });
+  root.querySelector("[data-action=new-template]")?.addEventListener("click", () => {
+    const form = root.querySelector<HTMLFormElement>("#new-template-form");
+    if (!form) return;
+    form.hidden = false;
+    form.querySelector<HTMLInputElement>("#new-template-id")?.focus();
+  });
+  root.querySelector<HTMLFormElement>("#new-template-form")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void createTemplate(root, user, listing);
+  });
 }
 
 async function createPage(root: HTMLElement, user: PublicUser, listing: RecordList): Promise<void> {
@@ -363,8 +373,12 @@ async function createPage(root: HTMLElement, user: PublicUser, listing: RecordLi
   if (button) button.disabled = true;
   const pageId = id.trim();
   const pageTitle = title.trim() || pageId;
+  const templateId = form.querySelector<HTMLSelectElement>("#new-page-template")?.value ?? "";
   try {
-    await saveRecord("content", pageId, newPageBody(pageId, pageTitle));
+    const body = templateId
+      ? pageFromTemplate(pageId, pageTitle, templateId, await templateRecord(templateId))
+      : newPageBody(pageId, pageTitle);
+    await saveRecord("content", pageId, body);
   } catch (err) {
     showNewPageError(form, err instanceof Error ? err.message : "Could not create the page.");
     if (button) button.disabled = false;
@@ -388,8 +402,43 @@ async function createPage(root: HTMLElement, user: PublicUser, listing: RecordLi
   else window.location.hash = hash;
 }
 
+async function templateRecord(id: string): Promise<Record<string, unknown>> {
+  const payload = await getRecord("templates", id);
+  const data = asRecord(payload.data);
+  if (!data) throw new Error("That template could not be read.");
+  return data;
+}
+
+async function createTemplate(root: HTMLElement, user: PublicUser, listing: RecordList): Promise<void> {
+  const form = root.querySelector<HTMLFormElement>("#new-template-form");
+  if (!form) return;
+  const id = form.querySelector<HTMLInputElement>("#new-template-id")?.value ?? "";
+  const title = form.querySelector<HTMLInputElement>("#new-template-title")?.value ?? "";
+  const existing = listing.records.filter((row) => row.kind === "templates").map((row) => row.id);
+  const problem = pageIdError(id, existing);
+  if (problem) {
+    showNewPageError(form, problem);
+    return;
+  }
+  const button = form.querySelector<HTMLButtonElement>("button[type=submit]");
+  if (button) button.disabled = true;
+  const templateId = id.trim();
+  const templateTitle = title.trim() || templateId;
+  try {
+    await saveRecord("templates", templateId, newTemplateBody(templateId, templateTitle));
+  } catch (err) {
+    showNewPageError(form, err instanceof Error ? err.message : "Could not create the template.");
+    if (button) button.disabled = false;
+    return;
+  }
+  pendingEdit = { mode: "compose", notice: `Created ${templateTitle}.` };
+  const hash = `#/templates/${encodeURIComponent(templateId)}`;
+  if (window.location.hash === hash) await render(root);
+  else window.location.hash = hash;
+}
+
 function showNewPageError(form: HTMLFormElement, message: string): void {
-  const error = form.querySelector<HTMLElement>("#new-page-error");
+  const error = form.querySelector<HTMLElement>("[data-form-error]");
   if (!error) return;
   error.hidden = false;
   error.textContent = message;
@@ -567,7 +616,8 @@ function listHtml(listing: RecordList, notice = "", error = ""): string {
     .filter((kind) => !hidden.has(kind.kind))
     .map((kind) => {
       const rows = byKind.get(kind.kind) ?? [];
-      if (kind.kind === "content" && !empty) return contentSection(kind.label, rows);
+      if (kind.kind === "content" && !empty) return contentSection(kind.label, rows, byKind.get("templates") ?? []);
+      if (kind.kind === "templates" && !empty) return templateSection(kind.label, rows);
       if (!rows.length) return "";
       return kindSection(kind.label, rows);
     })
@@ -592,7 +642,10 @@ function kindSection(label: string, rows: RecordSummary[]): string {
   </section>`;
 }
 
-function contentSection(label: string, rows: RecordSummary[]): string {
+function contentSection(label: string, rows: RecordSummary[], templates: RecordSummary[]): string {
+  const options = templates
+    .map((row) => `<option value="${escapeHtml(row.id)}">${escapeHtml(row.title ?? row.id)}</option>`)
+    .join("");
   return `<section class="editor-kind">
     <h2 class="w3-medium">${escapeHtml(label)}</h2>
     <p><button type="button" class="w3-button w3-theme" data-action="new-page">New page</button></p>
@@ -604,12 +657,42 @@ function contentSection(label: string, rows: RecordSummary[]): string {
       <p><label for="new-page-title">Title</label>
         <input id="new-page-title" name="title" class="w3-input w3-border w3-margin-top" required />
       </p>
+      <p><label for="new-page-template">Template</label>
+        <select id="new-page-template" name="template" class="w3-select w3-border w3-margin-top">
+          <option value="">Free form</option>
+          ${options}
+        </select>
+      </p>
+      <p class="w3-text-grey">Free form starts empty and can be rearranged. A template copies that prototype, including its placeholder text.</p>
       <p class="editor-check"><label><input name="sidebar" type="checkbox" checked /> Include in the sidebar</label></p>
-      <p id="new-page-error" class="w3-panel w3-pale-red" role="alert" hidden></p>
+      <p data-form-error class="w3-panel w3-pale-red" role="alert" hidden></p>
       <p><button type="submit" class="w3-button w3-theme">Create page</button></p>
     </form>
     ${rows.length ? recordList(rows) : ""}
   </section>`;
+}
+
+function templateSection(label: string, rows: RecordSummary[]): string {
+  return `<section class="editor-kind">
+    <h2 class="w3-medium">${escapeHtml(label)}</h2>
+    <p><button type="button" class="w3-button w3-theme" data-action="new-template">New template</button></p>
+    <form id="new-template-form" class="editor-new-page" hidden>
+      <p><label for="new-template-id">Id</label>
+        <input id="new-template-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
+      </p>
+      <p class="w3-text-grey">One file, <code>records/templates/&lt;id&gt;.yaml</code>. Copy that file to reuse the template on another site.</p>
+      <p><label for="new-template-title">Title</label>
+        <input id="new-template-title" name="title" class="w3-input w3-border w3-margin-top" required />
+      </p>
+      <p data-form-error class="w3-panel w3-pale-red" role="alert" hidden></p>
+      <p><button type="submit" class="w3-button w3-theme">Create template</button></p>
+    </form>
+    ${rows.length ? recordList(rows) : ""}
+  </section>`;
+}
+
+function editsBody(kind: string | undefined): boolean {
+  return kind === "content" || kind === "templates";
 }
 
 function recordList(rows: RecordSummary[]): string {
@@ -634,21 +717,22 @@ async function bindEdit(
 ): Promise<void> {
   const key = `${kind}/${id}`;
   let payload: RecordPayload;
-  if (kind === "content" && keepDraft && contentSession?.key === key) {
+  if (editsBody(kind) && keepDraft && contentSession?.key === key) {
     payload = contentSession.payload;
   } else {
     payload = await getRecord(kind, id);
     const loaded = asRecord(payload.data);
-    if (kind === "content" && loaded) {
+    if (editsBody(kind) && loaded) {
       contentSession = { key, payload, draft: structuredClone(loaded), fromEditor: false };
-    } else if (kind === "content") {
+    } else if (editsBody(kind)) {
       contentSession = undefined;
     }
   }
-  const session = kind === "content" ? contentSession : undefined;
+  const session = editsBody(kind) ? contentSession : undefined;
   const record = session?.draft ?? asRecord(payload.data);
   const rawShown = session ? rawText(session.fromEditor, session.draft, payload.raw) : payload.raw;
-  const editMode: EditMode = mode === "compose" && kind !== "content" ? "fields" : mode;
+  const editMode: EditMode = mode === "compose" && !editsBody(kind) ? "fields" : mode;
+  const bodyLayout = kind === "templates" ? templateBodyLayout() : payload.layout;
   const navList = kind === "nav" && editMode === "fields" && Array.isArray(payload.data);
   const pages: PageChoice[] = navList ? await contentPages() : [];
   const navNote =
@@ -661,7 +745,7 @@ async function bindEdit(
       ? `<p><label for="raw-file">Raw YAML</label>
          <textarea id="raw-file" name="raw" rows="24" spellcheck="false" class="w3-input w3-border w3-margin-top editor-raw">${escapeHtml(rawShown)}</textarea></p>`
       : editMode === "compose" && record
-        ? composeFormInner(record, payload.layout)
+        ? composeFormInner(kind, record, bodyLayout)
       : navList
         ? `<div id="nav-editor">${renderNavList(navRows(payload.data), pages)}</div>`
         : `${navNote}${fieldsHtml(kind, record ?? payload.data, payload.layout, galleryFolders)}`;
@@ -673,7 +757,7 @@ async function bindEdit(
      ${notice ? `<p class="w3-panel w3-pale-green" role="status">${escapeHtml(notice)}</p>` : ""}
      <p class="editor-tabs">
        ${
-         kind === "content"
+         editsBody(kind)
            ? `<button type="button" class="w3-button ${editMode === "compose" ? "w3-theme" : "w3-white"}" data-mode="compose">Compose</button>`
            : ""
        }
@@ -685,7 +769,7 @@ async function bindEdit(
        ${formInner}
        <p id="save-status" class="w3-text-grey" hidden></p>
        <p class="editor-actions"><button type="submit" class="w3-button w3-theme">Save</button>${
-         kind === "content"
+         editsBody(kind)
            ? `<button type="button" class="w3-button w3-white" data-action="revert">Revert</button>`
            : ""
        }</p>
@@ -696,14 +780,14 @@ async function bindEdit(
   bindChrome(root);
   if (editMode === "compose") root.querySelector(".editor-main")?.classList.add("editor-compose");
   const form = root.querySelector<HTMLFormElement>("#record-form");
-  if (form && editMode === "compose" && record) await mountPageCanvas(form, record, payload.layout);
+  if (form && editMode === "compose" && record) await mountPageCanvas(form, record, bodyLayout);
   for (const button of root.querySelectorAll<HTMLButtonElement>("[data-mode]")) {
     button.addEventListener("click", () => {
       const next = button.dataset.mode;
       if (next !== "compose" && next !== "fields" && next !== "raw") return;
       if (next === editMode) return;
-      if (kind === "content" && contentSession && form) {
-        const taken = readContentDraft(form, editMode, contentSession.draft, contentSession.payload.raw, contentSession.payload.data);
+      if (editsBody(kind) && contentSession && form) {
+        const taken = readContentDraft(form, editMode, contentSession.draft, contentSession.payload.raw, contentSession.payload.data, kind);
         if (!taken.ok) {
           showSaveError(root, taken.error);
           return;
@@ -743,8 +827,8 @@ async function bindEdit(
     if (button) (button as HTMLButtonElement).disabled = true;
     try {
       let saved;
-      if (kind === "content" && contentSession && (editMode === "compose" || editMode === "fields" || editMode === "raw")) {
-        const taken = readContentDraft(form, editMode, contentSession.draft, contentSession.payload.raw, contentSession.payload.data);
+      if (editsBody(kind) && contentSession && (editMode === "compose" || editMode === "fields" || editMode === "raw")) {
+        const taken = readContentDraft(form, editMode, contentSession.draft, contentSession.payload.raw, contentSession.payload.data, kind);
         if (!taken.ok) {
           showSaveError(root, taken.error);
           if (button) (button as HTMLButtonElement).disabled = false;
@@ -806,7 +890,12 @@ async function mountPageCanvas(
     folders = [];
   }
   if (!form.isConnected) return;
-  mountComposeCanvases(form, { bindings, folders, htmlByZone: htmlByZone(record, layout) });
+  mountComposeCanvases(form, {
+    bindings,
+    folders,
+    htmlByZone: htmlByZone(record, layout),
+    locked: record.locked === true,
+  });
 }
 
 function asRecord(data: unknown): Record<string, unknown> | undefined {

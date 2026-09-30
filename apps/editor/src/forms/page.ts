@@ -10,6 +10,18 @@ export type NewPageBody = {
   };
 };
 
+export type CreatedPage = NewPageBody & {
+  templateId?: string;
+  locked?: true;
+  layoutId?: string;
+};
+
+export type TemplateSource = {
+  isLocked?: unknown;
+  layoutId?: unknown;
+  zones?: unknown;
+};
+
 export type SidebarLinkResult =
   | { ok: true; nav: unknown[] }
   | { ok: false; message: string };
@@ -36,6 +48,45 @@ export function newPageBody(id: string, title: string): NewPageBody {
       main: { html: "" },
     },
   };
+}
+
+/** A prototype page. Compose fills `main`. It is not published. */
+export function newTemplateBody(id: string, title: string): { id: string; title: string; zones: { main: { html: string } } } {
+  const templateId = id.trim();
+  const name = title.trim() || templateId;
+  return {
+    id: templateId,
+    title: name,
+    zones: { main: { html: "" } },
+  };
+}
+
+/**
+ * Copy a template into a new page. Placeholder text and any sample media
+ * travel with the body. `locked` is set only when the template says so.
+ */
+export function pageFromTemplate(id: string, title: string, templateId: string, template: TemplateSource): CreatedPage {
+  const page = newPageBody(id, title);
+  const created: CreatedPage = {
+    ...page,
+    templateId,
+    zones: {
+      ...page.zones,
+      main: { html: zoneHtml(template, "main") },
+    },
+  };
+  const layoutId = typeof template.layoutId === "string" ? template.layoutId.trim() : "";
+  if (layoutId) created.layoutId = layoutId;
+  if (template.isLocked === true) created.locked = true;
+  return created;
+}
+
+function zoneHtml(template: TemplateSource, name: string): string {
+  if (!template.zones || typeof template.zones !== "object" || Array.isArray(template.zones)) return "";
+  const zone = (template.zones as Record<string, unknown>)[name];
+  if (!zone || typeof zone !== "object" || Array.isArray(zone) || !("html" in zone)) return "";
+  const html = (zone as { html: unknown }).html;
+  return typeof html === "string" ? html : "";
 }
 
 /**

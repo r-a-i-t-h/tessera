@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -107,6 +107,43 @@ describe("record routes", () => {
     } finally {
       await rm(emptyDir, { recursive: true, force: true });
     }
+  });
+
+  it("lists each template file and leaves templates out of the published document", async () => {
+    await site.write("templates", "animal", {
+      title: "Animal",
+      isLocked: true,
+      layoutId: "standard",
+      zones: { main: { html: "<h2>Animal name</h2>" } },
+    });
+    await mkdir(join(siteDir, "templates"), { recursive: true });
+    await writeFile(
+      join(siteDir, "templates", "visit.yaml"),
+      "id: visit\ntitle: Visit\nzones:\n  main:\n    html: \"<p>When to come.</p>\"\n",
+      "utf8",
+    );
+
+    const list = await app().request("/api/records", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(list.status).toBe(200);
+    const body = (await list.json()) as { records: { id: string; kind: string }[]; kinds: { kind: string }[] };
+    expect(body.kinds.some((kind) => kind.kind === "templates")).toBe(true);
+    expect(body.records.some((row) => row.kind === "templates" && row.id === "animal")).toBe(true);
+    expect(body.records.some((row) => row.kind === "templates" && row.id === "visit")).toBe(true);
+
+    const written = await readFile(join(siteDir, "out.json"), "utf8");
+    expect(written).not.toContain("Animal name");
+    expect(written).not.toContain("When to come.");
+
+    const doc = await site.flatten();
+    expect(doc?.pages.some((page) => page.id === "animal" || page.id === "visit")).toBe(false);
+    await site.writeFromDocument(doc!);
+    const template = await site.read("templates", "animal");
+    expect(template.title).toBe("Animal");
+    expect(template.isLocked).toBe(true);
+    const dropped = await site.read("templates", "visit");
+    expect(dropped.title).toBe("Visit");
   });
 
   it("lists and updates a content record", async () => {

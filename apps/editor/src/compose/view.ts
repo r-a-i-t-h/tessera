@@ -15,21 +15,38 @@ type ZoneView = {
   html: string;
 };
 
-export function composeFormInner(record: Record<string, unknown>, layout?: PageLayoutHint): string {
-  const schema = schemaFor("content", record);
-  const authoredNames = new Set((authoredSchema("content")?.fields ?? []).map((field) => field.name));
+/** Compose for a template always edits one body zone, whatever page frame it names. */
+export function templateBodyLayout(): PageLayoutHint {
+  return {
+    layoutId: "",
+    layoutSource: "site",
+    declaredZones: ["main"],
+    offLayoutZones: [],
+    layouts: {},
+  };
+}
+
+export function composeFormInner(kind: string, record: Record<string, unknown>, layout?: PageLayoutHint): string {
+  const schema = schemaFor(kind, record);
+  const authoredNames = new Set((authoredSchema(kind)?.fields ?? []).map((field) => field.name));
   const base = schema?.fields.filter((field) => authoredNames.has(field.name)) ?? [];
-  const extras = schema?.fields.filter((field) => !authoredNames.has(field.name)) ?? [];
+  const extras =
+    schema?.fields.filter((field) => !authoredNames.has(field.name) && field.name !== "locked" && field.name !== "templateId") ??
+    [];
   const zones = zoneViews(record, layout);
   const onLayout = zones.filter((zone) => !zone.off);
   const offLayout = zones.filter((zone) => zone.off);
+  const locked = record.locked === true;
+  const palette = locked
+    ? `<p class="w3-text-grey">This page's layout is fixed. Edit the words and the pictures.</p>`
+    : `<div class="editor-palette">
+        <p class="w3-small w3-text-grey">Drag onto the page, or click to add.</p>
+        ${PALETTE.map((item) => `<button type="button" class="w3-button w3-white w3-border" draggable="true" data-palette="${item.kind}">${item.label}</button>`).join("")}
+      </div>`;
   return `${renderForm({ fields: base }, record)}
     ${layoutBanner(layout)}
     <div class="editor-compose-layout">
-      <div class="editor-palette">
-        <p class="w3-small w3-text-grey">Drag onto the page, or click to add.</p>
-        ${PALETTE.map((item) => `<button type="button" class="w3-button w3-white w3-border" draggable="true" data-palette="${item.kind}">${item.label}</button>`).join("")}
-      </div>
+      ${palette}
       <div class="editor-zones">
         ${onLayout.map((zone) => zoneBlock(zone)).join("")}
         ${
@@ -56,6 +73,7 @@ export function readContentDraft(
   current: Record<string, unknown>,
   baselineRaw: string,
   baselineData: unknown,
+  kind = "content",
 ):
   | { ok: true; unchanged: true }
   | { ok: true; unchanged: false; draft: Record<string, unknown>; fromEditor: boolean }
@@ -78,7 +96,7 @@ export function readContentDraft(
     if (!parsed.ok) return parsed;
     return { ok: true, unchanged: false, draft: parsed.data, fromEditor: true };
   }
-  const read = readFormValues(form, schemaFor("content", current), current);
+  const read = readFormValues(form, schemaFor(kind, current), current);
   if (!read || typeof read !== "object" || Array.isArray(read)) {
     return { ok: false, error: "Could not read this page." };
   }
@@ -127,7 +145,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function layoutBanner(layout?: PageLayoutHint): string {
-  if (!layout) return "";
+  if (!layout?.layoutId) return "";
   const via =
     layout.layoutSource === "page"
       ? "page override"

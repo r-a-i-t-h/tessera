@@ -37,6 +37,7 @@ type Mounted = {
   bindings: BindingChoice[];
   folders: FolderChoice[];
   active: string;
+  locked: boolean;
 };
 
 const mounted = new WeakMap<HTMLElement, Mounted>();
@@ -50,7 +51,7 @@ function nextId(): string {
 
 export function mountComposeCanvases(
   form: HTMLFormElement,
-  options: { bindings: BindingChoice[]; folders?: FolderChoice[]; htmlByZone: Record<string, string> },
+  options: { bindings: BindingChoice[]; folders?: FolderChoice[]; htmlByZone: Record<string, string>; locked?: boolean },
 ): void {
   const zones: ZoneState[] = [];
   for (const host of form.querySelectorAll<HTMLElement>("[data-canvas]")) {
@@ -66,6 +67,7 @@ export function mountComposeCanvases(
     bindings: options.bindings,
     folders: options.folders ?? [],
     active: zones.find((zone) => zone.name === "main")?.name ?? zones[0]?.name ?? "",
+    locked: options.locked === true,
   };
   mounted.set(form, state);
   for (const zone of zones) renderZone(form, zone);
@@ -134,15 +136,25 @@ function toSection(node: EditNode): Section {
 }
 
 function renderZone(form: HTMLElement, zone: ZoneState): void {
-  if (!mounted.get(form)) return;
-  const empty = zone.items.length ? "" : `<p class="editor-canvas-empty w3-text-grey">Drag a section here, or choose one from the list.</p>`;
-  zone.host.innerHTML = `${empty}${zone.items.length ? itemsWithDrops(zone) : dropSlot(zone.name, 0)}`;
+  const state = mounted.get(form);
+  if (!state) return;
+  const empty = zone.items.length
+    ? ""
+    : `<p class="editor-canvas-empty w3-text-grey">${state.locked ? "This section is empty." : "Drag a section here, or choose one from the list."}</p>`;
+  const body = zone.items.length
+    ? state.locked
+      ? zone.items.map((item) => renderItem(item, choicesFor(zone.host), zone.name, true)).join("")
+      : itemsWithDrops(zone)
+    : state.locked
+      ? ""
+      : dropSlot(zone.name, 0);
+  zone.host.innerHTML = `${empty}${body}`;
 }
 
 function itemsWithDrops(zone: ZoneState): string {
   const parts: string[] = [dropSlot(zone.name, 0)];
   zone.items.forEach((item, index) => {
-    parts.push(renderItem(item, choicesFor(zone.host), zone.name));
+    parts.push(renderItem(item, choicesFor(zone.host), zone.name, false));
     parts.push(dropSlot(zone.name, index + 1));
   });
   return parts.join("");
@@ -154,15 +166,19 @@ function choicesFor(host: HTMLElement): Choices {
   return { bindings: state?.bindings ?? [], folders: state?.folders ?? [] };
 }
 
-function renderItem(node: EditNode, choices: Choices, zone: string): string {
+function renderItem(node: EditNode, choices: Choices, zone: string, locked: boolean): string {
+  const move = locked
+    ? ""
+    : `<span class="editor-handle" draggable="true" data-drag title="Drag to move">Drag</span>`;
+  const remove = locked ? "" : `<button type="button" class="w3-button w3-small w3-white" data-remove>Remove</button>`;
   return `<article class="editor-section" data-item-id="${node.uid}" data-zone="${escapeAttr(zone)}">
     <div class="editor-section-bar">
-      <span class="editor-handle" draggable="true" data-drag title="Drag to move">Drag</span>
+      ${move}
       <span class="editor-section-kind">${escapeText(labelFor(node))}</span>
-      ${propsFor(node, choices)}
-      <button type="button" class="w3-button w3-small w3-white" data-remove>Remove</button>
+      ${propsFor(node, choices, locked)}
+      ${remove}
     </div>
-    <div class="editor-section-body">${bodyFor(node, choices, zone)}</div>
+    <div class="editor-section-body">${bodyFor(node, choices, zone, locked)}</div>
   </article>`;
 }
 
@@ -197,7 +213,8 @@ function labelFor(node: EditNode): string {
   }
 }
 
-function propsFor(node: EditNode, choices: Choices): string {
+function propsFor(node: EditNode, choices: Choices, locked: boolean): string {
+  if (locked) return lockedProps(node, choices);
   switch (node.kind) {
     case "heading":
       return `<label class="editor-prop">Level <select data-field="level">${[1, 2, 3]
@@ -232,11 +249,34 @@ function propsFor(node: EditNode, choices: Choices): string {
   }
 }
 
+function lockedProps(node: EditNode, choices: Choices): string {
+  switch (node.kind) {
+    case "text":
+    case "panel":
+    case "pasted":
+      return inlineTools();
+    case "quote":
+      return `<label class="editor-prop">Attribution <input data-field="attribution" class="w3-input" value="${escapeAttr(node.attribution)}"></label>`;
+    case "imgbox":
+      return `<label class="editor-prop">Image <input data-field="src" class="w3-input" value="${escapeAttr(node.src)}" placeholder="Image address"></label><button type="button" class="w3-button w3-small w3-white" data-library="image">Library</button><label class="editor-prop">Alt <input data-field="alt" class="w3-input" value="${escapeAttr(node.alt)}"></label><label class="editor-prop">Caption <input data-field="caption" class="w3-input" value="${escapeAttr(node.caption)}"></label>`;
+    case "card":
+      return `<label class="editor-prop">Title <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}"></label>${inlineTools()}`;
+    case "gallery":
+      return `<label class="editor-prop">Folder <select data-field="folder">${folderOptions(choices.folders, node.folder)}</select></label>`;
+    case "youtube":
+      return `<label class="editor-prop">Video <input data-field="video" class="w3-input" value="${escapeAttr(node.videoId)}" placeholder="YouTube address or id"></label><label class="editor-prop">Title <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}" placeholder="What the video shows"></label>`;
+    case "subpages":
+      return `<label class="editor-prop">Heading <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}" placeholder="Optional"></label>`;
+    default:
+      return "";
+  }
+}
+
 function inlineTools(): string {
   return `<span class="editor-inline"><button type="button" class="w3-button w3-small w3-white" data-cmd="bold">Bold</button><button type="button" class="w3-button w3-small w3-white" data-cmd="italic">Italic</button><button type="button" class="w3-button w3-small w3-white" data-cmd="link">Link</button></span>`;
 }
 
-function bodyFor(node: EditNode, choices: Choices, zone: string): string {
+function bodyFor(node: EditNode, choices: Choices, zone: string, locked: boolean): string {
   switch (node.kind) {
     case "heading":
       return `<h${node.level} contenteditable="true" data-field="text" data-plain="true" data-placeholder="Heading">${escapeText(node.text)}</h${node.level}>`;
@@ -251,7 +291,7 @@ function bodyFor(node: EditNode, choices: Choices, zone: string): string {
     case "card":
       return `<div class="w3-card w3-padding w3-margin-bottom w3-white"><h3 class="w3-text-theme" data-card-title>${escapeText(node.title)}</h3><div class="rt-card-body" contenteditable="true" data-field="html" data-placeholder="Card">${node.html}</div></div>`;
     case "columns":
-      return columnsBody(node, choices, zone);
+      return columnsBody(node, choices, zone, locked);
     case "insert": {
       const title = choices.bindings.find((binding) => binding.id === node.id)?.title;
       const name = node.id ? (title && title !== node.id ? `${title} (${node.id})` : node.id) : "Choose a binding";
@@ -294,13 +334,15 @@ function imgboxBody(node: Extract<EditLeaf, { kind: "imgbox" }>): string {
   return `<div class="w3-display-container w3-container w3-padding-16 w3-card w3-center">${src ? `<img src="${escapeAttr(src)}" class="w3-image" style="width: 100%" alt="${escapeAttr(node.alt)}">` : `<p class="w3-text-grey">Add an image address.</p>`}${caption}</div>`;
 }
 
-function columnsBody(node: EditColumns, choices: Choices, zone: string): string {
+function columnsBody(node: EditColumns, choices: Choices, zone: string, locked: boolean): string {
   const layout = node.cells.length === 3 ? "w3-third" : "w3-half";
   const cells = node.cells
     .map((cell, index) => {
-      const inner = cell.items.length
-        ? cell.items.map((item, itemIndex) => `${itemIndex === 0 ? dropSlot(zone, 0, node.uid, index) : ""}${renderItem(item, choices, zone)}${dropSlot(zone, itemIndex + 1, node.uid, index)}`).join("")
-        : dropSlot(zone, 0, node.uid, index);
+      const inner = locked
+        ? cell.items.map((item) => renderItem(item, choices, zone, true)).join("")
+        : cell.items.length
+          ? cell.items.map((item, itemIndex) => `${itemIndex === 0 ? dropSlot(zone, 0, node.uid, index) : ""}${renderItem(item, choices, zone, false)}${dropSlot(zone, itemIndex + 1, node.uid, index)}`).join("")
+          : dropSlot(zone, 0, node.uid, index);
       return `<div class="${joinClass(layout, cell.className)} editor-cell">${inner}</div>`;
     })
     .join("");
@@ -335,6 +377,7 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
   const article = target.closest<HTMLElement>("[data-item-id]");
   const node = article ? findNode(allItems(state), article.dataset.itemId ?? "") : undefined;
   if (!node || node.kind === "columns") return;
+  if (state.locked && isDesignField(node.kind, field)) return;
   mark(form);
   if (field === "html" && target.isContentEditable && (node.kind === "text" || node.kind === "panel" || node.kind === "card" || node.kind === "pasted")) {
     node.html = sanitize(target.innerHTML);
@@ -408,6 +451,11 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
   }
 }
 
+function isDesignField(kind: EditNode["kind"], field: string): boolean {
+  if (field === "level" || field === "tone" || field === "mode") return true;
+  return kind === "insert" && field === "id";
+}
+
 function onClick(form: HTMLFormElement, event: MouseEvent): void {
   const target = event.target;
   if (!(target instanceof HTMLElement)) return;
@@ -416,7 +464,7 @@ function onClick(form: HTMLFormElement, event: MouseEvent): void {
   const palette = target.closest<HTMLElement>("[data-palette]");
   if (palette?.dataset.palette) {
     event.preventDefault();
-    if (suppressClick) return;
+    if (state.locked || suppressClick) return;
     appendPalette(form, palette.dataset.palette);
     return;
   }
@@ -429,18 +477,21 @@ function onClick(form: HTMLFormElement, event: MouseEvent): void {
   const list = target.closest<HTMLElement>("[data-list]");
   if (list) {
     event.preventDefault();
+    if (state.locked) return;
     toggleList(form, list);
     return;
   }
   const cols = target.closest<HTMLElement>("[data-cols]");
   if (cols?.dataset.cols) {
     event.preventDefault();
+    if (state.locked) return;
     setColumns(form, cols);
     return;
   }
   const remove = target.closest<HTMLElement>("[data-remove]");
   if (remove) {
     event.preventDefault();
+    if (state.locked) return;
     const article = remove.closest<HTMLElement>("[data-item-id]");
     const uid = article?.dataset.itemId;
     if (!uid) return;
@@ -453,7 +504,7 @@ function onClick(form: HTMLFormElement, event: MouseEvent): void {
 
 function appendPalette(form: HTMLFormElement, kind: string): void {
   const state = mounted.get(form);
-  if (!state || !isPaletteKind(kind)) return;
+  if (!state || state.locked || !isPaletteKind(kind)) return;
   const zone = state.zones.find((item) => item.name === state.active) ?? state.zones[0];
   if (!zone) return;
   if (kind === "columns" && insideCell()) return;
@@ -477,6 +528,7 @@ function runCommand(form: HTMLFormElement, command: string): void {
 
 function toggleList(form: HTMLFormElement, button: HTMLElement): void {
   const state = mounted.get(form);
+  if (state?.locked) return;
   const article = button.closest<HTMLElement>("[data-item-id]");
   const node = state && article ? findNode(allItems(state), article.dataset.itemId ?? "") : undefined;
   if (!state || !node || node.kind !== "text") return;
@@ -497,6 +549,7 @@ function toggleList(form: HTMLFormElement, button: HTMLElement): void {
 
 function setColumns(form: HTMLFormElement, button: HTMLElement): void {
   const state = mounted.get(form);
+  if (state?.locked) return;
   const article = button.closest<HTMLElement>("[data-item-id]");
   const node = state && article ? findNode(allItems(state), article.dataset.itemId ?? "") : undefined;
   if (!state || !node || node.kind !== "columns") return;
@@ -527,6 +580,10 @@ function onPaste(event: ClipboardEvent): void {
 }
 
 function onDragStart(form: HTMLFormElement, event: DragEvent): void {
+  if (mounted.get(form)?.locked) {
+    event.preventDefault();
+    return;
+  }
   const target = event.target;
   if (!(target instanceof HTMLElement) || !event.dataTransfer) return;
   suppressClick = true;
@@ -548,6 +605,7 @@ function onDragStart(form: HTMLFormElement, event: DragEvent): void {
 }
 
 function onDragOver(form: HTMLFormElement, event: DragEvent): void {
+  if (mounted.get(form)?.locked) return;
   const slot = resolveSlot(event.target, form);
   if (!slot) return;
   event.preventDefault();
@@ -557,6 +615,7 @@ function onDragOver(form: HTMLFormElement, event: DragEvent): void {
 }
 
 function onDrop(form: HTMLFormElement, event: DragEvent): void {
+  if (mounted.get(form)?.locked) return;
   const slot = resolveSlot(event.target, form);
   const state = mounted.get(form);
   if (!slot || !state || !event.dataTransfer) return;

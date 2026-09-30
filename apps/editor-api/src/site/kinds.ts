@@ -1,6 +1,7 @@
 /** Record kinds stored as one YAML file per Tessera `id`. */
 export const RECORD_KINDS = [
   "content",
+  "templates",
   "items",
   "layouts",
   "bindings",
@@ -11,8 +12,25 @@ export const RECORD_KINDS = [
 
 export type RecordKind = (typeof RECORD_KINDS)[number];
 
+/**
+ * Kinds that round-trip through the published document.
+ * Templates are editor files: the folder is listed, and publish skips them.
+ */
+export const DOCUMENT_KINDS = [
+  "content",
+  "items",
+  "layouts",
+  "bindings",
+  "sections",
+  "media",
+  "folders",
+] as const;
+
+export type DocumentKind = (typeof DOCUMENT_KINDS)[number];
+
 export const KIND_LABELS: Record<RecordKind, string> = {
   content: "Content",
+  templates: "Templates",
   items: "Items",
   layouts: "Layouts",
   bindings: "Bindings",
@@ -23,6 +41,7 @@ export const KIND_LABELS: Record<RecordKind, string> = {
 
 export const KIND_DIRS: Record<RecordKind, string> = {
   content: "content",
+  templates: "templates",
   items: "items",
   layouts: "layouts",
   bindings: "bindings",

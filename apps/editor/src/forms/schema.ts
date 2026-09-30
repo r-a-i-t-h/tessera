@@ -58,10 +58,20 @@ export const CONTENT_FORM: FormSchema = {
   ],
 };
 
+export const TEMPLATE_FORM: FormSchema = {
+  fields: [
+    { name: "id", label: "Id", type: "string", readOnly: true, required: true },
+    { name: "title", label: "Title", type: "string", required: true },
+    { name: "isLocked", label: "Lock layout on new pages", type: "Checkbox" },
+    { name: "layoutId", label: "Layout", type: "string" },
+  ],
+};
+
 /** Authored schema for a record kind. Other kinds build a temporary list from the file. */
 export function authoredSchema(kind: string): FormSchema | undefined {
   if (kind === "site") return SITE_FORM;
   if (kind === "content") return CONTENT_FORM;
+  if (kind === "templates") return TEMPLATE_FORM;
   return undefined;
 }
 
@@ -82,7 +92,7 @@ export function schemaFor(kind: string, data: unknown): FormSchema | undefined {
   const authored = authoredSchema(kind);
   if (!authored) return { fields: fieldsFromRecord(record) };
   const skip = new Set(authored.fields.map((field) => field.name));
-  if (kind === "content") skip.add("zones");
+  if (kind === "content" || kind === "templates") skip.add("zones");
   return { fields: [...authored.fields, ...fieldsFromRecord(record, skip)] };
 }
 

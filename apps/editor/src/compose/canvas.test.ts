@@ -62,4 +62,40 @@ describe("compose palette", () => {
     expect(html).toContain('data-folder="lambs"');
     expect(html).toContain('data-mode="grid"');
   });
+
+  it("keeps a locked page's words editable and its structure fixed", () => {
+    dom.document.body.innerHTML = `<form>
+      <button type="button" data-palette="text">Text</button>
+      <div data-canvas data-zone="main"></div>
+    </form>`;
+    const form = dom.document.querySelector("form");
+    if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
+    mountComposeCanvases(form, {
+      bindings: [],
+      folders: [{ id: "lambs", title: "Lambs" }],
+      htmlByZone: {
+        main: `<h2>Animal name</h2><div class="tessera-page-gallery" data-tessera="gallery" data-folder="" data-mode="grid"></div>`,
+      },
+      locked: true,
+    });
+
+    expect(form.querySelector("[data-remove]")).toBeNull();
+    expect(form.querySelector("[data-drag]")).toBeNull();
+    expect(form.querySelector("[data-drop]")).toBeNull();
+    expect(form.querySelector("[data-field=level]")).toBeNull();
+    expect(form.querySelector("[data-field=mode]")).toBeNull();
+    expect(form.querySelector("[data-field=folder]")).toBeTruthy();
+    expect(form.querySelectorAll("[data-item-id]")).toHaveLength(2);
+
+    form.querySelector(`[data-palette="text"]`)?.dispatchEvent(new dom.MouseEvent("click", { bubbles: true }));
+    expect(form.querySelectorAll("[data-item-id]")).toHaveLength(2);
+
+    const heading = form.querySelector<HTMLElement>("[data-field=text]");
+    if (!heading) throw new Error("heading");
+    heading.textContent = "Daisy";
+    heading.dispatchEvent(new dom.Event("input", { bubbles: true }));
+    const html = readComposeHtml(form).main ?? "";
+    expect(html).toContain("Daisy");
+    expect(html).not.toContain("Animal name");
+  });
 });

@@ -24,7 +24,7 @@ import {
   type LoadedSite,
   yamlToRecord,
 } from "./document.js";
-import { isRecordId, KIND_DIRS, RECORD_KINDS, type RecordKind } from "./kinds.js";
+import { DOCUMENT_KINDS, isRecordId, KIND_DIRS, RECORD_KINDS, type RecordKind } from "./kinds.js";
 
 export type SnapshotRef = { hash: string; file: string };
 
@@ -262,11 +262,11 @@ export class SiteStore {
     await mkdir(this.siteDir, { recursive: true });
     await writeTextAtomic(this.siteFile(), toYaml(split.site));
     await writeTextAtomic(this.navFile(), toYaml(split.nav));
-    for (const kind of RECORD_KINDS) {
+    for (const kind of DOCUMENT_KINDS) {
       const dir = join(this.siteDir, KIND_DIRS[kind]);
       await mkdir(dir, { recursive: true });
       const keep = new Set<string>();
-      const records = split[kind] as Array<{ id: string }>;
+      const records = split[kind];
       const order: string[] = [];
       for (const record of records) {
         keep.add(record.id);
