@@ -1,5 +1,7 @@
 id: person-priya-nair
 title: Priya Nair
+templateId: person
+locked: true
 tags:
   - person
 includes:

@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import config, { devShellHtml } from "../vite.config.ts";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-const siteNames = ["pure", "ineffable", "millersark", "willow"] as const;
+const siteNames = ["willow"] as const;
 
 describe("static site relative assets", () => {
   it("uses a subdirectory-relative base", () => {

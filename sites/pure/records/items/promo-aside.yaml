@@ -1,5 +1,0 @@
-id: promo-aside
-title: Promo blurb for aside
-zones:
-  aside:
-    html: <div class="w3-panel w3-pale-yellow w3-border"><p><strong>Shared aside item.</strong> Visible only when the layout declares zone <code>aside</code>.</p></div>

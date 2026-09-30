@@ -29,7 +29,7 @@ export function isReferenceSitePath(target: string): boolean {
   return resolved === sites || resolved.startsWith(sites + sep);
 }
 
-export const SITE_NAMES = ["pure", "ineffable", "millersark", "willow"] as const;
+export const SITE_NAMES = ["willow"] as const;
 export type SiteName = (typeof SITE_NAMES)[number];
 
 export function isSiteName(value: string): value is SiteName {

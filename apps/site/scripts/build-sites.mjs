@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const appRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = join(appRoot, "..", "..");
-const names = ["pure", "ineffable", "millersark", "willow"];
+const names = ["willow"];
 const only = process.argv[2];
 if (only && !names.includes(only)) {
   console.error(`Unknown site "${only}". Expected one of: ${names.join(", ")}`);

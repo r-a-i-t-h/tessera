@@ -10,15 +10,25 @@ export type NewPageBody = {
   };
 };
 
-export type CreatedPage = NewPageBody & {
-  templateId?: string;
+export type CreatedPage = {
+  id: string;
+  title: string;
+  templateId: string;
   locked?: true;
   layoutId?: string;
+  tags?: string[];
+  includes?: string[];
+  zones: {
+    title: { html: string };
+    main: { html: string };
+  } & Record<string, unknown>;
 };
 
 export type TemplateSource = {
   isLocked?: unknown;
   layoutId?: unknown;
+  tags?: unknown;
+  includes?: unknown;
   zones?: unknown;
 };
 
@@ -62,31 +72,52 @@ export function newTemplateBody(id: string, title: string): { id: string; title:
 }
 
 /**
- * Copy a template into a new page. Placeholder text and any sample media
- * travel with the body. `locked` is set only when the template says so.
+ * Copy a template into a new page. The title zone is the new page's title.
+ * Every other zone, plus tags and includes, travels with the page.
+ * `locked` is set only when the template says so.
  */
 export function pageFromTemplate(id: string, title: string, templateId: string, template: TemplateSource): CreatedPage {
   const page = newPageBody(id, title);
   const created: CreatedPage = {
-    ...page,
+    id: page.id,
+    title: page.title,
     templateId,
-    zones: {
-      ...page.zones,
-      main: { html: zoneHtml(template, "main") },
-    },
+    zones: zonesFromTemplate(template, page.zones.title.html),
   };
+  const tags = stringList(template.tags);
+  if (tags) created.tags = tags;
+  const includes = stringList(template.includes);
+  if (includes) created.includes = includes;
   const layoutId = typeof template.layoutId === "string" ? template.layoutId.trim() : "";
   if (layoutId) created.layoutId = layoutId;
   if (template.isLocked === true) created.locked = true;
   return created;
 }
 
-function zoneHtml(template: TemplateSource, name: string): string {
-  if (!template.zones || typeof template.zones !== "object" || Array.isArray(template.zones)) return "";
-  const zone = (template.zones as Record<string, unknown>)[name];
-  if (!zone || typeof zone !== "object" || Array.isArray(zone) || !("html" in zone)) return "";
-  const html = (zone as { html: unknown }).html;
-  return typeof html === "string" ? html : "";
+function zonesFromTemplate(template: TemplateSource, titleHtml: string): CreatedPage["zones"] {
+  const zones: Record<string, unknown> = {
+    title: { html: titleHtml },
+    main: { html: "" },
+  };
+  const source = template.zones;
+  if (!source || typeof source !== "object" || Array.isArray(source)) {
+    return zones as CreatedPage["zones"];
+  }
+  for (const [name, zone] of Object.entries(source)) {
+    if (name === "title") continue;
+    if (!zone || typeof zone !== "object" || Array.isArray(zone)) continue;
+    zones[name] = structuredClone(zone);
+  }
+  return zones as CreatedPage["zones"];
+}
+
+function stringList(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const items = value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return items.length ? items : undefined;
 }
 
 /**

@@ -593,7 +593,7 @@ function backupsHtml(listing: BackupList, notice: string, error: string): string
     <p><button type="button" class="w3-button w3-theme" data-action="backup">Back up now</button></p>
     ${rows}
     <h2 class="w3-medium">Examples</h2>
-    <p class="w3-text-grey">Pure, Ineffable, Miller's Ark, and Willow are <code>.tar.gz</code> files in that same backup folder. Restoring one fills this empty site. Your editors stay. Later these become templates (a personal site, a blog, a committee, a club).</p>
+    <p class="w3-text-grey">Willow is a <code>.tar.gz</code> in that same backup folder. Restoring it fills this empty site. Your editors stay. A new site can also start blank from the editor.</p>
     ${examples}`;
 }
 

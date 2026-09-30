@@ -1,5 +1,7 @@
 id: event-harvest
 title: Harvest supper
+templateId: event
+locked: true
 tags:
   - event
 includes:

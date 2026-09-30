@@ -1,5 +1,7 @@
 id: person-lina-vogel
 title: Lina Vogel
+templateId: person
+locked: true
 tags:
   - person
 includes:

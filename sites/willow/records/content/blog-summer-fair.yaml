@@ -1,5 +1,7 @@
 id: blog-summer-fair
 title: "Summer fair: a recap in crumbs"
+templateId: news
+locked: true
 tags:
   - blog
 includes:

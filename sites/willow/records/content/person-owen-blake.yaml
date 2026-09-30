@@ -1,5 +1,7 @@
 id: person-owen-blake
 title: Owen Blake
+templateId: person
+locked: true
 tags:
   - person
 includes:

@@ -1,5 +1,7 @@
 id: blog-new-trustees
 title: Two new trustees, same kettle
+templateId: news
+locked: true
 tags:
   - blog
 includes:

@@ -57,6 +57,35 @@ describe("new page", () => {
     });
   });
 
+  it("copies tags, includes, and zones other than the title", () => {
+    expect(
+      pageFromTemplate("priya", "Priya Nair", "person", {
+        isLocked: true,
+        layoutId: "profile",
+        tags: ["person", " "],
+        includes: ["common-footer"],
+        zones: {
+          title: { html: "Sample person" },
+          meta: { json: { role: "", email: "", photo: "", summary: "" } },
+          main: { html: "<p>About them.</p>" },
+        },
+      }),
+    ).toEqual({
+      id: "priya",
+      title: "Priya Nair",
+      templateId: "person",
+      locked: true,
+      layoutId: "profile",
+      tags: ["person"],
+      includes: ["common-footer"],
+      zones: {
+        title: { html: "Priya Nair" },
+        meta: { json: { role: "", email: "", photo: "", summary: "" } },
+        main: { html: "<p>About them.</p>" },
+      },
+    });
+  });
+
   it("leaves a page unlocked when the template is only a blueprint", () => {
     const page = pageFromTemplate("note", "Note", "free", {
       isLocked: false,

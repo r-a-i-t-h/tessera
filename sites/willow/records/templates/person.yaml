@@ -1,0 +1,17 @@
+id: person
+title: Person
+isLocked: true
+layoutId: profile
+tags:
+  - person
+includes:
+  - common-footer
+zones:
+  meta:
+    json:
+      role: ""
+      email: ""
+      photo: ""
+      summary: ""
+  main:
+    html: ""

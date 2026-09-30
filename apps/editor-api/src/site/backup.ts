@@ -9,9 +9,6 @@ import { adoptLegacyRecordsDir } from "./records-dir.js";
 export const BACKUP_NAME_RE = /^\d{4}-\d{2}-\d{2}T\d{6}Z\.tar\.gz$/;
 
 const EXAMPLE_TITLES: Record<SiteName, string> = {
-  pure: "Pure",
-  ineffable: "Ineffable",
-  millersark: "Miller's Ark",
   willow: "Willow",
 };
 

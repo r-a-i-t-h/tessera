@@ -1,6 +1,0 @@
-id: farm-open-days
-component: eventList
-itemId: open-days-data
-fromZone: events
-props:
-  limit: 10

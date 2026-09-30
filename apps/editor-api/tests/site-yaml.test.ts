@@ -8,7 +8,7 @@ import { authoringToZones, zonesToAuthoring } from "../src/site/document.js";
 import { SiteStore } from "../src/site/store.js";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-const siteNames = ["pure", "ineffable", "millersark", "willow"] as const;
+const siteNames = ["willow"] as const;
 
 describe("site YAML flatten", () => {
   let dir: string;

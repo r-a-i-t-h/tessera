@@ -1,5 +1,7 @@
 id: blog-harvest-supper
 title: Harvest supper tickets are out
+templateId: news
+locked: true
 tags:
   - blog
 includes:

@@ -44,10 +44,7 @@ A site is a directory, not a package. Tessera’s version is the editor and the 
 
 | Directory | Notes |
 |-----------|--------|
-| `sites/pure` | Engine lab: zones, components, font switch |
-| `sites/ineffable` | Personal site (layouts, fonts, W3 chrome, `randomCells`) |
-| `sites/millersark` | Miller's Ark content + `openDaysTable` |
-| `sites/willow` | Community showcase. Archived into `backup/willow.tar.gz` on first boot; not the running site |
+| `sites/willow` | Community showcase (templates, sections, bindings, gallery). Archived into `backup/willow.tar.gz` on first boot; not the running site |
 
 Each directory has `records/` (YAML records), `shell/` (static chrome: `index.html` and `site.css`), and `publish/` (static export: hashed `site.json`, media, and the stamped runtime). `meta.json` holds `schemaVersion`. Users and page history live in the same directory and are created when the editor runs. A site has no build step and does not contain component source.
 
@@ -55,7 +52,7 @@ Editor: run `npm run dev:api` and `npm run dev:editor`, then open the SPA (port 
 
 The copyable site is `publish/` inside that same directory. Copy that folder to the live host. Nginx can serve the copy with the editor stopped. The editor process does not serve it, and the SPA preview does not write into it. `npm run build -w @r-a-i-t-h/tessera-site` builds `tessera.js` and `tessera-pages.js` and stamps `tessera.js`, plus skin CSS, into each reference site’s `publish/` tree. Adding a component is a Tessera release: it is then available to every site. Build that runtime before a pages or snapshot dist can be written.
 
-The editor’s Backups page writes a dated `tar.gz` of `data/` into the sibling `backup/` folder (`TESSERA_BACKUP` overrides it). A file of the form `2026-09-28T191500Z.tar.gz` dropped there over SFTP can be downloaded or restored. Restore writes a safety archive first. The first boot also places `pure.tar.gz`, `ineffable.tar.gz`, `millersark.tar.gz`, and `willow.tar.gz` in that folder when they are missing, and leaves them alone after that. Restoring one fills `data/` and keeps the site’s editors.
+The editor’s Backups page writes a dated `tar.gz` of `data/` into the sibling `backup/` folder (`TESSERA_BACKUP` overrides it). A file of the form `2026-09-28T191500Z.tar.gz` dropped there over SFTP can be downloaded or restored. Restore writes a safety archive first. The first boot also places `willow.tar.gz` in that folder when it is missing, and leaves it alone after that. Restoring it fills `data/` and keeps the site’s editors. A blank site can also be started from the editor.
 
 ## Release
 
@@ -66,8 +63,6 @@ Authoring schema migrations (the hook node-vps-kit runs as `deploy/post-update.s
 ```bash
 TESSERA_DATA=sites/willow sh deploy/migrate.sh
 ```
-
-Legacy RecTem sources can be re-converted with `npm run convert:legacy` (needs a local `.ref-legacy/` checkout).
 
 ## Migration scripts
 

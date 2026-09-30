@@ -1,5 +1,7 @@
 id: meeting-2026-09-10
 title: Weekly meeting · 10 September
+templateId: meeting
+locked: true
 tags:
   - meeting
 includes:

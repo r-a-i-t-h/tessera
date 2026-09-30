@@ -173,7 +173,7 @@ While a snapshot stays open, re-check `rev.json` on a fixed interval of **5 minu
 
 - Content is trusted authored material: `text` blocks may contain HTML. Dynamics are never authored as inline scripts inside the document.
 - Pages and items reference layouts, zones, media, **bindings**, and registered component names.
-- **Bindings** are part of site data: pair content (e.g. an item’s JSON zone) with a registered component under a public id such as `farm-open-days`. Insert with `{{farm-open-days}}` in text HTML or a component block named `farm-open-days`.
+- **Bindings** are part of site data: pair a registered component with a public id such as Willow’s `upcoming-events`. Insert with `{{upcoming-events}}` in text HTML or a component block named `upcoming-events`.
 - Relative asset URLs (`./…`) are required for subdirectory hosting; the renderer may normalize accidental root-absolute media paths at paint time.
 
 ---
@@ -195,13 +195,13 @@ Nav is first-class document content, not merely demo chrome — and it is **dist
 
 Rec-Tem’s strength was content that could add zones without knowing what would fill them. Tessera forbids inventing zones from content. The replacement:
 
-1. **Bindings live in the site document** — not only in TypeScript. Example: list of dated events + `eventList` (or `DatedEventList`) registered as binding id `farm-open-days`.
-2. Other content inserts the populated view with `{{farm-open-days}}` (or a component block with that name). Authors do not re-wire data to the component at each call site.
+1. **Bindings live in the site document** — not only in TypeScript. Example: Willow lists upcoming events with `datedList` registered as binding id `upcoming-events`.
+2. Other content inserts the populated view with `{{upcoming-events}}` (or a component block with that name). Authors do not re-wire data to the component at each call site.
 3. Component implementations live in the Tessera catalogue (a release to add a new Y). Binding rows (Z → X + Y) are data and can change with `site.json`.
 
 ```text
-bindings[]: { id: "farm-open-days", component: "eventList", itemId: "…", fromZone: "events" }
-content: "{{farm-open-days}}"
+bindings[]: { id: "upcoming-events", component: "datedList", props: { tag: "event", limit: 3, upcoming: true } }
+content: "{{upcoming-events}}"
 ```
 
 **Note:** Iteration over items that themselves invented nested zones (old Rec-Tem) is **out**. Iteration via bindings + components is **in**.
@@ -280,7 +280,7 @@ Criteria define “done enough,” not a build order (see [ROADMAP.md](./ROADMAP
 - [x] Page existence does not imply nav visibility (designed nav is authored separately).
 - [x] Nav nodes may declare `source` for content-implied links (e.g. by page/item tag).
 - [x] Multiple nav presentations ship as components (`navTags`, `navTree`, `navCollapse`); none is mandatory.
-- [x] Shell chrome may consume a nav component (the pure site shell uses `navCollapse`).
+- [x] Shell chrome may consume a nav component (Willow’s master layout uses `navFlat`).
 
 ### Gallery and presentation
 

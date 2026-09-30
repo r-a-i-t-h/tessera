@@ -8,7 +8,7 @@ const repoRoot = join(appRoot, "..", "..");
 const skinDir = join(repoRoot, "packages", "skin-w3", "css");
 const emptyIndex = join(appRoot, "empty", "shell", "index.html");
 
-const SITE_NAMES = ["pure", "ineffable", "millersark", "willow"] as const;
+const SITE_NAMES = ["willow"] as const;
 
 /**
  * Dev serves one runtime (`src/main.ts`) and the selected site's static shell.

@@ -1,5 +1,7 @@
 id: event-winter-fair
 title: Winter fair
+templateId: event
+locked: true
 tags:
   - event
 includes:

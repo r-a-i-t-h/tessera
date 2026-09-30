@@ -1,0 +1,16 @@
+id: news
+title: News
+isLocked: true
+layoutId: article
+tags:
+  - blog
+includes:
+  - common-footer
+zones:
+  meta:
+    json:
+      date: ""
+      author: ""
+      summary: ""
+  main:
+    html: ""

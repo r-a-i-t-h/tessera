@@ -1,5 +1,7 @@
 id: person-sam-okonkwo
 title: Sam Okonkwo
+templateId: person
+locked: true
 tags:
   - person
 includes:

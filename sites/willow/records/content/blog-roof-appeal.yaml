@@ -1,5 +1,7 @@
 id: blog-roof-appeal
 title: "Roof appeal: the quiet halfway mark"
+templateId: news
+locked: true
 tags:
   - blog
 includes:

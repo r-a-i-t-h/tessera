@@ -1,0 +1,17 @@
+id: event
+title: Event
+isLocked: true
+layoutId: article
+tags:
+  - event
+includes:
+  - common-footer
+zones:
+  meta:
+    json:
+      date: ""
+      time: ""
+      where: ""
+      summary: ""
+  main:
+    html: ""

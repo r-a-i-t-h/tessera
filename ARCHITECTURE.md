@@ -24,7 +24,7 @@ The editor **API** lives in `apps/editor-api` (`@r-a-i-t-h/tessera-editor-api`):
 | `@r-a-i-t-h/tessera-extras` | Shared component catalogue. Every site may name these. A new component is a Tessera release |
 | `@r-a-i-t-h/tessera-site` | One Vite host for the shared runtime. Dev serves `data/shell` and `data/publish` (a placeholder while `data/shell` is missing). `TESSERA_SITE` serves `sites/<name>/shell` instead |
 
-Example sites live under `sites/` (pure / ineffable / millersark / willow). They are not npm workspaces. The editing back-end is `apps/editor-api`; the login SPA is `apps/editor`.
+The example site lives under `sites/willow`. It is not an npm workspace. The editing back-end is `apps/editor-api`; the login SPA is `apps/editor`.
 
 `ps/` keeps PurpleCMS migration scripts (to be rewritten for Tessera’s document shape).
 
@@ -46,7 +46,7 @@ Same origin is deliberate: the session cookie is `httpOnly` + `SameSite=Lax` wit
 
 The published site is `publish/` inside the same directory (or a copy of that tree). The editor process does not serve it. Stopping the editor leaves the static files working. There is one path, `TESSERA_DATA` (default `data/` in a checkout, empty apart from `meta.json` and the seed editor). On a VPS, node-vps-kit sets it to `/opt/tessera/<name>/data`, which is the site directory and is not replaced when the release in `current/` changes. Records, history, users, `meta.json`, and the export are derived from it.
 
-Dated site archives live in the sibling `backup/` directory (`TESSERA_BACKUP` overrides it). They are not inside the release and not inside `publish/`. A restore replaces the site directory from a `YYYY-MM-DDTHHMMSSZ.tar.gz` after writing a safety archive. The four demo sites are also files in that folder (`pure.tar.gz` and the others). The first boot copies each one from `seed/examples/` or, in a checkout, archives `sites/<name>/`, and only when that filename is absent. A later boot does not replace them. Restoring an example fills `data/` and keeps `users/`.
+Dated site archives live in the sibling `backup/` directory (`TESSERA_BACKUP` overrides it). They are not inside the release and not inside `publish/`. A restore replaces the site directory from a `YYYY-MM-DDTHHMMSSZ.tar.gz` after writing a safety archive. The Willow example is also a file in that folder (`willow.tar.gz`). The first boot copies it from `seed/examples/` or, in a checkout, archives `sites/willow/`, and only when that filename is absent. A later boot does not replace it. Restoring the example fills `data/` and keeps `users/`.
 
 ## Content model
 
@@ -168,10 +168,9 @@ The global `media[]` catalog is every asset. Gallery components still reference 
 ```json
 "bindings": [
   {
-    "id": "farm-open-days",
-    "component": "eventList",
-    "itemId": "open-days-data",
-    "fromZone": "events"
+    "id": "upcoming-events",
+    "component": "datedList",
+    "props": { "tag": "event", "limit": 3, "upcoming": true }
   }
 ]
 ```
@@ -179,11 +178,11 @@ The global `media[]` catalog is every asset. Gallery components still reference 
 Content inserts the populated view with mustache or a component block:
 
 ```html
-{{farm-open-days}}
+{{upcoming-events}}
 ```
 
 ```json
-{ "type": "component", "name": "farm-open-days" }
+{ "type": "component", "name": "upcoming-events" }
 ```
 
 **What requires a Tessera release:** adding a new component implementation. It is then available to every site. A site does not ship its own scripts.  
@@ -277,4 +276,4 @@ npm run dev:site                         # instance preview (port 5173)
 npm run dev:api                          # edit data/; Render site writes the preview, Publish writes publish/
 ```
 
-Pure’s event pages omit `layoutId` and inherit layout from `sections` (Open farm day / Evening talk). Willow, Ineffable, and Miller’s Ark are the same kind of directory: records in `records/`, a document shell in `shell/`, and static files in `publish/`. The frame is each site's master layout.
+Willow’s person pages omit `layoutId` and inherit `profile` from the `profiles` section. Event pages inherit `article` the same way. The directory holds records in `records/`, a document shell in `shell/`, and static files in `publish/`. The frame is the master layout.

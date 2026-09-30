@@ -1,5 +1,7 @@
 id: event-open-mic
 title: Open mic night
+templateId: event
+locked: true
 tags:
   - event
 includes:
