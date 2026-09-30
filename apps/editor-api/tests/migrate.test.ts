@@ -41,19 +41,19 @@ describe("authoring schema migrations", () => {
     const first = await runMigrate(dataDir);
     expect(first.code).toBe(0);
     expect(first.stdout).toMatch(/applying 001-schema-version\.sh/);
-    expect(first.stdout).toMatch(/now at schema 1/);
+    expect(first.stdout).toMatch(/now at schema 2/);
 
     const meta = JSON.parse(await readFile(join(dataDir, "meta.json"), "utf8")) as {
       schemaVersion: number;
       extra: string;
     };
-    expect(meta.schemaVersion).toBe(1);
+    expect(meta.schemaVersion).toBe(2);
     expect(meta.extra).toBe("keep-me");
-    expect(await readSchemaVersion(join(dataDir, "meta.json"))).toBe(1);
+    expect(await readSchemaVersion(join(dataDir, "meta.json"))).toBe(2);
 
     const second = await runMigrate(dataDir);
     expect(second.code).toBe(0);
-    expect(second.stdout).toMatch(/already at schema 1/);
+    expect(second.stdout).toMatch(/already at schema 2/);
   });
 
   it("treats a non-numeric schemaVersion as 0", async () => {
@@ -76,7 +76,7 @@ describe("authoring schema migrations", () => {
     await writeFile(join(dataDir, "meta.json"), "{}\n");
     const result = await runMigrate(dataDir, postUpdateSh);
     expect(result.code).toBe(0);
-    expect(await readSchemaVersion(join(dataDir, "meta.json"))).toBe(1);
+    expect(await readSchemaVersion(join(dataDir, "meta.json"))).toBe(2);
   });
 
   it("copies seed meta once and does not overwrite a stamped file", async () => {

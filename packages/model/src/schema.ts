@@ -214,7 +214,7 @@ export const MediaSchema = z.object({
   id: z.string().min(1),
   title: z.string().optional(),
   url: z.string().min(1),
-  type: z.enum(["image", "img", "jpg", "png", "gif", "webp", "svg"]).optional(),
+  type: z.enum(["image", "img", "jpg", "png", "gif", "webp", "svg", "document", "pdf"]).optional(),
   alt: z.string().optional(),
   /** Optional caption for gallery / lightbox (may differ from title). */
   caption: z.string().optional(),
@@ -228,6 +228,8 @@ export const MediaSchema = z.object({
  */
 export const FolderImageSchema = z.object({
   file: z.string().min(1),
+  /** Site-root-relative URL. When set, gallery uses this instead of `path` + `file`. */
+  url: z.string().min(1).optional(),
   caption: z.string().optional(),
   alt: z.string().optional(),
 });

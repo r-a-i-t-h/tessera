@@ -71,6 +71,7 @@ async function emitPages(document: SiteDocument, target: DistTarget): Promise<Di
   }
   await copyRuntime(target);
   await copySiteCss(target);
+  await syncLibraryMedia(document, target.publishDir);
   await removeSnapshotData(target.publishDir);
   await removeGeneratedHtml(
     target.publishDir,
@@ -97,6 +98,7 @@ async function emitSnapshot(document: SiteDocument, target: DistTarget): Promise
   );
   await copyRuntime(target);
   await copySiteCss(target);
+  await syncLibraryMedia(document, target.publishDir);
   await removeGeneratedHtml(target.publishDir, new Set(["index.html"]));
   return { flavour: "snapshot", snapshot };
 }
@@ -140,6 +142,32 @@ function stylesheetsFromShell(html: string | undefined): string[] {
     if (href) found.push(href);
   }
   return found.length ? found : ["./skin/w3.css", "./site.css"];
+}
+
+async function syncLibraryMedia(document: SiteDocument, publishDir: string): Promise<void> {
+  const filesDir = join(dirname(publishDir), "files");
+  if (!existsSync(filesDir)) return;
+  const mediaDir = join(publishDir, "media");
+  await mkdir(mediaDir, { recursive: true });
+  const expected = new Set<string>();
+  for (const item of document.media ?? []) {
+    const name = flatMediaName(item.url);
+    if (!name) continue;
+    expected.add(name);
+    const source = join(filesDir, name);
+    if (existsSync(source)) await copyFile(source, join(mediaDir, name));
+  }
+  const entries = await readdir(mediaDir, { withFileTypes: true }).catch(() => []);
+  for (const entry of entries) {
+    if (!entry.isFile() || expected.has(entry.name)) continue;
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]*\.[a-z0-9]+$/.test(entry.name)) continue;
+    await unlink(join(mediaDir, entry.name)).catch(() => undefined);
+  }
+}
+
+function flatMediaName(url: string): string | null {
+  const match = /^\.\/media\/([^/]+)$/.exec(url);
+  return match?.[1] ?? null;
 }
 
 async function copyRuntime(target: DistTarget): Promise<void> {

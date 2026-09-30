@@ -45,9 +45,10 @@ export function slidesFromFolders(
     for (const img of folder.images) {
       if (re && !re.test(img.file)) continue;
       const caption = img.caption ?? captionFromFilename(img.file);
+      const raw = img.url ?? joinPath(folder.path, img.file);
       slides.push({
         file: img.file,
-        url: normalizeSiteAssetUrl(joinPath(folder.path, img.file)),
+        url: normalizeSiteAssetUrl(raw),
         caption,
         alt: img.alt ?? caption,
       });
@@ -112,7 +113,10 @@ export const gallery: ComponentFn = (ctx, props = {}) => {
     slides = slidesFromImageBlocks(ctx.zones.get(fromZone));
   }
 
-  const items = slidesToItems(slides);
+  const items = slidesToItems(slides).map((item) => ({
+    ...item,
+    url: ctx.assetUrl ? ctx.assetUrl(item.url) : item.url,
+  }));
   if (!items.length) {
     return `<p class="w3-text-grey"><em>No gallery images.</em></p>`;
   }

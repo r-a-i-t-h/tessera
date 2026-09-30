@@ -39,6 +39,12 @@ export type RenderContext = {
    * Snapshot rendering leaves this unset and nav keeps `#id`.
    */
   pageHref?: (pageId: string) => string;
+  /**
+   * Map a site-root-relative asset URL for the document being rendered.
+   * Snapshot leaves this unset. Pages publish passes `assetHref` so a nested
+   * page prefixes `../`.
+   */
+  assetUrl?: (url: string) => string;
 };
 
 export type ComponentFn = (ctx: RenderContext, props?: Record<string, unknown>) => string;

@@ -1505,84 +1505,188 @@
     {
       "id": "photo-amira",
       "title": "Amira Chen",
-      "url": "./media/people/amira.svg",
-      "type": "image",
+      "url": "./media/photo-amira.svg",
+      "type": "svg",
       "alt": "Portrait of Amira Chen"
     },
     {
       "id": "photo-owen",
       "title": "Owen Blake",
-      "url": "./media/people/owen.svg",
-      "type": "image",
+      "url": "./media/photo-owen.svg",
+      "type": "svg",
       "alt": "Portrait of Owen Blake"
     },
     {
       "id": "photo-priya",
       "title": "Priya Nair",
-      "url": "./media/people/priya.svg",
-      "type": "image",
+      "url": "./media/photo-priya.svg",
+      "type": "svg",
       "alt": "Portrait of Priya Nair"
     },
     {
       "id": "photo-sam",
       "title": "Sam Okonkwo",
-      "url": "./media/people/sam.svg",
-      "type": "image",
+      "url": "./media/photo-sam.svg",
+      "type": "svg",
       "alt": "Portrait of Sam Okonkwo"
     },
     {
       "id": "photo-lina",
       "title": "Lina Vogel",
-      "url": "./media/people/lina.svg",
-      "type": "image",
+      "url": "./media/photo-lina.svg",
+      "type": "svg",
       "alt": "Portrait of Lina Vogel"
+    },
+    {
+      "id": "01-main-hall",
+      "url": "./media/01-main-hall.svg",
+      "type": "svg",
+      "alt": "Chairs set for a Saturday hire",
+      "caption": "Chairs set for a Saturday hire",
+      "sort": 0
+    },
+    {
+      "id": "02-garden",
+      "url": "./media/02-garden.svg",
+      "type": "svg",
+      "alt": "The walled garden in late summer",
+      "caption": "The walled garden in late summer",
+      "sort": 1
+    },
+    {
+      "id": "03-kitchen",
+      "url": "./media/03-kitchen.svg",
+      "type": "svg",
+      "alt": "Community kitchen before lunch club",
+      "caption": "Community kitchen before lunch club",
+      "sort": 2
+    },
+    {
+      "id": "04-workshop",
+      "url": "./media/04-workshop.svg",
+      "type": "svg",
+      "alt": "Tuesday repair workshop",
+      "caption": "Tuesday repair workshop",
+      "sort": 3
+    },
+    {
+      "id": "05-fair-day",
+      "url": "./media/05-fair-day.svg",
+      "type": "svg",
+      "alt": "Summer fair on the lawn",
+      "caption": "Summer fair on the lawn",
+      "sort": 4
+    },
+    {
+      "id": "06-library-nook",
+      "url": "./media/06-library-nook.svg",
+      "type": "svg",
+      "alt": "Quiet corner and swap shelf",
+      "caption": "Quiet corner and swap shelf",
+      "sort": 5
+    },
+    {
+      "id": "07-evening-lights",
+      "url": "./media/07-evening-lights.svg",
+      "type": "svg",
+      "alt": "Choir night from the gallery",
+      "caption": "Choir night from the gallery",
+      "sort": 6
+    },
+    {
+      "id": "08-porch",
+      "url": "./media/08-porch.svg",
+      "type": "svg",
+      "alt": "The porch after rain",
+      "caption": "The porch after rain",
+      "sort": 7
     }
   ],
   "folders": [
     {
       "id": "hall-gallery",
-      "path": "./media/hall-gallery",
+      "path": "./media",
       "title": "Life at the hall",
       "images": [
         {
           "file": "01-main-hall.svg",
+          "url": "./media/01-main-hall.svg",
           "caption": "Chairs set for a Saturday hire",
           "alt": "Chairs set for a Saturday hire"
         },
         {
           "file": "02-garden.svg",
+          "url": "./media/02-garden.svg",
           "caption": "The walled garden in late summer",
           "alt": "The walled garden in late summer"
         },
         {
           "file": "03-kitchen.svg",
+          "url": "./media/03-kitchen.svg",
           "caption": "Community kitchen before lunch club",
           "alt": "Community kitchen before lunch club"
         },
         {
           "file": "04-workshop.svg",
+          "url": "./media/04-workshop.svg",
           "caption": "Tuesday repair workshop",
           "alt": "Tuesday repair workshop"
         },
         {
           "file": "05-fair-day.svg",
+          "url": "./media/05-fair-day.svg",
           "caption": "Summer fair on the lawn",
           "alt": "Summer fair on the lawn"
         },
         {
           "file": "06-library-nook.svg",
+          "url": "./media/06-library-nook.svg",
           "caption": "Quiet corner and swap shelf",
           "alt": "Quiet corner and swap shelf"
         },
         {
           "file": "07-evening-lights.svg",
+          "url": "./media/07-evening-lights.svg",
           "caption": "Choir night from the gallery",
           "alt": "Choir night from the gallery"
         },
         {
           "file": "08-porch.svg",
+          "url": "./media/08-porch.svg",
           "caption": "The porch after rain",
           "alt": "The porch after rain"
+        }
+      ]
+    },
+    {
+      "id": "people",
+      "path": "./media",
+      "title": "people",
+      "images": [
+        {
+          "file": "amira.svg",
+          "url": "./media/photo-amira.svg",
+          "alt": "Portrait of Amira Chen"
+        },
+        {
+          "file": "lina.svg",
+          "url": "./media/photo-lina.svg",
+          "alt": "Portrait of Lina Vogel"
+        },
+        {
+          "file": "owen.svg",
+          "url": "./media/photo-owen.svg",
+          "alt": "Portrait of Owen Blake"
+        },
+        {
+          "file": "priya.svg",
+          "url": "./media/photo-priya.svg",
+          "alt": "Portrait of Priya Nair"
+        },
+        {
+          "file": "sam.svg",
+          "url": "./media/photo-sam.svg",
+          "alt": "Portrait of Sam Okonkwo"
         }
       ]
     }

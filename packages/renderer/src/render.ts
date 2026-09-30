@@ -1,6 +1,6 @@
 import type { Block, LayoutNode, Media, SiteDocument } from "@r-a-i-t-h/tessera-model";
 import { resolvePageProfile } from "@r-a-i-t-h/tessera-model";
-import { normalizeSiteAssetUrl } from "./assets.js";
+import { normalizeSiteAssetUrl, rewriteMediaUrls } from "./assets.js";
 import { expandMustache, renderNamed } from "./bindings.js";
 import type { ComponentRegistry } from "./registry.js";
 import { indexDocument, mergeZones } from "./merge.js";
@@ -24,6 +24,11 @@ export type RenderPageOptions = {
   microApps?: MicroAppMount[];
   /** Pages dist. Snapshot leaves this unset. */
   pageHref?: (pageId: string) => string;
+  /**
+   * Applied after `normalizeSiteAssetUrl`. Pages publish passes `assetHref`
+   * so nested HTML files reach `media/` at the site root.
+   */
+  assetUrl?: (url: string) => string;
 };
 
 export function escapeHtml(s: string): string {
@@ -34,16 +39,23 @@ export function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function mediaToHtml(media: Media | undefined): string {
+function mediaToHtml(media: Media | undefined, assetUrl: (url: string) => string): string {
   if (!media) return "";
   const alt = escapeHtml(media.alt ?? media.title ?? "");
-  const src = escapeHtml(normalizeSiteAssetUrl(media.url));
+  const src = escapeHtml(assetUrl(media.url));
+  const label = escapeHtml(media.title ?? media.alt ?? media.id);
+  if (media.type === "document" || media.type === "pdf") {
+    return `<a href="${src}" download>${label}</a>`;
+  }
   return `<img src="${src}" alt="${alt}" />`;
 }
 
-function imageBlockToHtml(block: { url: string; alt?: string; caption?: string }): string {
+function imageBlockToHtml(
+  block: { url: string; alt?: string; caption?: string },
+  assetUrl: (url: string) => string,
+): string {
   const alt = escapeHtml(block.alt ?? block.caption ?? "");
-  const src = escapeHtml(normalizeSiteAssetUrl(block.url));
+  const src = escapeHtml(assetUrl(block.url));
   return `<img src="${src}" alt="${alt}" />`;
 }
 
@@ -71,6 +83,11 @@ export function renderPage(options: RenderPageOptions): string {
 
   const zones = mergeZones(document, page, itemsById);
 
+  const assetUrl = (url: string) => {
+    const normalized = normalizeSiteAssetUrl(url);
+    return options.assetUrl ? options.assetUrl(normalized) : normalized;
+  };
+
   const ctx: RenderContext = {
     document,
     page,
@@ -79,11 +96,12 @@ export function renderPage(options: RenderPageOptions): string {
     registry,
     renderBlocks: (blocks) => renderBlocks(blocks, ctx),
     zoneJson: <T = unknown>(zoneId: string) => zoneJsonFromMap(zones, zoneId) as T[],
-    mediaHtml: (id) => mediaToHtml(mediaById.get(id)),
+    mediaHtml: (id) => mediaToHtml(mediaById.get(id), assetUrl),
     escapeHtml,
     mountMicroApps: options.mountMicroApps,
     microApps: options.microApps,
     pageHref: options.pageHref,
+    assetUrl,
   };
 
   const pageHtml = renderNode(layout.root, ctx, skin);
@@ -101,13 +119,13 @@ function renderBlocks(blocks: Block[], ctx: RenderContext): string {
 function renderBlock(block: Block, ctx: RenderContext): string {
   switch (block.type) {
     case "text":
-      return expandMustache(block.html, ctx);
+      return rewriteMediaUrls(expandMustache(block.html, ctx), ctx.assetUrl ?? ((url) => url));
     case "json":
       return "";
     case "media":
       return ctx.mediaHtml(block.id);
     case "image":
-      return imageBlockToHtml(block);
+      return imageBlockToHtml(block, ctx.assetUrl ?? ((url) => url));
     case "component":
       return renderNamed(block.name, ctx, block.props ?? {});
     default: {
@@ -120,7 +138,7 @@ function renderBlock(block: Block, ctx: RenderContext): string {
 function renderNode(node: LayoutNode, ctx: RenderContext, skin?: Skin, pageHtml?: string): string {
   switch (node.type) {
     case "static":
-      return expandMustache(node.html, ctx);
+      return rewriteMediaUrls(expandMustache(node.html, ctx), ctx.assetUrl ?? ((url) => url));
     case "zone": {
       const blocks = ctx.zones.get(node.id) ?? [];
       const inner = renderBlocks(blocks, ctx);

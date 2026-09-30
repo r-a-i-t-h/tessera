@@ -1,19 +1,2 @@
 id: sample-gallery
-path: ./media/sample-gallery
 title: Sample gallery
-images:
-  - file: 01-red.svg
-    caption: Crimson field
-    alt: Crimson field
-  - file: 02-amber.svg
-    caption: Amber field
-    alt: Amber field
-  - file: 03-green.svg
-    caption: Green field
-    alt: Green field
-  - file: 04-blue.svg
-    caption: Blue field
-    alt: Blue field
-  - file: 05-teal.svg
-    caption: Teal field
-    alt: Teal field

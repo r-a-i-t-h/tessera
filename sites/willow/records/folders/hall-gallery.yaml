@@ -1,28 +1,2 @@
 id: hall-gallery
-path: ./media/hall-gallery
 title: Life at the hall
-images:
-  - file: 01-main-hall.svg
-    caption: Chairs set for a Saturday hire
-    alt: Chairs set for a Saturday hire
-  - file: 02-garden.svg
-    caption: The walled garden in late summer
-    alt: The walled garden in late summer
-  - file: 03-kitchen.svg
-    caption: Community kitchen before lunch club
-    alt: Community kitchen before lunch club
-  - file: 04-workshop.svg
-    caption: Tuesday repair workshop
-    alt: Tuesday repair workshop
-  - file: 05-fair-day.svg
-    caption: Summer fair on the lawn
-    alt: Summer fair on the lawn
-  - file: 06-library-nook.svg
-    caption: Quiet corner and swap shelf
-    alt: Quiet corner and swap shelf
-  - file: 07-evening-lights.svg
-    caption: Choir night from the gallery
-    alt: Choir night from the gallery
-  - file: 08-porch.svg
-    caption: The porch after rain
-    alt: The porch after rain

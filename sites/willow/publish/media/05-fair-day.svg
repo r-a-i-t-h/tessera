@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#f6e7c1"/>
+  <rect y="340" width="800" height="260" fill="#e8d5a3"/>
+  <rect x="70" y="90" width="660" height="280" fill="#fff6dd"/>
+  <rect x="70" y="90" width="660" height="36" fill="#1a3a44"/>
+  <rect x="120" y="150" width="160" height="110" fill="#d5e6ea"/>
+  <rect x="520" y="150" width="160" height="110" fill="#d5e6ea"/>
+  <polygon points="180,300 250,180 320,300" fill="#c45c2d"/><polygon points="340,300 410,160 480,300" fill="#245d6b"/><polygon points="500,300 570,190 640,300" fill="#4b8b7a"/>
+  <text x="400" y="520" text-anchor="middle" fill="#1c2328" font-family="Georgia, serif" font-size="36">Fair day</text>
+</svg>

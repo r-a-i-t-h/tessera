@@ -3,7 +3,10 @@ import {
   ApiError,
   createBackup,
   deleteBackup,
+  deleteLibraryAsset,
+  deleteLibraryFolder,
   getHistoryEntry,
+  getLibrary,
   getRecord,
   listBackups,
   listRecords,
@@ -17,6 +20,10 @@ import {
   restoreExample,
   saveRawRecord,
   saveRecord,
+  updateLibraryAsset,
+  updateLibraryFolder,
+  uploadLibrary,
+  createLibraryFolder,
   type BackupList,
   type PublicUser,
   type PageLayoutHint,
@@ -42,6 +49,19 @@ import {
 } from "./forms/nav.js";
 import { newPageBody, pageIdError, withSidebarLink } from "./forms/page.js";
 import { authoredSchema, schemaFor } from "./forms/schema.js";
+import { assetDetail, renderLibrary } from "./forms/library.js";
+import {
+  checkedFolderIds,
+  documentLink,
+  folderChecklist,
+  foldersValue,
+  imageSlideSnippet,
+  imageTag,
+  mediaBlockSnippet,
+  renderPicker,
+  type PickerMode,
+  type PickedAsset,
+} from "./forms/picker.js";
 import { paintSpecimen, previewStyle, readStyleForm, stylesPageHtml } from "./styles-page.js";
 
 function escapeHtml(value: string): string {
@@ -55,6 +75,7 @@ function escapeHtml(value: string): string {
 function chrome(user: PublicUser, inner: string, wide = false): string {
   return `<header class="w3-bar w3-theme">
       <a class="w3-bar-item w3-button" href="#/">Tessera editor</a>
+      <a class="w3-bar-item w3-button" href="#/library">Library</a>
       <a class="w3-bar-item w3-button" href="#/backups">Backups</a>
       <a class="w3-bar-item w3-button" href="#/styles">Styles</a>
       <button type="button" class="w3-bar-item w3-button" data-action="render-site">Render site</button>
@@ -108,6 +129,7 @@ async function render(root: HTMLElement): Promise<void> {
   try {
     if (route.kind === "backups") await bindBackups(root, user);
     else if (route.kind === "styles") await bindStyles(root, user);
+    else if (route.kind === "library") await bindLibrary(root, user, route.id && route.id !== "library" ? route.id : null);
     else if (!route.kind || !route.id) await bindList(root, user);
     else {
       const mode = route.kind === "content" ? (pending?.mode ?? "compose") : "fields";
@@ -540,7 +562,9 @@ function listHtml(listing: RecordList, notice = "", error = ""): string {
     byKind.set(rec.kind, list);
   }
   const empty = !listing.records.some((row) => row.kind === "site");
+  const hidden = new Set(["media", "folders"]);
   const sections = listing.kinds
+    .filter((kind) => !hidden.has(kind.kind))
     .map((kind) => {
       const rows = byKind.get(kind.kind) ?? [];
       if (kind.kind === "content" && !empty) return contentSection(kind.label, rows);
@@ -556,6 +580,7 @@ function listHtml(listing: RecordList, notice = "", error = ""): string {
     ${notice ? `<p class="w3-panel w3-pale-green" role="status">${escapeHtml(notice)}</p>` : ""}
     ${error ? `<p class="w3-panel w3-pale-red" role="alert">${escapeHtml(error)}</p>` : ""}
     <p class="w3-text-grey">YAML files named with Tessera <code>id</code>, outside the web root. Saving a page appends the previous file to a history file and refreshes the SPA preview on port 5173. <strong>Render site</strong> rebuilds that preview for every page. <strong>Publish</strong> writes the copyable <code>publish/</code> folder, and leaves it alone until the next time you publish.</p>
+    <p><a class="w3-button w3-theme" href="#/library">Library</a></p>
     ${start}
     ${sections || (empty ? "" : "<p>No records yet.</p>")}`;
 }
@@ -630,6 +655,7 @@ async function bindEdit(
     kind === "nav" && editMode === "fields" && !Array.isArray(payload.data)
       ? `<p class="w3-text-grey">This navigation file is not a list. Edit it as YAML, or switch to Raw file.</p>`
       : "";
+  const galleryFolders = kind === "bindings" ? await galleryFolderRows() : [];
   const formInner =
     editMode === "raw"
       ? `<p><label for="raw-file">Raw YAML</label>
@@ -638,7 +664,7 @@ async function bindEdit(
         ? composeFormInner(record, payload.layout)
       : navList
         ? `<div id="nav-editor">${renderNavList(navRows(payload.data), pages)}</div>`
-        : `${navNote}${fieldsHtml(kind, record ?? payload.data, payload.layout)}`;
+        : `${navNote}${fieldsHtml(kind, record ?? payload.data, payload.layout, galleryFolders)}`;
   root.innerHTML = chrome(
     user,
     `<p><a href="#/">← Records</a></p>
@@ -699,6 +725,7 @@ async function bindEdit(
     });
   }
   if (form && navList) bindNavEditor(form, pages);
+  if (form) bindPickers(form);
   form?.addEventListener("input", () => {
     form.dataset.dirty = "true";
   });
@@ -740,7 +767,7 @@ async function bindEdit(
                 id,
                 navList
                   ? navEntries(rowsFromControls(navControls(form)))
-                  : pruneEmptyHtmlZones(readFormValues(form, schemaFor(kind, payload.data), payload.data)),
+                  : saveRecordBody(kind, form, payload.data),
               );
       }
       await bindEdit(root, user, kind, id, editMode, saveNotice(saved));
@@ -833,7 +860,12 @@ async function showHistory(root: HTMLElement, kind: string, id: string, index: n
   }
 }
 
-function fieldsHtml(kind: string, data: unknown, layout?: PageLayoutHint): string {
+function fieldsHtml(
+  kind: string,
+  data: unknown,
+  layout?: PageLayoutHint,
+  galleryFolders: { id: string; title: string; parentId: string | null }[] = [],
+): string {
   if (Array.isArray(data) || !data || typeof data !== "object") {
     return renderForm(
       { fields: [{ name: "_yaml", label: Array.isArray(data) ? "Entries" : "Data", type: "yaml", rows: Array.isArray(data) ? 16 : 12 }] },
@@ -841,6 +873,7 @@ function fieldsHtml(kind: string, data: unknown, layout?: PageLayoutHint): strin
     );
   }
   const record = data as Record<string, unknown>;
+  if (kind === "bindings") return bindingFields(record, galleryFolders);
   const schema = schemaFor(kind, record);
   if (!schema) {
     return renderForm({ fields: [{ name: "_yaml", label: "Data", type: "yaml", rows: 12 }] }, { _yaml: data });
@@ -899,13 +932,16 @@ function zoneEditor(name: string, zone: unknown, offLayout: boolean): string {
       : `Zone: ${name}`;
   if (zone && typeof zone === "object" && !Array.isArray(zone) && "html" in zone) {
     const large = name === "main" || name === "minutes" || name === "hero";
-    return textareaField(`zones.${name}.html`, label, String((zone as { html: unknown }).html ?? ""), large ? 18 : 6);
+    return `${insertButtons(`zones.${name}.html`, "html")}${textareaField(`zones.${name}.html`, label, String((zone as { html: unknown }).html ?? ""), large ? 18 : 6)}`;
   }
   if (zone && typeof zone === "object" && !Array.isArray(zone) && "json" in zone) {
     return jsonZoneFields(name, (zone as { json: unknown }).json, offLayout);
   }
   if (zone === undefined) {
-    return textareaField(`zones.${name}.html`, label, "", name === "main" || name === "hero" ? 18 : 6);
+    return `${insertButtons(`zones.${name}.html`, "html")}${textareaField(`zones.${name}.html`, label, "", name === "main" || name === "hero" ? 18 : 6)}`;
+  }
+  if (zone && typeof zone === "object" && !Array.isArray(zone) && "blocks" in zone) {
+    return `${insertButtons(`zones.${name}`, "blocks")}${yamlField(`zones.${name}`, label, zone, 8)}`;
   }
   return yamlField(`zones.${name}`, label, zone, 8);
 }
@@ -916,7 +952,12 @@ function jsonZoneFields(name: string, json: unknown, offLayout = false): string 
     const entries = Object.entries(json as Record<string, unknown>);
     if (entries.every(([, v]) => v === undefined || ["string", "number", "boolean"].includes(typeof v))) {
       return `<fieldset class="editor-fieldset${offLayout ? " editor-off-layout-fields" : ""}"><legend>${escapeHtml(legend)}</legend>${entries
-        .map(([k, v]) => textField(`zones.${name}.json.${k}`, labelize(k), String(v ?? "")))
+        .map(([k, v]) => {
+          const field = textField(`zones.${name}.json.${k}`, labelize(k), String(v ?? ""));
+          return typeof v === "string" || v === undefined
+            ? `${field}<p><button type="button" class="w3-button w3-small w3-white" data-insert="id" data-target="${escapeHtml(`zones.${name}.json.${k}`)}">Library</button></p>`
+            : field;
+        })
         .join("")}</fieldset>`;
     }
   }
@@ -969,4 +1010,370 @@ function pruneEmptyHtmlZones(data: unknown): unknown {
     next[id] = zone;
   }
   return { ...record, zones: next };
+}
+
+async function galleryFolderRows(): Promise<{ id: string; title: string; parentId: string | null }[]> {
+  try {
+    const listing = await getLibrary();
+    return listing.folders;
+  } catch {
+    return [];
+  }
+}
+
+function bindingFields(
+  record: Record<string, unknown>,
+  folders: { id: string; title: string; parentId: string | null }[],
+): string {
+  const props =
+    record.props && typeof record.props === "object" && !Array.isArray(record.props)
+      ? { ...(record.props as Record<string, unknown>) }
+      : {};
+  const raw = props.folders ?? props.folder;
+  const selected = Array.isArray(raw)
+    ? raw.filter((item): item is string => typeof item === "string")
+    : typeof raw === "string"
+      ? [raw]
+      : [];
+  delete props.folders;
+  delete props.folder;
+  const shown = { ...record, props };
+  const schema = schemaFor("bindings", shown);
+  const form = schema ? renderForm(schema, shown) : "";
+  const usePicker = record.component === "gallery" || raw !== undefined;
+  if (!usePicker) return form;
+  return `${form}<fieldset class="editor-fieldset"><legend>Gallery folders</legend>${folderChecklist(folders, selected)}</fieldset>`;
+}
+
+function saveRecordBody(kind: string, form: HTMLFormElement, original: unknown): unknown {
+  const data = pruneEmptyHtmlZones(readFormValues(form, schemaFor(kind, original), original));
+  if (kind !== "bindings" || !form.querySelector("[data-folder-id]")) return data;
+  if (!data || typeof data !== "object" || Array.isArray(data)) return data;
+  const record = data as Record<string, unknown>;
+  const props =
+    record.props && typeof record.props === "object" && !Array.isArray(record.props)
+      ? { ...(record.props as Record<string, unknown>) }
+      : {};
+  const ids = checkedFolderIds(
+    [...form.querySelectorAll<HTMLInputElement>("[data-folder-id]")].map((el) => ({
+      id: el.dataset.folderId ?? "",
+      checked: el.checked,
+    })),
+  );
+  const value = foldersValue(ids);
+  delete props.folder;
+  if (value === undefined) delete props.folders;
+  else props.folders = value;
+  record.props = props;
+  return record;
+}
+
+function insertButtons(target: string, kind: "html" | "blocks"): string {
+  const name = escapeHtml(target);
+  if (kind === "html") {
+    return `<p><button type="button" class="w3-button w3-small w3-white" data-insert="image" data-target="${name}">Image</button>
+      <button type="button" class="w3-button w3-small w3-white" data-insert="document" data-target="${name}">Document</button></p>`;
+  }
+  return `<p><button type="button" class="w3-button w3-small w3-white" data-insert="media-image" data-target="${name}">Image</button>
+    <button type="button" class="w3-button w3-small w3-white" data-insert="media-document" data-target="${name}">Document</button>
+    <button type="button" class="w3-button w3-small w3-white" data-insert="slide" data-target="${name}">Image slide</button></p>`;
+}
+
+function bindPickers(form: HTMLFormElement): void {
+  form.addEventListener("click", (event) => {
+    const button = (event.target as HTMLElement).closest("button");
+    if (!button) return;
+    if (button.dataset.insert && button.dataset.target) {
+      event.preventDefault();
+      void insertFromLibrary(form, button.dataset.insert, button.dataset.target);
+    }
+    if (button.dataset.library === "image") {
+      event.preventDefault();
+      void fillImageBox(button);
+    }
+  });
+}
+
+async function insertFromLibrary(form: HTMLFormElement, insert: string, target: string): Promise<void> {
+  const mode: PickerMode = insert === "document" || insert === "media-document" ? "document" : "image";
+  const picked = await openLibraryPicker(insert === "id" ? "image" : mode);
+  if (!picked) return;
+  const control = form.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[name="${CSS.escape(target)}"]`);
+  if (insert === "id") {
+    if (control instanceof HTMLInputElement) {
+      control.value = picked.id;
+      control.dispatchEvent(new Event("input", { bubbles: true }));
+      form.dataset.dirty = "true";
+    }
+    return;
+  }
+  if (!("url" in picked) || !(control instanceof HTMLTextAreaElement)) return;
+  const text =
+    insert === "document"
+      ? documentLink(picked)
+      : insert === "slide"
+        ? imageSlideSnippet(picked)
+        : insert === "media-image" || insert === "media-document"
+          ? mediaBlockSnippet(picked)
+          : imageTag(picked);
+  insertAtCursor(control, text);
+  form.dataset.dirty = "true";
+}
+
+async function fillImageBox(button: HTMLButtonElement): Promise<void> {
+  const picked = await openLibraryPicker("image");
+  if (!picked || !("url" in picked)) return;
+  const scope = button.closest("[data-item-id]") ?? button.parentElement;
+  const src = scope?.querySelector<HTMLInputElement>('[data-field="src"]');
+  const alt = scope?.querySelector<HTMLInputElement>('[data-field="alt"]');
+  if (src) {
+    src.value = picked.url;
+    src.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  if (alt && !alt.value) {
+    alt.value = picked.alt || picked.title || picked.name;
+    alt.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+}
+
+function insertAtCursor(el: HTMLTextAreaElement, text: string): void {
+  const start = el.selectionStart ?? el.value.length;
+  const end = el.selectionEnd ?? start;
+  el.value = `${el.value.slice(0, start)}${text}${el.value.slice(end)}`;
+  el.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+function openLibraryPicker(initial: PickerMode): Promise<PickedAsset | { id: string; kind: "folder" } | undefined> {
+  return getLibrary().then(
+    (listing) =>
+      new Promise((resolve) => {
+        const host = document.createElement("div");
+        host.className = "editor-picker-host";
+        let mode = initial;
+        let openId: string | null = null;
+        let done = false;
+        const finish = (value: PickedAsset | { id: string; kind: "folder" } | undefined) => {
+          if (done) return;
+          done = true;
+          host.remove();
+          resolve(value);
+        };
+        const paint = () => {
+          host.innerHTML = `<div class="editor-picker-backdrop"><div class="w3-card w3-white w3-padding editor-card" role="dialog">
+            <p><button type="button" class="w3-button w3-white" data-picker-close>Close</button>
+            ${openId ? `<button type="button" class="w3-button w3-white" data-picker-up>Up</button>` : ""}</p>
+            ${renderPicker(listing, mode, openId)}
+          </div></div>`;
+        };
+        host.addEventListener("click", (event) => {
+          const button = (event.target as HTMLElement).closest("button");
+          if (!button) return;
+          if (button.hasAttribute("data-picker-close")) {
+            finish(undefined);
+            return;
+          }
+          if (button.dataset.pickerMode === "image" || button.dataset.pickerMode === "document" || button.dataset.pickerMode === "folder") {
+            mode = button.dataset.pickerMode;
+            paint();
+            return;
+          }
+          if (button.dataset.openFolder) {
+            openId = button.dataset.openFolder;
+            paint();
+            return;
+          }
+          if (button.hasAttribute("data-picker-up")) {
+            openId = listing.folders.find((folder) => folder.id === openId)?.parentId ?? null;
+            paint();
+            return;
+          }
+          if (button.dataset.pickFolder) {
+            finish({ id: button.dataset.pickFolder, kind: "folder" });
+            return;
+          }
+          const asset = listing.assets.find((item) => item.id === button.dataset.pickAsset);
+          if (asset) finish(asset);
+        });
+        paint();
+        document.body.appendChild(host);
+      }),
+  );
+}
+
+async function bindLibrary(root: HTMLElement, user: PublicUser, openId: string | null, notice = ""): Promise<void> {
+  const listing = await getLibrary();
+  root.innerHTML = chrome(user, renderLibrary(listing, openId, notice), true);
+  bindChrome(root);
+  const form = root.querySelector<HTMLFormElement>("#library-upload");
+  let dropped: { file: File; path: string }[] = [];
+  form?.addEventListener("dragover", (event) => {
+    event.preventDefault();
+  });
+  form?.addEventListener("drop", (event) => {
+    event.preventDefault();
+    if (!event.dataTransfer) return;
+    void readDataTransfer(event.dataTransfer).then((files) => {
+      dropped = files;
+      const status = form.querySelector<HTMLElement>("#library-upload-status");
+      if (status) {
+        status.hidden = false;
+        status.textContent = `${files.length} file${files.length === 1 ? "" : "s"} ready.`;
+      }
+    });
+  });
+  form?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void submitLibraryUpload(root, user, form, openId, dropped);
+    dropped = [];
+  });
+  root.querySelector("[data-action=new-folder]")?.addEventListener("click", () => {
+    const title = window.prompt("Folder name");
+    if (!title?.trim()) return;
+    void createLibraryFolder(title.trim(), openId ?? undefined)
+      .then(() => bindLibrary(root, user, openId, `Created ${title.trim()}.`))
+      .catch((err) => bindLibrary(root, user, openId, err instanceof Error ? err.message : "Could not create the folder."));
+  });
+  for (const button of root.querySelectorAll<HTMLButtonElement>("[data-delete-folder]")) {
+    button.addEventListener("click", () => {
+      const id = button.dataset.deleteFolder;
+      if (!id || !window.confirm("Delete this empty folder?")) return;
+      void deleteLibraryFolder(id)
+        .then(() => bindLibrary(root, user, openId, "Folder deleted."))
+        .catch((err) => bindLibrary(root, user, openId, err instanceof Error ? err.message : "Could not delete the folder."));
+    });
+  }
+  for (const button of root.querySelectorAll<HTMLButtonElement>("[data-rename-folder]")) {
+    button.addEventListener("click", () => {
+      const id = button.dataset.renameFolder;
+      const current = listing.folders.find((folder) => folder.id === id);
+      const title = window.prompt("Folder name", current?.title ?? "");
+      if (!id || !title?.trim()) return;
+      void updateLibraryFolder(id, { title: title.trim() }).then(() => bindLibrary(root, user, openId, "Folder renamed."));
+    });
+  }
+  for (const button of root.querySelectorAll<HTMLButtonElement>("[data-delete-asset]")) {
+    button.addEventListener("click", () => {
+      const id = button.dataset.deleteAsset;
+      if (!id || !window.confirm("Delete this file?")) return;
+      void deleteLibraryAsset(id).then(() => bindLibrary(root, user, openId, "File deleted."));
+    });
+  }
+  for (const button of root.querySelectorAll<HTMLButtonElement>("[data-edit-asset]")) {
+    button.addEventListener("click", () => {
+      const asset = listing.assets.find((item) => item.id === button.dataset.editAsset);
+      if (!asset) return;
+      const slot = root.querySelector(".editor-main");
+      const existing = root.querySelector("#asset-detail");
+      existing?.remove();
+      slot?.insertAdjacentHTML("beforeend", assetDetail(asset, listing.folders));
+      root.querySelector<HTMLFormElement>("#asset-detail")?.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const detail = event.currentTarget as HTMLFormElement;
+        const name = detail.querySelector<HTMLInputElement>("[name=name]")?.value ?? "";
+        void updateLibraryAsset(asset.id, {
+          name,
+          title: detail.querySelector<HTMLInputElement>("[name=title]")?.value ?? "",
+          alt: detail.querySelector<HTMLInputElement>("[name=alt]")?.value ?? "",
+          caption: detail.querySelector<HTMLInputElement>("[name=caption]")?.value ?? "",
+          folderId: detail.querySelector<HTMLSelectElement>("[name=folderId]")?.value || null,
+        }).then(() => bindLibrary(root, user, openId, "Saved."));
+      });
+    });
+  }
+  for (const image of root.querySelectorAll<HTMLImageElement>(".editor-thumb[data-fallback]")) {
+    image.addEventListener("error", () => {
+      const fallback = image.dataset.fallback;
+      if (fallback && image.src !== new URL(fallback, window.location.origin).href) image.src = fallback;
+    });
+  }
+}
+
+async function submitLibraryUpload(
+  root: HTMLElement,
+  user: PublicUser,
+  form: HTMLFormElement,
+  openId: string | null,
+  dropped: { file: File; path: string }[],
+): Promise<void> {
+  const dest = form.querySelector<HTMLInputElement>('input[name="dest"]:checked')?.value ?? "uploads";
+  const body = new FormData();
+  const files = form.querySelector<HTMLInputElement>("#library-files")?.files;
+  const dir = form.querySelector<HTMLInputElement>("#library-dir")?.files;
+  const chosen: { file: File; path: string }[] = dropped.length
+    ? dropped
+    : [...(dir && dir.length ? dir : files ?? [])].map((file) => ({
+        file,
+        path: file.webkitRelativePath || file.name,
+      }));
+  if (!chosen.length) {
+    const status = form.querySelector<HTMLElement>("#library-upload-status");
+    if (status) {
+      status.hidden = false;
+      status.textContent = "Choose at least one file.";
+    }
+    return;
+  }
+  for (const item of chosen) {
+    body.append("file", item.file);
+    body.append("path", item.path);
+  }
+  if (dest === "existing" && openId) body.append("folderId", openId);
+  else if (dest === "choose") {
+    const folderId = form.querySelector<HTMLSelectElement>("[name=folderId]")?.value;
+    if (folderId) body.append("folderId", folderId);
+  } else if (dest === "new") {
+    const title = form.querySelector<HTMLInputElement>("[name=folderTitle]")?.value ?? "";
+    if (!title.trim()) {
+      const status = form.querySelector<HTMLElement>("#library-upload-status");
+      if (status) {
+        status.hidden = false;
+        status.textContent = "Name the new folder.";
+      }
+      return;
+    }
+    body.append("folderTitle", title.trim());
+    if (openId) body.append("parentId", openId);
+  } else body.append("folderId", "uploads");
+  try {
+    const result = await uploadLibrary(body);
+    const skipped = result.skipped.length ? ` Skipped ${result.skipped.map((item) => item.name).join(", ")}.` : "";
+    const folderId = dest === "uploads" ? "uploads" : openId;
+    await bindLibrary(root, user, folderId, `Added ${result.created.length} file${result.created.length === 1 ? "" : "s"}.${skipped}`);
+  } catch (err) {
+    await bindLibrary(root, user, openId, err instanceof Error ? err.message : "Could not add those files.");
+  }
+}
+
+type FsEntry = {
+  isFile: boolean;
+  isDirectory: boolean;
+  name: string;
+  file: (cb: (file: File) => void) => void;
+  createReader: () => { readEntries: (cb: (entries: FsEntry[]) => void) => void };
+};
+
+async function readDataTransfer(transfer: DataTransfer): Promise<{ file: File; path: string }[]> {
+  const out: { file: File; path: string }[] = [];
+  const items = [...transfer.items];
+  for (const item of items) {
+    const entry = item.webkitGetAsEntry?.() as FsEntry | null;
+    if (entry) await walkEntry(entry, "", out);
+    else if (item.kind === "file") {
+      const file = item.getAsFile();
+      if (file) out.push({ file, path: file.name });
+    }
+  }
+  return out;
+}
+
+async function walkEntry(entry: FsEntry, prefix: string, out: { file: File; path: string }[]): Promise<void> {
+  if (entry.isFile) {
+    const file = await new Promise<File>((resolve) => entry.file(resolve));
+    out.push({ file, path: `${prefix}${file.name}` });
+    return;
+  }
+  if (!entry.isDirectory) return;
+  const reader = entry.createReader();
+  const children = await new Promise<FsEntry[]>((resolve) => reader.readEntries(resolve));
+  for (const child of children) await walkEntry(child, `${prefix}${entry.name}/`, out);
 }

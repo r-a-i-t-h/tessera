@@ -14,6 +14,7 @@ import type {
 import { parseSiteDocument, SITE_DOCUMENT_SCHEMA_VERSION } from "@r-a-i-t-h/tessera-model";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import type { RecordKind } from "./kinds.js";
+import { projectLibrary } from "./library.js";
 
 export type ZoneAuthoring =
   | { html: string }
@@ -190,14 +191,15 @@ export type LoadedSite = {
 export function assembleDocument(parts: LoadedSite): SiteDocument {
   const { version: _version, ...meta } = parts.site;
   const version = parts.site.version ?? SITE_DOCUMENT_SCHEMA_VERSION;
+  const projected = projectLibrary(parts.media, parts.folders);
   return parseSiteDocument({
     version,
     site: meta,
     layouts: parts.layouts,
     pages: parts.content.map(authoredPageToPage),
     items: parts.items.map(authoredItemToItem),
-    media: parts.media,
-    folders: parts.folders,
+    media: projected.media,
+    folders: projected.folders,
     nav: parts.nav,
     bindings: parts.bindings,
     sections: parts.sections,

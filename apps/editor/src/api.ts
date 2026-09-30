@@ -21,7 +21,7 @@ export class ApiError extends Error {
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
-  if (init.body !== undefined && !headers.has("Content-Type")) {
+  if (init.body !== undefined && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -237,4 +237,59 @@ export function deleteBackup(name: string): Promise<{ ok: true; deleted: string 
 
 export function restoreExample(name: string): Promise<RestoreResult> {
   return request(`/api/examples/${encodeURIComponent(name)}/restore`, { method: "POST" });
+}
+
+export type LibraryFolder = { id: string; title: string; parentId: string | null; sort?: number };
+export type LibraryAsset = {
+  id: string;
+  name: string;
+  kind: "image" | "document";
+  ext: string;
+  folderId: string | null;
+  title?: string;
+  alt?: string;
+  caption?: string;
+  sort?: number;
+  url: string;
+};
+export type LibraryListing = { ok: true; folders: LibraryFolder[]; assets: LibraryAsset[] };
+
+export function getLibrary(): Promise<LibraryListing> {
+  return request("/api/library");
+}
+
+export function createLibraryFolder(title: string, parentId?: string): Promise<{ ok: true }> {
+  return request("/api/library/folders", {
+    method: "POST",
+    body: JSON.stringify({ title, ...(parentId ? { parentId } : {}) }),
+  });
+}
+
+export function updateLibraryFolder(id: string, patch: { title?: string; parentId?: string | null }): Promise<{ ok: true }> {
+  return request(`/api/library/folders/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+}
+
+export function deleteLibraryFolder(id: string): Promise<{ ok: true }> {
+  return request(`/api/library/folders/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export function uploadLibrary(body: FormData): Promise<{ ok: true; created: { id: string }[]; skipped: { name: string; reason: string }[] }> {
+  return request("/api/library/upload", { method: "POST", body });
+}
+
+export function updateLibraryAsset(
+  id: string,
+  patch: { name?: string; title?: string; alt?: string; caption?: string; folderId?: string | null },
+): Promise<{ ok: true }> {
+  return request(`/api/library/assets/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+}
+
+export function deleteLibraryAsset(id: string): Promise<{ ok: true }> {
+  return request(`/api/library/assets/${encodeURIComponent(id)}`, { method: "DELETE" });
 }

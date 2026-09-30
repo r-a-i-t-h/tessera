@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#efe8dc"/>
+  <rect y="340" width="800" height="260" fill="#d7c4a4"/>
+  <rect x="70" y="90" width="660" height="280" fill="#f7efe2"/>
+  <rect x="70" y="90" width="660" height="36" fill="#1a3a44"/>
+  <rect x="120" y="150" width="160" height="110" fill="#d5e6ea"/>
+  <rect x="520" y="150" width="160" height="110" fill="#d5e6ea"/>
+  <rect x="150" y="160" width="70" height="180" fill="#8a5a32"/><rect x="230" y="160" width="70" height="180" fill="#6b4224"/><rect x="500" y="160" width="70" height="180" fill="#8a5a32"/><rect x="580" y="160" width="70" height="180" fill="#6b4224"/>
+  <text x="400" y="520" text-anchor="middle" fill="#1c2328" font-family="Georgia, serif" font-size="36">Library nook</text>
+</svg>

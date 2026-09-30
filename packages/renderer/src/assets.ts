@@ -14,3 +14,16 @@ export function normalizeSiteAssetUrl(url: string): string {
 export function isRootAbsoluteUrl(url: string): boolean {
   return url.startsWith("/") && !url.startsWith("//");
 }
+
+/** A URL that names a file under the site folder's `media/` directory. */
+export function isSiteMediaUrl(url: string): boolean {
+  return /^(?:\.\/|\/)?media\//.test(url);
+}
+
+/** Rewrite `src` and `href` values that point at `media/…`. Already depth-relative `../` URLs are left alone. */
+export function rewriteMediaUrls(html: string, map: (url: string) => string): string {
+  return html.replace(/(\s(?:src|href)=["'])([^"']+)(["'])/gi, (full, pre: string, url: string, post: string) => {
+    if (!isSiteMediaUrl(url)) return full;
+    return `${pre}${map(url)}${post}`;
+  });
+}

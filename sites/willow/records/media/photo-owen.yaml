@@ -1,5 +1,7 @@
 id: photo-owen
+name: owen.svg
+kind: image
+ext: svg
+folderId: people
 title: Owen Blake
-url: ./media/people/owen.svg
-type: image
 alt: Portrait of Owen Blake

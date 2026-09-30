@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#1a3a44"/>
+  <rect y="340" width="800" height="260" fill="#142c33"/>
+  <rect x="70" y="90" width="660" height="280" fill="#245d6b"/>
+  <rect x="70" y="90" width="660" height="36" fill="#1a3a44"/>
+  <rect x="120" y="150" width="160" height="110" fill="#d5e6ea"/>
+  <rect x="520" y="150" width="160" height="110" fill="#d5e6ea"/>
+  <circle cx="220" cy="180" r="14" fill="#f0d59a"/><circle cx="400" cy="150" r="18" fill="#f6e7c1"/><circle cx="580" cy="180" r="14" fill="#f0d59a"/><rect x="120" y="150" width="160" height="110" fill="#3b7584"/><rect x="520" y="150" width="160" height="110" fill="#3b7584"/>
+  <text x="400" y="520" text-anchor="middle" fill="#f6f3ec" font-family="Georgia, serif" font-size="36">Evening lights</text>
+</svg>

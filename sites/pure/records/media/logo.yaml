@@ -1,5 +1,6 @@
 id: logo
+name: sample.svg
+kind: image
+ext: svg
 title: Demo image
-url: ./media/sample.svg
-type: image
 alt: Tessera sample

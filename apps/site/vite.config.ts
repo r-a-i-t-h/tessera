@@ -55,6 +55,7 @@ const MIME: Record<string, string> = {
   ".png": "image/png",
   ".svg": "image/svg+xml",
   ".webp": "image/webp",
+  ".pdf": "application/pdf",
   ".woff2": "font/woff2",
 };
 
@@ -133,6 +134,13 @@ function serveSite(
           const fromPreview = fileInDir(previewDir, rel);
           if (fromPreview) {
             sendFile(res, fromPreview);
+            return;
+          }
+        }
+        if (rel.startsWith("media/") && !rel.slice("media/".length).includes("/")) {
+          const fromFiles = fileInDir(join(siteRoot, "files"), rel.slice("media/".length));
+          if (fromFiles) {
+            sendFile(res, fromFiles);
             return;
           }
         }

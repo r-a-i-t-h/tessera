@@ -71,6 +71,7 @@ sites/willow/
   records/                  # YAML records, not on the web path
     site.yaml  nav.yaml
     content/ items/ layouts/ bindings/ sections/ media/ folders/
+  files/                    # flat asset blobs and editor thumbnails, not on the web path
   shell/                    # document shell, no TypeScript and no frame
     index.html  site.css
   preview/                  # SPA snapshot for editing; the dev server reads this
@@ -100,8 +101,8 @@ Records live in `$TESSERA_DATA/records/`, off the web path. Each record is one Y
 | `layouts/*.yaml` | Layout trees (templates) |
 | `bindings/*.yaml` | Data → component bindings |
 | `sections/*.yaml` | Section profiles |
-| `media/*.yaml` | Media catalog entries |
-| `folders/*.yaml` | Gallery folder records |
+| `media/*.yaml` | Library files (image or PDF). Flatten derives `./media/<id>.<ext>`. |
+| `folders/*.yaml` | Virtual folders. A folder id is still a gallery source. |
 | `*/_order.yaml` | Record order (section order is significant) |
 | `site.yaml` | Site meta |
 | `nav.yaml` | Designed nav tree |
@@ -144,11 +145,17 @@ A published site is a folder of files. It stays portable to any directory, inclu
 
 Flatten (`writeSnapshotFiles`) writes three files next to each other: the stable `site.json` (tools and the editor), `site.<hash>.json` (the bytes the browser fetches), and `rev.json` (`{ hash, file }`). The open-tab poll reads `rev.json` and downloads a new hashed file only when the hash changes. A preview write stamps `shell/index.html` only. A snapshot dist write stamps `publish/index.html` only, so the authoring shell keeps pointing at `preview/`. `npm run stamp:snapshot` refreshes the reference sites' `publish/data` files and their shells from the `site.json` already on disk.
 
-## Gallery (spike)
+## Library
 
-First-class **`folders[]`** records are gallery sources (scan with `scripts/flatten-gallery.mjs`). A gallery binding/component says `folders: ["id"]` (optional merge of several; optional `filter` regex on filename). Inline variant uses nested `image` blocks in a `slides` zone — same slide shape `{ url, caption?, alt? }`. Captions default from filename after stripping an ordering prefix (`01-red.svg` → “Red”); `meta.json` may override per file.
+Images and PDFs are a **library**: a flat blob store plus virtual folders. The blobs live in `$TESSERA_DATA/files/<id>.<ext>` and are never renamed when a file moves. Folder records (`records/folders`) are directories (`id`, `title`, `parentId`). Asset records (`records/media`) point at a folder and carry `name`, `kind` (`image` or `document`), and `ext`. They do not store a URL.
 
-The global `media[]` catalog remains for single-image references; it is not the gallery bank.
+Flatten derives `url: ./media/<id>.<ext>` onto each `media[]` entry. That string is relative to the site folder. A gallery folder is still a gallery source: flatten lists the image assets directly inside it, each with that stable `url` and `file` set to the display name. `slidesFromFolders` uses `url` when it is present. A virtual move changes `folderId` only.
+
+The editor resizes each image to `files/<id>.thumb.webp` on upload. Thumbnails are not published. **Publish** copies each blob to `publish/media/<id>.<ext>`. Preview reads `./media/<id>.<ext>` from `files/` first. A pages dist rewrites those URLs with `assetHref` so a nested page reaches `media/` at the site root (`../../media/…`). The snapshot and the preview leave the URL as `./media/…`, which stays valid when the site folder is hosted under a subpath.
+
+`node scripts/flatten-gallery.mjs --dir <folder> --id <id> --data <site>` imports a directory of images into one virtual folder. It is not the live gallery source.
+
+The global `media[]` catalog is every asset. Gallery components still reference folder ids.
 
 ## Zod
 

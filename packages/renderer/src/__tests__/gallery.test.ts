@@ -39,6 +39,20 @@ describe("slidesFromFolders", () => {
     expect(filtered).toHaveLength(1);
     expect(filtered[0]!.file).toBe("02-sale-two.svg");
   });
+
+  it("uses an explicit image url instead of joining the folder path", () => {
+    const doc = makeFixtureDoc();
+    doc.folders = [
+      {
+        id: "hall",
+        path: "./media",
+        images: [{ file: "porch.svg", url: "./media/porch.svg", caption: "The porch" }],
+      },
+    ];
+    const slides = slidesFromFolders(doc, ["hall"]);
+    expect(slides[0]!.url).toBe("./media/porch.svg");
+    expect(slides[0]!.file).toBe("porch.svg");
+  });
 });
 
 describe("slidesFromImageBlocks", () => {

@@ -567,39 +567,84 @@
     {
       "id": "logo",
       "title": "Demo image",
-      "url": "./media/sample.svg",
-      "type": "image",
+      "url": "./media/logo.svg",
+      "type": "svg",
       "alt": "Tessera sample"
+    },
+    {
+      "id": "01-red",
+      "url": "./media/01-red.svg",
+      "type": "svg",
+      "alt": "Crimson field",
+      "caption": "Crimson field",
+      "sort": 0
+    },
+    {
+      "id": "02-amber",
+      "url": "./media/02-amber.svg",
+      "type": "svg",
+      "alt": "Amber field",
+      "caption": "Amber field",
+      "sort": 1
+    },
+    {
+      "id": "03-green",
+      "url": "./media/03-green.svg",
+      "type": "svg",
+      "alt": "Green field",
+      "caption": "Green field",
+      "sort": 2
+    },
+    {
+      "id": "04-blue",
+      "url": "./media/04-blue.svg",
+      "type": "svg",
+      "alt": "Blue field",
+      "caption": "Blue field",
+      "sort": 3
+    },
+    {
+      "id": "05-teal",
+      "url": "./media/05-teal.svg",
+      "type": "svg",
+      "alt": "Teal field",
+      "caption": "Teal field",
+      "sort": 4
     }
   ],
   "folders": [
     {
       "id": "sample-gallery",
-      "path": "./media/sample-gallery",
+      "path": "./media",
       "title": "Sample gallery",
       "images": [
         {
           "file": "01-red.svg",
+          "url": "./media/01-red.svg",
           "caption": "Crimson field",
           "alt": "Crimson field"
         },
         {
           "file": "02-amber.svg",
+          "url": "./media/02-amber.svg",
           "caption": "Amber field",
           "alt": "Amber field"
         },
         {
           "file": "03-green.svg",
+          "url": "./media/03-green.svg",
           "caption": "Green field",
           "alt": "Green field"
         },
         {
           "file": "04-blue.svg",
+          "url": "./media/04-blue.svg",
           "caption": "Blue field",
           "alt": "Blue field"
         },
         {
           "file": "05-teal.svg",
+          "url": "./media/05-teal.svg",
           "caption": "Teal field",
           "alt": "Teal field"
         }

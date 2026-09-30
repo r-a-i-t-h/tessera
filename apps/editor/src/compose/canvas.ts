@@ -195,7 +195,7 @@ function propsFor(node: EditNode, bindings: BindingChoice[]): string {
     case "quote":
       return `<label class="editor-prop">Tone <select data-field="tone">${toneOptions(node.tone)}</select></label><label class="editor-prop">Attribution <input data-field="attribution" class="w3-input" value="${escapeAttr(node.attribution)}"></label>`;
     case "imgbox":
-      return `<label class="editor-prop">Image <input data-field="src" class="w3-input" value="${escapeAttr(node.src)}" placeholder="Image address"></label><label class="editor-prop">Alt <input data-field="alt" class="w3-input" value="${escapeAttr(node.alt)}"></label><label class="editor-prop">Caption <input data-field="caption" class="w3-input" value="${escapeAttr(node.caption)}"></label>`;
+      return `<label class="editor-prop">Image <input data-field="src" class="w3-input" value="${escapeAttr(node.src)}" placeholder="Image address"></label><button type="button" class="w3-button w3-small w3-white" data-library="image">Library</button><label class="editor-prop">Alt <input data-field="alt" class="w3-input" value="${escapeAttr(node.alt)}"></label><label class="editor-prop">Caption <input data-field="caption" class="w3-input" value="${escapeAttr(node.caption)}"></label>`;
     case "card":
       return `<label class="editor-prop">Title <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}"></label>${inlineTools()}`;
     case "columns":

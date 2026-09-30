@@ -1,5 +1,7 @@
 id: photo-priya
+name: priya.svg
+kind: image
+ext: svg
+folderId: people
 title: Priya Nair
-url: ./media/people/priya.svg
-type: image
 alt: Portrait of Priya Nair

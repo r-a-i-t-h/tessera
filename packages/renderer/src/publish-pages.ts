@@ -57,6 +57,7 @@ export function publishPages(document: SiteDocument, options: PublishPagesOption
       mountMicroApps: true,
       microApps,
       pageHref: (pageId) => hrefForPageId(pathById, node.path, pageId),
+      assetUrl: (url) => assetHref(node.path, url),
     });
     const filePath = node.path ? `${node.path}/index.html` : "index.html";
     files.push({
