@@ -12,6 +12,7 @@ export type NavLinkRow = {
   title: string;
   sidebar: boolean;
   topbar: boolean;
+  footer: boolean;
   extra: Record<string, unknown>;
 };
 
@@ -19,6 +20,8 @@ export type NavHeadingRow = {
   kind: "heading";
   heading: string;
   sidebar: boolean;
+  topbar: boolean;
+  footer: boolean;
   pagesTag: string;
   itemsTag: string;
   sourceExtra: Record<string, unknown>;
@@ -60,7 +63,7 @@ export function isNavAction(value: string): value is NavAction {
 const NAME = /^nav-(\d+)(?:-child-(\d+))?-(.+)$/;
 
 export function newNavLink(): NavLinkRow {
-  return { kind: "link", id: "", title: "", sidebar: true, topbar: false, extra: {} };
+  return { kind: "link", id: "", title: "", sidebar: true, topbar: false, footer: false, extra: {} };
 }
 
 export function newNavHeading(): NavHeadingRow {
@@ -68,6 +71,8 @@ export function newNavHeading(): NavHeadingRow {
     kind: "heading",
     heading: "",
     sidebar: true,
+    topbar: false,
+    footer: false,
     pagesTag: "",
     itemsTag: "",
     sourceExtra: {},
@@ -117,14 +122,15 @@ export function applyNavAction(rows: readonly NavRow[], action: NavAction, index
 
 export function renderNavList(rows: readonly NavRow[], pages: readonly PageChoice[]): string {
   const body = rows.length
-    ? rows.map((row, index) => (row.kind === "heading" ? headingHtml(row, index, pages) : linkHtml(row, index, pages))).join("")
-    : `<p class="w3-text-grey">No menu entries yet.</p>`;
+    ? `<ul class="editor-nav-menu">${columnHead()}${rows
+        .map((row, index) => (row.kind === "heading" ? headingHtml(row, index, pages) : linkHtml(row, index, pages)))
+        .join("")}</ul>`
+    : `<p class="editor-nav-empty">No menu entries yet.</p>`;
   return `<div class="editor-nav">
-    <p class="w3-text-grey">Checked sidebar entries appear in the menu. A heading can group links, or include pages and items that share a tag.</p>
     ${body}
-    <p class="editor-nav-actions">
-      <button type="button" class="w3-button w3-theme" data-nav-action="add-link">Add link</button>
-      <button type="button" class="w3-button w3-white" data-nav-action="add-heading">Add heading</button>
+    <p class="editor-nav-add">
+      <button type="button" class="w3-button w3-small w3-theme" data-nav-action="add-link">Add link</button>
+      <button type="button" class="w3-button w3-small w3-white" data-nav-action="add-heading">Add heading</button>
     </p>
   </div>`;
 }
@@ -152,63 +158,88 @@ export function rowsFromControls(controls: readonly ControlValue[]): NavRow[] {
     .map(([, row]) => rawToRow(row));
 }
 
+function columnHead(): string {
+  return `<li class="editor-nav-head" aria-hidden="true">
+    <span></span>
+    <span></span>
+    <span>sidebar</span>
+    <span>topbar</span>
+    <span>footer</span>
+    <span></span>
+  </li>`;
+}
+
 function headingHtml(row: NavHeadingRow, index: number, pages: readonly PageChoice[]): string {
-  const children = row.children.length
-    ? row.children.map((child, childIndex) => childHtml(child, index, childIndex, pages)).join("")
-    : `<p class="w3-text-grey">No links under this heading.</p>`;
-  return `<article class="editor-nav-row">
-    <h3 class="w3-medium">Heading</h3>
+  const children = row.children.map((child, childIndex) => childHtml(child, index, childIndex, pages)).join("");
+  return `<li class="editor-nav-item">
     ${hiddenValue(`nav-${index}-kind`, "heading")}
     ${hidden(`nav-${index}-extra`, row.extra)}
     ${hidden(`nav-${index}-sourceExtra`, row.sourceExtra)}
     ${hidden(`nav-${index}-rest`, row.rest)}
-    ${textInput(`nav-${index}-heading`, "Heading", row.heading)}
-    <p class="editor-nav-flags">${check(`nav-${index}-sidebar`, "Sidebar", row.sidebar)}</p>
-    ${textInput(`nav-${index}-pagesTag`, "Pages with tag", row.pagesTag)}
-    ${textInput(`nav-${index}-itemsTag`, "Items with tag", row.itemsTag)}
-    <div class="editor-nav-children">
-      <h4 class="w3-small">Links under this heading</h4>
-      ${children}
-      <p><button type="button" class="w3-button w3-small w3-white" data-nav-action="add-child" data-nav-index="${index}">Add link</button></p>
+    <div class="editor-nav-line">
+      ${menuInput(`nav-${index}-heading`, "Heading", row.heading, "editor-nav-page")}
+      <div class="editor-nav-meta">
+        ${tagInput(`nav-${index}-pagesTag`, "Pages", row.pagesTag)}
+        ${tagInput(`nav-${index}-itemsTag`, "Items", row.itemsTag)}
+        <button type="button" class="w3-button w3-small w3-white" data-nav-action="add-child" data-nav-index="${index}">Add link</button>
+      </div>
+      ${placeFlags(`nav-${index}`, row)}
+      ${rowActions(index)}
     </div>
-    ${rowActions(index)}
-  </article>`;
+    ${children ? `<ul class="editor-nav-children">${children}</ul>` : ""}
+  </li>`;
 }
 
 function linkHtml(row: NavLinkRow, index: number, pages: readonly PageChoice[], child?: number): string {
   const prefix = child === undefined ? `nav-${index}` : `nav-${index}-child-${child}`;
-  return `<article class="editor-nav-row${child === undefined ? "" : " editor-nav-child"}">
-    <h3 class="w3-medium">Link</h3>
+  return `<li class="editor-nav-item${child === undefined ? "" : " editor-nav-child"}">
     ${child === undefined ? hiddenValue(`${prefix}-kind`, "link") : ""}
     ${hidden(`${prefix}-extra`, row.extra)}
-    ${pageSelect(`${prefix}-id`, "Page", row.id, pages)}
-    ${textInput(`${prefix}-title`, "Title", row.title)}
-    <p class="editor-nav-flags">
-      ${check(`${prefix}-sidebar`, "Sidebar", row.sidebar)}
-      ${check(`${prefix}-topbar`, "Top bar", row.topbar)}
-    </p>
-    ${child === undefined ? rowActions(index) : childActions(index, child)}
-  </article>`;
+    <div class="editor-nav-line">
+      ${pageSelect(`${prefix}-id`, "Page", row.id, pages)}
+      ${menuInput(`${prefix}-title`, "Title", row.title, "editor-nav-label")}
+      ${placeFlags(prefix, row)}
+      ${child === undefined ? rowActions(index) : childActions(index, child)}
+    </div>
+  </li>`;
 }
 
 function childHtml(row: NavLinkRow, index: number, child: number, pages: readonly PageChoice[]): string {
   return linkHtml(row, index, pages, child);
 }
 
+function placeFlags(prefix: string, row: { sidebar: boolean; topbar: boolean; footer: boolean }): string {
+  return `${check(`${prefix}-sidebar`, "Sidebar", row.sidebar)}
+    ${check(`${prefix}-topbar`, "Top bar", row.topbar)}
+    ${check(`${prefix}-footer`, "Footer", row.footer)}`;
+}
+
+const NAV_ICONS = {
+  up: `<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M3.2 10.4 8 4.4l4.8 6"/></svg>`,
+  down: `<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M3.2 5.6 8 11.6l4.8-6"/></svg>`,
+  remove: `<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" d="M3.6 3.6 12.4 12.4M12.4 3.6 3.6 12.4"/></svg>`,
+} as const;
+
 function rowActions(index: number): string {
-  return `<p class="editor-nav-actions">
-    <button type="button" class="w3-button w3-small w3-white" data-nav-action="up" data-nav-index="${index}">Up</button>
-    <button type="button" class="w3-button w3-small w3-white" data-nav-action="down" data-nav-index="${index}">Down</button>
-    <button type="button" class="w3-button w3-small w3-white" data-nav-action="remove" data-nav-index="${index}">Remove</button>
-  </p>`;
+  return actionIcons(index);
 }
 
 function childActions(index: number, child: number): string {
-  return `<p class="editor-nav-actions">
-    <button type="button" class="w3-button w3-small w3-white" data-nav-action="up-child" data-nav-index="${index}" data-nav-child="${child}">Up</button>
-    <button type="button" class="w3-button w3-small w3-white" data-nav-action="down-child" data-nav-index="${index}" data-nav-child="${child}">Down</button>
-    <button type="button" class="w3-button w3-small w3-white" data-nav-action="remove-child" data-nav-index="${index}" data-nav-child="${child}">Remove</button>
-  </p>`;
+  return actionIcons(index, child);
+}
+
+function actionIcons(index: number, child?: number): string {
+  const childAttr = child === undefined ? "" : ` data-nav-child="${child}"`;
+  const suffix = child === undefined ? "" : "-child";
+  return `<span class="editor-nav-actions">
+    ${iconButton(`up${suffix}`, "Up", NAV_ICONS.up, index, childAttr)}
+    ${iconButton(`down${suffix}`, "Down", NAV_ICONS.down, index, childAttr)}
+    ${iconButton(`remove${suffix}`, "Remove", NAV_ICONS.remove, index, childAttr)}
+  </span>`;
+}
+
+function iconButton(action: string, label: string, icon: string, index: number, childAttr: string): string {
+  return `<button type="button" class="editor-nav-icon" aria-label="${label}" title="${label}" data-nav-action="${action}" data-nav-index="${index}"${childAttr}>${icon}</button>`;
 }
 
 function pageSelect(name: string, label: string, current: string, pages: readonly PageChoice[]): string {
@@ -222,19 +253,24 @@ function pageSelect(name: string, label: string, current: string, pages: readonl
       return `<option value="${escapeHtml(page.id)}"${page.id === current ? " selected" : ""}>${escapeHtml(text)}</option>`;
     }),
   ].join("");
-  return `<p><label for="${id}">${escapeHtml(label)}</label>
-    <select id="${id}" name="${escapeHtml(name)}" class="w3-select w3-border w3-margin-top">${options}</select></p>`;
+  return `<select id="${id}" name="${escapeHtml(name)}" class="w3-select editor-nav-page" aria-label="${escapeHtml(label)}">${options}</select>`;
 }
 
-function textInput(name: string, label: string, value: string): string {
+function menuInput(name: string, label: string, value: string, className: string): string {
   const id = fieldId(name);
-  return `<p><label for="${id}">${escapeHtml(label)}</label>
-    <input id="${id}" name="${escapeHtml(name)}" class="w3-input w3-border w3-margin-top" value="${escapeHtml(value)}" /></p>`;
+  return `<input id="${id}" name="${escapeHtml(name)}" class="w3-input ${className}" aria-label="${escapeHtml(label)}" placeholder="${escapeHtml(label)}" value="${escapeHtml(value)}" />`;
+}
+
+function tagInput(name: string, label: string, value: string): string {
+  const id = fieldId(name);
+  return `<label class="editor-nav-tag" for="${id}">${escapeHtml(label)}
+    <input id="${id}" name="${escapeHtml(name)}" class="w3-input" aria-label="${escapeHtml(label)}" value="${escapeHtml(value)}" />
+  </label>`;
 }
 
 function check(name: string, label: string, checked: boolean): string {
   const id = fieldId(name);
-  return `<label class="editor-check" for="${id}"><input id="${id}" name="${escapeHtml(name)}" type="checkbox"${checked ? " checked" : ""} /> ${escapeHtml(label)}</label>`;
+  return `<label class="editor-nav-flag" for="${id}"><input id="${id}" name="${escapeHtml(name)}" type="checkbox" aria-label="${escapeHtml(label)}"${checked ? " checked" : ""} /></label>`;
 }
 
 function hidden(name: string, value: unknown): string {
@@ -267,6 +303,8 @@ function rawToRow(raw: RawRow): NavRow {
       kind: "heading",
       heading: raw.fields.get("heading")?.value ?? "",
       sidebar: raw.fields.get("sidebar")?.checked === true,
+      topbar: raw.fields.get("topbar")?.checked === true,
+      footer: raw.fields.get("footer")?.checked === true,
       pagesTag: raw.fields.get("pagesTag")?.value ?? "",
       itemsTag: raw.fields.get("itemsTag")?.value ?? "",
       sourceExtra: parseObject(raw.fields.get("sourceExtra")?.value ?? ""),
@@ -285,6 +323,7 @@ function draftLink(fields: Map<string, ControlValue>): NavLinkRow {
     title: fields.get("title")?.value ?? "",
     sidebar: fields.get("sidebar")?.checked === true,
     topbar: fields.get("topbar")?.checked === true,
+    footer: fields.get("footer")?.checked === true,
     extra: parseObject(fields.get("extra")?.value ?? ""),
   };
 }
@@ -299,7 +338,7 @@ function rowFromEntry(entry: Record<string, unknown>): NavRow {
 function linkRow(entry: Record<string, unknown>, id: string): NavLinkRow {
   const extra: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(entry)) {
-    if (key === "id" || key === "title" || key === "sidebar" || key === "topbar") continue;
+    if (key === "id" || key === "title" || key === "sidebar" || key === "topbar" || key === "footer") continue;
     extra[key] = value;
   }
   return {
@@ -308,6 +347,7 @@ function linkRow(entry: Record<string, unknown>, id: string): NavLinkRow {
     title: typeof entry.title === "string" ? entry.title : "",
     sidebar: entry.sidebar === true,
     topbar: entry.topbar === true,
+    footer: entry.footer === true,
     extra,
   };
 }
@@ -315,7 +355,7 @@ function linkRow(entry: Record<string, unknown>, id: string): NavLinkRow {
 function headingRow(entry: Record<string, unknown>, heading: string): NavHeadingRow {
   const extra: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(entry)) {
-    if (key === "heading" || key === "sidebar" || key === "source" || key === "children") continue;
+    if (key === "heading" || key === "sidebar" || key === "topbar" || key === "footer" || key === "source" || key === "children") continue;
     extra[key] = value;
   }
   let pagesTag = "";
@@ -350,6 +390,8 @@ function headingRow(entry: Record<string, unknown>, heading: string): NavHeading
     kind: "heading",
     heading,
     sidebar: entry.sidebar === true,
+    topbar: entry.topbar === true,
+    footer: entry.footer === true,
     pagesTag,
     itemsTag,
     sourceExtra,
@@ -365,10 +407,7 @@ function serializeLink(row: NavLinkRow): Record<string, unknown> | undefined {
   else delete out.id;
   if (row.title) out.title = row.title;
   else delete out.title;
-  if (row.sidebar) out.sidebar = true;
-  else delete out.sidebar;
-  if (row.topbar) out.topbar = true;
-  else delete out.topbar;
+  writePlace(out, row);
   if (!out.id && !out.title && Object.keys(row.extra).length === 0) return undefined;
   return out;
 }
@@ -377,8 +416,7 @@ function serializeHeading(row: NavHeadingRow): Record<string, unknown> | undefin
   const out: Record<string, unknown> = copy(row.extra);
   if (row.heading) out.heading = row.heading;
   else delete out.heading;
-  if (row.sidebar) out.sidebar = true;
-  else delete out.sidebar;
+  writePlace(out, row);
   const source: Record<string, unknown> = copy(row.sourceExtra);
   const pagesTag = row.pagesTag.trim();
   const itemsTag = row.itemsTag.trim();
@@ -393,6 +431,15 @@ function serializeHeading(row: NavHeadingRow): Record<string, unknown> | undefin
   else delete out.children;
   if (!out.heading && !out.source && !out.children && Object.keys(row.extra).length === 0) return undefined;
   return out;
+}
+
+function writePlace(out: Record<string, unknown>, row: { sidebar: boolean; topbar: boolean; footer: boolean }): void {
+  if (row.sidebar) out.sidebar = true;
+  else delete out.sidebar;
+  if (row.topbar) out.topbar = true;
+  else delete out.topbar;
+  if (row.footer) out.footer = true;
+  else delete out.footer;
 }
 
 function mapHeading(rows: readonly NavRow[], index: number, update: (row: NavHeadingRow) => NavHeadingRow): NavRow[] {

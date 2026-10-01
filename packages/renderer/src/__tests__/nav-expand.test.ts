@@ -48,6 +48,21 @@ describe("resolveNavTree", () => {
     expect(tree[0]!.children[0]).toMatchObject({ id: "about", title: "About (from item)" });
   });
 
+  it("copies footer onto links implied by a heading", () => {
+    const doc = makeFixtureDoc();
+    doc.pages.push({
+      id: "meetup-1",
+      title: "Meetup One",
+      layoutId: "no-aside",
+      tags: ["event"],
+      zones: { title: [{ type: "text", html: "M1" }], main: [] },
+    });
+    doc.nav = [{ footer: true, heading: "Events", source: { pagesTag: "event" } }];
+    const tree = resolveNavTree(doc);
+    expect(tree[0]!.footer).toBe(true);
+    expect(tree[0]!.children[0]).toMatchObject({ id: "meetup-1", footer: true, dynamic: true });
+  });
+
   it("supports nested designed children", () => {
     const doc = makeFixtureDoc();
     doc.nav = [

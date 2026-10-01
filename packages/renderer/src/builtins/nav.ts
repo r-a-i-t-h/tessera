@@ -10,6 +10,7 @@ function filterScope(nodes: ResolvedNavNode[], scope: string | undefined): Resol
       return n.sidebar === true || Boolean(n.heading) || n.children.some((c) => c.sidebar !== false);
     }
     if (scope === "topbar") return n.topbar === true;
+    if (scope === "footer") return n.footer === true;
     return true;
   });
 }
@@ -201,12 +202,13 @@ function findHeading(nodes: ResolvedNavNode[], heading: string): ResolvedNavNode
   return undefined;
 }
 
-/** Flat sidebar list from designed nav (legacy chrome style, as a component). */
+/** Flat list from designed nav. `scope` is `sidebar` (default), `topbar`, or `footer`. */
 export const navFlat: ComponentFn = (ctx, props = {}) => {
   const scope = typeof props.scope === "string" ? props.scope : "sidebar";
   const flat = flattenNav(resolveNavTree(ctx.document)).filter((n) => {
     if (scope === "sidebar") return n.sidebar === true || Boolean(n.heading);
     if (scope === "topbar") return n.topbar === true;
+    if (scope === "footer") return n.footer === true;
     return true;
   });
   return flat

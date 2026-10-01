@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { SiteDocument } from "@r-a-i-t-h/tessera-model";
 import { parseSiteDocument } from "@r-a-i-t-h/tessera-model";
-import { breadcrumbs, linkCluster, subpageList } from "../builtins/nav.js";
+import { breadcrumbs, linkCluster, navFlat, navTree, subpageList } from "../builtins/nav.js";
 import { escapeHtml } from "../render.js";
 import { ComponentRegistry } from "../registry.js";
 import type { RenderContext } from "../types.js";
@@ -96,6 +96,28 @@ describe("linkCluster", () => {
     expect(linkCluster(context(document, "fair"), { source: "children" })).toBe("");
     expect(linkCluster(context(document, "home"), { source: "tag", tag: "missing" })).toBe("");
     expect(linkCluster(context(document, "home"), { source: "nav", heading: "Absent" })).toBe("");
+  });
+});
+
+describe("nav places", () => {
+  it("lets a component keep the links marked for its place", () => {
+    const doc = parseSiteDocument({
+      ...document,
+      nav: [
+        { id: "home", title: "Home", sidebar: true, topbar: true },
+        { id: "events", title: "Events", footer: true },
+      ],
+    });
+    const ctx = context(doc, "home");
+    const footer = navFlat(ctx, { scope: "footer" });
+    expect(footer).toContain('href="#events"');
+    expect(footer).not.toContain('href="#home"');
+    const top = navFlat(ctx, { scope: "topbar" });
+    expect(top).toContain('href="#home"');
+    expect(top).not.toContain('href="#events"');
+    const tree = navTree(ctx, { scope: "footer" });
+    expect(tree).toContain('href="#events"');
+    expect(tree).not.toContain('href="#home"');
   });
 });
 

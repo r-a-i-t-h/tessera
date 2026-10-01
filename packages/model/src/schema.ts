@@ -279,6 +279,7 @@ export type NavEntry = {
   fa?: string;
   topbar?: boolean;
   sidebar?: boolean;
+  footer?: boolean;
   source?: NavSource;
   children?: NavEntry[];
 };
@@ -291,6 +292,7 @@ export const NavEntrySchema: z.ZodType<NavEntry> = z.lazy(() =>
     fa: z.string().optional(),
     topbar: z.boolean().optional(),
     sidebar: z.boolean().optional(),
+    footer: z.boolean().optional(),
     source: NavSourceSchema.optional(),
     children: z.array(NavEntrySchema).optional(),
   }),

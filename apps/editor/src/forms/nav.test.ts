@@ -29,7 +29,31 @@ describe("nav list", () => {
     expect(html).toContain('value="event"');
     expect(html).toContain('name="nav-1-itemsTag"');
     expect(html).toContain('value="person"');
-    expect(html).toContain("Links under this heading");
+    expect(html).toContain('name="nav-1-topbar"');
+    expect(html).toContain('name="nav-1-footer"');
+    expect(html).toContain('name="nav-1-child-0-topbar"');
+    expect(html).toContain('name="nav-1-child-0-footer"');
+    expect(html.match(/>sidebar</g)).toHaveLength(1);
+    expect(html.match(/>topbar</g)).toHaveLength(1);
+    expect(html.match(/>footer</g)).toHaveLength(1);
+    expect(html).toContain('aria-label="Up"');
+    expect(html).toContain('aria-label="Remove"');
+    expect(html).toContain('data-nav-action="up-child"');
+  });
+
+  it("shows sidebar, top bar, and footer on every row even when they are off", () => {
+    const html = renderNavList(
+      navRows([
+        { id: "home", title: "Home" },
+        { heading: "Group" },
+      ]),
+      pages,
+    );
+    for (const name of ["nav-0-sidebar", "nav-0-topbar", "nav-0-footer", "nav-1-sidebar", "nav-1-topbar", "nav-1-footer"]) {
+      const tag = html.match(new RegExp(`<input\\b[^>]*name="${name}"[^>]*>`))?.[0] ?? "";
+      expect(tag).toContain('type="checkbox"');
+      expect(tag).not.toContain("checked");
+    }
   });
 
   it("reorders top-level rows and links under a heading", () => {
@@ -58,6 +82,20 @@ describe("nav list", () => {
     const read = navEntries(rowsFromControls(controlsIn(html)));
     expect(read).toEqual(sample);
     expect(navEntries(navRows(sample))).toEqual(sample);
+  });
+
+  it("round-trips a footer flag on a link and a heading", () => {
+    const data = [
+      { id: "home", title: "Home", footer: true },
+      {
+        heading: "Fine print",
+        footer: true,
+        topbar: true,
+        children: [{ id: "about", title: "About", footer: true }],
+      },
+    ];
+    const html = renderNavList(navRows(data), pages);
+    expect(navEntries(rowsFromControls(controlsIn(html)))).toEqual(data);
   });
 });
 

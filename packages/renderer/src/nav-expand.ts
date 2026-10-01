@@ -8,6 +8,7 @@ export type ResolvedNavNode = {
   fa?: string;
   sidebar?: boolean;
   topbar?: boolean;
+  footer?: boolean;
   /** True when this node was generated from a `source` (not hand-authored). */
   dynamic?: boolean;
   children: ResolvedNavNode[];
@@ -16,7 +17,7 @@ export type ResolvedNavNode = {
 function linksFromSource(
   document: SiteDocument,
   source: NonNullable<NavEntry["source"]>,
-  inherit: Pick<NavEntry, "sidebar" | "topbar">,
+  inherit: Pick<NavEntry, "sidebar" | "topbar" | "footer">,
 ): ResolvedNavNode[] {
   const out: ResolvedNavNode[] = [];
 
@@ -29,6 +30,7 @@ function linksFromSource(
         title: page.title,
         sidebar: inherit.sidebar,
         topbar: inherit.topbar,
+        footer: inherit.footer,
         dynamic: true,
         children: [],
       });
@@ -46,6 +48,7 @@ function linksFromSource(
         title: item.title ?? page.title,
         sidebar: inherit.sidebar,
         topbar: inherit.topbar,
+        footer: inherit.footer,
         dynamic: true,
         children: [],
       });
@@ -67,6 +70,7 @@ function resolveEntry(document: SiteDocument, entry: NavEntry): ResolvedNavNode 
       ...linksFromSource(document, entry.source, {
         sidebar: entry.sidebar,
         topbar: entry.topbar,
+        footer: entry.footer,
       }),
     );
   }
@@ -78,6 +82,7 @@ function resolveEntry(document: SiteDocument, entry: NavEntry): ResolvedNavNode 
     fa: entry.fa,
     sidebar: entry.sidebar,
     topbar: entry.topbar,
+    footer: entry.footer,
     children,
   };
 }

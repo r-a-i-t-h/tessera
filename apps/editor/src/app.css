@@ -27,7 +27,7 @@ body {
 }
 
 .editor-wide {
-  max-width: 52rem;
+  max-width: 80rem;
 }
 
 .editor-card h1 {
@@ -71,32 +71,131 @@ body {
   margin: 0.25rem 0 1rem;
 }
 
-.editor-nav-row {
-  border: 1px solid #ddd;
-  margin: 0 0 0.75rem;
-  padding: 0.75rem 1rem 0.25rem;
+.editor-nav {
+  overflow-x: auto;
 }
 
-.editor-nav-row h3 {
-  margin: 0;
-}
-
+.editor-nav-menu,
 .editor-nav-children {
-  margin: 0.5rem 0 0.75rem 0.25rem;
-  padding-left: 0.75rem;
-  border-left: 3px solid #ccc;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.editor-nav-head,
+.editor-nav-line {
+  display: grid;
+  grid-template-columns: minmax(8.5rem, 1.35fr) minmax(8rem, 1.15fr) 3.6rem 3.6rem 3.6rem 4.7rem;
+  column-gap: 0.45rem;
+  align-items: center;
+  min-width: 38rem;
+}
+
+.editor-nav-head {
+  color: #666;
+  font-size: 0.72rem;
+  letter-spacing: 0.01em;
+  padding: 0 0 0.2rem;
+  border-bottom: 1px solid #ccc;
+}
+
+.editor-nav-head span:nth-child(n + 3):nth-child(-n + 5) {
+  text-align: center;
+}
+
+.editor-nav-item {
+  margin: 0;
+  padding: 0.2rem 0;
+  border-bottom: 1px solid #eee;
+}
+
+.editor-nav-item .w3-input,
+.editor-nav-item .w3-select {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  height: 1.7rem;
+  margin: 0;
+  padding: 0.1rem 0.35rem;
+  border: 1px solid #ccc;
+}
+
+.editor-nav-child .editor-nav-page {
+  width: calc(100% - 0.85rem);
+  margin-left: 0.85rem;
+}
+
+.editor-nav-flag {
+  display: flex;
+  justify-content: center;
+  margin: 0;
 }
 
 .editor-nav-actions,
-.editor-nav-flags {
+.editor-nav-add,
+.editor-nav-meta {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
   align-items: center;
 }
 
-.editor-nav-flags .editor-check {
+.editor-nav-actions {
+  justify-content: flex-end;
+  gap: 0.05rem;
+}
+
+.editor-nav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.45rem;
+  height: 1.45rem;
   margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #444;
+  cursor: pointer;
+}
+
+.editor-nav-icon svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.editor-nav-icon:hover {
+  color: #111;
+  background: #f2f2f2;
+}
+
+.editor-nav-meta {
+  flex-wrap: wrap;
+  gap: 0.25rem 0.35rem;
+  min-width: 0;
+}
+
+.editor-nav-meta .w3-button {
+  padding: 0.1rem 0.4rem;
+}
+
+.editor-nav-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+  min-width: 0;
+  color: #555;
+  font-size: 0.75rem;
+}
+
+.editor-nav-tag .w3-input {
+  width: 4.6rem;
+}
+
+.editor-nav-add {
+  gap: 0.35rem;
+  margin: 0.45rem 0 0;
 }
 
 .editor-fieldset {
@@ -126,7 +225,11 @@ body {
 }
 
 .editor-main.editor-compose {
-  max-width: 76rem;
+  max-width: 80rem;
+}
+
+.editor-zones {
+  max-width: 48rem;
 }
 
 .editor-compose-layout {
