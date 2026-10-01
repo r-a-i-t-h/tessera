@@ -6,7 +6,7 @@ Tessera is a small CMS runtime for sites whose full text/data payload is cheaper
 
 The name evokes mosaic tiles: layouts place the tiles (zones); content fills them — or leaves them empty.
 
-The **editor** (see SPEC §9) edits one site directory and emits the flattened file. The **renderer** consumes that file. The site runtime registers the shared component catalogue. The editor may host the renderer for preview; the renderer never depends on the editor.
+The **editor** (see SPEC §9) edits one site directory and emits the flattened file. The **renderer** consumes that file. The site runtime registers the shared component catalogue. The renderer never depends on the editor. Preview today is the snapshot in `preview/`, served by the site runtime. The editor does not host the renderer yet.
 
 Tessera’s version is the engine: `apps/editor-api`, `apps/editor`, and the packages below. A site is data. Replacing `$TESSERA_DATA` (and restarting) changes which site the instance edits. The public site is the static `publish/` tree inside that directory. Nginx can keep serving `publish/` with the editor process stopped, or that tree can be copied to another host.
 
@@ -22,7 +22,8 @@ The editor **API** lives in `apps/editor-api` (`@r-a-i-t-h/tessera-editor-api`):
 | `@r-a-i-t-h/tessera-wc-base` | Cookie-cut custom element base (`a` / `b` / `c`) |
 | `@r-a-i-t-h/tessera-demo-kit` | Chrome helpers the runtime uses (fonts, nav sidebar, w3 helpers) |
 | `@r-a-i-t-h/tessera-extras` | Shared component catalogue. Every site may name these. A new component is a Tessera release |
-| `@r-a-i-t-h/tessera-site` | One Vite host for the shared runtime. Dev serves `data/shell` and `data/publish` (a placeholder while `data/shell` is missing). `TESSERA_SITE` serves `sites/<name>/shell` instead |
+| `@r-a-i-t-h/tessera-sections` | Compose palette. Parses and paints the zone HTML the editor stores |
+| `@r-a-i-t-h/tessera-site` | One Vite host for the shared runtime. Dev serves `data/shell` and `data/preview` (a placeholder while `data/shell` is missing). `TESSERA_SITE` serves `sites/<name>/shell` instead |
 
 The example site lives under `sites/willow`. It is not an npm workspace. The editing back-end is `apps/editor-api`; the login SPA is `apps/editor`.
 
@@ -35,8 +36,10 @@ Hono app (Node ≥20). JSON routes first; if `spa/index.html` (a release), `apps
 | Users | `$TESSERA_DATA/users/<username>.json` (hash + salt), one set per site directory. No `/auth/register`. The release seed (`seed/users`, `admin` / `admin`) is copied only when `users/` is empty. `npm run seed:user` rewrites that seed, not the open site. |
 | Sessions | In-memory tokens; httpOnly `tessera_session` cookie (`Path=/`) or `Authorization: Bearer`. The editor is served at the hostname root. SIGTERM dumps hashed tokens to `$TESSERA_DATA/.sessions.json` once. |
 | Permission | `requireEditor`: authenticated ⇒ full access; anonymous ⇒ 401. Every mutation must call it. |
-| Records | YAML files in `$TESSERA_DATA/records`. Filename = Tessera `id`. `GET/PUT /api/records` accepts structured `data` or raw YAML. A changed content page appends the previous file to `$TESSERA_DATA/history/content/<id>.history`, then writes the SPA snapshot to `$TESSERA_DATA/preview/data/`. **Publish** writes the copyable `$TESSERA_DATA/publish/` dist. |
-| Public | `GET /health`, `POST /auth/login`. Protected: `GET /auth/me`, `POST /auth/password`, `POST /api/ping`, record CRUD. Logout is idempotent. |
+| Records | YAML files in `$TESSERA_DATA/records`. Filename = Tessera `id`. `GET/PUT /api/records` accepts structured `data` or raw YAML. A changed content page appends the previous file to `$TESSERA_DATA/history/content/<id>.history`, then writes the SPA snapshot to `$TESSERA_DATA/preview/data/`. **Publish** writes the copyable `$TESSERA_DATA/publish/` dist. Templates live in `records/templates/` and are omitted from that document. |
+| Library | `GET/POST/PATCH/DELETE` under `/api/library`. Blobs stay in `files/<id>.<ext>`. A folder move does not rename the blob. |
+| Site actions | `POST /api/site/init` writes a blank site when `site.yaml` is absent. `POST /api/render` refreshes `preview/`. `POST /api/publish` writes `publish/`. |
+| Public | `GET /health`, `POST /auth/login`. Protected: `GET /auth/me`, `POST /auth/password`, `POST /api/ping`, record CRUD, library, render, publish, backups. Logout is idempotent. |
 
 Public HTML is the editor SPA when built. The published site remains `site.json` for the renderer. Authoring is file-based YAML (not JSON) so HTML does not need escaping.
 
@@ -49,7 +52,8 @@ Dated site archives live in the sibling `backup/` directory (`TESSERA_BACKUP` ov
 ## Content model
 
 - **Layout** — tree of `region` | `zone` | `static` | `component` | `page`. **Only layouts declare zones** (and where they appear). `site.masterLayoutId` is the outer page. Its `page` node is replaced by the resolved page layout.
-- **Page** — `id`, `title`, optional `description`, optional `slug`, optional `parentId` (published tree; ignored on the home page), optional `showInNav` (`false` keeps the URL and drops the nav link), optional `layoutId` (override), optional `includes` (shared items), and `zones` contributions. Drafts are pages left out of the published document. History is not a field on the page.
+- **Page** — `id`, `title`, optional `description`, optional `slug`, optional `parentId` (published tree; ignored on the home page), optional `showInNav` (`false` keeps the URL and drops the nav link), optional `layoutId` (override), optional `includes` (shared items), and `zones` contributions. There is no draft flag: every content page is in the flattened document. `locked` and `templateId` may sit on the YAML file and are omitted when the page is assembled. History is not a field on the page.
+- **Style** — optional `site.style` tokens (sidebar width, bar, colours, fonts, nav side). Missing fields use the defaults in `style.ts`. The editor’s Styles page writes this object. Colour themes beyond those tokens stay in the shell stylesheet.
 - **Sections** — hierarchical presentation profiles (`match` by tags / `pageIdPrefix` → `layoutId`). Resolved by `resolvePageProfile`: site default → matching sections → page override. Colour is the shell's stylesheet, not a document field.
 - **Item** — reusable zone contributions (footer, promo, …), pulled in via `page.includes`.
 - **Blocks** inside a zone: `text` | `json` | `media` | `component`.
@@ -68,7 +72,7 @@ sites/willow/
   history/                  # append-only page history, not published
   records/                  # YAML records, not on the web path
     site.yaml  nav.yaml
-    content/ items/ layouts/ bindings/ sections/ media/ folders/
+    content/ templates/ items/ layouts/ bindings/ sections/ media/ folders/
   files/                    # flat asset blobs and editor thumbnails, not on the web path
   shell/                    # document shell, no TypeScript and no frame
     index.html  site.css
@@ -94,9 +98,10 @@ Records live in `$TESSERA_DATA/records/`, off the web path. Each record is one Y
 
 | Folder / file | Holds |
 |---------------|--------|
-| `content/*.yaml` | Pages |
+| `content/*.yaml` | Pages. `locked` and `templateId` are editor fields and are not published |
+| `templates/*.yaml` | Page prototypes. Publish skips this folder. `isLocked` locks the arrangement of pages copied from it |
 | `items/*.yaml` | Shared items (e.g. footer) |
-| `layouts/*.yaml` | Layout trees (templates) |
+| `layouts/*.yaml` | Layout trees (zone frames). Not page templates |
 | `bindings/*.yaml` | Data → component bindings |
 | `sections/*.yaml` | Section profiles |
 | `media/*.yaml` | Library files (image or PDF). Flatten derives `./media/<id>.<ext>`. |
@@ -108,6 +113,8 @@ Records live in `$TESSERA_DATA/records/`, off the web path. Each record is one Y
 HTML zones use YAML `|` / `|-` scalars (`html:`) so markup is not JSON-escaped. Component implementations live in the shared catalogue; only bindings are records.
 
 The editor form for a page lists zones declared by the resolved layout (page `layoutId` → matching section → site default). Extra keys on the page that the layout does not declare stay editable under **Off layout**. A flat JSON object becomes one text field per key already on the file. The editor does not have content types. A person page is a normal page: a tag selects a section, the section selects a layout, and catalogue components read a JSON zone (Willow’s `meta` holds `role`, `email`, `photo`, `summary`). Those keys live in the component, not in the engine. `schemaVersion` is how records are stored, not the list of person fields.
+
+Compose (`@r-a-i-t-h/tessera-sections`) parses a zone’s HTML into sections and paints it back. The saved file is that HTML, so Fields and Raw file edit the same page. A block that does not parse back stays raw HTML. A locked page keeps the section arrangement fixed and still edits the words and pictures inside it. A template is the same body, stored under `records/templates/`, and is not a layout.
 
 `npm run flatten:site` (or an editor save) writes `$TESSERA_DATA/preview/data/site.json` and stamps `<meta name="tessera-site">` in `shell/index.html`. **Publish** writes `$TESSERA_DATA/publish/` for copying. A pages dist is one HTML file per page plus `sitemap.xml`. A snapshot dist is the SPA shell, `publish/data/site.json`, the hashed file, and `rev.json`. `delivery` on `site.yaml` chooses that dist and defaults to `pages`. A pages dist needs `origin` (an absolute URL with no path). The preview is always the snapshot and ignores `delivery`.
 
@@ -157,7 +164,7 @@ The global `media[]` catalog is every asset. Gallery components still reference 
 
 ## Zod
 
-[`zod`](https://zod.dev) is used only in `@r-a-i-t-h/tessera-model` to **validate** the flattened `site.json` when it is loaded. TypeScript types are inferred from the same schemas, so the editor (later) and renderer share one contract. A malformed document fails at parse time with a structured error instead of half-rendering.
+[`zod`](https://zod.dev) is used only in `@r-a-i-t-h/tessera-model` to **validate** the flattened `site.json` when it is loaded. TypeScript types are inferred from the same schemas, so the editor and the renderer share one contract. A malformed document fails at parse time with a structured error instead of half-rendering.
 
 ## How dynamic lists / custom behaviour are defined
 

@@ -226,7 +226,7 @@ Without being limiting, Tessera should ship enough shared pieces to build a full
 |------|--------|
 | Listings / items | First-class story for iterating structured items (not only one-off site `ComponentFn`s) |
 | Blog | Items expanded as pages + list-on-page views |
-| Gallery | Real gallery component and media story (not convert stubs) |
+| Gallery | `<tessera-gallery>` grid, slides, and dialog. A library folder is the image set |
 | Document browser | Browse structured document-like content |
 | Layout primitives | imgbox, quote, row/column helpers — preferably as WCs and/or skin helpers |
 | Nav | Document-owned designed tree + optional `source`; presentations via components (tags / tree / collapse / custom) |
@@ -234,6 +234,8 @@ Without being limiting, Tessera should ship enough shared pieces to build a full
 | Chrome hooks | Stale/offline signal for banners |
 
 Components ship in the shared catalogue. A site names them from its records. A site does not ship its own scripts.
+
+Gallery, layout primitives, nav, and bindings are in the product. Listings, a blog, and a document browser are the open rows. Sequencing is in [ROADMAP.md](./ROADMAP.md).
 
 ---
 
@@ -246,10 +248,14 @@ Components ship in the shared catalogue. A site names them from its records. A s
 - Access is **all-or-nothing**: any authenticated user may perform every editor mutation. `requireEditor` is the choke point so later ACL can replace that helper without rewriting routes.
 - The **editor SPA** (`apps/editor`) is a same-origin Vite app (not shipped with the renderer). Dev proxies `/auth`, `/api`, `/health` to the API; production can serve `dist` from the Hono process so the `httpOnly` session cookie never crosses origins.
 - Authoring is **file-based YAML** (one file per Tessera `id`) in `$TESSERA_DATA/records`, outside the web root. An edit writes the SPA snapshot to `preview/data/site.json`. **Publish** writes `publish/` in the site's `delivery` flavour. No database.
-- A page is a page. Tags, sections, and layouts decide how it is presented. Structured fields are a JSON zone the catalogue components read. Editor forms are drawn from a field schema for the record kind (string, number, date, Checkbox, SingleSelect), including fields that have no value yet. Keys the schema does not name stay on the form. `schemaVersion` is the authoring-file format, not a Person field list.
+- A blank site can be created from the editor when `site.yaml` is absent: shell, sidebar master, home page, and a first sidebar link. `delivery` defaults to `pages`.
+- **Compose** edits a page as sections and stores zone HTML. Fields and Raw file edit that same HTML. The section catalogue is `@r-a-i-t-h/tessera-sections`.
+- A **template** is `records/templates/<id>.yaml`. Publish skips that folder. A new page copied from one keeps tags, includes, and every zone except the title. A locked template sets `locked` on the page so the arrangement stays fixed while words and pictures stay editable. `locked` and `templateId` are editor fields; the published page omits them.
+- The **library** holds images and PDFs. A virtual move does not change the published URL. The **Styles** page edits chrome tokens on the site record.
+- A page is a page. Tags, sections, and layouts decide how it is presented. Structured fields are a JSON zone the catalogue components read. Editor forms are drawn from a field schema for the record kind (string, number, date, Checkbox, SingleSelect), including fields that have no value yet. Keys the schema does not name stay on the form. `schemaVersion` is the authoring-file format, not a Person field list. There is no content-type system and no per-page draft flag.
 - A content-page save appends the previous raw file to `$TESSERA_DATA/history/content/<id>.history`. That history is an editor file, not a field on the published page. The framing is a proof of concept; the authoring spec will replace it.
 - **Authoring schema** (`schemaVersion` in `$TESSERA_DATA/meta.json`) is separate from `SiteDocument.version`. `deploy/post-update.sh` is the [node-vps-kit](https://github.com/r-a-i-t-h/node-vps-kit) hook that applies `deploy/migrations/NNN-*.sh`. The app reads the counter and does not bump it. Records live inside `$TESSERA_DATA`, so a migration can rewrite them.
-- The renderer never depends on the editor; the editor may host the renderer for preview.
+- The renderer never depends on the editor. The editor does not host the renderer yet. Preview is the snapshot in `preview/`, served by the site runtime. Hosting that render beside Compose is the next editor step.
 - Flatten output **is** the renderer contract.
 
 ---
@@ -260,20 +266,20 @@ Criteria define “done enough,” not a build order (see [ROADMAP.md](./ROADMAP
 
 ### Content fetch, cache, and TTL
 
-- [ ] The snapshot shell points at a content-hashed site file. The first load fetches that file and does not request `rev.json` first.
-- [ ] Successful load validates, renders, and persists to `localStorage` with schema version.
-- [ ] Fetch failure falls back to a schema-compatible cached document and sets a stale/offline signal.
-- [ ] Incompatible cached schema is abandoned; fresh data must be downloaded.
-- [ ] While a snapshot remains open, a **5-minute** poll reads `rev.json` and downloads a new site file only when the hash changes.
-- [ ] Full page refresh attempts latest data (when online).
-- [ ] Demos can surface an offline / stale-content banner from the signal.
+- [x] The snapshot shell points at a content-hashed site file. The first load fetches that file and does not request `rev.json` first.
+- [x] Successful load validates, renders, and persists to `localStorage` with schema version.
+- [x] Fetch failure falls back to a schema-compatible cached document and sets a stale/offline signal.
+- [x] Incompatible cached schema is abandoned; fresh data must be downloaded.
+- [x] While a snapshot remains open, a **5-minute** poll reads `rev.json` and downloads a new site file only when the hash changes.
+- [x] Full page refresh attempts latest data (when online).
+- [x] The site runtime can surface an offline / stale-content banner from the signal.
 
 ### Inclusion and items
 
 - [x] Bindings are site data (`document.bindings`) pairing content with a registered component under a public id.
 - [x] Content can insert a binding via `{{id}}` in text HTML and via a component block named with that id.
 - [x] Section profiles resolve layout/skin for matching pages (page override > section > site default) without recursive templates.
-- [ ] Items support list-on-page and as-pages presentation patterns used by demos / shipped components.
+- [ ] Items support list-on-page and as-pages presentation patterns in shipped components. Subpages lists child pages; a collection of records is still a binding.
 
 ### Navigation
 
@@ -284,21 +290,21 @@ Criteria define “done enough,” not a build order (see [ROADMAP.md](./ROADMAP
 
 ### Gallery and presentation
 
-- [ ] Gallery component renders image sets from the model/media story (converted stubs replaced).
+- [x] Gallery component renders image sets from a library folder (grid or slides, plus a dialog). A Compose section names that folder.
 - [x] Layout primitives (imgbox, quote, side-by-side) are available in a form content authors can use trivially.
-- [ ] Mobile adaptive layout remains the default path (W3 skin or equivalent).
+- [x] Mobile adaptive layout remains the default path (W3 skin; a new site’s sidebar collapses below the large breakpoint).
 
 ### Pages flavour
 
-- [ ] A published page record is `id`, `title`, optional `description`, optional `parentId`, optional `slug`, optional `showInNav`, and the existing body zones. Drafts and history are not on that record.
-- [ ] `publishPages` writes one HTML file per page, with prose, title, canonical URL, and the same master layout in every file.
-- [ ] Micro-apps are `data-tessera-microapp` mounts plus JSON. The publisher does not run them.
-- [ ] `sitemap.xml` lists every published page URL, including pages omitted from nav.
+- [x] A published page record is `id`, `title`, optional `description`, optional `parentId`, optional `slug`, optional `showInNav`, and the existing body zones. `locked`, `templateId`, and history are not on that record.
+- [x] `publishPages` writes one HTML file per page, with prose, title, canonical URL, and the same master layout in every file.
+- [x] Micro-apps are `data-tessera-microapp` mounts plus JSON. The publisher does not run them.
+- [x] `sitemap.xml` lists every published page URL, including pages omitted from nav.
 
 ### Routing and errors
 
-- [ ] Hash routing supports back/forward for in-app page changes.
-- [ ] Unknown page ids do not show a raw error page; site policy handles them (e.g. home fallback).
+- [x] Hash routing supports back/forward for in-app page changes on the snapshot flavour.
+- [x] Unknown page ids do not show a raw error page; site policy handles them (silent home fallback).
 
 ### Carry-forward (already demonstrated)
 
@@ -308,7 +314,7 @@ Criteria define “done enough,” not a build order (see [ROADMAP.md](./ROADMAP
 
 - **Fanciness** — polish, motion, richer presentation beyond minimal W3 chrome; keep scoped as an open product goal until specified further.
 - **Cold-start offline** — icing only.
-- **Editor SPA** — login + YAML record editor for Willow; flatten on save. Richer preview still later.
+- **Editor preview** — host the renderer inside the editor. Compose already edits the page; the rendered result is still a separate snapshot.
 
 ---
 
