@@ -1301,10 +1301,16 @@ function openLibraryPicker(initial: PickerMode): Promise<PickedAsset | { id: str
   );
 }
 
+let libraryAddOpen = true;
+
 async function bindLibrary(root: HTMLElement, user: PublicUser, openId: string | null, notice = ""): Promise<void> {
   const listing = await getLibrary();
-  root.innerHTML = chrome(user, renderLibrary(listing, openId, notice), true);
+  root.innerHTML = chrome(user, renderLibrary(listing, openId, notice, libraryAddOpen), true);
   bindChrome(root);
+  const addPanel = root.querySelector<HTMLDetailsElement>("#library-add");
+  addPanel?.addEventListener("toggle", () => {
+    libraryAddOpen = addPanel.open;
+  });
   const form = root.querySelector<HTMLFormElement>("#library-upload");
   let dropped: { file: File; path: string }[] = [];
   form?.addEventListener("dragover", (event) => {
@@ -1352,21 +1358,15 @@ async function bindLibrary(root: HTMLElement, user: PublicUser, openId: string |
       void updateLibraryFolder(id, { title: title.trim() }).then(() => bindLibrary(root, user, openId, "Folder renamed."));
     });
   }
-  for (const button of root.querySelectorAll<HTMLButtonElement>("[data-delete-asset]")) {
-    button.addEventListener("click", () => {
-      const id = button.dataset.deleteAsset;
-      if (!id || !window.confirm("Delete this file?")) return;
-      void deleteLibraryAsset(id).then(() => bindLibrary(root, user, openId, "File deleted."));
-    });
-  }
   for (const button of root.querySelectorAll<HTMLButtonElement>("[data-edit-asset]")) {
     button.addEventListener("click", () => {
       const asset = listing.assets.find((item) => item.id === button.dataset.editAsset);
       if (!asset) return;
-      const slot = root.querySelector(".editor-main");
-      const existing = root.querySelector("#asset-detail");
-      existing?.remove();
-      slot?.insertAdjacentHTML("beforeend", assetDetail(asset, listing.folders));
+      const slot = root.querySelector<HTMLElement>("#library-detail");
+      if (!slot) return;
+      root.querySelectorAll(".editor-library-row-active").forEach((row) => row.classList.remove("editor-library-row-active"));
+      button.closest(".editor-library-row")?.classList.add("editor-library-row-active");
+      slot.innerHTML = assetDetail(asset, listing.folders);
       root.querySelector<HTMLFormElement>("#asset-detail")?.addEventListener("submit", (event) => {
         event.preventDefault();
         const detail = event.currentTarget as HTMLFormElement;
@@ -1378,6 +1378,10 @@ async function bindLibrary(root: HTMLElement, user: PublicUser, openId: string |
           caption: detail.querySelector<HTMLInputElement>("[name=caption]")?.value ?? "",
           folderId: detail.querySelector<HTMLSelectElement>("[name=folderId]")?.value || null,
         }).then(() => bindLibrary(root, user, openId, "Saved."));
+      });
+      slot.querySelector<HTMLButtonElement>("[data-delete-asset]")?.addEventListener("click", () => {
+        if (!window.confirm("Delete this file?")) return;
+        void deleteLibraryAsset(asset.id).then(() => bindLibrary(root, user, openId, "File deleted."));
       });
     });
   }
