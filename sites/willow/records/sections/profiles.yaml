@@ -1,5 +1,4 @@
 id: profiles
-title: Personnel
 match:
   tags:
     - person

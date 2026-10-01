@@ -1,5 +1,4 @@
 id: common-footer
-title: Shared footer
 zones:
   footer:
     html: <p><strong>Willow Hall</strong> · 14 Mill Lane, Northbridge NB3 2WL</p><p><a href="#contact">Contact</a> · <a href="#about">About us</a> · <a href="#gallery">Gallery</a></p><p>Lorem ipsum demo for Tessera — content is sample data.</p>

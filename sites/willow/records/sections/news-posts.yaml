@@ -1,5 +1,4 @@
 id: news-posts
-title: News articles
 match:
   tags:
     - blog

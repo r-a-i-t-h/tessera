@@ -34,7 +34,6 @@ delivery: pages
 `;
 
 const MASTER_YAML = `id: master
-title: Master
 root:
   type: region
   children:
@@ -79,7 +78,6 @@ root:
 `;
 
 const STANDARD_YAML = `id: standard
-title: Standard
 root:
   type: region
   children:

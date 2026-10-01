@@ -132,7 +132,6 @@ export const LayoutNodeSchema: z.ZodType<LayoutNode> = z.lazy(() =>
 
 export const LayoutSchema = z.object({
   id: z.string().min(1),
-  title: z.string().optional(),
   root: LayoutNodeSchema,
 });
 
@@ -187,7 +186,6 @@ export type SectionMatch = z.infer<typeof SectionMatchSchema>;
  */
 export type Section = {
   id: string;
-  title?: string;
   match: SectionMatch;
   layoutId?: string;
   children?: Section[];
@@ -196,7 +194,6 @@ export type Section = {
 export const SectionSchema: z.ZodType<Section, z.ZodTypeDef, unknown> = z.lazy(() =>
   z.object({
     id: z.string().min(1),
-    title: z.string().optional(),
     match: SectionMatchSchema.default({}),
     layoutId: z.string().min(1).optional(),
     children: z.array(SectionSchema).optional(),
@@ -205,7 +202,6 @@ export const SectionSchema: z.ZodType<Section, z.ZodTypeDef, unknown> = z.lazy((
 
 export const ItemSchema = z.object({
   id: z.string().min(1),
-  title: z.string().optional(),
   tags: z.array(z.string()).optional(),
   zones: ZonesSchema.default({}),
 });
@@ -242,7 +238,6 @@ export const FolderSchema = z.object({
   id: z.string().min(1),
   /** URL prefix for files, e.g. `./media/goats`. */
   path: z.string().min(1),
-  title: z.string().optional(),
   images: z.array(FolderImageSchema).default([]),
 });
 

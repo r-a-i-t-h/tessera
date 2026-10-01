@@ -1,5 +1,4 @@
 id: article
-title: Dated article
 root:
   type: region
   role: content

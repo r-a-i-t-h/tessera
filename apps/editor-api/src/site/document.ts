@@ -37,7 +37,6 @@ export type AuthoredPage = {
 
 export type AuthoredItem = {
   id: string;
-  title?: string;
   tags?: string[];
   zones?: Record<string, ZoneAuthoring>;
 };
@@ -120,7 +119,6 @@ export function pageToAuthoring(page: Page): AuthoredPage {
 export function itemToAuthoring(item: Item): AuthoredItem {
   return {
     id: item.id,
-    ...(item.title ? { title: item.title } : {}),
     ...(item.tags?.length ? { tags: item.tags } : {}),
     zones: zonesToAuthoring(item.zones),
   };
@@ -144,7 +142,6 @@ export function authoredPageToPage(raw: AuthoredPage): Page {
 export function authoredItemToItem(raw: AuthoredItem): Item {
   return {
     id: raw.id,
-    ...(raw.title ? { title: raw.title } : {}),
     ...(raw.tags ? { tags: raw.tags } : {}),
     zones: authoringToZones(raw.zones),
   };

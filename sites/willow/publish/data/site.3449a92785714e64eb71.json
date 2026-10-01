@@ -10,7 +10,6 @@
   "layouts": [
     {
       "id": "standard",
-      "title": "Standard page",
       "root": {
         "type": "region",
         "role": "content",
@@ -89,7 +88,6 @@
     },
     {
       "id": "article",
-      "title": "Dated article",
       "root": {
         "type": "region",
         "role": "content",
@@ -137,7 +135,6 @@
     },
     {
       "id": "meeting",
-      "title": "Weekly meeting (agenda + minutes)",
       "root": {
         "type": "region",
         "role": "content",
@@ -240,7 +237,6 @@
     },
     {
       "id": "profile",
-      "title": "Personnel profile",
       "root": {
         "type": "region",
         "role": "content",
@@ -315,7 +311,6 @@
     },
     {
       "id": "master",
-      "title": "Master",
       "root": {
         "type": "region",
         "children": [
@@ -1490,7 +1485,6 @@
   "items": [
     {
       "id": "common-footer",
-      "title": "Shared footer",
       "zones": {
         "footer": [
           {
@@ -1606,7 +1600,6 @@
     {
       "id": "hall-gallery",
       "path": "./media",
-      "title": "Life at the hall",
       "images": [
         {
           "file": "01-main-hall.svg",
@@ -1661,7 +1654,6 @@
     {
       "id": "people",
       "path": "./media",
-      "title": "people",
       "images": [
         {
           "file": "amira.svg",
@@ -1823,7 +1815,6 @@
   "sections": [
     {
       "id": "pages",
-      "title": "Ordinary pages",
       "match": {
         "tags": [
           "page"
@@ -1833,7 +1824,6 @@
     },
     {
       "id": "news-posts",
-      "title": "News articles",
       "match": {
         "tags": [
           "blog"
@@ -1843,7 +1833,6 @@
     },
     {
       "id": "event-pages",
-      "title": "Event pages",
       "match": {
         "tags": [
           "event"
@@ -1853,7 +1842,6 @@
     },
     {
       "id": "weekly-meetings",
-      "title": "Weekly meetings",
       "match": {
         "pageIdPrefix": "meeting-"
       },
@@ -1861,7 +1849,6 @@
     },
     {
       "id": "profiles",
-      "title": "Personnel",
       "match": {
         "tags": [
           "person"

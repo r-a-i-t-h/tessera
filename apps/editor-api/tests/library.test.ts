@@ -25,7 +25,7 @@ describe("projectLibrary", () => {
         },
         { id: "notes", name: "notes.pdf", kind: "document", ext: "pdf", folderId: "hall", title: "Notes" },
       ],
-      [{ id: "hall", title: "Hall" }],
+      [{ id: "hall" }],
     );
     expect(projected.media.map((item) => item.url)).toEqual([publicAssetUrl("porch", "svg"), publicAssetUrl("notes", "pdf")]);
     expect(projected.media[1]?.type).toBe("document");
@@ -53,7 +53,7 @@ describe("asset library", () => {
     root = await mkdtemp(join(tmpdir(), "tessera-lib-"));
     const records = join(root, "records");
     const site = new SiteStore(records, join(root, "preview", "data", "site.json"));
-    await site.write("layouts", "page", { title: "Page", root: { type: "zone", id: "main" } });
+    await site.write("layouts", "page", { root: { type: "zone", id: "main" } });
     await site.write("content", "home", { title: "Home", zones: { main: { html: "<p>Hi</p>" } } });
     await site.writeSite({ version: 2, id: "demo", title: "Demo", homePageId: "home", defaultLayoutId: "page" });
     const library = new AssetLibrary(site, join(root, "files"));
@@ -71,7 +71,7 @@ describe("asset library", () => {
     expect(result.skipped).toEqual([]);
     expect(result.created).toHaveLength(2);
     const listing = await library.list();
-    const hall = listing.folders.find((folder) => folder.title === "hall");
+    const hall = listing.folders.find((folder) => folder.id === "hall");
     expect(hall?.parentId).toBe("uploads");
     const porch = listing.assets.find((asset) => asset.name === "porch.png");
     expect(porch?.url).toBe(`./media/${porch?.id}.png`);

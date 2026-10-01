@@ -3,7 +3,7 @@ import { checkedFolderIds, documentLink, foldersValue, imageSlideSnippet, imageT
 import type { LibraryListing } from "./library.js";
 
 const listing: LibraryListing = {
-  folders: [{ id: "hall", title: "Hall", parentId: null }],
+  folders: [{ id: "hall", parentId: null }],
   assets: [
     { id: "porch", name: "porch.svg", kind: "image", ext: "svg", folderId: null, url: "./media/porch.svg", alt: "The porch" },
     { id: "notes", name: "notes.pdf", kind: "document", ext: "pdf", folderId: null, url: "./media/notes.pdf", title: "Notes" },

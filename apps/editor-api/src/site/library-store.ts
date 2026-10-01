@@ -2,6 +2,7 @@ import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import sharp from "sharp";
 import { toYaml } from "./document.js";
+import { isRecordId } from "./kinds.js";
 import {
   kindForExt,
   normalizeExt,
@@ -18,7 +19,6 @@ import { writeTextAtomic } from "../store/fs.js";
 
 export type FolderView = {
   id: string;
-  title: string;
   parentId: string | null;
   sort?: number;
 };
@@ -97,14 +97,12 @@ export class AssetLibrary {
       if (typeof row.path === "string" && row.path.length > 0) {
         folders.push({
           id,
-          title: typeof row.title === "string" ? row.title : id,
           parentId: null,
         });
         continue;
       }
       folders.push({
         id,
-        title: typeof row.title === "string" ? row.title : id,
         parentId: typeof row.parentId === "string" ? row.parentId : null,
         ...(typeof row.sort === "number" ? { sort: row.sort } : {}),
       });
@@ -133,19 +131,21 @@ export class AssetLibrary {
     return { folders, assets };
   }
 
-  async createFolder(title: string, parentId?: string, refresh = true): Promise<FolderView> {
+  async createFolder(id: string, parentId?: string, refresh = true): Promise<FolderView> {
+    const folderId = id.trim();
+    if (!isRecordId(folderId)) throw new Error(`Invalid record id "${id}".`);
     const listing = await this.list();
     if (parentId) this.assertFolder(listing, parentId);
-    const id = uniqueId(slugFromFilename(title), this.takenIds(listing));
-    const record: Record<string, unknown> = { id, title: title.trim() || id };
+    if (this.takenIds(listing).has(folderId)) throw new Error(`Folder "${folderId}" already exists.`);
+    const record: Record<string, unknown> = { id: folderId };
     if (parentId) record.parentId = parentId;
-    await this.writeRecord("folders", id, record, refresh);
-    return { id, title: String(record.title), parentId: parentId ?? null };
+    await this.writeRecord("folders", folderId, record, refresh);
+    return { id: folderId, parentId: parentId ?? null };
   }
 
   async patchFolder(
     id: string,
-    patch: { title?: string; parentId?: string | null; sort?: number },
+    patch: { parentId?: string | null; sort?: number },
   ): Promise<void> {
     if (id === UPLOADS_ID && patch.parentId) {
       throw new Error("Uploads stays at the library root.");
@@ -160,7 +160,6 @@ export class AssetLibrary {
       }
     }
     const record = await this.site.read("folders", id);
-    if (patch.title !== undefined) record.title = patch.title.trim() || id;
     if (patch.parentId === null) delete record.parentId;
     else if (patch.parentId) record.parentId = patch.parentId;
     if (patch.sort !== undefined) record.sort = patch.sort;
@@ -200,10 +199,10 @@ export class AssetLibrary {
       set.add(asset.name.toLowerCase());
       namesByFolder.set(key, set);
     }
-    const folderKey = (parentId: string, title: string) => `${parentId}\0${title.toLowerCase()}`;
+    const folderKey = (parentId: string, folderId: string) => `${parentId}\0${folderId}`;
     const folderIndex = new Map<string, string>();
     for (const folder of current.folders) {
-      if (folder.parentId) folderIndex.set(folderKey(folder.parentId, folder.title), folder.id);
+      if (folder.parentId) folderIndex.set(folderKey(folder.parentId, folder.id), folder.id);
     }
 
     for (const file of request.files) {
@@ -221,14 +220,21 @@ export class AssetLibrary {
       let parent = destination;
       let placed = true;
       for (const segment of split.folders) {
-        const key = folderKey(parent, segment);
+        const slug = slugFromFilename(segment);
+        if (!isRecordId(slug)) {
+          skipped.push({ name: split.file, reason: "That path is not allowed." });
+          placed = false;
+          break;
+        }
+        const key = folderKey(parent, slug);
         const existing = folderIndex.get(key);
         if (existing) {
           parent = existing;
           continue;
         }
+        const folderId = ids.has(slug) ? uniqueId(slug, ids) : slug;
         try {
-          const made = await this.createFolder(segment, parent, false);
+          const made = await this.createFolder(folderId, parent, false);
           folderIndex.set(key, made.id);
           ids.add(made.id);
           parent = made.id;
@@ -340,7 +346,7 @@ export class AssetLibrary {
   private async ensureUploads(): Promise<string> {
     const listing = await this.list();
     if (listing.folders.some((folder) => folder.id === UPLOADS_ID)) return UPLOADS_ID;
-    await this.writeRecord("folders", UPLOADS_ID, { id: UPLOADS_ID, title: "Uploads" }, false);
+    await this.writeRecord("folders", UPLOADS_ID, { id: UPLOADS_ID }, false);
     return UPLOADS_ID;
   }
 

@@ -94,7 +94,7 @@ The editor process serves the working snapshot at `/preview/` on the editor orig
 
 ## Authoring files
 
-Records live in `$TESSERA_DATA/records/`, off the web path. Each record is one YAML file named with the same **`id`** the flattened document already uses (`page.id`, `item.id`, `layout.id`, `binding.id`, `section.id`, `media.id`, `folder.id`).
+Records live in `$TESSERA_DATA/records/`, off the web path. Each record is one YAML file named with the same **`id`** the flattened document already uses (`page.id`, `item.id`, `layout.id`, `binding.id`, `section.id`, `media.id`, `folder.id`). A **title** is a public value: the page, the site, a nav entry, and a media file. Templates, items, layouts, section profiles, and folders have no title. Their id is the name.
 
 | Folder / file | Holds |
 |---------------|--------|
@@ -152,7 +152,7 @@ Flatten (`writeSnapshotFiles`) writes three files next to each other: the stable
 
 ## Library
 
-Images and PDFs are a **library**: a flat blob store plus virtual folders. The blobs live in `$TESSERA_DATA/files/<id>.<ext>` and are never renamed when a file moves. Folder records (`records/folders`) are directories (`id`, `title`, `parentId`). Asset records (`records/media`) point at a folder and carry `name`, `kind` (`image` or `document`), and `ext`. They do not store a URL.
+Images and PDFs are a **library**: a flat blob store plus virtual folders. The blobs live in `$TESSERA_DATA/files/<id>.<ext>` and are never renamed when a file moves. Folder records (`records/folders`) are directories (`id`, optional `parentId`). The id is the folder's name. Asset records (`records/media`) point at a folder and carry `name`, `kind` (`image` or `document`), and `ext`. An optional `title` is public: image alt text, or the label of a download. They do not store a URL.
 
 Flatten derives `url: ./media/<id>.<ext>` onto each `media[]` entry. That string is relative to the site folder. A gallery folder is still a gallery source: flatten lists the image assets directly inside it, each with that stable `url` and `file` set to the display name. `slidesFromFolders` uses `url` when it is present. A virtual move changes `folderId` only.
 

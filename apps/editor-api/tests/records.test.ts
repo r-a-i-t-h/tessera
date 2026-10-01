@@ -41,7 +41,6 @@ describe("record routes", () => {
     });
     await site.writeNav([{ id: "home", title: "Home", topbar: true }]);
     await site.write("layouts", "standard", {
-      title: "Standard",
       root: { type: "zone", id: "main" },
     });
   });
@@ -111,7 +110,6 @@ describe("record routes", () => {
 
   it("lists each template file and leaves templates out of the published document", async () => {
     await site.write("templates", "animal", {
-      title: "Animal",
       isLocked: true,
       layoutId: "standard",
       zones: { main: { html: "<h2>Animal name</h2>" } },
@@ -119,7 +117,7 @@ describe("record routes", () => {
     await mkdir(join(siteDir, "templates"), { recursive: true });
     await writeFile(
       join(siteDir, "templates", "visit.yaml"),
-      "id: visit\ntitle: Visit\nzones:\n  main:\n    html: \"<p>When to come.</p>\"\n",
+      "id: visit\nzones:\n  main:\n    html: \"<p>When to come.</p>\"\n",
       "utf8",
     );
 
@@ -140,10 +138,11 @@ describe("record routes", () => {
     expect(doc?.pages.some((page) => page.id === "animal" || page.id === "visit")).toBe(false);
     await site.writeFromDocument(doc!);
     const template = await site.read("templates", "animal");
-    expect(template.title).toBe("Animal");
+    expect(template.title).toBeUndefined();
     expect(template.isLocked).toBe(true);
     const dropped = await site.read("templates", "visit");
-    expect(dropped.title).toBe("Visit");
+    expect(dropped.title).toBeUndefined();
+    expect(dropped.id).toBe("visit");
   });
 
   it("lists and updates a content record", async () => {
@@ -181,7 +180,6 @@ describe("record routes", () => {
 
   it("marks page zones the layout does not declare as off-layout", async () => {
     await site.write("layouts", "standard", {
-      title: "Standard",
       root: {
         type: "region",
         children: [

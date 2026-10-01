@@ -45,7 +45,7 @@ function linksFromSource(
       if (!page) continue;
       out.push({
         id: page.id,
-        title: item.title ?? page.title,
+        title: page.title,
         sidebar: inherit.sidebar,
         topbar: inherit.topbar,
         footer: inherit.footer,

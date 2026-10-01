@@ -1,5 +1,4 @@
 id: weekly-meetings
-title: Weekly meetings
 match:
   pageIdPrefix: meeting-
 layoutId: meeting

@@ -48,7 +48,7 @@ export function renderPicker(listing: LibraryListing, mode: PickerMode, openId: 
   const folderButtons = folders
     .map(
       (folder) =>
-        `<button type="button" class="w3-button w3-white" data-open-folder="${escapeHtml(folder.id)}">${escapeHtml(folder.title)}</button>${
+        `<button type="button" class="w3-button w3-white" data-open-folder="${escapeHtml(folder.id)}">${escapeHtml(folder.id)}</button>${
           mode === "folder"
             ? `<button type="button" class="w3-button w3-theme" data-pick-folder="${escapeHtml(folder.id)}">Choose</button>`
             : ""
@@ -88,7 +88,7 @@ export function folderChecklist(folders: FolderRow[], selected: string[]): strin
   return folders
     .map((folder) => {
       const checked = selected.includes(folder.id) ? " checked" : "";
-      return `<p class="editor-check"><label><input type="checkbox" data-folder-id="${escapeHtml(folder.id)}"${checked} /> ${escapeHtml(folder.title)}</label></p>`;
+      return `<p class="editor-check"><label><input type="checkbox" data-folder-id="${escapeHtml(folder.id)}"${checked} /> ${escapeHtml(folder.id)}</label></p>`;
     })
     .join("");
 }

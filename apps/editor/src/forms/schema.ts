@@ -61,7 +61,6 @@ export const CONTENT_FORM: FormSchema = {
 export const TEMPLATE_FORM: FormSchema = {
   fields: [
     { name: "id", label: "Id", type: "string", readOnly: true, required: true },
-    { name: "title", label: "Title", type: "string", required: true },
     { name: "isLocked", label: "Lock layout on new pages", type: "Checkbox" },
     { name: "layoutId", label: "Layout", type: "string" },
   ],

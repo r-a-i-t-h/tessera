@@ -30,7 +30,7 @@ describe("compose palette", () => {
     if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
     mountComposeCanvases(form, {
       bindings: [],
-      folders: [{ id: "lambs", title: "Lambs" }],
+      folders: [{ id: "lambs" }],
       htmlByZone: { main: "" },
     });
 
@@ -129,7 +129,7 @@ describe("compose palette", () => {
     if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
     mountComposeCanvases(form, {
       bindings: [],
-      folders: [{ id: "lambs", title: "Lambs" }],
+      folders: [{ id: "lambs" }],
       htmlByZone: {
         main: `<h2>Animal name</h2><div class="tessera-page-gallery" data-tessera="gallery" data-folder="" data-mode="grid"></div>`,
       },

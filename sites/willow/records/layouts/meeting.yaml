@@ -1,5 +1,4 @@
 id: meeting
-title: Weekly meeting (agenda + minutes)
 root:
   type: region
   role: content

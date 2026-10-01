@@ -146,12 +146,11 @@ export type RecordList = {
 
 export type PageLayoutHint = {
   layoutId: string;
-  layoutTitle?: string;
   layoutSource: "page" | "section" | "site";
   sectionId?: string;
   declaredZones: string[];
   offLayoutZones: string[];
-  layouts: Record<string, { title?: string; zones: string[] }>;
+  layouts: Record<string, { zones: string[] }>;
 };
 
 export type SnapshotRef = {
@@ -299,7 +298,7 @@ export function restoreExample(name: string): Promise<RestoreResult> {
   return request(`/api/examples/${encodeURIComponent(name)}/restore`, { method: "POST" });
 }
 
-export type LibraryFolder = { id: string; title: string; parentId: string | null; sort?: number };
+export type LibraryFolder = { id: string; parentId: string | null; sort?: number };
 export type LibraryAsset = {
   id: string;
   name: string;
@@ -318,14 +317,14 @@ export function getLibrary(): Promise<LibraryListing> {
   return request("/api/library");
 }
 
-export function createLibraryFolder(title: string, parentId?: string): Promise<{ ok: true }> {
+export function createLibraryFolder(id: string, parentId?: string): Promise<{ ok: true }> {
   return request("/api/library/folders", {
     method: "POST",
-    body: JSON.stringify({ title, ...(parentId ? { parentId } : {}) }),
+    body: JSON.stringify({ id, ...(parentId ? { parentId } : {}) }),
   });
 }
 
-export function updateLibraryFolder(id: string, patch: { title?: string; parentId?: string | null }): Promise<{ ok: true }> {
+export function updateLibraryFolder(id: string, patch: { parentId?: string | null }): Promise<{ ok: true }> {
   return request(`/api/library/folders/${encodeURIComponent(id)}`, {
     method: "PATCH",
     body: JSON.stringify(patch),

@@ -3,8 +3,8 @@ import { assetDetail, childAssets, placement, renderLibrary, type LibraryListing
 
 const listing: LibraryListing = {
   folders: [
-    { id: "uploads", title: "Uploads", parentId: null },
-    { id: "hall", title: "Hall", parentId: "uploads" },
+    { id: "uploads", parentId: null },
+    { id: "hall", parentId: "uploads" },
   ],
   assets: [
     {

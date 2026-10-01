@@ -61,12 +61,9 @@ export function newPageBody(id: string, title: string): NewPageBody {
 }
 
 /** A prototype page. Compose fills `main`. It is not published. */
-export function newTemplateBody(id: string, title: string): { id: string; title: string; zones: { main: { html: string } } } {
-  const templateId = id.trim();
-  const name = title.trim() || templateId;
+export function newTemplateBody(id: string): { id: string; zones: { main: { html: string } } } {
   return {
-    id: templateId,
-    title: name,
+    id: id.trim(),
     zones: { main: { html: "" } },
   };
 }

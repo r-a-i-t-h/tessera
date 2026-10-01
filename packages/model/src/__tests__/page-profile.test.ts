@@ -24,13 +24,11 @@ function baseDoc(): SiteDocument {
     sections: [
       {
         id: "site-default",
-        title: "Tagged pages",
         match: { tags: ["page"] },
         layoutId: "standard",
       },
       {
         id: "events",
-        title: "Events",
         match: { tags: ["event"] },
         layoutId: "simple",
         children: [

@@ -66,8 +66,9 @@ Hierarchical **sections** switch layout/skin for slices of the site **without** 
 ### Pages and items
 
 - **Page** — a declared document: id, title, optional description, place in the published tree, body (zones), and whether it appears in nav. Resolved layout + zone contributions (+ optional includes).
+- **Title** is what a visitor reads: the page, the site, a nav entry, and a media file. Templates, items, layouts, section profiles, and folders have no title. The id is their name.
 - **Published page** — a page present in the document the publisher reads. An in-progress page is absent from that document. The publisher does not see a draft flag. History is a stack of earlier copies kept by the editor, and publish means “this copy is now the published page.”
-- **Item** — reusable content contribution (the collection formerly thought of as “lists” / “collections”). Lists and collections are the same idea; the vocabulary is **`items`**.
+- **Item** — reusable content contribution (the collection formerly thought of as “lists” / “collections”). Lists and collections are the same idea; the vocabulary is **`items`**. An item is named by its id.
 - Items may be shown **on a page** by a micro-app. A record that should have its own URL is its own page in the tree, not a child invented by a micro-app.
 
 ### Blocks

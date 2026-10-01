@@ -21,7 +21,6 @@ describe("gallery folder fragment", () => {
         {
           id: "sample-gallery",
           path: "./media/sample-gallery",
-          title: "Sample gallery",
           images: [
             { file: "01-red.svg" },
             { file: "02-amber.svg", caption: "Amber field" },

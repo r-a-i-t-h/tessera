@@ -22,7 +22,6 @@ export type LibraryAsset = {
 
 export type LibraryFolder = {
   id: string;
-  title?: string;
   parentId?: string;
 };
 
@@ -75,7 +74,7 @@ export function uniqueName(name: string, taken: Set<string>): string {
 }
 
 /**
- * Relative path from a drop, split into virtual folder titles and a filename.
+ * Relative path from a drop, split into folder ids and a filename.
  * `..` and empty segments are rejected.
  */
 export function splitRelativePath(relativePath: string): { folders: string[]; file: string } | undefined {
@@ -157,7 +156,6 @@ function toFolder(node: Record<string, unknown>, assets: LibraryAsset[]): Folder
   return {
     id,
     path: "./media",
-    ...(typeof node.title === "string" ? { title: node.title } : {}),
     images,
   };
 }

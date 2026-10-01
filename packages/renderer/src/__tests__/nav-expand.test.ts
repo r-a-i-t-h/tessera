@@ -38,14 +38,13 @@ describe("resolveNavTree", () => {
     const doc: SiteDocument = makeFixtureDoc();
     doc.items.push({
       id: "about",
-      title: "About (from item)",
       tags: ["listed"],
       zones: {},
     });
     doc.nav = [{ sidebar: true, heading: "Listed", source: { itemsTag: "listed" } }];
 
     const tree = resolveNavTree(doc);
-    expect(tree[0]!.children[0]).toMatchObject({ id: "about", title: "About (from item)" });
+    expect(tree[0]!.children[0]).toMatchObject({ id: "about", title: "About" });
   });
 
   it("copies footer onto links implied by a heading", () => {

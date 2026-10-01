@@ -152,8 +152,7 @@ function layoutBanner(layout?: PageLayoutHint): string {
       : layout.layoutSource === "section"
         ? `section ${layout.sectionId ?? ""}`.trim()
         : "site default";
-  const title = layout.layoutTitle ?? layout.layoutId;
-  return `<p class="w3-text-grey">Zones from layout <strong>${escapeHtml(title)}</strong> (${escapeHtml(via)}).</p>`;
+  return `<p class="w3-text-grey">Zones from layout <strong>${escapeHtml(layout.layoutId)}</strong> (${escapeHtml(via)}).</p>`;
 }
 
 function escapeHtml(value: string): string {

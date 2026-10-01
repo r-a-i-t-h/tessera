@@ -1,5 +1,4 @@
 id: profile
-title: Personnel profile
 root:
   type: region
   role: content

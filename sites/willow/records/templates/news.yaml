@@ -1,5 +1,4 @@
 id: news
-title: News
 isLocked: true
 layoutId: article
 tags:

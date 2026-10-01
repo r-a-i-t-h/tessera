@@ -30,9 +30,8 @@ describe("new page", () => {
   });
 
   it("starts a template as an empty prototype body", () => {
-    expect(newTemplateBody(" animal ", " Animal ")).toEqual({
+    expect(newTemplateBody(" animal ")).toEqual({
       id: "animal",
-      title: "Animal",
       zones: { main: { html: "" } },
     });
   });

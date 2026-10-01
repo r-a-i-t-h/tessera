@@ -1,5 +1,4 @@
 id: master
-title: Master
 root:
   type: region
   children:

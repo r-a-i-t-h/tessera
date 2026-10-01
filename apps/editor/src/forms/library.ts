@@ -1,6 +1,5 @@
 export type FolderRow = {
   id: string;
-  title: string;
   parentId: string | null;
 };
 
@@ -30,7 +29,7 @@ function escapeHtml(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
-/** Relative path from a drop, as virtual folder titles plus a filename. */
+/** Relative path from a drop, as folder ids plus a filename. */
 export function placement(relativePath: string): { folders: string[]; file: string } | undefined {
   const cleaned = relativePath.replace(/\\/g, "/").replace(/^\/+/, "");
   if (!cleaned || cleaned.includes("\0")) return undefined;
@@ -56,12 +55,12 @@ export function breadcrumb(folders: FolderRow[], openId: string | null): FolderR
   return trail;
 }
 
-function bySort(a: { sort?: number; name?: string; title?: string }, b: { sort?: number; name?: string; title?: string }): number {
+function bySort(a: { sort?: number; name?: string; id?: string }, b: { sort?: number; name?: string; id?: string }): number {
   const as = a.sort ?? Number.MAX_SAFE_INTEGER;
   const bs = b.sort ?? Number.MAX_SAFE_INTEGER;
   if (as !== bs) return as - bs;
-  const an = (a.name ?? a.title ?? "").toLowerCase();
-  const bn = (b.name ?? b.title ?? "").toLowerCase();
+  const an = (a.name ?? a.id ?? "").toLowerCase();
+  const bn = (b.name ?? b.id ?? "").toLowerCase();
   return an.localeCompare(bn);
 }
 
@@ -80,8 +79,8 @@ export function renderLibrary(listing: LibraryListing, openId: string | null, no
     `<a href="#/library">Library</a>`,
     ...trail.map((folder, index) =>
       index === trail.length - 1
-        ? `<span>${escapeHtml(folder.title)}</span>`
-        : `<a href="#/library/${encodeURIComponent(folder.id)}">${escapeHtml(folder.title)}</a>`,
+        ? `<span>${escapeHtml(folder.id)}</span>`
+        : `<a href="#/library/${encodeURIComponent(folder.id)}">${escapeHtml(folder.id)}</a>`,
     ),
   ].join(" / ");
   const folders = childFolders(listing.folders, openId);
@@ -90,9 +89,8 @@ export function renderLibrary(listing: LibraryListing, openId: string | null, no
   const rows = [
     ...folders.map(
       (folder) => `<li class="editor-library-row">
-        <a class="editor-library-name" href="#/library/${encodeURIComponent(folder.id)}">${escapeHtml(folder.title)}</a>
+        <a class="editor-library-name" href="#/library/${encodeURIComponent(folder.id)}">${escapeHtml(folder.id)}</a>
         <span class="w3-text-grey w3-small">Folder</span>
-        <button type="button" class="w3-button w3-small w3-white" data-rename-folder="${escapeHtml(folder.id)}">Rename</button>
         <button type="button" class="w3-button w3-small w3-white" data-delete-folder="${escapeHtml(folder.id)}">Delete</button>
       </li>`,
     ),
@@ -138,11 +136,11 @@ export function renderLibrary(listing: LibraryListing, openId: string | null, no
             <fieldset class="editor-fieldset">
               <legend>Put them in</legend>
               <p class="editor-check"><label><input type="radio" name="dest" value="uploads" checked /> Uploads</label></p>
-              <p class="editor-check"><label><input type="radio" name="dest" value="existing"${here ? "" : " disabled"} /> This folder${here ? ` (${escapeHtml(here.title)})` : ""}</label></p>
+              <p class="editor-check"><label><input type="radio" name="dest" value="existing"${here ? "" : " disabled"} /> This folder${here ? ` (${escapeHtml(here.id)})` : ""}</label></p>
               <p class="editor-check"><label><input type="radio" name="dest" value="choose" /> Existing folder</label>
                 <select name="folderId" class="w3-select w3-border">${destination}</select></p>
               <p class="editor-check"><label><input type="radio" name="dest" value="new" /> New folder</label>
-                <input name="folderTitle" class="w3-input w3-border" placeholder="Folder name" /></p>
+                <input name="folderTitle" class="w3-input w3-border" placeholder="Folder id" spellcheck="false" autocomplete="off" /></p>
             </fieldset>
             <p id="library-upload-status" class="w3-text-grey" hidden></p>
             <p><button type="submit" class="w3-button w3-theme">Add files</button></p>
@@ -156,7 +154,7 @@ function folderOptions(folders: FolderRow[], current: string | null): string {
   const options = folders
     .map((folder) => {
       const depth = breadcrumb(folders, folder.id).length - 1;
-      const label = `${"· ".repeat(Math.max(0, depth))}${folder.title}`;
+      const label = `${"· ".repeat(Math.max(0, depth))}${folder.id}`;
       return `<option value="${escapeHtml(folder.id)}"${folder.id === current ? " selected" : ""}>${escapeHtml(label)}</option>`;
     })
     .join("");
@@ -167,7 +165,7 @@ export function assetDetail(asset: AssetRow, folders: FolderRow[]): string {
   const options = folders
     .map(
       (folder) =>
-        `<option value="${escapeHtml(folder.id)}"${folder.id === asset.folderId ? " selected" : ""}>${escapeHtml(folder.title)}</option>`,
+        `<option value="${escapeHtml(folder.id)}"${folder.id === asset.folderId ? " selected" : ""}>${escapeHtml(folder.id)}</option>`,
     )
     .join("");
   return `<form id="asset-detail" data-asset="${escapeHtml(asset.id)}">

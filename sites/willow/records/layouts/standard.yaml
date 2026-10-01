@@ -1,5 +1,4 @@
 id: standard
-title: Standard page
 root:
   type: region
   role: content

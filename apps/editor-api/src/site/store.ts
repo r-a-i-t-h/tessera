@@ -48,13 +48,22 @@ export type RecordSummary = {
 
 export type PageLayoutHint = {
   layoutId: string;
-  layoutTitle?: string;
   layoutSource: "page" | "section" | "site";
   sectionId?: string;
   declaredZones: string[];
   offLayoutZones: string[];
-  layouts: Record<string, { title?: string; zones: string[] }>;
+  layouts: Record<string, { zones: string[] }>;
 };
+
+/** These records are named by id. A title on them is not public content. */
+const ID_NAMED_KINDS = new Set<RecordKind>(["templates", "items", "layouts", "sections", "folders"]);
+
+function dropPrivateTitle(kind: RecordKind, data: Record<string, unknown>): Record<string, unknown> {
+  if (!ID_NAMED_KINDS.has(kind) || !Object.prototype.hasOwnProperty.call(data, "title")) return data;
+  const next = { ...data };
+  delete next.title;
+  return next;
+}
 
 export class SiteStore {
   /** Directory that contains `content/<id>.history`. Defaults to `<siteDir>/history`. */
@@ -113,7 +122,7 @@ export class SiteStore {
   async read(kind: RecordKind, id: string): Promise<Record<string, unknown>> {
     this.assertId(id);
     const text = await readText(this.recordFile(kind, id));
-    const data = yamlToRecord(kind, text);
+    const data = dropPrivateTitle(kind, yamlToRecord(kind, text));
     if (data.id !== undefined && data.id !== id) {
       throw new Error(`File ${id}.yaml has id ${String(data.id)}.`);
     }
@@ -130,7 +139,6 @@ export class SiteStore {
     const layouts: PageLayoutHint["layouts"] = {};
     for (const layout of doc.layouts) {
       layouts[layout.id] = {
-        title: layout.title,
         zones: [...collectDeclaredZones(layout.root)],
       };
     }
@@ -138,7 +146,6 @@ export class SiteStore {
     const present = Object.keys(authored.zones ?? {});
     return {
       layoutId: profile.layoutId,
-      layoutTitle: layouts[profile.layoutId]?.title,
       layoutSource: profile.layoutSource,
       sectionId: profile.sectionId,
       declaredZones,
@@ -151,12 +158,16 @@ export class SiteStore {
     if (kind === "site") return readText(this.siteFile());
     if (kind === "nav") return readText(this.navFile());
     this.assertId(id);
-    return readText(this.recordFile(kind, id));
+    const text = await readText(this.recordFile(kind, id));
+    if (!ID_NAMED_KINDS.has(kind)) return text;
+    const parsed = yamlToRecord(kind, text);
+    if (!Object.prototype.hasOwnProperty.call(parsed, "title")) return text;
+    return recordToYaml(kind, { ...dropPrivateTitle(kind, parsed), id });
   }
 
   async write(kind: RecordKind, id: string, data: Record<string, unknown>): Promise<SaveResult> {
     this.assertId(id);
-    const record = { ...data, id };
+    const record = dropPrivateTitle(kind, { ...data, id });
     return this.commitRecord(kind, id, recordToYaml(kind, record));
   }
 
@@ -176,11 +187,15 @@ export class SiteStore {
       return { historyAppended: false, historyCount: 0, ...(snapshot ? { snapshot } : {}) };
     }
     this.assertId(id);
-    const data = yamlToRecord(kind, text);
-    if (data.id === undefined || String(data.id) !== id) {
+    const parsed = yamlToRecord(kind, text);
+    if (parsed.id === undefined || String(parsed.id) !== id) {
       throw new Error(`Raw file must include id: ${id}.`);
     }
-    return this.commitRecord(kind, id, text);
+    const data = dropPrivateTitle(kind, parsed);
+    const body = Object.prototype.hasOwnProperty.call(parsed, "title") && !Object.prototype.hasOwnProperty.call(data, "title")
+      ? recordToYaml(kind, { ...data, id })
+      : text;
+    return this.commitRecord(kind, id, body);
   }
 
   async pageHistory(id: string): Promise<HistorySummary[]> {

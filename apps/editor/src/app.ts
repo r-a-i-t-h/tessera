@@ -27,7 +27,6 @@ import {
   saveRawRecord,
   saveRecord,
   updateLibraryAsset,
-  updateLibraryFolder,
   updateUser,
   uploadLibrary,
   createLibraryFolder,
@@ -819,7 +818,6 @@ async function createTemplate(root: HTMLElement, user: PublicUser, listing: Reco
   const form = root.querySelector<HTMLFormElement>("#new-template-form");
   if (!form) return;
   const id = form.querySelector<HTMLInputElement>("#new-template-id")?.value ?? "";
-  const title = form.querySelector<HTMLInputElement>("#new-template-title")?.value ?? "";
   const existing = listing.records.filter((row) => row.kind === "templates").map((row) => row.id);
   const problem = pageIdError(id, existing);
   if (problem) {
@@ -829,15 +827,14 @@ async function createTemplate(root: HTMLElement, user: PublicUser, listing: Reco
   const button = form.querySelector<HTMLButtonElement>("button[type=submit]");
   if (button) button.disabled = true;
   const templateId = id.trim();
-  const templateTitle = title.trim() || templateId;
   try {
-    await saveRecord("templates", templateId, newTemplateBody(templateId, templateTitle));
+    await saveRecord("templates", templateId, newTemplateBody(templateId));
   } catch (err) {
     showNewPageError(form, err instanceof Error ? err.message : "Could not create the template.");
     if (button) button.disabled = false;
     return;
   }
-  pendingEdit = { mode: "compose", notice: `Created ${templateTitle}.` };
+  pendingEdit = { mode: "compose", notice: `Created ${templateId}.` };
   const hash = `#/templates/${encodeURIComponent(templateId)}`;
   if (window.location.hash === hash) await render(root);
   else window.location.hash = hash;
@@ -1116,10 +1113,7 @@ function templateSection(rows: RecordSummary[], siteReady: boolean): string {
       <p><label for="new-template-id">Id</label>
         <input id="new-template-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
       </p>
-      <p class="w3-text-grey">One file, <code>records/templates/&lt;id&gt;.yaml</code>. Copy that file to reuse the template on another site.</p>
-      <p><label for="new-template-title">Title</label>
-        <input id="new-template-title" name="title" class="w3-input w3-border w3-margin-top" required />
-      </p>
+      <p class="w3-text-grey">One file, <code>records/templates/&lt;id&gt;.yaml</code>. Copy that file to reuse the template on another site. Start with a letter or number, then letters, numbers, dots, hyphens, or underscores.</p>
       <p data-form-error class="w3-panel w3-pale-red" role="alert" hidden></p>
       <p><button type="submit" class="w3-button w3-theme">Create template</button></p>
     </form>
@@ -1133,10 +1127,15 @@ function editsBody(kind: string | undefined): boolean {
 function recordList(rows: RecordSummary[]): string {
   return `<ul class="w3-ul">
     ${rows
-      .map(
-        (row) =>
-          `<li><a href="#/${encodeURIComponent(row.kind)}/${encodeURIComponent(row.id)}">${escapeHtml(row.title ?? row.id)}</a> <span class="w3-text-grey w3-small">${escapeHtml(row.id)}</span></li>`,
-      )
+      .map((row) => {
+        const publicTitle = row.kind === "site" || row.kind === "content" || row.kind === "nav";
+        const label = publicTitle ? (row.title ?? row.id) : row.id;
+        const idNote =
+          publicTitle && row.title && row.title !== row.id
+            ? ` <span class="w3-text-grey w3-small">${escapeHtml(row.id)}</span>`
+            : "";
+        return `<li><a href="#/${encodeURIComponent(row.kind)}/${encodeURIComponent(row.id)}">${escapeHtml(label)}</a>${idNote}</li>`;
+      })
       .join("")}
   </ul>`;
 }
@@ -1320,7 +1319,7 @@ async function mountPageCanvas(
       .map((row) => ({ id: row.id, title: row.title }));
     folders = listing.records
       .filter((row) => row.kind === "folders")
-      .map((row) => ({ id: row.id, title: row.title }));
+      .map((row) => ({ id: row.id }));
   } catch {
     bindings = [];
     folders = [];
@@ -1394,7 +1393,7 @@ function fieldsHtml(
   kind: string,
   data: unknown,
   layout?: PageLayoutHint,
-  galleryFolders: { id: string; title: string; parentId: string | null }[] = [],
+  galleryFolders: { id: string; parentId: string | null }[] = [],
 ): string {
   if (Array.isArray(data) || !data || typeof data !== "object") {
     return renderForm(
@@ -1432,8 +1431,7 @@ function layoutBanner(layout?: PageLayoutHint): string {
       : layout.layoutSource === "section"
         ? `section ${layout.sectionId ?? ""}`.trim()
         : "site default";
-  const title = layout.layoutTitle ?? layout.layoutId;
-  return `<p class="w3-text-grey">Zones from layout <strong>${escapeHtml(title)}</strong> (${escapeHtml(via)}).</p>`;
+  return `<p class="w3-text-grey">Zones from layout <strong>${escapeHtml(layout.layoutId)}</strong> (${escapeHtml(via)}).</p>`;
 }
 
 function zoneFields(zones: Record<string, unknown>, layout?: PageLayoutHint): string {
@@ -1542,7 +1540,7 @@ function pruneEmptyHtmlZones(data: unknown): unknown {
   return { ...record, zones: next };
 }
 
-async function galleryFolderRows(): Promise<{ id: string; title: string; parentId: string | null }[]> {
+async function galleryFolderRows(): Promise<{ id: string; parentId: string | null }[]> {
   try {
     const listing = await getLibrary();
     return listing.folders;
@@ -1553,7 +1551,7 @@ async function galleryFolderRows(): Promise<{ id: string; title: string; parentI
 
 function bindingFields(
   record: Record<string, unknown>,
-  folders: { id: string; title: string; parentId: string | null }[],
+  folders: { id: string; parentId: string | null }[],
 ): string {
   const props =
     record.props && typeof record.props === "object" && !Array.isArray(record.props)
@@ -1763,10 +1761,10 @@ async function bindLibrary(root: HTMLElement, user: PublicUser, openId: string |
     dropped = [];
   });
   root.querySelector("[data-action=new-folder]")?.addEventListener("click", () => {
-    const title = window.prompt("Folder name");
-    if (!title?.trim()) return;
-    void createLibraryFolder(title.trim(), openId ?? undefined)
-      .then(() => bindLibrary(root, user, openId, `Created ${title.trim()}.`))
+    const id = window.prompt("Folder id");
+    if (!id?.trim()) return;
+    void createLibraryFolder(id.trim(), openId ?? undefined)
+      .then(() => bindLibrary(root, user, openId, `Created ${id.trim()}.`))
       .catch((err) => bindLibrary(root, user, openId, err instanceof Error ? err.message : "Could not create the folder."));
   });
   for (const button of root.querySelectorAll<HTMLButtonElement>("[data-delete-folder]")) {
@@ -1776,15 +1774,6 @@ async function bindLibrary(root: HTMLElement, user: PublicUser, openId: string |
       void deleteLibraryFolder(id)
         .then(() => bindLibrary(root, user, openId, "Folder deleted."))
         .catch((err) => bindLibrary(root, user, openId, err instanceof Error ? err.message : "Could not delete the folder."));
-    });
-  }
-  for (const button of root.querySelectorAll<HTMLButtonElement>("[data-rename-folder]")) {
-    button.addEventListener("click", () => {
-      const id = button.dataset.renameFolder;
-      const current = listing.folders.find((folder) => folder.id === id);
-      const title = window.prompt("Folder name", current?.title ?? "");
-      if (!id || !title?.trim()) return;
-      void updateLibraryFolder(id, { title: title.trim() }).then(() => bindLibrary(root, user, openId, "Folder renamed."));
     });
   }
   for (const button of root.querySelectorAll<HTMLButtonElement>("[data-edit-asset]")) {
@@ -1861,7 +1850,7 @@ async function submitLibraryUpload(
       const status = form.querySelector<HTMLElement>("#library-upload-status");
       if (status) {
         status.hidden = false;
-        status.textContent = "Name the new folder.";
+        status.textContent = "Give the new folder an id.";
       }
       return;
     }

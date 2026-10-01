@@ -26,12 +26,12 @@ libraryRoutes.post("/library/folders", async (c) => {
   if (isResponse(user)) return user;
   const site = c.get("site");
   if (!site) return apiError(c, 404, "No site data directory configured.");
-  const body = (await c.req.json().catch(() => null)) as { title?: unknown; parentId?: unknown } | null;
-  const title = typeof body?.title === "string" ? body.title.trim() : "";
-  if (!title) return apiError(c, 400, "A folder needs a name.");
+  const body = (await c.req.json().catch(() => null)) as { id?: unknown; parentId?: unknown } | null;
+  const id = typeof body?.id === "string" ? body.id.trim() : "";
+  if (!id) return apiError(c, 400, "A folder needs an id.");
   const parentId = typeof body?.parentId === "string" && body.parentId ? body.parentId : undefined;
   try {
-    const folder = await libraryFor(site, c.get("siteRoot")).createFolder(title, parentId);
+    const folder = await libraryFor(site, c.get("siteRoot")).createFolder(id, parentId);
     const rebuilt = await site.rebuild();
     return c.json({ ok: true, folder, ...(rebuilt.snapshot ? { snapshot: rebuilt.snapshot } : {}) });
   } catch (err) {
@@ -45,13 +45,11 @@ libraryRoutes.patch("/library/folders/:id", async (c) => {
   const site = c.get("site");
   if (!site) return apiError(c, 404, "No site data directory configured.");
   const body = (await c.req.json().catch(() => null)) as {
-    title?: unknown;
     parentId?: unknown;
     sort?: unknown;
   } | null;
   try {
     await libraryFor(site, c.get("siteRoot")).patchFolder(c.req.param("id"), {
-      ...(typeof body?.title === "string" ? { title: body.title } : {}),
       ...(body && "parentId" in body ? { parentId: typeof body.parentId === "string" ? body.parentId : null } : {}),
       ...(typeof body?.sort === "number" ? { sort: body.sort } : {}),
     });

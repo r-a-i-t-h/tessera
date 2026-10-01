@@ -13,7 +13,7 @@ import {
 } from "@r-a-i-t-h/tessera-sections";
 
 export type BindingChoice = { id: string; title?: string };
-export type FolderChoice = { id: string; title?: string };
+export type FolderChoice = { id: string };
 
 type Choices = { bindings: BindingChoice[]; folders: FolderChoice[] };
 
@@ -372,8 +372,7 @@ function bodyFor(node: EditNode, choices: Choices, zone: string, locked: boolean
     case "youtube":
       return youtubeBody(node);
     case "gallery": {
-      const folder = choices.folders.find((item) => item.id === node.folder);
-      const name = node.folder ? (folder?.title && folder.title !== node.folder ? `${folder.title} (${node.folder})` : node.folder) : "Choose a folder";
+      const name = node.folder || "Choose a folder";
       return `<p class="w3-panel w3-pale-yellow">Gallery: ${escapeText(name)} (${node.mode === "slides" ? "slides" : "grid"})</p>`;
     }
     case "pasted":
@@ -944,7 +943,7 @@ function folderOptions(folders: FolderChoice[], current: string): string {
   const ids = folders.some((folder) => folder.id === current) || !current ? folders : [{ id: current }, ...folders];
   const options = [`<option value="">Choose…</option>`];
   for (const folder of ids) {
-    const label = folder.title && folder.title !== folder.id ? `${folder.title} (${folder.id})` : folder.id;
+    const label = folder.id;
     options.push(`<option value="${escapeAttr(folder.id)}"${folder.id === current ? " selected" : ""}>${escapeText(label)}</option>`);
   }
   return options.join("");
