@@ -206,7 +206,7 @@ export async function restoreExample(
   let heldUsers = false;
   try {
     try {
-      await rename(join(dataDir, "users"), join(hold, "users"));
+      await moveTree(join(dataDir, "users"), join(hold, "users"));
       heldUsers = true;
     } catch (err) {
       const code = (err as NodeJS.ErrnoException).code;
@@ -217,7 +217,7 @@ export async function restoreExample(
     await extractTar(archive, dataDir);
     await adoptLegacyRecordsDir(dataDir);
     await rm(join(dataDir, "users"), { recursive: true, force: true });
-    if (heldUsers) await rename(join(hold, "users"), join(dataDir, "users"));
+    if (heldUsers) await moveTree(join(hold, "users"), join(dataDir, "users"));
     if (!(await isFile(join(dataDir, "meta.json")))) {
       throw new Error("Example is not a site (missing meta.json)");
     }
@@ -253,6 +253,12 @@ async function assertSiteArchive(archive: string): Promise<void> {
   } finally {
     await rm(probeDir, { recursive: true, force: true });
   }
+}
+
+/** Copy then delete. `rename` fails with EXDEV when the hold dir is on another mount. */
+async function moveTree(from: string, to: string): Promise<void> {
+  await cp(from, to, { recursive: true });
+  await rm(from, { recursive: true });
 }
 
 async function rollback(dataDir: string, backupDir: string, safetyName: string): Promise<void> {
