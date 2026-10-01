@@ -6,7 +6,24 @@ body {
 .editor-main {
   max-width: 32rem;
   margin: 2rem auto;
-  padding: 0 1rem 3rem;
+  padding: 0 1rem 4.5rem;
+}
+
+.editor-footer {
+  position: fixed;
+  z-index: 12;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  height: 2rem;
+  padding: 0 1rem;
+  background: #fff;
+  border-top: 1px solid #ddd;
+  color: #555;
+  font-size: 0.8rem;
 }
 
 .editor-wide {

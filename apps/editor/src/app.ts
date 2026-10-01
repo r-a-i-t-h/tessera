@@ -1,4 +1,5 @@
 import { stringify as stringifyYaml } from "yaml";
+import { version as tesseraVersion } from "../../../package.json";
 import {
   ApiError,
   createBackup,
@@ -84,7 +85,8 @@ function chrome(user: PublicUser, inner: string, wide = false): string {
       <button type="button" class="w3-bar-item w3-button w3-right" data-action="logout">Sign out</button>
     </header>
     <p id="render-status" class="editor-render-status" hidden></p>
-    <main class="editor-main${wide ? " editor-wide" : ""}">${inner}</main>`;
+    <main class="editor-main${wide ? " editor-wide" : ""}">${inner}</main>
+    ${editorFooter()}`;
 }
 
 function loginView(error = "", username = ""): string {
@@ -102,7 +104,12 @@ function loginView(error = "", username = ""): string {
         <input id="password" name="password" type="password" class="w3-input w3-border w3-margin-top" autocomplete="current-password" required />
       </p>
       <p><button type="submit" class="w3-button w3-theme">Sign in</button></p>
-    </form></main>`;
+    </form></main>
+    ${editorFooter()}`;
+}
+
+function editorFooter(): string {
+  return `<footer class="editor-footer"><span class="editor-footer-version">v${escapeHtml(tesseraVersion)}</span></footer>`;
 }
 
 export async function mount(root: HTMLElement): Promise<void> {
