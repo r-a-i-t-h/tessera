@@ -66,6 +66,17 @@ export function logout(): Promise<{ ok: true }> {
   return request("/auth/logout", { method: "POST" });
 }
 
+export function changePassword(
+  currentPassword: string,
+  newPassword: string,
+  confirmPassword: string,
+): Promise<{ ok: true }> {
+  return request("/auth/password", {
+    method: "POST",
+    body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
+  });
+}
+
 export function ping(): Promise<PingResult> {
   return request("/api/ping", { method: "POST" });
 }

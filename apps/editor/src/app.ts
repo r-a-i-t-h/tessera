@@ -11,6 +11,7 @@ import {
   getRecord,
   listBackups,
   listRecords,
+  changePassword,
   login,
   logout,
   me,
@@ -73,7 +74,7 @@ function escapeHtml(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
-type EditorSection = "home" | "records" | "library" | "backups" | "styles";
+type EditorSection = "home" | "records" | "library" | "backups" | "styles" | "account";
 
 function chrome(user: PublicUser, inner: string, wide = false, section: EditorSection = "home"): string {
   const link = (href: string, label: string, key: EditorSection) => {
@@ -89,7 +90,7 @@ function chrome(user: PublicUser, inner: string, wide = false, section: EditorSe
       <button type="button" class="w3-bar-item w3-button" data-action="render-site">Render site</button>
       <button type="button" class="w3-bar-item w3-button" data-action="publish-site">Publish</button>
       <button type="button" class="w3-bar-item w3-button w3-right" data-action="logout">Sign out</button>
-      <span class="w3-bar-item w3-right w3-small">${escapeHtml(user.username)}</span>
+      <a class="w3-bar-item w3-button w3-right${section === "account" ? " w3-white" : ""}" href="#/account" title="Account"${section === "account" ? ' aria-current="page"' : ""}>${escapeHtml(user.username)}</a>
     </header>
     <p id="render-status" class="editor-render-status" hidden></p>
     <main class="editor-main${wide ? " editor-wide" : ""}">${inner}</main>
@@ -141,7 +142,8 @@ async function render(root: HTMLElement): Promise<void> {
   const pending = pendingEdit;
   pendingEdit = undefined;
   try {
-    if (route.page === "backups") await bindBackups(root, user);
+    if (route.page === "account") await bindAccount(root, user);
+    else if (route.page === "backups") await bindBackups(root, user);
     else if (route.page === "styles") await bindStyles(root, user);
     else if (route.page === "library") await bindLibrary(root, user, route.id);
     else if (route.page === "records") await bindList(root, user, route.kind);
@@ -171,6 +173,7 @@ type Route =
   | { page: "library"; id: string | null }
   | { page: "backups" }
   | { page: "styles" }
+  | { page: "account" }
   | { page: "edit"; kind: string; id: string }
   | { page: "missing" };
 
@@ -187,6 +190,7 @@ function parseRoute(): Route {
   if (head === "library") return { page: "library", id: rest || null };
   if (head === "backups") return rest ? { page: "missing" } : { page: "backups" };
   if (head === "styles") return rest ? { page: "missing" } : { page: "styles" };
+  if (head === "account") return rest ? { page: "missing" } : { page: "account" };
   if (!rest || rest.includes("/")) return { page: "missing" };
   return { page: "edit", kind: head, id: rest };
 }
@@ -334,6 +338,71 @@ function publishNotice(result: PublishResult): string {
   }
   const file = result.dist.snapshot ? ` ${result.dist.snapshot.file}.` : "";
   return `Published the snapshot dist to publish/.${file} Copy that folder to the live host.`;
+}
+
+async function bindAccount(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {
+  root.innerHTML = chrome(user, accountHtml(user, notice, error), false, "account");
+  bindChrome(root);
+  const form = root.querySelector<HTMLFormElement>("#password-form");
+  form?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const data = new FormData(form);
+    const currentPassword = String(data.get("currentPassword") ?? "");
+    const newPassword = String(data.get("newPassword") ?? "");
+    const confirmPassword = String(data.get("confirmPassword") ?? "");
+    const problem = passwordChangeError(currentPassword, newPassword, confirmPassword);
+    if (problem) {
+      void bindAccount(root, user, "", problem);
+      return;
+    }
+    const button = form.querySelector("button");
+    if (button) button.disabled = true;
+    void (async () => {
+      try {
+        await changePassword(currentPassword, newPassword, confirmPassword);
+        await bindAccount(root, user, "Password changed. Other sessions for this account were signed out.");
+      } catch (err) {
+        await bindAccount(
+          root,
+          user,
+          "",
+          err instanceof Error ? err.message : "Could not change the password.",
+        );
+      }
+    })();
+  });
+}
+
+function accountHtml(user: PublicUser, notice: string, error: string): string {
+  return `<h1 class="w3-large">Account</h1>
+    <p class="w3-text-grey">Signed in as <strong>${escapeHtml(user.username)}</strong>.</p>
+    ${statusHtml(notice, error)}
+    <form id="password-form" class="w3-card w3-white w3-padding-large editor-card">
+      <h2 class="w3-medium">Change password</h2>
+      <p class="w3-text-grey">A new site starts with a publicly known password. Replace it before anyone else can reach this editor.</p>
+      <p>
+        <label for="current-password">Current password</label>
+        <input id="current-password" name="currentPassword" type="password" class="w3-input w3-border w3-margin-top" autocomplete="current-password" required />
+      </p>
+      <p>
+        <label for="new-password">New password</label>
+        <input id="new-password" name="newPassword" type="password" class="w3-input w3-border w3-margin-top" autocomplete="new-password" minlength="6" required />
+      </p>
+      <p>
+        <label for="confirm-password">Confirm new password</label>
+        <input id="confirm-password" name="confirmPassword" type="password" class="w3-input w3-border w3-margin-top" autocomplete="new-password" minlength="6" required />
+      </p>
+      <p><button type="submit" class="w3-button w3-theme">Change password</button></p>
+    </form>`;
+}
+
+function passwordChangeError(currentPassword: string, newPassword: string, confirmPassword: string): string {
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    return "Current password, new password, and confirmation are required.";
+  }
+  if (newPassword.length < 6) return "Password must be at least 6 characters.";
+  if (newPassword !== confirmPassword) return "New password and confirmation do not match.";
+  return "";
 }
 
 function bindLogin(root: HTMLElement, error?: string, username = ""): void {
