@@ -43,6 +43,7 @@ mkdir -p "$DEST/dist" "$DEST/spa"
 
 echo "pack-release: bundling server"
 # npm packages stay external. Bundling yaml breaks its dynamic require("process").
+# sharp is CommonJS plus a native binary; bundling it breaks require("node:util").
 node_modules/esbuild/bin/esbuild apps/editor-api/src/server.ts \
   --bundle \
   --platform=node \
@@ -52,6 +53,7 @@ node_modules/esbuild/bin/esbuild apps/editor-api/src/server.ts \
   --external:@hono/node-server \
   --external:yaml \
   --external:zod \
+  --external:sharp \
   --outfile="$DEST/dist/server.js"
 
 if [ ! -f "$DEST/dist/server.js" ]; then
@@ -79,7 +81,7 @@ printf '%s\n' "$TAG" >"$DEST/VERSION"
 node - "$DEST/package.json" <<'EOF'
 const { readFileSync, writeFileSync } = require("node:fs");
 const lock = JSON.parse(readFileSync("package-lock.json", "utf8"));
-const names = ["@hono/node-server", "hono", "yaml", "zod"];
+const names = ["@hono/node-server", "hono", "yaml", "zod", "sharp"];
 const dependencies = {};
 for (const name of names) {
   const version = lock.packages["node_modules/" + name]?.version;
