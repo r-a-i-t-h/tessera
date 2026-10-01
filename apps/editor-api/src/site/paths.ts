@@ -98,6 +98,31 @@ export function resolveSpaDir(
   return candidates.find((dir) => existsSync(join(dir, "index.html")));
 }
 
+/**
+ * Built `tessera.js`, `tessera-pages.js`, and skin CSS.
+ * A checkout uses `apps/site/dist` and `packages/skin-w3/css` after
+ * `npm run build -w @r-a-i-t-h/tessera-site`. A release carries the same
+ * bytes at `<root>/runtime` and `<root>/skin`.
+ */
+export function resolveRuntimeDirs(
+  apiRoot: string,
+  monorepoRoot: string,
+): { bundleDir: string; skinDir: string } {
+  const checkoutBundle = join(monorepoRoot, "apps", "site", "dist");
+  const releaseBundle = join(apiRoot, "runtime");
+  const checkoutSkin = join(monorepoRoot, "packages", "skin-w3", "css");
+  const releaseSkin = join(apiRoot, "skin");
+  const checkout = existsSync(join(monorepoRoot, "sites"));
+  let bundleDir = releaseBundle;
+  if (existsSync(join(checkoutBundle, "tessera.js"))) bundleDir = checkoutBundle;
+  else if (existsSync(join(releaseBundle, "tessera.js"))) bundleDir = releaseBundle;
+  else if (checkout) bundleDir = checkoutBundle;
+  return {
+    bundleDir,
+    skinDir: existsSync(checkoutSkin) ? checkoutSkin : releaseSkin,
+  };
+}
+
 /** Where a rebuilt dist copies its runtime and skin from. */
 export function resolveDistTarget(dataRoot: string, apiRoot: string): {
   publishDir: string;
@@ -105,12 +130,9 @@ export function resolveDistTarget(dataRoot: string, apiRoot: string): {
   bundleDir: string;
   skinDir: string;
 } {
-  const checkoutBundle = join(repoRoot, "apps", "site", "dist");
-  const checkoutSkin = join(repoRoot, "packages", "skin-w3", "css");
   return {
     publishDir: join(dataRoot, "publish"),
     shellIndex: join(dataRoot, "shell", "index.html"),
-    bundleDir: existsSync(checkoutBundle) ? checkoutBundle : apiRoot,
-    skinDir: existsSync(checkoutSkin) ? checkoutSkin : join(apiRoot, "skin"),
+    ...resolveRuntimeDirs(apiRoot, repoRoot),
   };
 }

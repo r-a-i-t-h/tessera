@@ -23,8 +23,13 @@ esac
 echo "pack-release: installing dependencies"
 npm ci
 
-echo "pack-release: building editor ($TAG)"
-npm run build -w @r-a-i-t-h/tessera-editor -w @r-a-i-t-h/tessera-editor-api
+echo "pack-release: building editor and site runtime ($TAG)"
+npm run build -w @r-a-i-t-h/tessera-site -w @r-a-i-t-h/tessera-editor -w @r-a-i-t-h/tessera-editor-api
+
+if [ ! -f apps/site/dist/tessera.js ] || [ ! -f apps/site/dist/tessera-pages.js ]; then
+  echo "pack-release: site runtime missing after build" >&2
+  exit 1
+fi
 
 if [ ! -f apps/editor/dist/index.html ]; then
   echo "pack-release: apps/editor/dist/index.html missing after build" >&2
@@ -62,6 +67,9 @@ if [ ! -f "$DEST/dist/server.js" ]; then
 fi
 
 cp -R apps/editor/dist/. "$DEST/spa/"
+mkdir -p "$DEST/runtime" "$DEST/skin"
+cp apps/site/dist/*.js "$DEST/runtime/"
+cp packages/skin-w3/css/*.css "$DEST/skin/"
 cp -R apps/editor-api/seed "$DEST/seed"
 mkdir -p "$DEST/seed/examples"
 for name in pure ineffable millersark willow; do
