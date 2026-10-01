@@ -114,8 +114,7 @@ export function renderLibrary(listing: LibraryListing, openId: string | null, no
   const browse = empty
     ? `<p class="w3-text-grey">This folder is empty.</p>`
     : `<ul class="w3-ul editor-library">${rows}</ul>`;
-  return `<p><a href="#/">← Records</a></p>
-    <h1 class="w3-large">Library</h1>
+  return `<h1 class="w3-large">Library</h1>
     ${notice ? `<p class="w3-panel w3-pale-green" role="status">${escapeHtml(notice)}</p>` : ""}
     <div class="editor-library-split">
       <section class="editor-library-browse" aria-label="Folders and files">

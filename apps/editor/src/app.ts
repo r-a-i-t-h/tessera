@@ -73,16 +73,23 @@ function escapeHtml(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function chrome(user: PublicUser, inner: string, wide = false): string {
+type EditorSection = "home" | "records" | "library" | "backups" | "styles";
+
+function chrome(user: PublicUser, inner: string, wide = false, section: EditorSection = "home"): string {
+  const link = (href: string, label: string, key: EditorSection) => {
+    const current = section === key;
+    return `<a class="w3-bar-item w3-button${current ? " w3-white" : ""}" href="${href}"${current ? ' aria-current="page"' : ""}>${label}</a>`;
+  };
   return `<header class="w3-bar w3-theme">
-      <a class="w3-bar-item w3-button" href="#/">Tessera editor</a>
-      <a class="w3-bar-item w3-button" href="#/library">Library</a>
-      <a class="w3-bar-item w3-button" href="#/backups">Backups</a>
-      <a class="w3-bar-item w3-button" href="#/styles">Styles</a>
+      ${link("#/", "Tessera editor", "home")}
+      ${link("#/records", "Records", "records")}
+      ${link("#/library", "Library", "library")}
+      ${link("#/backups", "Backups", "backups")}
+      ${link("#/styles", "Styles", "styles")}
       <button type="button" class="w3-bar-item w3-button" data-action="render-site">Render site</button>
       <button type="button" class="w3-bar-item w3-button" data-action="publish-site">Publish</button>
-      <span class="w3-bar-item w3-small">${escapeHtml(user.username)}</span>
       <button type="button" class="w3-bar-item w3-button w3-right" data-action="logout">Sign out</button>
+      <span class="w3-bar-item w3-right w3-small">${escapeHtml(user.username)}</span>
     </header>
     <p id="render-status" class="editor-render-status" hidden></p>
     <main class="editor-main${wide ? " editor-wide" : ""}">${inner}</main>
@@ -134,33 +141,54 @@ async function render(root: HTMLElement): Promise<void> {
   const pending = pendingEdit;
   pendingEdit = undefined;
   try {
-    if (route.kind === "backups") await bindBackups(root, user);
-    else if (route.kind === "styles") await bindStyles(root, user);
-    else if (route.kind === "library") await bindLibrary(root, user, route.id && route.id !== "library" ? route.id : null);
-    else if (!route.kind || !route.id) await bindList(root, user);
-    else {
+    if (route.page === "backups") await bindBackups(root, user);
+    else if (route.page === "styles") await bindStyles(root, user);
+    else if (route.page === "library") await bindLibrary(root, user, route.id);
+    else if (route.page === "records") await bindList(root, user, route.kind);
+    else if (route.page === "edit") {
       const mode = editsBody(route.kind) ? (pending?.mode ?? "compose") : "fields";
       await bindEdit(root, user, route.kind, route.id, mode, pending?.notice ?? "");
-    }
+    } else if (route.page === "missing") {
+      root.innerHTML = chrome(
+        user,
+        `<h1 class="w3-large">Not found</h1><p><a href="#/">Back to the editor</a></p>`,
+      );
+      bindChrome(root);
+    } else await bindHome(root, user);
   } catch (err) {
     root.innerHTML = chrome(
       user,
       `<p class="w3-panel w3-pale-red" role="alert">${escapeHtml(err instanceof Error ? err.message : "Error")}</p>
-       <p><a href="#/">Back to records</a></p>`,
+       <p><a href="#/">Back to the editor</a></p>`,
     );
     bindChrome(root);
   }
 }
 
-function parseRoute(): { kind?: string; id?: string } {
+type Route =
+  | { page: "home" }
+  | { page: "records"; kind?: string }
+  | { page: "library"; id: string | null }
+  | { page: "backups" }
+  | { page: "styles" }
+  | { page: "edit"; kind: string; id: string }
+  | { page: "missing" };
+
+function parseRoute(): Route {
   const path = window.location.hash.replace(/^#\/?/, "");
-  if (!path) return {};
+  if (!path) return { page: "home" };
   const slash = path.indexOf("/");
-  if (slash === -1) return { kind: decodeURIComponent(path), id: decodeURIComponent(path) };
-  return {
-    kind: decodeURIComponent(path.slice(0, slash)),
-    id: decodeURIComponent(path.slice(slash + 1)),
-  };
+  const head = decodeURIComponent(slash === -1 ? path : path.slice(0, slash));
+  const rest = slash === -1 ? "" : decodeURIComponent(path.slice(slash + 1));
+  if (head === "records") {
+    if (rest.includes("/")) return { page: "missing" };
+    return { page: "records", kind: rest || undefined };
+  }
+  if (head === "library") return { page: "library", id: rest || null };
+  if (head === "backups") return rest ? { page: "missing" } : { page: "backups" };
+  if (head === "styles") return rest ? { page: "missing" } : { page: "styles" };
+  if (!rest || rest.includes("/")) return { page: "missing" };
+  return { page: "edit", kind: head, id: rest };
 }
 
 const previewUrl = "/preview/";
@@ -202,6 +230,7 @@ async function bindStyles(root: HTMLElement, user: PublicUser, notice = "", erro
       user,
       `<h1 class="w3-large">Styles</h1><p>This site has no site record yet.</p>`,
       true,
+      "styles",
     );
     bindChrome(root);
     return;
@@ -211,7 +240,7 @@ async function bindStyles(root: HTMLElement, user: PublicUser, notice = "", erro
     payload.data && typeof payload.data === "object" && !Array.isArray(payload.data)
       ? (payload.data as Record<string, unknown>)
       : {};
-  root.innerHTML = chrome(user, stylesPageHtml(record, notice, error), true);
+  root.innerHTML = chrome(user, stylesPageHtml(record, notice, error), true, "styles");
   bindChrome(root);
   const form = root.querySelector<HTMLFormElement>("#style-form");
   if (!form) return;
@@ -251,7 +280,7 @@ async function runRender(root: HTMLElement): Promise<void> {
     const result = await renderSite();
     if (status) {
       status.className = "editor-render-status w3-pale-green";
-      status.textContent = renderNotice(result);
+      status.innerHTML = renderNotice(result);
     }
   } catch (err) {
     if (status) {
@@ -266,8 +295,8 @@ async function runRender(root: HTMLElement): Promise<void> {
 
 function renderNotice(result: RenderResult): string {
   const pages = `${result.pages} ${result.pages === 1 ? "page" : "pages"}`;
-  const snapshot = result.snapshot ? ` Snapshot ${result.snapshot.file}.` : "";
-  return `Rendered ${pages} into the preview.${snapshot} Reload ${previewUrl} to see it.`;
+  const snapshot = result.snapshot ? ` Snapshot ${escapeHtml(result.snapshot.file)}.` : "";
+  return `Rendered ${pages} into the preview.${snapshot} <a href="${previewUrl}">Reload ${previewUrl}</a> to see it.`;
 }
 
 async function runPublish(root: HTMLElement): Promise<void> {
@@ -326,22 +355,42 @@ function bindLogin(root: HTMLElement, error?: string, username = ""): void {
   });
 }
 
-async function bindList(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {
-  const listing = await listRecords();
-  root.innerHTML = chrome(user, listHtml(listing, notice, error), true);
-  bindChrome(root);
+function bindInitSite(
+  root: HTMLElement,
+  again: (notice: string, error: string) => Promise<void>,
+): void {
   root.querySelector("[data-action=init-site]")?.addEventListener("click", () => {
     void (async () => {
       const button = root.querySelector<HTMLButtonElement>("[data-action=init-site]");
       if (button) button.disabled = true;
       try {
         await initSite();
-        await bindList(root, user, "Started an empty site with a master layout and a home page.");
+        await again("Started an empty site with a master layout and a home page.", "");
       } catch (err) {
-        await bindList(root, user, "", err instanceof Error ? err.message : "Could not start a site.");
+        await again("", err instanceof Error ? err.message : "Could not start a site.");
       }
     })();
   });
+}
+
+async function bindHome(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {
+  const listing = await listRecords();
+  root.innerHTML = chrome(user, homeHtml(listing, notice, error), false, "home");
+  bindChrome(root);
+  bindInitSite(root, (nextNotice, nextError) => bindHome(root, user, nextNotice, nextError));
+}
+
+async function bindList(
+  root: HTMLElement,
+  user: PublicUser,
+  kind?: string,
+  notice = "",
+  error = "",
+): Promise<void> {
+  const listing = await listRecords();
+  root.innerHTML = chrome(user, listHtml(listing, kind, notice, error), true, "records");
+  bindChrome(root);
+  bindInitSite(root, (nextNotice, nextError) => bindList(root, user, kind, nextNotice, nextError));
   root.querySelector("[data-action=new-page]")?.addEventListener("click", () => {
     const form = root.querySelector<HTMLFormElement>("#new-page-form");
     if (!form) return;
@@ -497,7 +546,7 @@ function navControls(form: HTMLFormElement): ControlValue[] {
 
 async function bindBackups(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {
   const listing = await listBackups();
-  root.innerHTML = chrome(user, backupsHtml(listing, notice, error), true);
+  root.innerHTML = chrome(user, backupsHtml(listing, notice, error), true, "backups");
   bindChrome(root);
   root.querySelector("[data-action=backup]")?.addEventListener("click", async () => {
     const button = root.querySelector<HTMLButtonElement>("[data-action=backup]");
@@ -610,52 +659,84 @@ function formatBytes(size: number): string {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function listHtml(listing: RecordList, notice = "", error = ""): string {
+function homeHtml(listing: RecordList, notice = "", error = ""): string {
+  const site = listing.records.find((row) => row.kind === "site");
+  const body = site
+    ? `<p>This site is <strong>${escapeHtml(site.title ?? site.id)}</strong>.</p>
+       <p><a class="w3-button w3-theme" href="${previewUrl}">Open preview</a>
+          <a class="w3-button w3-white" href="#/records">Records</a></p>`
+    : startSiteHtml();
+  return `<h1 class="w3-large">Tessera editor</h1>
+    ${statusHtml(notice, error)}
+    <p class="w3-text-grey">YAML files named with Tessera <code>id</code>, outside the web root. Saving a page appends the previous file to a history file and refreshes the preview at <code>${previewUrl}</code>. <strong>Render site</strong> rebuilds that preview for every page. <strong>Publish</strong> writes the copyable <code>publish/</code> folder, and leaves it alone until the next time you publish.</p>
+    ${body}`;
+}
+
+function startSiteHtml(): string {
+  return `<p><button type="button" class="w3-button w3-theme" data-action="init-site">Start an empty site</button></p>
+    <p class="w3-text-grey">This writes a shell, a master layout, a page layout, and a home page into the instance directory. It does not replace a site that already has records.</p>`;
+}
+
+function statusHtml(notice: string, error: string): string {
+  return `${notice ? `<p class="w3-panel w3-pale-green" role="status">${escapeHtml(notice)}</p>` : ""}
+    ${error ? `<p class="w3-panel w3-pale-red" role="alert">${escapeHtml(error)}</p>` : ""}`;
+}
+
+function listHtml(listing: RecordList, selected?: string, notice = "", error = ""): string {
   const byKind = new Map<string, RecordSummary[]>();
   for (const rec of listing.records) {
     const list = byKind.get(rec.kind) ?? [];
     list.push(rec);
     byKind.set(rec.kind, list);
   }
-  const empty = !listing.records.some((row) => row.kind === "site");
-  const hidden = new Set(["media", "folders"]);
-  const sections = listing.kinds
-    .filter((kind) => !hidden.has(kind.kind))
+  const known = listing.kinds.some((kind) => kind.kind === selected);
+  const active = selected && known ? selected : selected ? undefined : listing.kinds[0]?.kind;
+  const siteReady = listing.records.some((row) => row.kind === "site");
+  const tabs = listing.kinds
     .map((kind) => {
-      const rows = byKind.get(kind.kind) ?? [];
-      if (kind.kind === "content" && !empty) return contentSection(kind.label, rows, byKind.get("templates") ?? []);
-      if (kind.kind === "templates" && !empty) return templateSection(kind.label, rows);
-      if (!rows.length) return "";
-      return kindSection(kind.label, rows);
+      const on = kind.kind === active;
+      return `<a class="w3-button ${on ? "w3-theme" : "w3-white"}" href="#/records/${encodeURIComponent(kind.kind)}"${on ? ' aria-current="page"' : ""}>${escapeHtml(kind.label)}</a>`;
     })
     .join("");
-  const start = empty
-    ? `<p><button type="button" class="w3-button w3-theme" data-action="init-site">Start an empty site</button></p>
-       <p class="w3-text-grey">This writes a shell, a master layout, a page layout, and a home page into the instance directory. It does not replace a site that already has records.</p>`
-    : "";
   return `<h1 class="w3-large">Records</h1>
-    ${notice ? `<p class="w3-panel w3-pale-green" role="status">${escapeHtml(notice)}</p>` : ""}
-    ${error ? `<p class="w3-panel w3-pale-red" role="alert">${escapeHtml(error)}</p>` : ""}
-    <p class="w3-text-grey">YAML files named with Tessera <code>id</code>, outside the web root. Saving a page appends the previous file to a history file and refreshes the SPA preview at <code>/preview/</code>. <strong>Render site</strong> rebuilds that preview for every page. <strong>Publish</strong> writes the copyable <code>publish/</code> folder, and leaves it alone until the next time you publish.</p>
-    <p><a class="w3-button w3-theme" href="#/library">Library</a></p>
-    ${start}
-    ${sections || (empty ? "" : "<p>No records yet.</p>")}`;
+    ${statusHtml(notice, error)}
+    ${siteReady ? "" : startSiteHtml()}
+    <nav class="editor-tabs" aria-label="Record types">${tabs}</nav>
+    ${recordTab(listing, active, byKind, siteReady)}`;
 }
 
-function kindSection(label: string, rows: RecordSummary[]): string {
-  return `<section class="editor-kind">
-    <h2 class="w3-medium">${escapeHtml(label)}</h2>
-    ${recordList(rows)}
-  </section>`;
+function recordTab(
+  listing: RecordList,
+  active: string | undefined,
+  byKind: Map<string, RecordSummary[]>,
+  siteReady: boolean,
+): string {
+  const kind = listing.kinds.find((item) => item.kind === active);
+  if (!kind) return `<p class="w3-text-grey">That record type is not in this editor.</p>`;
+  const rows = byKind.get(kind.kind) ?? [];
+  const body =
+    kind.kind === "content"
+      ? contentSection(rows, byKind.get("templates") ?? [], siteReady)
+      : kind.kind === "templates"
+        ? templateSection(rows, siteReady)
+        : kindPanel(kind.kind, rows);
+  return `<section class="editor-kind" aria-label="${escapeHtml(kind.label)}">${body}</section>`;
 }
 
-function contentSection(label: string, rows: RecordSummary[], templates: RecordSummary[]): string {
+function kindPanel(kind: string, rows: RecordSummary[]): string {
+  const library =
+    kind === "media" || kind === "folders"
+      ? `<p class="w3-text-grey">These records are also managed in the <a href="#/library">Library</a>.</p>`
+      : "";
+  return `${library}${rows.length ? recordList(rows) : `<p class="w3-text-grey">No records yet.</p>`}`;
+}
+
+function contentSection(rows: RecordSummary[], templates: RecordSummary[], siteReady: boolean): string {
+  if (!siteReady) return `<p class="w3-text-grey">No records yet.</p>`;
   const options = templates
     .map((row) => `<option value="${escapeHtml(row.id)}">${escapeHtml(row.title ?? row.id)}</option>`)
     .join("");
-  return `<section class="editor-kind">
-    <h2 class="w3-medium">${escapeHtml(label)}</h2>
-    <p><button type="button" class="w3-button w3-theme" data-action="new-page">New page</button></p>
+  return `<p><button type="button" class="w3-button w3-theme" data-action="new-page">New page</button></p>
     <form id="new-page-form" class="editor-new-page" hidden>
       <p><label for="new-page-id">Id</label>
         <input id="new-page-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
@@ -675,14 +756,12 @@ function contentSection(label: string, rows: RecordSummary[], templates: RecordS
       <p data-form-error class="w3-panel w3-pale-red" role="alert" hidden></p>
       <p><button type="submit" class="w3-button w3-theme">Create page</button></p>
     </form>
-    ${rows.length ? recordList(rows) : ""}
-  </section>`;
+    ${rows.length ? recordList(rows) : `<p class="w3-text-grey">No records yet.</p>`}`;
 }
 
-function templateSection(label: string, rows: RecordSummary[]): string {
-  return `<section class="editor-kind">
-    <h2 class="w3-medium">${escapeHtml(label)}</h2>
-    <p><button type="button" class="w3-button w3-theme" data-action="new-template">New template</button></p>
+function templateSection(rows: RecordSummary[], siteReady: boolean): string {
+  if (!siteReady) return `<p class="w3-text-grey">No records yet.</p>`;
+  return `<p><button type="button" class="w3-button w3-theme" data-action="new-template">New template</button></p>
     <form id="new-template-form" class="editor-new-page" hidden>
       <p><label for="new-template-id">Id</label>
         <input id="new-template-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
@@ -694,8 +773,7 @@ function templateSection(label: string, rows: RecordSummary[]): string {
       <p data-form-error class="w3-panel w3-pale-red" role="alert" hidden></p>
       <p><button type="submit" class="w3-button w3-theme">Create template</button></p>
     </form>
-    ${rows.length ? recordList(rows) : ""}
-  </section>`;
+    ${rows.length ? recordList(rows) : `<p class="w3-text-grey">No records yet.</p>`}`;
 }
 
 function editsBody(kind: string | undefined): boolean {
@@ -758,7 +836,7 @@ async function bindEdit(
         : `${navNote}${fieldsHtml(kind, record ?? payload.data, payload.layout, galleryFolders)}`;
   root.innerHTML = chrome(
     user,
-    `<p><a href="#/">← Records</a></p>
+    `<p><a href="#/records/${encodeURIComponent(kind)}">← Records</a></p>
      <h1 class="w3-large">${escapeHtml(kind)} / ${escapeHtml(id)}</h1>
      ${lifecycleHtml(payload)}
      ${notice ? `<p class="w3-panel w3-pale-green" role="status">${escapeHtml(notice)}</p>` : ""}
@@ -783,6 +861,7 @@ async function bindEdit(
      </form>
      ${historyHtml(payload)}`,
     true,
+    "records",
   );
   bindChrome(root);
   if (editMode === "compose") root.querySelector(".editor-main")?.classList.add("editor-compose");
@@ -1305,7 +1384,7 @@ let libraryAddOpen = true;
 
 async function bindLibrary(root: HTMLElement, user: PublicUser, openId: string | null, notice = ""): Promise<void> {
   const listing = await getLibrary();
-  root.innerHTML = chrome(user, renderLibrary(listing, openId, notice, libraryAddOpen), true);
+  root.innerHTML = chrome(user, renderLibrary(listing, openId, notice, libraryAddOpen), true, "library");
   bindChrome(root);
   const addPanel = root.querySelector<HTMLDetailsElement>("#library-add");
   addPanel?.addEventListener("toggle", () => {
