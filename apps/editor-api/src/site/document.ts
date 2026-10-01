@@ -7,7 +7,7 @@ import type {
   Media,
   NavEntry,
   Page,
-  Section,
+  Type,
   SiteDocument,
   SiteMeta,
 } from "@r-a-i-t-h/tessera-model";
@@ -29,7 +29,8 @@ export type AuthoredPage = {
   slug?: string;
   parentId?: string;
   showInNav?: boolean;
-  layoutId?: string;
+  type?: string;
+  fields?: Record<string, string>;
   tags?: string[];
   includes?: string[];
   zones?: Record<string, ZoneAuthoring>;
@@ -109,7 +110,8 @@ export function pageToAuthoring(page: Page): AuthoredPage {
     ...(page.slug ? { slug: page.slug } : {}),
     ...(page.parentId ? { parentId: page.parentId } : {}),
     ...(page.showInNav === false ? { showInNav: false } : {}),
-    ...(page.layoutId ? { layoutId: page.layoutId } : {}),
+    ...(page.type ? { type: page.type } : {}),
+    ...(page.fields && Object.keys(page.fields).length ? { fields: page.fields } : {}),
     ...(page.tags?.length ? { tags: page.tags } : {}),
     ...(page.includes?.length ? { includes: page.includes } : {}),
     zones: zonesToAuthoring(page.zones),
@@ -132,7 +134,8 @@ export function authoredPageToPage(raw: AuthoredPage): Page {
     ...(raw.slug ? { slug: raw.slug } : {}),
     ...(raw.parentId ? { parentId: raw.parentId } : {}),
     ...(raw.showInNav === false ? { showInNav: false } : {}),
-    ...(raw.layoutId ? { layoutId: raw.layoutId } : {}),
+    ...(raw.type ? { type: raw.type } : {}),
+    ...(raw.fields && Object.keys(raw.fields).length ? { fields: raw.fields } : {}),
     ...(raw.tags ? { tags: raw.tags } : {}),
     ...(raw.includes ? { includes: raw.includes } : {}),
     zones: authoringToZones(raw.zones),
@@ -154,7 +157,7 @@ export type SplitSite = {
   items: AuthoredItem[];
   layouts: Layout[];
   bindings: Binding[];
-  sections: Section[];
+  types: Type[];
   media: Media[];
   folders: Folder[];
 };
@@ -167,7 +170,7 @@ export function splitDocument(doc: SiteDocument): SplitSite {
     items: (doc.items ?? []).map(itemToAuthoring),
     layouts: doc.layouts,
     bindings: doc.bindings ?? [],
-    sections: doc.sections ?? [],
+    types: doc.types ?? [],
     media: doc.media ?? [],
     folders: doc.folders ?? [],
   };
@@ -180,7 +183,7 @@ export type LoadedSite = {
   items: AuthoredItem[];
   layouts: Layout[];
   bindings: Binding[];
-  sections: Section[];
+  types: Type[];
   media: Media[];
   folders: Folder[];
 };
@@ -199,7 +202,7 @@ export function assembleDocument(parts: LoadedSite): SiteDocument {
     folders: projected.folders,
     nav: parts.nav,
     bindings: parts.bindings,
-    sections: parts.sections,
+    types: parts.types,
   });
 }
 

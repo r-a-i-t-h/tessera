@@ -1,0 +1,9 @@
+id: event
+layoutId: article
+fields:
+  - id: date
+    required: true
+  - id: precis
+    required: true
+  - id: time
+  - id: where

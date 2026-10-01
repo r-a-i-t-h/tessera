@@ -1,16 +1,13 @@
 id: person
 isLocked: true
-layoutId: profile
-tags:
-  - person
 includes:
   - common-footer
 zones:
-  meta:
-    json:
-      role: ""
-      email: ""
-      photo: ""
-      summary: ""
   main:
     html: ""
+type: person
+fields:
+  role: ""
+  email: ""
+  photo: ""
+  precis: ""

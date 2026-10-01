@@ -20,6 +20,7 @@ export function templateBodyLayout(): PageLayoutHint {
   return {
     layoutId: "",
     layoutSource: "site",
+    fields: [],
     declaredZones: ["main"],
     offLayoutZones: [],
     layouts: {},
@@ -146,12 +147,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function layoutBanner(layout?: PageLayoutHint): string {
   if (!layout?.layoutId) return "";
-  const via =
-    layout.layoutSource === "page"
-      ? "page override"
-      : layout.layoutSource === "section"
-        ? `section ${layout.sectionId ?? ""}`.trim()
-        : "site default";
+  const via = layout.layoutSource === "type" ? `type ${layout.typeId ?? ""}`.trim() : "site default";
   return `<p class="w3-text-grey">Zones from layout <strong>${escapeHtml(layout.layoutId)}</strong> (${escapeHtml(via)}).</p>`;
 }
 

@@ -44,19 +44,23 @@ export type RecordSummary = {
   kind: RecordKind | "site" | "nav";
   id: string;
   title?: string;
+  /** Content entries only. */
+  type?: string;
+  tags?: string[];
 };
 
 export type PageLayoutHint = {
   layoutId: string;
-  layoutSource: "page" | "section" | "site";
-  sectionId?: string;
+  layoutSource: "type" | "site";
+  typeId?: string;
+  fields: { id: string; required?: boolean }[];
   declaredZones: string[];
   offLayoutZones: string[];
   layouts: Record<string, { zones: string[] }>;
 };
 
 /** These records are named by id. A title on them is not public content. */
-const ID_NAMED_KINDS = new Set<RecordKind>(["templates", "items", "layouts", "sections", "folders"]);
+const ID_NAMED_KINDS = new Set<RecordKind>(["templates", "items", "layouts", "types", "folders"]);
 
 function dropPrivateTitle(kind: RecordKind, data: Record<string, unknown>): Record<string, unknown> {
   if (!ID_NAMED_KINDS.has(kind) || !Object.prototype.hasOwnProperty.call(data, "title")) return data;
@@ -109,10 +113,15 @@ export class SiteStore {
     for (const kind of RECORD_KINDS) {
       for (const id of await this.listIds(kind)) {
         const data = await this.read(kind, id);
+        const tags = Array.isArray(data.tags)
+          ? data.tags.filter((tag): tag is string => typeof tag === "string" && tag.trim() !== "")
+          : [];
         out.push({
           kind,
           id,
           title: typeof data.title === "string" ? data.title : id,
+          ...(kind === "content" && typeof data.type === "string" && data.type ? { type: data.type } : {}),
+          ...(kind === "content" && tags.length ? { tags } : {}),
         });
       }
     }
@@ -144,10 +153,15 @@ export class SiteStore {
     }
     const declaredZones = layouts[profile.layoutId]?.zones ?? [];
     const present = Object.keys(authored.zones ?? {});
+    const type = doc.types?.find((item) => item.id === profile.typeId);
     return {
       layoutId: profile.layoutId,
       layoutSource: profile.layoutSource,
-      sectionId: profile.sectionId,
+      ...(profile.typeId ? { typeId: profile.typeId } : {}),
+      fields: (type?.fields ?? []).map((field) => ({
+        id: field.id,
+        ...(field.required ? { required: true } : {}),
+      })),
       declaredZones,
       offLayoutZones: present.filter((id) => !declaredZones.includes(id)),
       layouts,
@@ -430,7 +444,7 @@ export class SiteStore {
       items: await this.loadKind("items"),
       layouts: await this.loadKind("layouts"),
       bindings: await this.loadKind("bindings"),
-      sections: await this.loadKind("sections"),
+      types: await this.loadKind("types"),
       media: await this.loadKind("media"),
       folders: await this.loadKind("folders"),
     };

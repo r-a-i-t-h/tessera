@@ -2,18 +2,16 @@ id: person-priya-nair
 title: Priya Nair
 templateId: person
 locked: true
-tags:
-  - person
 includes:
   - common-footer
 zones:
   title:
     html: Priya Nair
-  meta:
-    json:
-      role: Events lead
-      email: priya@willow.example
-      photo: photo-priya
-      summary: Events lead
   main:
     html: <p>Priya plots the public programme — markets, music, and the harvest sitting plan.</p><p>Sed porttitor lectus nibh. Curabitur aliquet quam id dui posuere blandit. Quisque velit nisi, pretium ut lacinia in, elementum id enim. Cras ultricies ligula sed magna dictum porta.</p><p>Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec vel mauris lectus. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.</p><p><a href="#people">All people</a></p>
+type: person
+fields:
+  role: Events lead
+  email: priya@willow.example
+  photo: photo-priya
+  precis: Events lead

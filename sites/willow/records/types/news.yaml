@@ -1,0 +1,8 @@
+id: news
+layoutId: article
+fields:
+  - id: date
+    required: true
+  - id: precis
+    required: true
+  - id: author

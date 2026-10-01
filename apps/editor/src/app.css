@@ -228,6 +228,24 @@ body {
   margin: 0 0 1rem;
 }
 
+.editor-entry-filter {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 0.75rem;
+  align-items: end;
+  margin: 0 0 1rem;
+}
+
+.editor-entry-filter p {
+  margin: 0;
+}
+
+@media (max-width: 40rem) {
+  .editor-entry-filter {
+    grid-template-columns: 1fr;
+  }
+}
+
 .editor-main.editor-compose {
   max-width: 80rem;
 }

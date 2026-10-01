@@ -6,7 +6,7 @@ import { ComponentRegistry } from "../registry.js";
 
 const document = parseSiteDocument({
   version: 2,
-  site: { id: "hall", title: "Willow Hall", homePageId: "home", masterLayoutId: "master" },
+  site: { id: "hall", title: "Willow Hall", homePageId: "home", masterLayoutId: "master", defaultLayoutId: "L" },
   layouts: [
     {
       id: "master",

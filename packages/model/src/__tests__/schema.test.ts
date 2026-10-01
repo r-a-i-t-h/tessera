@@ -95,7 +95,7 @@ describe("SiteDocument schema", () => {
     expect(captionFromFilename("01-hello-world.svg")).toBe("Hello World");
   });
 
-  it("parses section profiles", () => {
+  it("parses site-defined types", () => {
     const doc = parseSiteDocument({
       version: 2,
       site: { id: "s", title: "S", homePageId: "p1", defaultLayoutId: "L" },
@@ -108,17 +108,18 @@ describe("SiteDocument schema", () => {
           },
         },
       ],
-      pages: [{ id: "p1", title: "P", tags: ["event"], zones: {} }],
-      sections: [
+      pages: [{ id: "p1", title: "P", type: "event", fields: { date: "2026-10-18" }, zones: {} }],
+      types: [
         {
-          id: "events",
-          match: { tags: ["event"] },
+          id: "event",
           layoutId: "L",
+          fields: [{ id: "date", required: true }],
         },
       ],
     });
-    expect(doc.sections[0]!.id).toBe("events");
-    expect(doc.pages[0]!.layoutId).toBeUndefined();
+    expect(doc.types[0]!.id).toBe("event");
+    expect(doc.pages[0]!.type).toBe("event");
+    expect(doc.pages[0]!.fields?.date).toBe("2026-10-18");
   });
 
   it("collectDeclaredZones walks the layout tree", () => {

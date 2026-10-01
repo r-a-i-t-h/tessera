@@ -1,7 +1,5 @@
 id: about
 title: About us
-tags:
-  - page
 includes:
   - common-footer
 zones:

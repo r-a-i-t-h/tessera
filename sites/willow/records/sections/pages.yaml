@@ -1,5 +1,0 @@
-id: pages
-match:
-  tags:
-    - page
-layoutId: standard

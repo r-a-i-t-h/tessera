@@ -49,24 +49,22 @@ The whole text/data payload for a site is one **`SiteDocument`**: site meta, lay
 - A **layout** is a tree of regions, zones, static HTML, components, and at most one **page** slot.
 - **Only layouts declare zones** and where they appear on the page.
 - `site.masterLayoutId` names the outer page (the frame: header, nav, drawer). Its `page` node is replaced by the page's own layout. Content cannot fill that node. Nav is a component placed in the master. The shell is the document head, one mount, and CSS.
-- A **page** may set `layoutId` explicitly, or omit it and inherit from **section profiles** / `site.defaultLayoutId`.
+- A **page** uses the layout of its site-defined **type**, or `site.defaultLayoutId` when it has no type.
 - A page may pull in shared **items** and contribute blocks into zones.
 - Contributions to zones the layout does not declare are not painted, but may remain available as data for components (e.g. JSON for a list).
 
-### Section profiles
+### Types
 
-Hierarchical **sections** switch layout/skin for slices of the site **without** recursive content templates:
+A **type** is site configuration, not a built-in class. `{ id, layoutId?, fields[] }`. An entry points at one type. The type's layout is the page layout. A page with no type uses `site.defaultLayoutId` and is reached through the page tree.
 
-- `document.sections[]` is a shallow tree: `{ id, match, layoutId?, children? }`.
-- `match` uses tags and/or `pageIdPrefix` (present fields are ANDed; empty match matches all).
-- Resolution order: `site.defaultLayoutId` → matching sections (deeper / later wins) → `page.layoutId` override.
-- Colour is a stylesheet linked from the shell. The document does not name a skin.
-- Layouts remain first-class; sections never invent zones. Within-page variety stays regions, bindings, and layout WCs.
+Fields are scalar values on the entry (`date`, `precis`, and whatever else the type names). `title` and the body zone are always available. A layout zone with no authored HTML shows the field of the same id. Subject `tags` filter. They do not choose the type or the layout.
+
+A listing behavior names the types it reads and, for dates, a window (`past`, `upcoming`, or all). It shows `title`, `date`, and `precis`. There is no built-in blog or event type. Willow's `event` and `news` types are examples that satisfy that behavior.
 
 ### Pages and items
 
 - **Page** — a declared document: id, title, optional description, place in the published tree, body (zones), and whether it appears in nav. Resolved layout + zone contributions (+ optional includes).
-- **Title** is what a visitor reads: the page, the site, a nav entry, and a media file. Templates, items, layouts, section profiles, and folders have no title. The id is their name.
+- **Title** is what a visitor reads: the page, the site, a nav entry, and a media file. Templates, items, layouts, types, and folders have no title. The id is their name.
 - **Published page** — a page present in the document the publisher reads. An in-progress page is absent from that document. The publisher does not see a draft flag. History is a stack of earlier copies kept by the editor, and publish means “this copy is now the published page.”
 - **Item** — reusable content contribution (the collection formerly thought of as “lists” / “collections”). Lists and collections are the same idea; the vocabulary is **`items`**. An item is named by its id.
 - Items may be shown **on a page** by a micro-app. A record that should have its own URL is its own page in the tree, not a child invented by a micro-app.
@@ -186,7 +184,7 @@ Nav is first-class document content, not merely demo chrome — and it is **dist
 - **Pages** may exist without appearing in any nav (reachability ≠ visibility).
 - **Designed nav** (`document.nav`) is authored structure for the snapshot flavour (hand-chosen pages, headings, nested children).
 - **Pages-flavour nav** is the published page tree, written into each HTML file at publish. It is not rebuilt in the browser, and a micro-app does not extend it. `source` expansion that grows a hierarchy from a collection is a snapshot-era blur; the pages flavour does not use it.
-- **Content-implied nav** on a snapshot uses `source` on a nav node (e.g. `pagesTag` / `itemsTag`) so tagged pages that already exist become link *data*. That does not create pages.
+- **Content-implied nav** on a snapshot uses `source` on a nav node (`pageType` / `itemsTag`) so entries of that type become link data. That does not create pages.
 - **Presentation is a component choice**, not a system mandate. Shipped options include tag grouping (`navTags`), full tree (`navTree`), and collapsible regions (`navCollapse`). Further presentations are added to the shared catalogue, so every site can name them. A component might render the same resolved tree as tags, a tree, or an accordion.
 - Physical shell chrome (drawer markup, overlay) remains a thin site/skin concern that *consumes* nav components or resolved nav data.
 
@@ -253,7 +251,7 @@ Gallery, layout primitives, nav, and bindings are in the product. Listings, a bl
 - **Compose** edits a page as sections and stores zone HTML. Fields and Raw file edit that same HTML. The section catalogue is `@r-a-i-t-h/tessera-sections`.
 - A **template** is `records/templates/<id>.yaml`. Publish skips that folder. A new page copied from one keeps tags, includes, and every zone except the title. A locked template sets `locked` on the page so the arrangement stays fixed while words and pictures stay editable. `locked` and `templateId` are editor fields; the published page omits them.
 - The **library** holds images and PDFs. A virtual move does not change the published URL. The **Styles** page edits chrome tokens on the site record.
-- A page is a page. Tags, sections, and layouts decide how it is presented. Structured fields are a JSON zone the catalogue components read. Editor forms are drawn from a field schema for the record kind (string, number, date, Checkbox, SingleSelect), including fields that have no value yet. Keys the schema does not name stay on the form. `schemaVersion` is the authoring-file format, not a Person field list. There is no content-type system and no per-page draft flag.
+- A page is a page. A site-defined type names its fields and its layout. Subject tags filter and do not choose the type. Editor forms are drawn from a field schema for the record kind (string, number, date, Checkbox, SingleSelect), including fields that have no value yet. Keys the schema does not name stay on the form. `schemaVersion` is the authoring-file format, not a Person field list. There is no per-page draft flag.
 - A content-page save appends the previous raw file to `$TESSERA_DATA/history/content/<id>.history`. That history is an editor file, not a field on the published page. The framing is a proof of concept; the authoring spec will replace it.
 - **Authoring schema** (`schemaVersion` in `$TESSERA_DATA/meta.json`) is separate from `SiteDocument.version`. `deploy/post-update.sh` is the [node-vps-kit](https://github.com/r-a-i-t-h/node-vps-kit) hook that applies `deploy/migrations/NNN-*.sh`. The app reads the counter and does not bump it. Records live inside `$TESSERA_DATA`, so a migration can rewrite them.
 - The renderer never depends on the editor. The editor does not host the renderer yet. Preview is the snapshot in `preview/`, served by the site runtime. Hosting that render beside Compose is the next editor step.
@@ -279,7 +277,7 @@ Criteria define “done enough,” not a build order (see [ROADMAP.md](./ROADMAP
 
 - [x] Bindings are site data (`document.bindings`) pairing content with a registered component under a public id.
 - [x] Content can insert a binding via `{{id}}` in text HTML and via a component block named with that id.
-- [x] Section profiles resolve layout/skin for matching pages (page override > section > site default) without recursive templates.
+- [x] A site-defined type resolves layout for its entries (type layout, otherwise site default) without recursive templates.
 - [ ] Items support list-on-page and as-pages presentation patterns in shipped components. Subpages lists child pages; a collection of records is still a binding.
 
 ### Navigation

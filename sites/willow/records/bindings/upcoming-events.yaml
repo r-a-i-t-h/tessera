@@ -1,6 +1,7 @@
 id: upcoming-events
 component: datedList
 props:
-  tag: event
+  types:
+    - event
+  when: upcoming
   limit: 3
-  upcoming: true

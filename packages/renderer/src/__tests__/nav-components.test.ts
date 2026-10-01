@@ -29,7 +29,7 @@ const document = parseSiteDocument({
   pages: [
     { id: "home", title: "Home", layoutId: "L", zones: {}, tags: ["page"] },
     { id: "events", title: "Events", parentId: "home", layoutId: "L", zones: {}, tags: ["page"] },
-    { id: "fair", title: "Summer fair", parentId: "events", layoutId: "L", zones: {}, tags: ["event"] },
+    { id: "fair", title: "Summer fair", parentId: "events", type: "event", zones: {} },
     { id: "orphan", title: "Orphan", layoutId: "L", zones: {} },
   ],
   nav: [
@@ -75,8 +75,8 @@ describe("linkCluster", () => {
     expect(html).not.toContain("Summer fair");
   });
 
-  it("lists pages with a tag as pills", () => {
-    const html = linkCluster(context(document, "home"), { source: "tag", tag: "event", variant: "pills" });
+  it("lists pages of a type as pills", () => {
+    const html = linkCluster(context(document, "home"), { source: "type", type: "event", variant: "pills" });
     expect(html).toContain("tessera-links-pills");
     expect(html).toContain('href="#fair"');
     expect(html).not.toContain('href="#home"');
@@ -94,7 +94,7 @@ describe("linkCluster", () => {
 
   it("renders nothing when the cluster is empty", () => {
     expect(linkCluster(context(document, "fair"), { source: "children" })).toBe("");
-    expect(linkCluster(context(document, "home"), { source: "tag", tag: "missing" })).toBe("");
+    expect(linkCluster(context(document, "home"), { source: "type", type: "missing" })).toBe("");
     expect(linkCluster(context(document, "home"), { source: "nav", heading: "Absent" })).toBe("");
   });
 });

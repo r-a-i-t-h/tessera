@@ -52,9 +52,9 @@ Dated site archives live in the sibling `backup/` directory (`TESSERA_BACKUP` ov
 ## Content model
 
 - **Layout** — tree of `region` | `zone` | `static` | `component` | `page`. **Only layouts declare zones** (and where they appear). `site.masterLayoutId` is the outer page. Its `page` node is replaced by the resolved page layout.
-- **Page** — `id`, `title`, optional `description`, optional `slug`, optional `parentId` (published tree; ignored on the home page), optional `showInNav` (`false` keeps the URL and drops the nav link), optional `layoutId` (override), optional `includes` (shared items), and `zones` contributions. There is no draft flag: every content page is in the flattened document. `locked` and `templateId` may sit on the YAML file and are omitted when the page is assembled. History is not a field on the page.
+- **Page** — `id`, `title`, optional `description`, optional `slug`, optional `parentId` (published tree; ignored on the home page), optional `showInNav` (`false` keeps the URL and drops the nav link), optional `type`, optional `fields`, optional subject `tags`, optional `includes` (shared items), and `zones` contributions. There is no draft flag: every content page is in the flattened document. `locked` and `templateId` may sit on the YAML file and are omitted when the page is assembled. History is not a field on the page.
 - **Style** — optional `site.style` tokens (sidebar width, bar, colours, fonts, nav side). Missing fields use the defaults in `style.ts`. The editor’s Styles page writes this object. Colour themes beyond those tokens stay in the shell stylesheet.
-- **Sections** — hierarchical presentation profiles (`match` by tags / `pageIdPrefix` → `layoutId`). Resolved by `resolvePageProfile`: site default → matching sections → page override. Colour is the shell's stylesheet, not a document field.
+- **Type** — site-defined `{ id, layoutId?, fields[] }`. `resolvePageProfile` uses that layout, otherwise `site.defaultLayoutId`. A type does not invent zones. Subject tags do not select it.
 - **Item** — reusable zone contributions (footer, promo, …), pulled in via `page.includes`.
 - **Blocks** inside a zone: `text` | `json` | `media` | `component`.
 - **Nav / media / site meta** — also in the flattened document.
@@ -72,7 +72,7 @@ sites/willow/
   history/                  # append-only page history, not published
   records/                  # YAML records, not on the web path
     site.yaml  nav.yaml
-    content/ templates/ items/ layouts/ bindings/ sections/ media/ folders/
+    content/ templates/ items/ layouts/ bindings/ types/ media/ folders/
   files/                    # flat asset blobs and editor thumbnails, not on the web path
   shell/                    # document shell, no TypeScript and no frame
     index.html  site.css
@@ -94,7 +94,7 @@ The editor process serves the working snapshot at `/preview/` on the editor orig
 
 ## Authoring files
 
-Records live in `$TESSERA_DATA/records/`, off the web path. Each record is one YAML file named with the same **`id`** the flattened document already uses (`page.id`, `item.id`, `layout.id`, `binding.id`, `section.id`, `media.id`, `folder.id`). A **title** is a public value: the page, the site, a nav entry, and a media file. Templates, items, layouts, section profiles, and folders have no title. Their id is the name.
+Records live in `$TESSERA_DATA/records/`, off the web path. Each record is one YAML file named with the same **`id`** the flattened document already uses (`page.id`, `item.id`, `layout.id`, `binding.id`, `type.id`, `media.id`, `folder.id`). A **title** is a public value: the page, the site, a nav entry, and a media file. Templates, items, layouts, types, and folders have no title. Their id is the name.
 
 | Folder / file | Holds |
 |---------------|--------|
@@ -103,22 +103,22 @@ Records live in `$TESSERA_DATA/records/`, off the web path. Each record is one Y
 | `items/*.yaml` | Shared items (e.g. footer) |
 | `layouts/*.yaml` | Layout trees (zone frames). Not page templates |
 | `bindings/*.yaml` | Data → component bindings |
-| `sections/*.yaml` | Section profiles |
+| `types/*.yaml` | Site-defined types: layout and field list |
 | `media/*.yaml` | Library files (image or PDF). Flatten derives `./media/<id>.<ext>`. |
 | `folders/*.yaml` | Virtual folders. A folder id is still a gallery source. |
-| `*/_order.yaml` | Record order (section order is significant) |
+| `*/_order.yaml` | Record order |
 | `site.yaml` | Site meta |
 | `nav.yaml` | Designed nav tree |
 
 HTML zones use YAML `|` / `|-` scalars (`html:`) so markup is not JSON-escaped. Component implementations live in the shared catalogue; only bindings are records.
 
-The editor form for a page lists zones declared by the resolved layout (page `layoutId` → matching section → site default). Extra keys on the page that the layout does not declare stay editable under **Off layout**. A flat JSON object becomes one text field per key already on the file. The editor does not have content types. A person page is a normal page: a tag selects a section, the section selects a layout, and catalogue components read a JSON zone (Willow’s `meta` holds `role`, `email`, `photo`, `summary`). Those keys live in the component, not in the engine. `schemaVersion` is how records are stored, not the list of person fields.
+The editor form for a page lists the type's fields, then zones declared by the resolved layout (the type's layout, otherwise the site default). Extra keys on the page that the layout does not declare stay editable under **Off layout**. A type is site configuration: it names fields and a layout. It is not a built-in class. Willow's person type lists `role`, `email`, `photo`, and `precis` on the entry. `schemaVersion` is how records are stored.
 
 Compose (`@r-a-i-t-h/tessera-sections`) parses a zone’s HTML into sections and paints it back. The saved file is that HTML, so Fields and Raw file edit the same page. A block that does not parse back stays raw HTML. A locked page keeps the section arrangement fixed and still edits the words and pictures inside it. A template is the same body, stored under `records/templates/`, and is not a layout.
 
 `npm run flatten:site` (or an editor save) writes `$TESSERA_DATA/preview/data/site.json` and stamps `<meta name="tessera-site">` in `shell/index.html`. **Publish** writes `$TESSERA_DATA/publish/` for copying. A pages dist is one HTML file per page plus `sitemap.xml`. A snapshot dist is the SPA shell, `publish/data/site.json`, the hashed file, and `rev.json`. `delivery` on `site.yaml` chooses that dist and defaults to `pages`. A pages dist needs `origin` (an absolute URL with no path). The preview is always the snapshot and ignores `delivery`.
 
-There is **no** recursive `parentId` template chain and **no** inventing zones from inside page HTML. Section profiles replace Rec-Tem-style “templates as content” for hierarchy-wide layout/theme switching.
+There is **no** recursive `parentId` template chain and **no** inventing zones from inside page HTML. A type chooses the layout for every entry of that type.
 
 ## Page history and authoring schema
 
@@ -201,7 +201,7 @@ Web components follow the same idea: implement with `WCBase`, `customElements.de
 
 1. Load + validate the hashed site file named by `<meta name="tessera-site">`; persist to `localStorage` under the absolute URL of that file (one cache per published site on a shared origin); fall back to cache on failure (see SPEC §3). While open, poll `rev.json` on a 5-minute TTL.
 2. Resolve page from hash (unknown ids fall back to home — no error UI). Snapshot sites only.
-3. Resolve the page’s **profile** (`resolvePageProfile`: section inheritance + page override), then merge `page.zones` then each included item’s zones (stable order).
+3. Resolve the page’s **profile** (`resolvePageProfile`: the type's layout, otherwise the site default), then merge `page.zones` then each included item’s zones (stable order).
 4. Walk the master layout when `site.masterLayoutId` is set. Its `page` node is the resolved page layout. Zone nodes render their blocks; unknown component names become HTML comments. Nav components in the master read `document.nav`.
 5. Optional `onAfterRender` / `onStatusChange` for chrome outside the document (demo sidebar, stale banner).
 6. While open, re-fetch on a 5-minute TTL when `documentUrl` is set.
@@ -281,4 +281,4 @@ npm run dev:site                         # instance preview (port 5173)
 npm run dev:api                          # edit data/; Render site writes the preview, Publish writes publish/
 ```
 
-Willow’s person pages omit `layoutId` and inherit `profile` from the `profiles` section. Event pages inherit `article` the same way. The directory holds records in `records/`, a document shell in `shell/`, and static files in `publish/`. The frame is the master layout.
+Willow’s person type uses the `profile` layout. Its event and news types use `article`. The directory holds records in `records/`, a document shell in `shell/`, and static files in `publish/`. The frame is the master layout.

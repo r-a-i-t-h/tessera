@@ -2,19 +2,11 @@ id: meeting-2026-08-20
 title: Weekly meeting · 20 August
 templateId: meeting
 locked: true
-tags:
-  - meeting
 includes:
   - common-footer
 zones:
   title:
     html: Weekly meeting · 20 August
-  meta:
-    json:
-      date: 2026-08-20
-      week: Week 34
-      chair: Amira Chen
-      summary: Autumn programme sketch and a reminder about fire exits.
   agenda:
     json:
       - item: Welcome and apologies
@@ -40,3 +32,8 @@ zones:
         role: Treasurer
   main:
     html: <p>Autumn programme sketch and a reminder about fire exits.</p>
+type: meeting
+fields:
+  date: 2026-08-20
+  week: Week 34
+  chair: Amira Chen

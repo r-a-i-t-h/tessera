@@ -40,7 +40,7 @@ describe("new page", () => {
     expect(
       pageFromTemplate("daisy", "Daisy", "animal", {
         isLocked: true,
-        layoutId: " standard ",
+        type: " animal ",
         zones: { main: { html: "<h2>Animal name</h2><p>Where it lives.</p>" } },
       }),
     ).toEqual({
@@ -48,7 +48,7 @@ describe("new page", () => {
       title: "Daisy",
       templateId: "animal",
       locked: true,
-      layoutId: "standard",
+      type: "animal",
       zones: {
         title: { html: "Daisy" },
         main: { html: "<h2>Animal name</h2><p>Where it lives.</p>" },
@@ -60,12 +60,12 @@ describe("new page", () => {
     expect(
       pageFromTemplate("priya", "Priya Nair", "person", {
         isLocked: true,
-        layoutId: "profile",
-        tags: ["person", " "],
+        type: "person",
+        tags: ["trustee"],
         includes: ["common-footer"],
+        fields: { role: "", email: "" },
         zones: {
           title: { html: "Sample person" },
-          meta: { json: { role: "", email: "", photo: "", summary: "" } },
           main: { html: "<p>About them.</p>" },
         },
       }),
@@ -74,12 +74,12 @@ describe("new page", () => {
       title: "Priya Nair",
       templateId: "person",
       locked: true,
-      layoutId: "profile",
-      tags: ["person"],
+      type: "person",
+      tags: ["trustee"],
       includes: ["common-footer"],
+      fields: { role: "", email: "" },
       zones: {
         title: { html: "Priya Nair" },
-        meta: { json: { role: "", email: "", photo: "", summary: "" } },
         main: { html: "<p>About them.</p>" },
       },
     });
@@ -91,7 +91,7 @@ describe("new page", () => {
       zones: { main: { html: "<p>Start here.</p>" } },
     });
     expect(page.locked).toBeUndefined();
-    expect(page.layoutId).toBeUndefined();
+    expect(page.type).toBeUndefined();
     expect(page.zones.main.html).toBe("<p>Start here.</p>");
   });
 

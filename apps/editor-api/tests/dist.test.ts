@@ -16,6 +16,7 @@ const document = parseSiteDocument({
     title: "Hall",
     homePageId: "home",
     masterLayoutId: "master",
+    defaultLayoutId: "page",
     origin: "https://hall.example",
   },
   layouts: [
@@ -32,14 +33,12 @@ const document = parseSiteDocument({
     {
       id: "home",
       title: "Home",
-      layoutId: "page",
       zones: { main: [{ type: "text", html: "<p>Welcome</p>" }] },
     },
     {
       id: "about",
       title: "About",
       parentId: "home",
-      layoutId: "page",
       zones: { main: [{ type: "text", html: "<p>About</p>" }] },
     },
   ],

@@ -147,7 +147,8 @@ function renderNode(node: LayoutNode, ctx: RenderContext, skin?: Skin, pageHtml?
       return authoredHtml(node.html, ctx);
     case "zone": {
       const blocks = ctx.zones.get(node.id) ?? [];
-      const inner = renderBlocks(blocks, ctx);
+      const field = ctx.page.fields?.[node.id];
+      const inner = renderBlocks(blocks, ctx) || (field ? escapeHtml(field) : "");
       if (!inner) return "";
       if (node.className) return `<div class="${escapeHtml(node.className)}">${inner}</div>`;
       return inner;

@@ -2,19 +2,11 @@ id: meeting-2026-08-27
 title: Weekly meeting · 27 August
 templateId: meeting
 locked: true
-tags:
-  - meeting
 includes:
   - common-footer
 zones:
   title:
     html: Weekly meeting · 27 August
-  meta:
-    json:
-      date: 2026-08-27
-      week: Week 35
-      chair: Owen Blake
-      summary: Chair away; standing in. Fair leftover crockery and the garden tap.
   agenda:
     json:
       - item: Welcome and apologies
@@ -40,3 +32,8 @@ zones:
         role: Volunteers
   main:
     html: <p>Chair away; standing in. Fair leftover crockery and the garden tap.</p>
+type: meeting
+fields:
+  date: 2026-08-27
+  week: Week 35
+  chair: Owen Blake

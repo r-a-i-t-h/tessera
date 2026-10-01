@@ -41,6 +41,7 @@ import {
   type RenderResult,
   type SaveResult,
 } from "./api";
+import { entryVisible } from "./forms/entries.js";
 import { mountComposeCanvases } from "./compose/canvas.js";
 import { readContentDraft, composeFormInner, htmlByZone, rawText, templateBodyLayout, type ContentMode } from "./compose/view.js";
 import { readFormValues, renderForm } from "./forms/form.js";
@@ -753,6 +754,7 @@ async function bindList(
     const row = listing.records.find((item) => item.kind === active);
     if (row) await bindEdit(root, user, active, row.id, "fields", "", false, "tab");
   }
+  bindEntryFilter(root);
   root.querySelector("[data-action=new-page]")?.addEventListener("click", () => {
     const form = root.querySelector<HTMLFormElement>("#new-page-form");
     if (!form) return;
@@ -1137,7 +1139,55 @@ function contentSection(rows: RecordSummary[], templates: RecordSummary[], siteR
       <p data-form-error class="w3-panel w3-pale-red" role="alert" hidden></p>
       <p><button type="submit" class="w3-button w3-theme">Create page</button></p>
     </form>
-    ${rows.length ? recordList(rows) : `<p class="w3-text-grey">No records yet.</p>`}`;
+    ${rows.length ? `${entryFilter()}${recordList(rows, true)}<p id="entry-filter-empty" class="w3-text-grey" hidden>No entries match.</p>` : `<p class="w3-text-grey">No records yet.</p>`}`;
+}
+
+function entryFilter(): string {
+  return `<div class="editor-entry-filter" id="entry-filter">
+    <p><label for="filter-type">Type</label>
+      <input id="filter-type" name="type" class="w3-input w3-border w3-margin-top" autocomplete="off" />
+    </p>
+    <p><label for="filter-tag">Tag</label>
+      <input id="filter-tag" name="tag" class="w3-input w3-border w3-margin-top" autocomplete="off" />
+    </p>
+    <p><label for="filter-title">Title</label>
+      <input id="filter-title" name="title" class="w3-input w3-border w3-margin-top" autocomplete="off" />
+    </p>
+    <p><button type="button" class="w3-button w3-white" data-action="clear-entry-filter">Clear</button></p>
+  </div>`;
+}
+
+function bindEntryFilter(root: HTMLElement): void {
+  const bar = root.querySelector<HTMLElement>("#entry-filter");
+  const list = root.querySelector<HTMLUListElement>("#entry-list");
+  const empty = root.querySelector<HTMLElement>("#entry-filter-empty");
+  if (!bar || !list) return;
+  const apply = () => {
+    const query = {
+      type: bar.querySelector<HTMLInputElement>("[name=type]")?.value ?? "",
+      tag: bar.querySelector<HTMLInputElement>("[name=tag]")?.value ?? "",
+      title: bar.querySelector<HTMLInputElement>("[name=title]")?.value ?? "",
+    };
+    let shown = 0;
+    for (const item of list.querySelectorAll<HTMLLIElement>("li")) {
+      const visible = entryVisible(
+        {
+          type: item.dataset.type,
+          tags: (item.dataset.tags ?? "").split("\u001f").filter(Boolean),
+          title: item.dataset.title,
+        },
+        query,
+      );
+      item.hidden = !visible;
+      if (visible) shown += 1;
+    }
+    if (empty) empty.hidden = shown !== 0;
+  };
+  bar.addEventListener("input", apply);
+  bar.querySelector("[data-action=clear-entry-filter]")?.addEventListener("click", () => {
+    for (const input of bar.querySelectorAll("input")) input.value = "";
+    apply();
+  });
 }
 
 function templateSection(rows: RecordSummary[], siteReady: boolean): string {
@@ -1158,8 +1208,8 @@ function editsBody(kind: string | undefined): boolean {
   return kind === "content" || kind === "templates";
 }
 
-function recordList(rows: RecordSummary[]): string {
-  return `<ul class="w3-ul">
+function recordList(rows: RecordSummary[], entries = false): string {
+  return `<ul class="w3-ul"${entries ? ' id="entry-list"' : ""}>
     ${rows
       .map((row) => {
         const publicTitle = row.kind === "site" || row.kind === "content" || row.kind === "nav";
@@ -1168,7 +1218,11 @@ function recordList(rows: RecordSummary[]): string {
           publicTitle && row.title && row.title !== row.id
             ? ` <span class="w3-text-grey w3-small">${escapeHtml(row.id)}</span>`
             : "";
-        return `<li><a href="#/${encodeURIComponent(row.kind)}/${encodeURIComponent(row.id)}">${escapeHtml(label)}</a>${idNote}</li>`;
+        const typeNote = row.type ? ` <span class="w3-text-grey w3-small">${escapeHtml(row.type)}</span>` : "";
+        const attrs = entries
+          ? ` data-type="${escapeHtml(row.type ?? "")}" data-tags="${escapeHtml((row.tags ?? []).join("\u001f"))}" data-title="${escapeHtml(row.title ?? row.id)}"`
+          : "";
+        return `<li${attrs}><a href="#/${encodeURIComponent(row.kind)}/${encodeURIComponent(row.id)}">${escapeHtml(label)}</a>${idNote}${typeNote}</li>`;
       })
       .join("")}
   </ul>`;
@@ -1456,7 +1510,7 @@ function fieldsHtml(
   const extras = schema.fields.filter((field) => !authoredNames.has(field.name));
   const zones =
     kind === "content"
-      ? `${layoutBanner(layout)}${zoneFields(zonesOf(record), layout)}`
+      ? `${layoutBanner(layout)}${typeFieldInputs(record, layout)}${zoneFields(zonesOf(record), layout)}`
       : "";
   return `${renderForm({ fields: base }, record)}${zones}${extras.length ? renderForm({ fields: extras }, record) : ""}`;
 }
@@ -1469,13 +1523,22 @@ function zonesOf(record: Record<string, unknown>): Record<string, unknown> {
 
 function layoutBanner(layout?: PageLayoutHint): string {
   if (!layout) return "";
-  const via =
-    layout.layoutSource === "page"
-      ? "page override"
-      : layout.layoutSource === "section"
-        ? `section ${layout.sectionId ?? ""}`.trim()
-        : "site default";
+  const via = layout.layoutSource === "type" ? `type ${layout.typeId ?? ""}`.trim() : "site default";
   return `<p class="w3-text-grey">Zones from layout <strong>${escapeHtml(layout.layoutId)}</strong> (${escapeHtml(via)}).</p>`;
+}
+
+function typeFieldInputs(record: Record<string, unknown>, layout?: PageLayoutHint): string {
+  const stored =
+    record.fields && typeof record.fields === "object" && !Array.isArray(record.fields)
+      ? (record.fields as Record<string, unknown>)
+      : {};
+  const declared = layout?.fields ?? [];
+  const ids = declared.length
+    ? declared.map((field) => field.id)
+    : Object.keys(stored);
+  if (!ids.length) return "";
+  const inputs = ids.map((id) => textField(`fields.${id}`, labelize(id), typeof stored[id] === "string" ? stored[id] : ""));
+  return `<fieldset class="editor-fieldset"><legend>Fields</legend>${inputs.join("")}</fieldset>`;
 }
 
 function zoneFields(zones: Record<string, unknown>, layout?: PageLayoutHint): string {
@@ -1581,7 +1644,23 @@ function pruneEmptyHtmlZones(data: unknown): unknown {
     }
     next[id] = zone;
   }
-  return { ...record, zones: next };
+  const fields = record.fields;
+  let prunedFields: Record<string, unknown> | undefined;
+  if (fields && typeof fields === "object" && !Array.isArray(fields)) {
+    const kept: Record<string, unknown> = {};
+    for (const [id, value] of Object.entries(fields as Record<string, unknown>)) {
+      if (typeof value === "string" && value.trim() === "") continue;
+      kept[id] = value;
+    }
+    if (Object.keys(kept).length) prunedFields = kept;
+  }
+  const withZones = { ...record, zones: next };
+  if (prunedFields) return { ...withZones, fields: prunedFields };
+  if ("fields" in withZones) {
+    const { fields: _fields, ...rest } = withZones;
+    return rest;
+  }
+  return withZones;
 }
 
 async function galleryFolderRows(): Promise<{ id: string; parentId: string | null }[]> {

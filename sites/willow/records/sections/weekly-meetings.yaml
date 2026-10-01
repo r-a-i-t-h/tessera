@@ -1,4 +1,0 @@
-id: weekly-meetings
-match:
-  pageIdPrefix: meeting-
-layoutId: meeting

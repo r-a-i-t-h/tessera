@@ -1,7 +1,5 @@
 id: gallery
 title: Gallery
-tags:
-  - page
 includes:
   - common-footer
 zones:

@@ -92,28 +92,22 @@ describe("renderPage", () => {
       renderPage({ document: doc, pageId: "missing", registry }),
     ).toThrow(/Unknown page/);
 
-    doc.pages[0]!.layoutId = "nope";
+    doc.site.defaultLayoutId = "nope";
     expect(() =>
       renderPage({ document: doc, pageId: "home", registry }),
     ).toThrow(/Unknown layout/);
   });
 
-  it("resolves layout from a matching section when page.layoutId is omitted", () => {
+  it("resolves layout from the entry type", () => {
     const doc = makeFixtureDoc();
-    doc.site.defaultLayoutId = "with-aside";
-    doc.sections = [
-      {
-        id: "events",
-        match: { tags: ["event"] },
-        layoutId: "no-aside",
-      },
-    ];
+    doc.types.push({ id: "event", layoutId: "no-aside", fields: [{ id: "date", required: true }] });
     doc.pages.push({
       id: "event-x",
       title: "Event X",
-      tags: ["event"],
+      type: "event",
+      fields: { date: "2026-10-18", precis: "A supper" },
       zones: {
-        title: [{ type: "text", html: "From section" }],
+        title: [{ type: "text", html: "From type" }],
         main: [{ type: "text", html: "<p>Body</p>" }],
         footer: [{ type: "text", html: "Foot" }],
       },
@@ -123,7 +117,7 @@ describe("renderPage", () => {
       pageId: "event-x",
       registry: registryWithDefaults(),
     });
-    expect(html).toContain("From section");
+    expect(html).toContain("From type");
     expect(html).toContain("<p>Body</p>");
   });
 

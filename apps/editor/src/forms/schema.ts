@@ -52,7 +52,7 @@ export const CONTENT_FORM: FormSchema = {
     { name: "description", label: "Description", type: "string", rows: 3 },
     { name: "slug", label: "Slug", type: "string" },
     { name: "parentId", label: "Parent", type: "string" },
-    { name: "layoutId", label: "Layout", type: "string" },
+    { name: "type", label: "Type", type: "string" },
     { name: "showInNav", label: "Show in nav", type: "Checkbox", defaultChecked: true },
     { name: "tags", label: "Tags", type: "string", list: true },
   ],
@@ -62,7 +62,7 @@ export const TEMPLATE_FORM: FormSchema = {
   fields: [
     { name: "id", label: "Id", type: "string", readOnly: true, required: true },
     { name: "isLocked", label: "Lock layout on new pages", type: "Checkbox" },
-    { name: "layoutId", label: "Layout", type: "string" },
+    { name: "type", label: "Type", type: "string" },
   ],
 };
 
@@ -91,7 +91,10 @@ export function schemaFor(kind: string, data: unknown): FormSchema | undefined {
   const authored = authoredSchema(kind);
   if (!authored) return { fields: fieldsFromRecord(record) };
   const skip = new Set(authored.fields.map((field) => field.name));
-  if (kind === "content" || kind === "templates") skip.add("zones");
+  if (kind === "content" || kind === "templates") {
+    skip.add("zones");
+    skip.add("fields");
+  }
   return { fields: [...authored.fields, ...fieldsFromRecord(record, skip)] };
 }
 

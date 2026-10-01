@@ -45,7 +45,7 @@ A site is a directory, not a package. Tessera’s version is the editor and the 
 
 | Directory | Notes |
 |-----------|--------|
-| `sites/willow` | Community showcase (templates, sections, bindings, gallery). Archived into `backup/willow.tar.gz` on first boot; not the running site |
+| `sites/willow` | Community showcase (templates, types, bindings, gallery). Archived into `backup/willow.tar.gz` on first boot; not the running site |
 
 Each directory has `records/` (YAML records), `shell/` (static chrome: `index.html` and `site.css`), and `publish/` (static export: hashed `site.json`, media, and the stamped runtime). `meta.json` holds `schemaVersion`. Users and page history live in the same directory and are created when the editor runs. A site has no build step and does not contain component source.
 

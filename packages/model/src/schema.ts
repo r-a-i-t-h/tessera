@@ -157,48 +157,41 @@ export const PageSchema = z.object({
    */
   showInNav: z.boolean().optional(),
   /**
-   * Explicit layout override. When omitted, resolved from matching `sections`
-   * then `site.defaultLayoutId` (see `resolvePageProfile`).
+   * Site-defined type id. The type supplies the layout and the field list.
+   * Omitted means a free-form page: site default layout, reached through the page tree.
    */
-  layoutId: z.string().min(1).optional(),
+  type: z.string().min(1).optional(),
+  /**
+   * Scalar values named by the type (`date`, `precis`, and any extras).
+   * Subject `tags` do not choose the type.
+   */
+  fields: z.record(z.string()).optional(),
+  /** Subject labels for filtering. They do not select a layout or a type. */
   tags: z.array(z.string()).optional(),
   /** Shared items whose zone contributions are merged in order. */
   includes: z.array(z.string()).optional(),
   zones: ZonesSchema.default({}),
 });
 
-/**
- * Match criteria for a section profile. Present fields are ANDed:
- * - `tags`: page must include at least one listed tag
- * - `pageIdPrefix`: `page.id` must start with this string
- * An empty match object matches every page (useful as a root section).
- */
-export const SectionMatchSchema = z.object({
-  tags: z.array(z.string().min(1)).optional(),
-  pageIdPrefix: z.string().min(1).optional(),
+/** A field a type asks the editor to show. Core names are `date` and `precis`. */
+export const TypeFieldSchema = z.object({
+  id: z.string().min(1),
+  required: z.boolean().optional(),
 });
 
-export type SectionMatch = z.infer<typeof SectionMatchSchema>;
+export type TypeField = z.infer<typeof TypeFieldSchema>;
 
 /**
- * Hierarchical presentation profile: switch layout for a slice of the site
- * without recursive content templates. Only layouts declare zones.
+ * Site-defined form. It names which fields an entry of this type has,
+ * which are required, and which layout places them. Not a built-in class.
  */
-export type Section = {
-  id: string;
-  match: SectionMatch;
-  layoutId?: string;
-  children?: Section[];
-};
+export const TypeSchema = z.object({
+  id: z.string().min(1),
+  layoutId: z.string().min(1).optional(),
+  fields: z.array(TypeFieldSchema).default([]),
+});
 
-export const SectionSchema: z.ZodType<Section, z.ZodTypeDef, unknown> = z.lazy(() =>
-  z.object({
-    id: z.string().min(1),
-    match: SectionMatchSchema.default({}),
-    layoutId: z.string().min(1).optional(),
-    children: z.array(SectionSchema).optional(),
-  }),
-);
+export type Type = z.infer<typeof TypeSchema>;
 
 export const ItemSchema = z.object({
   id: z.string().min(1),
@@ -261,7 +254,8 @@ export const BindingSchema = z.object({
  * Presentation (tags / tree / collapse) is chosen by a nav *component*, not the system.
  */
 export const NavSourceSchema = z.object({
-  pagesTag: z.string().min(1).optional(),
+  /** Entries of this type become links. Subject tags are not a group. */
+  pageType: z.string().min(1).optional(),
   itemsTag: z.string().min(1).optional(),
 });
 
@@ -328,11 +322,8 @@ export const SiteDocumentSchema = z.object({
   nav: z.array(NavEntrySchema).default([]),
   /** Named bindings of data → component for insertion in content. */
   bindings: z.array(BindingSchema).default([]),
-  /**
-   * Section profiles: hierarchical layout defaults for matching pages.
-   * Resolution: site default → matching sections (deeper / later win) → page.layoutId override.
-   */
-  sections: z.array(SectionSchema).default([]),
+  /** Site-defined types. An entry's `type` picks one. Layout comes from that record. */
+  types: z.array(TypeSchema).default([]),
 });
 
 export type Layout = z.infer<typeof LayoutSchema>;
@@ -345,54 +336,23 @@ export type Binding = z.infer<typeof BindingSchema>;
 export type SiteMeta = z.infer<typeof SiteMetaSchema>;
 export type SiteDocument = z.infer<typeof SiteDocumentSchema>;
 
-/** Effective layout after section inheritance + page override. */
+/** Effective layout: the entry's type, otherwise the site default. */
 export type PageProfile = {
   layoutId: string;
   /** How `layoutId` was chosen. */
-  layoutSource: "page" | "section" | "site";
-  /** Deepest matching section id, if any. */
-  sectionId?: string;
+  layoutSource: "type" | "site";
+  /** Type id when the entry has one. */
+  typeId?: string;
 };
 
-export function sectionMatchesPage(match: SectionMatch, page: Page): boolean {
-  const hasTags = Boolean(match.tags?.length);
-  const hasPrefix = Boolean(match.pageIdPrefix);
-  if (!hasTags && !hasPrefix) return true;
-  if (hasTags) {
-    const pageTags = page.tags ?? [];
-    if (!match.tags!.some((t) => pageTags.includes(t))) return false;
-  }
-  if (hasPrefix && !page.id.startsWith(match.pageIdPrefix!)) return false;
-  return true;
-}
-
 /**
- * Resolve layout for a page: site default → matching sections → page override.
- * Layouts remain first-class; sections never invent zones.
+ * Resolve layout for a page: the type's layout, otherwise `site.defaultLayoutId`.
+ * Layouts remain first-class; a type never invents zones.
  */
 export function resolvePageProfile(document: SiteDocument, page: Page): PageProfile {
-  let layoutId: string | undefined = document.site.defaultLayoutId;
-  let layoutSource: PageProfile["layoutSource"] = "site";
-  let sectionId: string | undefined;
-
-  const walk = (sections: Section[]) => {
-    for (const section of sections) {
-      if (!sectionMatchesPage(section.match, page)) continue;
-      if (section.layoutId) {
-        layoutId = section.layoutId;
-        layoutSource = "section";
-      }
-      sectionId = section.id;
-      if (section.children?.length) walk(section.children);
-    }
-  };
-
-  walk(document.sections ?? []);
-
-  if (page.layoutId) {
-    layoutId = page.layoutId;
-    layoutSource = "page";
-  }
+  const type = page.type ? document.types?.find((item) => item.id === page.type) : undefined;
+  let layoutId = type?.layoutId ?? document.site.defaultLayoutId;
+  let layoutSource: PageProfile["layoutSource"] = type?.layoutId ? "type" : "site";
 
   if (!layoutId) {
     layoutId = document.layouts[0]?.id;
@@ -400,7 +360,7 @@ export function resolvePageProfile(document: SiteDocument, page: Page): PageProf
     layoutSource = "site";
   }
 
-  return { layoutId, layoutSource, sectionId };
+  return { layoutId, layoutSource, ...(page.type ? { typeId: page.type } : {}) };
 }
 
 /**

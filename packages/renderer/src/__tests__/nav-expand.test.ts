@@ -4,13 +4,12 @@ import { resolveNavTree, flattenNav } from "../nav-expand.js";
 import { makeFixtureDoc } from "./fixtures.js";
 
 describe("resolveNavTree", () => {
-  it("resolves source.pagesTag into dynamic children without listing all pages", () => {
+  it("resolves source.pageType into dynamic children without listing all pages", () => {
     const doc = makeFixtureDoc();
     doc.pages.push({
       id: "meetup-1",
       title: "Meetup One",
-      layoutId: "no-aside",
-      tags: ["event"],
+      type: "event",
       zones: { title: [{ type: "text", html: "M1" }], main: [] },
     });
     doc.nav = [
@@ -18,7 +17,7 @@ describe("resolveNavTree", () => {
       {
         sidebar: true,
         heading: "Events",
-        source: { pagesTag: "event" },
+        source: { pageType: "event" },
       },
     ];
 
@@ -52,11 +51,10 @@ describe("resolveNavTree", () => {
     doc.pages.push({
       id: "meetup-1",
       title: "Meetup One",
-      layoutId: "no-aside",
-      tags: ["event"],
+      type: "event",
       zones: { title: [{ type: "text", html: "M1" }], main: [] },
     });
-    doc.nav = [{ footer: true, heading: "Events", source: { pagesTag: "event" } }];
+    doc.nav = [{ footer: true, heading: "Events", source: { pageType: "event" } }];
     const tree = resolveNavTree(doc);
     expect(tree[0]!.footer).toBe(true);
     expect(tree[0]!.children[0]).toMatchObject({ id: "meetup-1", footer: true, dynamic: true });

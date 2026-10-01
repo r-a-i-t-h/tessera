@@ -1,20 +1,16 @@
 id: meeting
 isLocked: true
-layoutId: meeting
-tags:
-  - meeting
 includes:
   - common-footer
 zones:
-  meta:
-    json:
-      date: ""
-      week: ""
-      chair: ""
-      summary: ""
   agenda:
     json: []
   minutes:
     html: ""
   main:
     html: ""
+type: meeting
+fields:
+  date: ""
+  week: ""
+  chair: ""

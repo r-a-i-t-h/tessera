@@ -1,4 +1,6 @@
 id: all-news
 component: datedList
 props:
-  tag: blog
+  types:
+    - news
+  when: all

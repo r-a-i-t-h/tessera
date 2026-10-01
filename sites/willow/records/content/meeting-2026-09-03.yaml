@@ -2,19 +2,11 @@ id: meeting-2026-09-03
 title: Weekly meeting · 3 September
 templateId: meeting
 locked: true
-tags:
-  - meeting
 includes:
   - common-footer
 zones:
   title:
     html: Weekly meeting · 3 September
-  meta:
-    json:
-      date: 2026-09-03
-      week: Week 36
-      chair: Amira Chen
-      summary: Key cupboard, choir night sound, and the porch light that still flickers.
   agenda:
     json:
       - item: Welcome and apologies
@@ -44,3 +36,8 @@ zones:
         role: Volunteers
   main:
     html: <p>Key cupboard, choir night sound, and the porch light that still flickers.</p>
+type: meeting
+fields:
+  date: 2026-09-03
+  week: Week 36
+  chair: Amira Chen

@@ -1,7 +1,5 @@
 id: contact
 title: Contact us
-tags:
-  - page
 includes:
   - common-footer
 zones:

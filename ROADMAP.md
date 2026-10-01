@@ -8,7 +8,7 @@ When a capability moves, update the SPEC acceptance criteria in the same change.
 
 An author can start from an empty directory, or from Willow, and reach a copyable static site without writing markup. The editor creates pages and a sidebar, composes a page from sections, starts a page from a template (locked or not), keeps images and PDFs in a library whose published URL does not change when the file moves, tunes chrome on a Styles page, previews the snapshot, and writes `publish/` only when asked. Willow is the specimen. Its pages start from locked templates. Pure, Ineffable, and Miller’s Ark are no longer example archives.
 
-That is a small-site CMS for prose pages, media, and a designed menu. It is one site per process, one role for every signed-in user, and one published tree for the whole site. A type of thing that is listed and then opened as its own page (people, events, a blog) is still a binding plus a section profile. Compose does not show the rendered page: **Render site** writes `preview/`, and the author reloads the site runtime. The authoring loop is in the tree. A full pass through Willow, and a site built from empty, has not been recorded yet.
+That is a small-site CMS for prose pages, media, and a designed menu. It is one site per process, one role for every signed-in user, and one published tree for the whole site. A type of thing that is listed and then opened as its own page (people, events, news) is a site-defined type plus a binding that names that type. Compose does not show the rendered page: **Render site** writes `preview/`, and the author reloads the site runtime. The authoring loop is in the tree. A full pass through Willow, and a site built from empty, has not been recorded yet.
 
 ## Done
 
@@ -18,7 +18,7 @@ That is a small-site CMS for prose pages, media, and a designed menu. It is one 
 | Content fetch + cache + TTL + schema abandon | Content-hashed `site.<hash>.json` named from the shell, `rev.json` poll, `localStorage`, stale signal, 5‑minute TTL, schema abandon. The site runtime shows `renderStaleBanner`. Silent unknown-hash → home. |
 | Site-data bindings + `{{id}}` | `document.bindings`; mustache + component-name insertion (Willow `upcoming-events`). |
 | Nav: pages ≠ visibility; multi presentation | Designed nav + `source`; `navTags` / `navTree` / `navCollapse`; Willow’s master uses `navFlat`. Page existence does not imply a nav entry. |
-| Section profiles | `document.sections` + `resolvePageProfile`; page override > section > site default. Willow’s people inherit `profile`; events inherit `article`. |
+| Types | `document.types` + `resolvePageProfile`. A site-defined type supplies the layout and the field list. Listings select types, not kind-tags. |
 | Editor API (auth host) | `apps/editor-api`: Hono JSON API, file users, no signup, cookie/Bearer sessions, `requireEditor` all-or-nothing gate. |
 | Editor SPA (login shell) | `apps/editor`: same-origin Vite SPA; login, session cookie, record editing. Hono serves `dist` when built. |
 | File-based editor | YAML records in `$TESSERA_DATA/records/`. A save refreshes `preview/data/`. **Publish** writes `publish/` and leaves that folder alone until the next publish. |
@@ -38,7 +38,7 @@ That is a small-site CMS for prose pages, media, and a designed menu. It is one 
    → [SPEC §9](./SPEC.md#9-editor-boundary-phase-2)
 
 2. **Items listing patterns**  
-   First-class list-on-page / as-pages beyond ad-hoc bindings. Subpages already lists child pages. People, events, and a blog are still a tag, a section profile, and a binding.  
+   First-class list-on-page / as-pages beyond ad-hoc bindings. Subpages already lists child pages. People, events, and news are a type plus a binding.  
    → [SPEC §2](./SPEC.md#pages-and-items), [acceptance](./SPEC.md#inclusion-and-items)
 
 3. **Editor chrome**  

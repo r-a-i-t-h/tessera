@@ -2,18 +2,16 @@ id: person-owen-blake
 title: Owen Blake
 templateId: person
 locked: true
-tags:
-  - person
 includes:
   - common-footer
 zones:
   title:
     html: Owen Blake
-  meta:
-    json:
-      role: Secretary
-      email: owen@willow.example
-      photo: photo-owen
-      summary: Secretary
   main:
     html: <p>Owen keeps the minutes (and the key log) in suspiciously neat folders.</p><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere, nisl at aliquet dictum, nisi nisl aliquam lectus, vitae gravida erat sapien sit amet arcu.</p><p>Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Curabitur non nulla sit amet nisl tempus convallis quis ac lectus. Pellentesque in ipsum id orci porta dapibus.</p><p><a href="#people">All people</a></p>
+type: person
+fields:
+  role: Secretary
+  email: owen@willow.example
+  photo: photo-owen
+  precis: Secretary

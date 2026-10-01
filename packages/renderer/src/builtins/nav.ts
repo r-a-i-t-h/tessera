@@ -143,7 +143,7 @@ export const breadcrumbs: ComponentFn = (ctx) => {
 
 /**
  * A content-styled group of links.
- * `source`: `children` (current page's published children), `tag`, or `nav` (a designed heading).
+ * `source`: `children` (current page's published children), `type`, or `nav` (a designed heading).
  * `variant`: `list`, `pills`, or `cards`.
  */
 export const linkCluster: ComponentFn = (ctx, props = {}) => {
@@ -173,11 +173,11 @@ function clusterLinks(
   source: string,
   props: Record<string, unknown>,
 ): { id: string; title: string }[] {
-  if (source === "tag") {
-    const tag = typeof props.tag === "string" ? props.tag : "";
-    if (!tag) return [];
+  if (source === "type") {
+    const typeId = typeof props.type === "string" ? props.type : "";
+    if (!typeId) return [];
     return ctx.document.pages
-      .filter((page) => page.tags?.includes(tag))
+      .filter((page) => page.type === typeId)
       .map((page) => ({ id: page.id, title: page.title }));
   }
   if (source === "nav") {

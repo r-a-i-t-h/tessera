@@ -15,7 +15,8 @@ export type CreatedPage = {
   title: string;
   templateId: string;
   locked?: true;
-  layoutId?: string;
+  type?: string;
+  fields?: Record<string, string>;
   tags?: string[];
   includes?: string[];
   zones: {
@@ -26,7 +27,8 @@ export type CreatedPage = {
 
 export type TemplateSource = {
   isLocked?: unknown;
-  layoutId?: unknown;
+  type?: unknown;
+  fields?: unknown;
   tags?: unknown;
   includes?: unknown;
   zones?: unknown;
@@ -85,8 +87,10 @@ export function pageFromTemplate(id: string, title: string, templateId: string, 
   if (tags) created.tags = tags;
   const includes = stringList(template.includes);
   if (includes) created.includes = includes;
-  const layoutId = typeof template.layoutId === "string" ? template.layoutId.trim() : "";
-  if (layoutId) created.layoutId = layoutId;
+  const type = typeof template.type === "string" ? template.type.trim() : "";
+  if (type) created.type = type;
+  const fields = stringFields(template.fields);
+  if (fields) created.fields = fields;
   if (template.isLocked === true) created.locked = true;
   return created;
 }
@@ -106,6 +110,15 @@ function zonesFromTemplate(template: TemplateSource, titleHtml: string): Created
     zones[name] = structuredClone(zone);
   }
   return zones as CreatedPage["zones"];
+}
+
+function stringFields(value: unknown): Record<string, string> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const fields: Record<string, string> = {};
+  for (const [key, item] of Object.entries(value)) {
+    if (typeof item === "string") fields[key] = item;
+  }
+  return Object.keys(fields).length ? fields : undefined;
 }
 
 function stringList(value: unknown): string[] | undefined {

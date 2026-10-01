@@ -2,19 +2,11 @@ id: meeting-2026-09-10
 title: Weekly meeting · 10 September
 templateId: meeting
 locked: true
-tags:
-  - meeting
 includes:
   - common-footer
 zones:
   title:
     html: Weekly meeting · 10 September
-  meta:
-    json:
-      date: 2026-09-10
-      week: Week 37
-      chair: Amira Chen
-      summary: Roof quotes, harvest seating, and a booking clash on Saturday.
   agenda:
     json:
       - item: Welcome and apologies
@@ -44,3 +36,8 @@ zones:
         role: Volunteers
   main:
     html: <p>Roof quotes, harvest seating, and a booking clash on Saturday.</p>
+type: meeting
+fields:
+  date: 2026-09-10
+  week: Week 37
+  chair: Amira Chen

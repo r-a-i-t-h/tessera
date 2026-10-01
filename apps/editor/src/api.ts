@@ -136,6 +136,8 @@ export type RecordSummary = {
   kind: RecordKindName;
   id: string;
   title?: string;
+  type?: string;
+  tags?: string[];
 };
 
 export type RecordList = {
@@ -146,8 +148,9 @@ export type RecordList = {
 
 export type PageLayoutHint = {
   layoutId: string;
-  layoutSource: "page" | "section" | "site";
-  sectionId?: string;
+  layoutSource: "type" | "site";
+  typeId?: string;
+  fields: { id: string; required?: boolean }[];
   declaredZones: string[];
   offLayoutZones: string[];
   layouts: Record<string, { zones: string[] }>;

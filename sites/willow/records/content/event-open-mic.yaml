@@ -2,21 +2,19 @@ id: event-open-mic
 title: Open mic night
 templateId: event
 locked: true
-tags:
-  - event
 includes:
   - common-footer
 zones:
   title:
     html: Open mic night
-  meta:
-    json:
-      date: 2026-10-04
-      time: 19:30
-      where: Main hall
-      summary: Poetry, folk, and at least one accordion. Sign-up on the door.
   main:
     html: |-
       <p>Poetry, folk, and at least one accordion. Sign-up on the door.</p><p>Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec vel mauris lectus. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.</p><p>Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Curabitur non nulla sit amet nisl tempus convallis quis ac lectus. Pellentesque in ipsum id orci porta dapibus.</p><p>Sed porttitor lectus nibh. Curabitur aliquet quam id dui posuere blandit. Quisque velit nisi, pretium ut lacinia in, elementum id enim. Cras ultricies ligula sed magna dictum porta.</p>
                      <p>Bookings: <a href="#contact">contact the hall</a>. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere, nisl at aliquet dictum, nisi nisl aliquam lectus, vitae gravida erat sapien sit amet arcu.</p>
                      <p><a href="#events">Back to listings</a></p>
+type: event
+fields:
+  date: 2026-10-04
+  time: 19:30
+  where: Main hall
+  precis: Poetry, folk, and at least one accordion. Sign-up on the door.

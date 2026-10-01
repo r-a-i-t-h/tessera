@@ -5,7 +5,7 @@ export const RECORD_KINDS = [
   "items",
   "layouts",
   "bindings",
-  "sections",
+  "types",
   "media",
   "folders",
 ] as const;
@@ -21,7 +21,7 @@ export const DOCUMENT_KINDS = [
   "items",
   "layouts",
   "bindings",
-  "sections",
+  "types",
   "media",
   "folders",
 ] as const;
@@ -34,7 +34,7 @@ export const KIND_LABELS: Record<RecordKind, string> = {
   items: "Items",
   layouts: "Layouts",
   bindings: "Bindings",
-  sections: "Sections",
+  types: "Types",
   media: "Media",
   folders: "Folders",
 };
@@ -45,7 +45,7 @@ export const KIND_DIRS: Record<RecordKind, string> = {
   items: "items",
   layouts: "layouts",
   bindings: "bindings",
-  sections: "sections",
+  types: "types",
   media: "media",
   folders: "folders",
 };

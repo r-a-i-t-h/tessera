@@ -22,7 +22,7 @@ export type NavHeadingRow = {
   sidebar: boolean;
   topbar: boolean;
   footer: boolean;
-  pagesTag: string;
+  pageType: string;
   itemsTag: string;
   sourceExtra: Record<string, unknown>;
   children: NavLinkRow[];
@@ -73,7 +73,7 @@ export function newNavHeading(): NavHeadingRow {
     sidebar: true,
     topbar: false,
     footer: false,
-    pagesTag: "",
+    pageType: "",
     itemsTag: "",
     sourceExtra: {},
     children: [],
@@ -179,7 +179,7 @@ function headingHtml(row: NavHeadingRow, index: number, pages: readonly PageChoi
     <div class="editor-nav-line">
       ${menuInput(`nav-${index}-heading`, "Heading", row.heading, "editor-nav-page")}
       <div class="editor-nav-meta">
-        ${tagInput(`nav-${index}-pagesTag`, "Pages", row.pagesTag)}
+        ${tagInput(`nav-${index}-pageType`, "Type", row.pageType)}
         ${tagInput(`nav-${index}-itemsTag`, "Items", row.itemsTag)}
         <button type="button" class="w3-button w3-small w3-white" data-nav-action="add-child" data-nav-index="${index}">Add link</button>
       </div>
@@ -305,7 +305,7 @@ function rawToRow(raw: RawRow): NavRow {
       sidebar: raw.fields.get("sidebar")?.checked === true,
       topbar: raw.fields.get("topbar")?.checked === true,
       footer: raw.fields.get("footer")?.checked === true,
-      pagesTag: raw.fields.get("pagesTag")?.value ?? "",
+      pageType: raw.fields.get("pageType")?.value ?? "",
       itemsTag: raw.fields.get("itemsTag")?.value ?? "",
       sourceExtra: parseObject(raw.fields.get("sourceExtra")?.value ?? ""),
       children,
@@ -358,12 +358,12 @@ function headingRow(entry: Record<string, unknown>, heading: string): NavHeading
     if (key === "heading" || key === "sidebar" || key === "topbar" || key === "footer" || key === "source" || key === "children") continue;
     extra[key] = value;
   }
-  let pagesTag = "";
+  let pageType = "";
   let itemsTag = "";
   const sourceExtra: Record<string, unknown> = {};
   if (isRecord(entry.source)) {
     for (const [key, value] of Object.entries(entry.source)) {
-      if (key === "pagesTag" && typeof value === "string") pagesTag = value;
+      if (key === "pageType" && typeof value === "string") pageType = value;
       else if (key === "itemsTag" && typeof value === "string") itemsTag = value;
       else sourceExtra[key] = value;
     }
@@ -392,7 +392,7 @@ function headingRow(entry: Record<string, unknown>, heading: string): NavHeading
     sidebar: entry.sidebar === true,
     topbar: entry.topbar === true,
     footer: entry.footer === true,
-    pagesTag,
+    pageType,
     itemsTag,
     sourceExtra,
     children,
@@ -418,10 +418,10 @@ function serializeHeading(row: NavHeadingRow): Record<string, unknown> | undefin
   else delete out.heading;
   writePlace(out, row);
   const source: Record<string, unknown> = copy(row.sourceExtra);
-  const pagesTag = row.pagesTag.trim();
+  const pageType = row.pageType.trim();
   const itemsTag = row.itemsTag.trim();
-  if (pagesTag) source.pagesTag = pagesTag;
-  else delete source.pagesTag;
+  if (pageType) source.pageType = pageType;
+  else delete source.pageType;
   if (itemsTag) source.itemsTag = itemsTag;
   else delete source.itemsTag;
   if (Object.keys(source).length) out.source = source;

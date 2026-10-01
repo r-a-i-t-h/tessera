@@ -8,7 +8,7 @@ const sample = [
     sidebar: true,
     fa: "folder",
     children: [{ id: "about", title: "About", sidebar: true, fa: "info" }],
-    source: { pagesTag: "event", itemsTag: "person", note: "keep" },
+    source: { pageType: "event", itemsTag: "person", note: "keep" },
   },
 ];
 
@@ -25,7 +25,7 @@ describe("nav list", () => {
     expect(html).toContain(">Home (home)<");
     expect(html).toContain('value="Site"');
     expect(html).toContain('value="About"');
-    expect(html).toContain('name="nav-1-pagesTag"');
+    expect(html).toContain('name="nav-1-pageType"');
     expect(html).toContain('value="event"');
     expect(html).toContain('name="nav-1-itemsTag"');
     expect(html).toContain('value="person"');

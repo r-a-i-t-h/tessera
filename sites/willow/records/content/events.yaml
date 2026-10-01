@@ -1,7 +1,5 @@
 id: events
 title: Events
-tags:
-  - page
 includes:
   - common-footer
 zones:

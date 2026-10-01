@@ -21,10 +21,10 @@ function linksFromSource(
 ): ResolvedNavNode[] {
   const out: ResolvedNavNode[] = [];
 
-  if (source.pagesTag) {
-    const tag = source.pagesTag;
+  if (source.pageType) {
+    const typeId = source.pageType;
     for (const page of document.pages) {
-      if (!page.tags?.includes(tag)) continue;
+      if (page.type !== typeId) continue;
       out.push({
         id: page.id,
         title: page.title,

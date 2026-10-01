@@ -8,6 +8,7 @@ export function makeFixtureDoc(): SiteDocument {
       id: "test",
       title: "Test site",
       homePageId: "home",
+      defaultLayoutId: "with-aside",
     },
     layouts: [
       {
@@ -54,8 +55,6 @@ export function makeFixtureDoc(): SiteDocument {
       {
         id: "home",
         title: "Home",
-        layoutId: "with-aside",
-        tags: ["page"],
         includes: ["shared-footer", "promo"],
         zones: {
           title: [{ type: "text", html: "Home title" }],
@@ -80,8 +79,7 @@ export function makeFixtureDoc(): SiteDocument {
       {
         id: "hidden-aside",
         title: "Hidden aside",
-        layoutId: "no-aside",
-        tags: ["page"],
+        type: "plain",
         includes: ["shared-footer", "promo"],
         zones: {
           title: [{ type: "text", html: "No aside layout" }],
@@ -92,7 +90,6 @@ export function makeFixtureDoc(): SiteDocument {
       {
         id: "about",
         title: "About",
-        layoutId: "with-aside",
         includes: ["shared-footer"],
         zones: {
           title: [{ type: "text", html: "About" }],
@@ -123,6 +120,6 @@ export function makeFixtureDoc(): SiteDocument {
       { sidebar: true, id: "about", title: "About" },
     ],
     bindings: [],
-    sections: [],
+    types: [{ id: "plain", layoutId: "no-aside", fields: [] }],
   };
 }

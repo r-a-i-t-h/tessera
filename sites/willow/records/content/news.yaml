@@ -1,7 +1,5 @@
 id: news
 title: News
-tags:
-  - page
 includes:
   - common-footer
 zones:

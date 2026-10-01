@@ -17,7 +17,7 @@
 - heading: This term
   sidebar: true
   source:
-    pagesTag: meeting
+    pageType: meeting
 - id: people
   title: People
   topbar: true

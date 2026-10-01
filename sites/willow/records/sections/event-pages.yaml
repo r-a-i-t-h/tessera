@@ -1,5 +1,0 @@
-id: event-pages
-match:
-  tags:
-    - event
-layoutId: article

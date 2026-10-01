@@ -1,5 +1,0 @@
-id: news-posts
-match:
-  tags:
-    - blog
-layoutId: article

@@ -1,5 +1,7 @@
 id: latest-news
 component: datedList
 props:
-  tag: blog
+  types:
+    - news
+  when: past
   limit: 3

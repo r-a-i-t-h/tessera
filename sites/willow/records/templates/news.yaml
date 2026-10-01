@@ -1,15 +1,12 @@
 id: news
 isLocked: true
-layoutId: article
-tags:
-  - blog
+type: news
 includes:
   - common-footer
 zones:
-  meta:
-    json:
-      date: ""
-      author: ""
-      summary: ""
   main:
     html: ""
+fields:
+  date: ""
+  author: ""
+  precis: ""

@@ -1,43 +1,10 @@
-import type { Block, Page } from "@r-a-i-t-h/tessera-model";
+import type { Page } from "@r-a-i-t-h/tessera-model";
 import { hrefForPage, type ComponentFn } from "@r-a-i-t-h/tessera-renderer";
 
-export type PageMeta = {
-  date?: string;
-  time?: string;
-  where?: string;
-  author?: string;
-  summary?: string;
-  role?: string;
-  email?: string;
-  photo?: string;
-  chair?: string;
-  week?: string;
-};
-
-function asMeta(data: unknown): PageMeta {
-  if (!data || typeof data !== "object" || Array.isArray(data)) return {};
-  const o = data as Record<string, unknown>;
-  const pick = (k: keyof PageMeta) => (typeof o[k] === "string" ? (o[k] as string) : undefined);
-  return {
-    date: pick("date"),
-    time: pick("time"),
-    where: pick("where"),
-    author: pick("author"),
-    summary: pick("summary"),
-    role: pick("role"),
-    email: pick("email"),
-    photo: pick("photo"),
-    chair: pick("chair"),
-    week: pick("week"),
-  };
-}
-
-export function metaFromPage(page: Page): PageMeta {
-  const blocks = (page.zones?.meta ?? []) as Block[];
-  for (const b of blocks) {
-    if (b.type === "json") return asMeta(b.data);
-  }
-  return {};
+/** Scalar field named by a type. Missing and blank are the same. */
+export function fieldValue(page: Page, id: string): string {
+  const value = page.fields?.[id];
+  return typeof value === "string" ? value.trim() : "";
 }
 
 /** Date-only ISO strings stay on the intended calendar day in any TZ. */
@@ -61,15 +28,18 @@ function dateParts(iso: string): { mon: string; day: string } {
   };
 }
 
-function taggedPages(pages: Page[], tag: string): { page: Page; meta: PageMeta }[] {
-  const newestFirst = tag !== "event";
-  return pages
-    .filter((p) => (p.tags ?? []).includes(tag))
-    .map((page) => ({ page, meta: metaFromPage(page) }))
-    .sort((a, b) => {
-      const cmp = (a.meta.date ?? "").localeCompare(b.meta.date ?? "");
-      return newestFirst ? -cmp : cmp;
-    });
+function typeIds(props: Record<string, unknown>): string[] {
+  const value = props.types ?? props.type;
+  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === "string" && item.trim() !== "");
+  if (typeof value === "string" && value.trim()) return [value.trim()];
+  return [];
+}
+
+function dateWindow(props: Record<string, unknown>): "past" | "upcoming" | "all" {
+  const when = props.when;
+  if (when === "past" || when === "upcoming") return when;
+  if (props.upcoming === true) return "upcoming";
+  return "all";
 }
 
 function str(props: Record<string, unknown>, key: string, fallback: string): string {
@@ -82,55 +52,37 @@ function num(props: Record<string, unknown>, key: string): number | undefined {
 }
 
 /**
- * List-on-page view of dated pages (blog / events / meetings).
- * Reads `meta` JSON zones on tagged pages — not a layout-painted zone.
+ * Dated entries of the named types. Reads the `date` and `precis` fields.
+ * `when` is `past`, `upcoming`, or all. Extra fields stay off this list.
+ * The page around the binding supplies the heading.
  */
 export const datedList: ComponentFn = (ctx, props = {}) => {
-  const tag = str(props, "tag", "blog");
-  const variant =
-    str(props, "variant", "") ||
-    (tag === "event" ? "events" : tag === "meeting" ? "meetings" : "news");
+  const wanted = typeIds(props);
   const limit = num(props, "limit");
   const empty = str(props, "empty", "Nothing listed yet.");
-  const upcoming = props.upcoming === true;
+  const when = dateWindow(props);
+  const today = new Date().toISOString().slice(0, 10);
 
-  let rows = taggedPages(ctx.document.pages, tag);
-  if (upcoming) {
-    const today = new Date().toISOString().slice(0, 10);
-    rows = rows.filter((row) => (row.meta.date ?? "") >= today);
-  }
+  let rows = ctx.document.pages
+    .filter((page) => wanted.includes(page.type ?? ""))
+    .map((page) => ({ page, date: fieldValue(page, "date"), precis: fieldValue(page, "precis") }))
+    .filter((row) => row.date);
+  if (when === "upcoming") rows = rows.filter((row) => row.date >= today);
+  if (when === "past") rows = rows.filter((row) => row.date < today);
+  rows.sort((a, b) => (when === "upcoming" ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date)));
   if (limit !== undefined) rows = rows.slice(0, limit);
   if (!rows.length) return `<p class="wh-muted"><em>${ctx.escapeHtml(empty)}</em></p>`;
 
-  if (variant === "events") {
-    return `<div class="wh-event-list">${rows
-      .map(({ page, meta }) => {
-        const parts = meta.date ? dateParts(meta.date) : { mon: "", day: "" };
-        const when = [meta.time, meta.where].filter(Boolean).join(" · ");
-        return `<article class="wh-event-card">
-          <div class="wh-date-tile" aria-hidden="true"><span>${ctx.escapeHtml(parts.mon)}</span><strong>${ctx.escapeHtml(parts.day)}</strong></div>
-          <div>
-            <h3><a href="${hrefForPage(ctx, page.id)}">${ctx.escapeHtml(page.title)}</a></h3>
-            ${when ? `<p class="wh-meta">${ctx.escapeHtml(when)}</p>` : ""}
-            ${meta.summary ? `<p>${ctx.escapeHtml(meta.summary)}</p>` : ""}
-          </div>
-        </article>`;
-      })
-      .join("")}</div>`;
-  }
-
   return `<div class="wh-card-list">${rows
-    .map(({ page, meta }) => {
-      const bits = [
-        meta.date ? formatDate(meta.date) : "",
-        meta.author,
-        meta.chair ? `Chair: ${meta.chair}` : "",
-        meta.week,
-      ].filter(Boolean);
+    .map(({ page, date, precis }) => {
+      const parts = dateParts(date);
       return `<article class="wh-card">
-        ${bits.length ? `<p class="wh-meta">${ctx.escapeHtml(bits.join(" · "))}</p>` : ""}
-        <h3><a href="${hrefForPage(ctx, page.id)}">${ctx.escapeHtml(page.title)}</a></h3>
-        ${meta.summary ? `<p>${ctx.escapeHtml(meta.summary)}</p>` : ""}
+        <div class="wh-date-tile" aria-hidden="true"><span>${ctx.escapeHtml(parts.mon)}</span><strong>${ctx.escapeHtml(parts.day)}</strong></div>
+        <div>
+          <h3><a href="${hrefForPage(ctx, page.id)}">${ctx.escapeHtml(page.title)}</a></h3>
+          <p class="wh-meta"><time datetime="${ctx.escapeHtml(date)}">${ctx.escapeHtml(formatDate(date))}</time></p>
+          ${precis ? `<p>${ctx.escapeHtml(precis)}</p>` : ""}
+        </div>
       </article>`;
     })
     .join("")}</div>`;
@@ -138,21 +90,24 @@ export const datedList: ComponentFn = (ctx, props = {}) => {
 
 export const peopleGrid: ComponentFn = (ctx, props = {}) => {
   const limit = num(props, "limit");
+  const wanted = typeIds(props);
+  const types = wanted.length ? wanted : ["person"];
   let people = ctx.document.pages
-    .filter((p) => (p.tags ?? []).includes("person"))
-    .map((page) => ({ page, meta: metaFromPage(page) }))
-    .sort((a, b) => a.page.title.localeCompare(b.page.title));
+    .filter((page) => types.includes(page.type ?? ""))
+    .sort((a, b) => a.title.localeCompare(b.title));
   if (limit !== undefined) people = people.slice(0, limit);
   if (!people.length) return `<p class="wh-muted"><em>No profiles yet.</em></p>`;
 
   return `<div class="w3-row-padding wh-people">${people
-    .map(({ page, meta }) => {
-      const img = meta.photo ? ctx.mediaHtml(meta.photo) : "";
+    .map((page) => {
+      const photo = fieldValue(page, "photo");
+      const role = fieldValue(page, "role");
+      const img = photo ? ctx.mediaHtml(photo) : "";
       return `<div class="w3-col s12 m6 l4">
         <a class="wh-person-card" href="${hrefForPage(ctx, page.id)}">
           <div class="wh-person-photo">${img}</div>
           <h3>${ctx.escapeHtml(page.title)}</h3>
-          ${meta.role ? `<p>${ctx.escapeHtml(meta.role)}</p>` : ""}
+          ${role ? `<p>${ctx.escapeHtml(role)}</p>` : ""}
         </a>
       </div>`;
     })
@@ -160,38 +115,37 @@ export const peopleGrid: ComponentFn = (ctx, props = {}) => {
 };
 
 export const articleByline: ComponentFn = (ctx) => {
-  const meta = metaFromPage(ctx.page);
+  const date = fieldValue(ctx.page, "date");
+  const chair = fieldValue(ctx.page, "chair");
   const bits = [
-    meta.date ? formatDate(meta.date) : "",
-    meta.time,
-    meta.where,
-    meta.author,
-    meta.chair ? `Chair: ${meta.chair}` : "",
-    meta.week,
+    date ? formatDate(date) : "",
+    fieldValue(ctx.page, "time"),
+    fieldValue(ctx.page, "where"),
+    fieldValue(ctx.page, "author"),
+    chair ? `Chair: ${chair}` : "",
+    fieldValue(ctx.page, "week"),
   ].filter(Boolean);
   if (!bits.length) return "";
-  const datetime = meta.date ? ` datetime="${ctx.escapeHtml(meta.date)}"` : "";
+  const datetime = date ? ` datetime="${ctx.escapeHtml(date)}"` : "";
   return `<p class="wh-byline"><time${datetime}>${ctx.escapeHtml(bits.join(" · "))}</time></p>`;
 };
 
 export const profileKicker: ComponentFn = (ctx) => {
-  const role = metaFromPage(ctx.page).role;
+  const role = fieldValue(ctx.page, "role");
   if (!role) return "";
   return `<p class="wh-kicker">${ctx.escapeHtml(role)}</p>`;
 };
 
 export const profilePhoto: ComponentFn = (ctx) => {
-  const photo = metaFromPage(ctx.page).photo;
+  const photo = fieldValue(ctx.page, "photo");
   if (!photo) return "";
   return `<div class="wh-profile-photo">${ctx.mediaHtml(photo)}</div>`;
 };
 
 export const profileFacts: ComponentFn = (ctx) => {
-  const meta = metaFromPage(ctx.page);
-  const email = meta.email
-    ? `<p><a href="mailto:${ctx.escapeHtml(meta.email)}">${ctx.escapeHtml(meta.email)}</a></p>`
-    : "";
-  return email;
+  const email = fieldValue(ctx.page, "email");
+  if (!email) return "";
+  return `<p><a href="mailto:${ctx.escapeHtml(email)}">${ctx.escapeHtml(email)}</a></p>`;
 };
 
 type AgendaRow = { item?: string; owner?: string };

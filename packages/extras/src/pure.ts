@@ -8,11 +8,9 @@ export const now: ComponentFn = (_ctx, props = {}) => {
   return `<span style="${_ctx.escapeHtml(style)}">${d.toLocaleDateString()} ${d.toLocaleTimeString()}</span>`;
 };
 
-/** Build a nav from pages tagged "page" (or all pages). */
+/** Build a nav from free-form pages (entries with no type). */
 export const pageNav: ComponentFn = (ctx) => {
-  const pages = ctx.document.pages.filter(
-    (p) => !p.tags || p.tags.includes("page") || p.tags.length === 0,
-  );
+  const pages = ctx.document.pages.filter((p) => !p.type);
   return pages
     .map((p) => {
       const active = ctx.page.id === p.id ? " font-weight:bold; background:#ddd;" : "";
@@ -56,11 +54,9 @@ export const eventList: ComponentFn = (ctx, props = {}) => {
 
 /** Demo of reading resolved page profile (section inheritance + layout). */
 export const aboutRenderer: ComponentFn = (ctx) => {
-  const { layoutId, layoutSource, sectionId } = ctx.profile;
-  const section = sectionId
-    ? ` section <code>${ctx.escapeHtml(sectionId)}</code>`
-    : "";
-  return `<p class="w3-small w3-text-grey">Rendered page <code>${ctx.escapeHtml(ctx.page.id)}</code> with layout <code>${ctx.escapeHtml(layoutId)}</code> (from ${ctx.escapeHtml(layoutSource)}${section}).</p>`;
+  const { layoutId, layoutSource, typeId } = ctx.profile;
+  const type = typeId ? ` type <code>${ctx.escapeHtml(typeId)}</code>` : "";
+  return `<p class="w3-small w3-text-grey">Rendered page <code>${ctx.escapeHtml(ctx.page.id)}</code> with layout <code>${ctx.escapeHtml(layoutId)}</code> (from ${ctx.escapeHtml(layoutSource)}${type}).</p>`;
 };
 
 /** Light-DOM card mount. The `rt-card` element is registered with the catalogue. */

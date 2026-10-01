@@ -1,7 +1,5 @@
 id: meetings
 title: Meetings
-tags:
-  - page
 includes:
   - common-footer
 zones:

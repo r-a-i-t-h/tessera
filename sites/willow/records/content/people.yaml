@@ -1,7 +1,5 @@
 id: people
 title: People
-tags:
-  - page
 includes:
   - common-footer
 zones:
