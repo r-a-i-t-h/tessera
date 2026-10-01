@@ -29,12 +29,13 @@ await ensureExampleArchives(backupDir, {
 
 const sessions = await SessionStore.load(join(dataDir, SESSION_HANDOFF_FILE));
 const spaDir = resolveSpaDir(root);
+const distTarget = resolveDistTarget(dataDir, root);
 const site = new SiteStore(
   layout.records,
   layout.previewOut,
   () => readSchemaVersion(metaPath(dataDir)),
   layout.history,
-  resolveDistTarget(dataDir, root),
+  distTarget,
 );
 const app = createApp({
   users,
@@ -44,6 +45,11 @@ const app = createApp({
   siteRoot: dataDir,
   backupDir,
   seedDir,
+  preview: {
+    siteRoot: dataDir,
+    bundleDir: distTarget.bundleDir,
+    skinDir: distTarget.skinDir,
+  },
 });
 
 console.log(`Tessera editor API listening on http://127.0.0.1:${port}/`);
@@ -52,7 +58,7 @@ if (spaDir) {
   console.log(`Editor SPA: http://127.0.0.1:${port}/`);
 }
 console.log(`Site records: ${layout.records}`);
-console.log(`Preview: ${layout.previewOut}`);
+console.log(`Preview: http://127.0.0.1:${port}/preview/ (${layout.previewOut})`);
 console.log(`Dist: ${layout.publishDir}`);
 console.log(`Backups: ${backupDir}`);
 

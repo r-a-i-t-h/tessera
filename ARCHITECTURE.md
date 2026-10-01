@@ -76,7 +76,7 @@ sites/willow/
   files/                    # flat asset blobs and editor thumbnails, not on the web path
   shell/                    # document shell, no TypeScript and no frame
     index.html  site.css
-  preview/                  # SPA snapshot for editing; the dev server reads this
+  preview/                  # SPA snapshot for editing; the editor serves it at /preview/
     data/site.json  site.<hash>.json  rev.json
   publish/                  # copyable dist; nginx document root after you copy it
     index.html              # pages: the home page. snapshot: the shell
@@ -90,7 +90,7 @@ sites/willow/
 
 `shell/` is the document shell: head, one mount (`#app`), and CSS. It does not contain the header, the nav, or TypeScript. That frame is the master layout. `publish/tessera.js` and `publish/skin/` are install bytes stamped by the site build. Adding a component is a Tessera release: it lands in `@r-a-i-t-h/tessera-extras` and every site may name it. The editor API does not load site code. The runtime loads the document, registers the catalogue, and mounts the render. It does not paint a sidebar or a top bar of its own.
 
-`npm run dev:site` serves the instance: `data/shell` and `data/preview` (a short placeholder while `data/shell` is missing). `/data/*` is the SPA snapshot in `preview/`. `media/` and `img/` still come from `data/publish`. `TESSERA_SITE=willow` serves that reference shell against the same runtime and keeps reading `sites/willow/publish`, which has no `preview/`. Saving and **Render site** refresh the preview only. **Publish** rebuilds `publish/` in the site's `delivery` flavour (`pages` by default, or `snapshot`) and leaves that folder alone until the next publish. `npm run build -w @r-a-i-t-h/tessera-site` builds `tessera.js` and `tessera-pages.js` and stamps `tessera.js` and `skin/` into each reference `publish/` tree. That build is not the preview. Copying `publish/` is how a site goes live. Tessera does not deploy it.
+The editor process serves the working snapshot at `/preview/` on the editor origin. The shell HTML is returned unchanged, so `./tessera.js`, `./data/`, `./skin/`, and `./media/` resolve inside that folder the same way they would in any directory on a static host. `tessera.js` and `skin/` come from the site build, `/data/*` comes from `preview/data` and not from `publish/`, and `media/` comes from `files/`. A signed-in editor session is required. `npm run dev:site` still serves the instance on port 5173 with live TypeScript: `data/shell` and `data/preview` (a short placeholder while `data/shell` is missing). `/data/*` is the SPA snapshot in `preview/`. `media/` and `img/` still come from `data/publish` on that dev server. `TESSERA_SITE=willow` serves that reference shell against the same runtime and keeps reading `sites/willow/publish`, which has no `preview/`. Saving and **Render site** refresh the preview only. **Publish** rebuilds `publish/` in the site's `delivery` flavour (`pages` by default, or `snapshot`) and leaves that folder alone until the next publish. `npm run build -w @r-a-i-t-h/tessera-site` builds `tessera.js` and `tessera-pages.js` and stamps `tessera.js` and `skin/` into each reference `publish/` tree. That build is not the preview. Copying `publish/` is how a site goes live. Tessera does not deploy it.
 
 ## Authoring files
 

@@ -163,7 +163,7 @@ function parseRoute(): { kind?: string; id?: string } {
   };
 }
 
-const previewUrl = "http://localhost:5173/";
+const previewUrl = "/preview/";
 
 type EditMode = "compose" | "fields" | "raw";
 
@@ -636,7 +636,7 @@ function listHtml(listing: RecordList, notice = "", error = ""): string {
   return `<h1 class="w3-large">Records</h1>
     ${notice ? `<p class="w3-panel w3-pale-green" role="status">${escapeHtml(notice)}</p>` : ""}
     ${error ? `<p class="w3-panel w3-pale-red" role="alert">${escapeHtml(error)}</p>` : ""}
-    <p class="w3-text-grey">YAML files named with Tessera <code>id</code>, outside the web root. Saving a page appends the previous file to a history file and refreshes the SPA preview on port 5173. <strong>Render site</strong> rebuilds that preview for every page. <strong>Publish</strong> writes the copyable <code>publish/</code> folder, and leaves it alone until the next time you publish.</p>
+    <p class="w3-text-grey">YAML files named with Tessera <code>id</code>, outside the web root. Saving a page appends the previous file to a history file and refreshes the SPA preview at <code>/preview/</code>. <strong>Render site</strong> rebuilds that preview for every page. <strong>Publish</strong> writes the copyable <code>publish/</code> folder, and leaves it alone until the next time you publish.</p>
     <p><a class="w3-button w3-theme" href="#/library">Library</a></p>
     ${start}
     ${sections || (empty ? "" : "<p>No records yet.</p>")}`;

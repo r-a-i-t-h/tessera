@@ -11,6 +11,7 @@ import { libraryRoutes } from "./routes/library.js";
 import { renderRoutes } from "./routes/render.js";
 import { siteRoutes } from "./routes/site.js";
 import type { SiteStore } from "./site/store.js";
+import { mountPreview, type PreviewRoots } from "./preview.js";
 import { mountSpa } from "./spa.js";
 import type { UserStore } from "./store/users.js";
 import "./context.js";
@@ -23,6 +24,11 @@ export function createApp(opts: {
   /** File-backed site records (YAML). */
   site?: SiteStore;
   siteRoot?: string;
+  /**
+   * Working snapshot at `/preview/`. Shell HTML is served unchanged;
+   * the built runtime, skin, preview data, and library files fill the folder.
+   */
+  preview?: PreviewRoots;
   backupDir?: string;
   seedDir?: string;
   rateLimiter?: RateLimiter;
@@ -56,6 +62,7 @@ export function createApp(opts: {
   app.route("/api", siteRoutes);
   app.route("/api", backupRoutes);
 
+  if (opts.preview) mountPreview(app, opts.preview);
   if (opts.spaDir) mountSpa(app, opts.spaDir);
 
   return app;

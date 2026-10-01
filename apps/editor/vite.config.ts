@@ -8,6 +8,7 @@ const apiProxy = {
   "/auth": api,
   "/api": api,
   "/health": api,
+  "/preview": api,
 } as const;
 
 export default defineConfig({
