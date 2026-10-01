@@ -12,6 +12,10 @@ import {
   listBackups,
   listRecords,
   changePassword,
+  changeUsername,
+  createUser,
+  deleteUser,
+  listUsers,
   login,
   logout,
   me,
@@ -24,9 +28,11 @@ import {
   saveRecord,
   updateLibraryAsset,
   updateLibraryFolder,
+  updateUser,
   uploadLibrary,
   createLibraryFolder,
   type BackupList,
+  type ManagedUser,
   type PublicUser,
   type PageLayoutHint,
   type RecordList,
@@ -65,6 +71,7 @@ import {
   type PickedAsset,
 } from "./forms/picker.js";
 import { paintSpecimen, previewStyle, readStyleForm, stylesPageHtml } from "./styles-page.js";
+import { usernameError } from "./username.js";
 
 function escapeHtml(value: string): string {
   return value
@@ -74,7 +81,7 @@ function escapeHtml(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
-type EditorSection = "home" | "records" | "library" | "backups" | "styles" | "account";
+type EditorSection = "home" | "records" | "library" | "backups" | "styles" | "users" | "account";
 
 function chrome(user: PublicUser, inner: string, wide = false, section: EditorSection = "home"): string {
   const link = (href: string, label: string, key: EditorSection) => {
@@ -87,6 +94,7 @@ function chrome(user: PublicUser, inner: string, wide = false, section: EditorSe
       ${link("#/library", "Library", "library")}
       ${link("#/backups", "Backups", "backups")}
       ${link("#/styles", "Styles", "styles")}
+      ${link("#/users", "Users", "users")}
       <button type="button" class="w3-bar-item w3-button" data-action="render-site">Render site</button>
       <button type="button" class="w3-bar-item w3-button" data-action="publish-site">Publish</button>
       <button type="button" class="w3-bar-item w3-button w3-right" data-action="logout">Sign out</button>
@@ -143,6 +151,8 @@ async function render(root: HTMLElement): Promise<void> {
   pendingEdit = undefined;
   try {
     if (route.page === "account") await bindAccount(root, user);
+    else if (route.page === "users") await bindUsers(root, user);
+    else if (route.page === "user") await bindUser(root, user, route.username);
     else if (route.page === "backups") await bindBackups(root, user);
     else if (route.page === "styles") await bindStyles(root, user);
     else if (route.page === "library") await bindLibrary(root, user, route.id);
@@ -174,6 +184,8 @@ type Route =
   | { page: "backups" }
   | { page: "styles" }
   | { page: "account" }
+  | { page: "users" }
+  | { page: "user"; username: string }
   | { page: "edit"; kind: string; id: string }
   | { page: "missing" };
 
@@ -191,6 +203,11 @@ function parseRoute(): Route {
   if (head === "backups") return rest ? { page: "missing" } : { page: "backups" };
   if (head === "styles") return rest ? { page: "missing" } : { page: "styles" };
   if (head === "account") return rest ? { page: "missing" } : { page: "account" };
+  if (head === "users") {
+    if (!rest) return { page: "users" };
+    if (rest.includes("/")) return { page: "missing" };
+    return { page: "user", username: rest };
+  }
   if (!rest || rest.includes("/")) return { page: "missing" };
   return { page: "edit", kind: head, id: rest };
 }
@@ -343,6 +360,37 @@ function publishNotice(result: PublishResult): string {
 async function bindAccount(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {
   root.innerHTML = chrome(user, accountHtml(user, notice, error), false, "account");
   bindChrome(root);
+  const usernameForm = root.querySelector<HTMLFormElement>("#username-form");
+  usernameForm?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const data = new FormData(usernameForm);
+    const next = String(data.get("username") ?? "").trim();
+    const problem = usernameError(next);
+    if (problem) {
+      void bindAccount(root, user, "", problem);
+      return;
+    }
+    if (next === user.username) {
+      void bindAccount(root, user, "That is already your username.");
+      return;
+    }
+    const button = usernameForm.querySelector("button");
+    if (button) button.disabled = true;
+    void (async () => {
+      try {
+        await changeUsername(next);
+        const fresh = await me();
+        await bindAccount(root, fresh, `Username is now ${fresh.username}.`);
+      } catch (err) {
+        await bindAccount(
+          root,
+          user,
+          "",
+          err instanceof Error ? err.message : "Could not change the username.",
+        );
+      }
+    })();
+  });
   const form = root.querySelector<HTMLFormElement>("#password-form");
   form?.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -377,9 +425,18 @@ function accountHtml(user: PublicUser, notice: string, error: string): string {
   return `<h1 class="w3-large">Account</h1>
     <p class="w3-text-grey">Signed in as <strong>${escapeHtml(user.username)}</strong>.</p>
     ${statusHtml(notice, error)}
+    <form id="username-form" class="w3-card w3-white w3-padding-large editor-card">
+      <h2 class="w3-medium">Change username</h2>
+      <p class="w3-text-grey">Start with a letter. Use letters, numbers, dots, underscores, and hyphens. It has to be different from every other editor.</p>
+      <p>
+        <label for="account-username">Username</label>
+        <input id="account-username" name="username" class="w3-input w3-border w3-margin-top" autocomplete="username" required value="${escapeHtml(user.username)}" />
+      </p>
+      <p><button type="submit" class="w3-button w3-theme">Change username</button></p>
+    </form>
     <form id="password-form" class="w3-card w3-white w3-padding-large editor-card">
       <h2 class="w3-medium">Change password</h2>
-      <p class="w3-text-grey">A new site starts with a publicly known password. Replace it before anyone else can reach this editor.</p>
+      <p class="w3-text-grey">A new site starts with a publicly known password. Replace it with at least 6 characters before anyone else can reach this editor.</p>
       <p>
         <label for="current-password">Current password</label>
         <input id="current-password" name="currentPassword" type="password" class="w3-input w3-border w3-margin-top" autocomplete="current-password" required />
@@ -394,6 +451,230 @@ function accountHtml(user: PublicUser, notice: string, error: string): string {
       </p>
       <p><button type="submit" class="w3-button w3-theme">Change password</button></p>
     </form>`;
+}
+
+async function bindUsers(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {
+  const listing = await listUsers();
+  root.innerHTML = chrome(user, usersHtml(listing.users, user, notice, error), true, "users");
+  bindChrome(root);
+  const form = root.querySelector<HTMLFormElement>("#new-user-form");
+  form?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const data = new FormData(form);
+    const username = String(data.get("username") ?? "").trim();
+    const password = String(data.get("password") ?? "");
+    const confirm = String(data.get("confirmPassword") ?? "");
+    const problem = usernameError(username) || passwordPairError(password, confirm, true);
+    if (problem) {
+      void bindUsers(root, user, "", problem);
+      return;
+    }
+    const button = form.querySelector("button");
+    if (button) button.disabled = true;
+    void (async () => {
+      try {
+        await createUser(username, password);
+        await bindUsers(root, user, `Added ${username}.`);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          bindLogin(root, "Sign in again.");
+          return;
+        }
+        await bindUsers(root, user, "", err instanceof Error ? err.message : "Could not add that user.");
+      }
+    })();
+  });
+  for (const button of root.querySelectorAll<HTMLButtonElement>("[data-user-disable]")) {
+    button.addEventListener("click", () => {
+      const username = button.dataset.userDisable ?? "";
+      if (!username || !window.confirm(`Disable ${username}? They will be signed out and cannot sign in.`)) return;
+      void runUserAction(root, user, () => updateUser(username, { disabled: true }), `Disabled ${username}.`);
+    });
+  }
+  for (const button of root.querySelectorAll<HTMLButtonElement>("[data-user-enable]")) {
+    button.addEventListener("click", () => {
+      const username = button.dataset.userEnable ?? "";
+      if (!username) return;
+      void runUserAction(root, user, () => updateUser(username, { disabled: false }), `Enabled ${username}.`);
+    });
+  }
+  for (const button of root.querySelectorAll<HTMLButtonElement>("[data-user-delete]")) {
+    button.addEventListener("click", () => {
+      const username = button.dataset.userDelete ?? "";
+      if (!username || !window.confirm(`Delete ${username}? This cannot be undone.`)) return;
+      void runUserAction(root, user, () => deleteUser(username), `Deleted ${username}.`);
+    });
+  }
+}
+
+async function runUserAction(
+  root: HTMLElement,
+  user: PublicUser,
+  action: () => Promise<unknown>,
+  notice: string,
+): Promise<void> {
+  try {
+    await action();
+    const fresh = await me();
+    await bindUsers(root, fresh, notice);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401) {
+      bindLogin(root, "Sign in again.");
+      return;
+    }
+    await bindUsers(root, user, "", err instanceof Error ? err.message : "Could not update that user.");
+  }
+}
+
+async function bindUser(
+  root: HTMLElement,
+  user: PublicUser,
+  username: string,
+  notice = "",
+  error = "",
+): Promise<void> {
+  const listing = await listUsers();
+  const target = listing.users.find((item) => item.username === username);
+  if (!target) {
+    root.innerHTML = chrome(
+      user,
+      `<h1 class="w3-large">User not found</h1><p><a href="#/users">Back to users</a></p>`,
+      false,
+      "users",
+    );
+    bindChrome(root);
+    return;
+  }
+  root.innerHTML = chrome(user, userEditHtml(target, user, notice, error), false, "users");
+  bindChrome(root);
+  const form = root.querySelector<HTMLFormElement>("#edit-user-form");
+  form?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const data = new FormData(form);
+    const nextName = String(data.get("username") ?? "").trim();
+    const password = String(data.get("password") ?? "");
+    const confirm = String(data.get("confirmPassword") ?? "");
+    const problem = usernameError(nextName) || passwordPairError(password, confirm, false);
+    if (problem) {
+      void bindUser(root, user, username, "", problem);
+      return;
+    }
+    const self = target.username === user.username;
+    const patch: { username: string; password?: string; disabled?: boolean } = { username: nextName };
+    if (password) patch.password = password;
+    if (!self) patch.disabled = data.get("disabled") === "on";
+    const button = form.querySelector("button");
+    if (button) button.disabled = true;
+    void (async () => {
+      try {
+        const saved = await updateUser(target.username, patch);
+        const fresh = await me();
+        const nextHash = `#/users/${encodeURIComponent(saved.user.username)}`;
+        if (window.location.hash !== nextHash) history.replaceState(null, "", nextHash);
+        await bindUser(root, fresh, saved.user.username, "Saved.");
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          bindLogin(root, "Sign in again.");
+          return;
+        }
+        await bindUser(
+          root,
+          user,
+          username,
+          "",
+          err instanceof Error ? err.message : "Could not save that user.",
+        );
+      }
+    })();
+  });
+}
+
+function usersHtml(users: ManagedUser[], actor: PublicUser, notice: string, error: string): string {
+  const rows = users.length
+    ? `<ul class="w3-ul">${users.map((item) => userRow(item, actor)).join("")}</ul>`
+    : `<p class="w3-text-grey">No editors yet.</p>`;
+  return `<h1 class="w3-large">Users</h1>
+    ${statusHtml(notice, error)}
+    <p class="w3-text-grey">Every signed-in editor can reach the whole site. A disabled editor is signed out and cannot sign in. You cannot delete or disable the account you are using.</p>
+    <form id="new-user-form" class="w3-card w3-white w3-padding-large editor-card">
+      <h2 class="w3-medium">Add user</h2>
+      <p>
+        <label for="new-username">Username</label>
+        <input id="new-username" name="username" class="w3-input w3-border w3-margin-top" autocomplete="off" required />
+      </p>
+      <p>
+        <label for="new-user-password">Password</label>
+        <input id="new-user-password" name="password" type="password" class="w3-input w3-border w3-margin-top" autocomplete="new-password" minlength="6" required />
+      </p>
+      <p>
+        <label for="new-user-confirm">Confirm password</label>
+        <input id="new-user-confirm" name="confirmPassword" type="password" class="w3-input w3-border w3-margin-top" autocomplete="new-password" minlength="6" required />
+      </p>
+      <p><button type="submit" class="w3-button w3-theme">Add user</button></p>
+    </form>
+    ${rows}`;
+}
+
+function userRow(item: ManagedUser, actor: PublicUser): string {
+  const self = item.username === actor.username;
+  const name = escapeHtml(item.username);
+  const since = escapeHtml(item.createdAt.slice(0, 10));
+  const state = item.disabled ? `<span class="w3-text-red">Disabled</span>` : "";
+  const you = self ? `<span class="w3-text-grey">Signed in</span>` : "";
+  const toggle = self
+    ? ""
+    : item.disabled
+      ? `<button type="button" class="w3-button w3-small w3-white" data-user-enable="${name}">Enable</button>`
+      : `<button type="button" class="w3-button w3-small w3-white" data-user-disable="${name}">Disable</button>`;
+  const remove = self
+    ? ""
+    : `<button type="button" class="w3-button w3-small w3-white" data-user-delete="${name}">Delete</button>`;
+  return `<li class="editor-user">
+      <a href="#/users/${encodeURIComponent(item.username)}">${name}</a>
+      <span class="w3-text-grey w3-small">${since}</span>
+      ${state}
+      ${you}
+      <a class="w3-button w3-small w3-white" href="#/users/${encodeURIComponent(item.username)}">Edit</a>
+      ${toggle}
+      ${remove}
+    </li>`;
+}
+
+function userEditHtml(target: ManagedUser, actor: PublicUser, notice: string, error: string): string {
+  const self = target.username === actor.username;
+  const disabled = target.disabled ? " checked" : "";
+  const lock = self ? " disabled" : "";
+  const note = self
+    ? `<p class="w3-text-grey">You cannot disable the account you are signed in with.</p>`
+    : "";
+  return `<h1 class="w3-large">Edit ${escapeHtml(target.username)}</h1>
+    ${statusHtml(notice, error)}
+    <form id="edit-user-form" class="w3-card w3-white w3-padding-large editor-card">
+      <p>
+        <label for="edit-username">Username</label>
+        <input id="edit-username" name="username" class="w3-input w3-border w3-margin-top" autocomplete="off" required value="${escapeHtml(target.username)}" />
+      </p>
+      <p>
+        <label for="edit-password">New password</label>
+        <input id="edit-password" name="password" type="password" class="w3-input w3-border w3-margin-top" autocomplete="new-password" minlength="6" />
+      </p>
+      <p>
+        <label for="edit-confirm">Confirm new password</label>
+        <input id="edit-confirm" name="confirmPassword" type="password" class="w3-input w3-border w3-margin-top" autocomplete="new-password" minlength="6" />
+      </p>
+      <p class="w3-text-grey">Leave the password blank to keep the current one. A new password must be at least 6 characters.</p>
+      <p class="editor-check"><label><input id="user-disabled" name="disabled" type="checkbox"${disabled}${lock} /> Disabled</label></p>
+      ${note}
+      <p><button type="submit" class="w3-button w3-theme">Save</button></p>
+    </form>
+    <p><a href="#/users">Back to users</a></p>`;
+}
+
+function passwordPairError(password: string, confirm: string, required: boolean): string {
+  if (!password && !confirm) return required ? "Password must be at least 6 characters." : "";
+  if (password.length < 6) return "Password must be at least 6 characters.";
+  if (password !== confirm) return "Password and confirmation do not match.";
+  return "";
 }
 
 function passwordChangeError(currentPassword: string, newPassword: string, confirmPassword: string): string {

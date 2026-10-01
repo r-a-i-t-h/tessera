@@ -1,4 +1,4 @@
-import { mkdtemp, readdir, rm } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -50,5 +50,57 @@ describe("UserStore seed load", () => {
     await otherReloaded.load(seedDir);
     expect(otherReloaded.getUser("admin")?.passwordHash).toBe(seededHash);
     expect(seededHash).not.toBe(next.hash);
+  });
+
+  it("renames a user, including a case-only change, and reloads that file", async () => {
+    const dataDir = await siteDir();
+    const store = new UserStore(dataDir);
+    await store.load();
+    const password = await hashPassword("secret1");
+    await store.createUser("alice", password.hash, password.salt);
+    await store.renameUser("alice", "Alice");
+
+    const files = (await readdir(join(dataDir, "users"))).filter((name) => name.endsWith(".json"));
+    expect(files.map((name) => name.toLowerCase())).toEqual(["alice.json"]);
+    expect(files).toContain("Alice.json");
+
+    const reloaded = new UserStore(dataDir);
+    await reloaded.load();
+    expect(reloaded.getUser("Alice")?.username).toBe("Alice");
+    expect(reloaded.getUser("alice")).toBeUndefined();
+    expect(reloaded.findUser("ALICE")?.username).toBe("Alice");
+  });
+
+  it("rejects a clash, a bad name, and a delete", async () => {
+    const dataDir = await siteDir();
+    const store = new UserStore(dataDir);
+    await store.load();
+    const password = await hashPassword("secret1");
+    await store.createUser("alice", password.hash, password.salt);
+    await store.createUser("bob", password.hash, password.salt);
+
+    await expect(store.createUser("BOB", password.hash, password.salt)).rejects.toThrow(
+      "Username already taken",
+    );
+    await expect(store.renameUser("alice", "bob")).rejects.toThrow("Username already taken");
+    await expect(store.createUser("  ", password.hash, password.salt)).rejects.toThrow(
+      "visible character",
+    );
+    await expect(store.createUser("1bob", password.hash, password.salt)).rejects.toThrow(
+      "start with a letter",
+    );
+
+    await store.setDisabled("bob", true);
+    expect(store.getUser("bob")?.disabled).toBe(true);
+    const raw = await readFile(join(dataDir, "users", "bob.json"), "utf8");
+    expect(raw).toContain('"disabled": true');
+    await store.setDisabled("bob", false);
+    expect(store.getUser("bob")?.disabled).toBeUndefined();
+    expect(await readFile(join(dataDir, "users", "bob.json"), "utf8")).not.toContain("disabled");
+
+    await store.deleteUser("bob");
+    expect(store.getUser("bob")).toBeUndefined();
+    const left = await readdir(join(dataDir, "users"));
+    expect(left).not.toContain("bob.json");
   });
 });

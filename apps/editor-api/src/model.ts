@@ -3,6 +3,8 @@ export interface UserRecord {
   passwordHash: string;
   passwordSalt: string;
   createdAt: string;
+  /** Absent or false means the editor can sign in. */
+  disabled?: boolean;
 }
 
 export interface SessionRecord {

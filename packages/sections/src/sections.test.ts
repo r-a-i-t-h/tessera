@@ -34,41 +34,53 @@ const willow = `
 {{hall-gallery-slides}}`;
 
 describe("parseSections", () => {
-  it("splits a Willow body into headings, paragraphs, and inserts", () => {
+  it("groups a Willow body into text runs, leaving a heading that introduces an insert", () => {
     const sections = parseSections(willow);
-    expect(sections.map((section) => section.kind)).toEqual([
-      "heading",
-      "text",
-      "heading",
-      "text",
-      "insert",
-      "text",
-      "heading",
-      "insert",
-    ]);
-    expect(sections[0]).toMatchObject({ kind: "heading", text: "This week at a glance" });
-    expect(sections[4]).toEqual({ kind: "insert", id: "people-preview" });
-    expect(sections[5]).toMatchObject({ kind: "text", html: `<a href="#people">Meet the whole team</a>` });
-    expect(sections[7]).toEqual({ kind: "insert", id: "hall-gallery-slides" });
+    expect(sections.map((section) => section.kind)).toEqual(["text", "text", "insert", "text", "heading", "insert"]);
+    expect(sections[0]).toMatchObject({
+      kind: "text",
+      heading: "This week at a glance",
+      level: 2,
+      html: "<p>Mauris blandit aliquet elit.</p>",
+    });
+    expect(sections[1]).toMatchObject({
+      kind: "text",
+      heading: "Who keeps the kettle on",
+      html: "<p>Trustees and volunteer leads.</p>",
+    });
+    expect(sections[2]).toEqual({ kind: "insert", id: "people-preview" });
+    expect(sections[3]).toMatchObject({
+      kind: "text",
+      heading: "",
+      html: `<p><a href="#people">Meet the whole team</a></p>`,
+    });
+    expect(sections[4]).toMatchObject({ kind: "heading", text: "From the hall" });
+    expect(sections[5]).toEqual({ kind: "insert", id: "hall-gallery-slides" });
   });
 
-  it("splits an Ineffable body into paragraphs, a quote, and columns", () => {
+  it("groups an Ineffable body into one text run, a quote, and columns", () => {
     const sections = parseSections(ineffable);
-    expect(sections.map((section) => section.kind)).toEqual(["text", "text", "quote", "columns"]);
-    expect(sections[2]).toMatchObject({
+    expect(sections.map((section) => section.kind)).toEqual(["text", "quote", "columns"]);
+    expect(sections[0]).toMatchObject({
+      kind: "text",
+      heading: "",
+      html: `<p class="w3-large">Tessera stands for zone-based site tiles.</p><p>The W3-CSS framework is the chosen rendering target.</p>`,
+    });
+    expect(sections[1]).toMatchObject({
       kind: "quote",
       tone: "sand",
       text: "They can't both be best, so take the best of both.",
       attribution: "",
     });
-    const columns = sections[3];
+    const columns = sections[2];
     expect(columns).toMatchObject({ kind: "columns" });
     if (columns?.kind !== "columns") return;
     expect(columns.cells).toHaveLength(2);
     expect(columns.cells[0]?.className).toBe("w3-orange");
-    expect(columns.cells[0]?.sections[0]).toMatchObject({ kind: "heading", text: "TO DO" });
+    expect(columns.cells[0]?.sections[0]).toMatchObject({ kind: "text", heading: "TO DO", level: 3 });
+    expect(columns.cells[0]?.sections[0]?.kind === "text" ? columns.cells[0].sections[0].html : "").toContain("<li>gallery");
     expect(columns.cells[1]?.className).toBe("w3-teal");
-    expect(columns.cells[1]?.sections[0]).toMatchObject({ kind: "heading", text: "DONE" });
+    expect(columns.cells[1]?.sections[0]).toMatchObject({ kind: "text", heading: "DONE", level: 3 });
   });
 
   it("keeps an unrecognized hero as one HTML section", () => {
@@ -91,8 +103,12 @@ describe("paintSections", () => {
   it("rebuilds the same sections from painted HTML", () => {
     const sections: Section[] = [
       { kind: "heading", level: 2, text: "Hello" },
-      { kind: "text", tag: "p", html: "A <strong>line</strong>." },
-      { kind: "text", tag: "ul", html: "<li>One</li><li>Two</li>" },
+      {
+        kind: "text",
+        heading: "Notes",
+        level: 3,
+        html: "<p>A <strong>line</strong>.</p><ul><li>One</li><li>Two</li></ul>",
+      },
       { kind: "panel", tone: "sand", html: "<p>Note</p>" },
       { kind: "quote", tone: "pale", text: "Stay curious", attribution: "Ada" },
       { kind: "imgbox", src: "a.jpg", alt: "Alt", caption: "Caption" },
@@ -101,7 +117,7 @@ describe("paintSections", () => {
         kind: "columns",
         cells: [
           { className: "w3-orange", sections: [{ kind: "heading", level: 3, text: "Left" }] },
-          { className: "", sections: [{ kind: "text", tag: "p", html: "Right" }] },
+          { className: "", sections: [{ kind: "text", heading: "", level: 2, html: "<p>Right</p>" }] },
           { className: "", sections: [blankSection("text")] },
         ],
       },
@@ -161,6 +177,29 @@ describe("paintSections", () => {
     expect(youtubeVideoId("https://www.youtube-nocookie.com/embed/QvAdmE0vPW0")).toBe("QvAdmE0vPW0");
     expect(youtubeVideoId("https://www.youtube.com/shorts/QvAdmE0vPW0")).toBe("QvAdmE0vPW0");
     expect(youtubeVideoId("not a video")).toBe("");
+  });
+
+  it("keeps a heading on the text run and leaves a heading that introduces a panel", () => {
+    const sections = parseSections(
+      `<h2>Market</h2><p>Opens at nine.</p><ul><li>Bread</li></ul><p>Closes at one.</p><h2>Gallery</h2><div class="w3-panel w3-sand w3-padding"><p>Photos</p></div>`,
+    );
+    expect(sections).toEqual([
+      {
+        kind: "text",
+        heading: "Market",
+        level: 2,
+        html: "<p>Opens at nine.</p><ul><li>Bread</li></ul><p>Closes at one.</p>",
+      },
+      { kind: "heading", level: 2, text: "Gallery" },
+      { kind: "panel", tone: "sand", html: "<p>Photos</p>" },
+    ]);
+    expect(parseSections(paintSections(sections))).toEqual(sections);
+  });
+
+  it("keeps a binding between paragraphs as its own item", () => {
+    const sections = parseSections(`<p>Before</p><p>{{people-preview}}</p><p>After</p>`);
+    expect(sections.map((section) => section.kind)).toEqual(["text", "insert", "text"]);
+    expect(sections[1]).toEqual({ kind: "insert", id: "people-preview" });
   });
 
   it("leaves an old tilted farm block as custom HTML", () => {

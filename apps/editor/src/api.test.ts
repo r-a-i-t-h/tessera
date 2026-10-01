@@ -24,6 +24,8 @@ describe("editor at the hostname root", () => {
     expect(src).toContain('request("/auth/me")');
     expect(src).toContain('request("/auth/logout"');
     expect(src).toContain('request("/auth/password"');
+    expect(src).toContain('request("/auth/username"');
+    expect(src).toContain('request("/api/users"');
     expect(src).toContain('request("/api/ping"');
     expect(src).toContain('request("/api/records")');
     expect(src).not.toContain("resolveApiUrl");

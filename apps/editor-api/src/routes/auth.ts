@@ -3,6 +3,7 @@ import type { Context } from "hono";
 import { deleteCookie, setCookie } from "hono/cookie";
 import { requireEditor } from "../access/editor.js";
 import { hashPassword, verifyPassword } from "../auth/password.js";
+import { normalizedUsername, usernameError } from "../auth/username.js";
 import { apiError, isResponse, publicUser } from "../http.js";
 import { clientIp, rateLimit } from "../middleware/rate-limit.js";
 import { requestSessionToken, SESSION_COOKIE } from "../middleware/auth.js";
@@ -36,6 +37,7 @@ authRoutes.post("/login", authAttemptLimit, async (c) => {
   if (!user || !(await verifyPassword(body.password, user.passwordHash, user.passwordSalt))) {
     return apiError(c, 401, "Invalid username or password.");
   }
+  if (user.disabled) return apiError(c, 401, "This account is disabled.");
   const session = sessions.create(user.username);
   setSessionCookie(c, session.token);
   return c.json({
@@ -80,6 +82,37 @@ authRoutes.post("/password", authPasswordLimit, async (c) => {
   sessions.destroyAllForUser(user.username, requestSessionToken(c));
 
   return c.json({ ok: true });
+});
+
+authRoutes.post("/username", async (c) => {
+  const user = requireEditor(c);
+  if (isResponse(user)) return user;
+
+  const raw = await readJsonBody(c);
+  const requested = raw.username !== undefined ? String(raw.username) : "";
+  const problem = usernameError(requested);
+  if (problem) return apiError(c, 400, problem);
+
+  const next = normalizedUsername(requested);
+  const users = c.get("users");
+  const sessions = c.get("sessions");
+  if (next !== user.username) {
+    const clash = users.findUser(next);
+    if (clash && clash.username !== user.username) {
+      return apiError(c, 409, "That username is already in use.");
+    }
+    try {
+      await users.renameUser(user.username, next);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not change the username.";
+      if (message === "Username already taken") {
+        return apiError(c, 409, "That username is already in use.");
+      }
+      return apiError(c, 400, message);
+    }
+    sessions.renameUser(user.username, next);
+  }
+  return c.json({ ok: true, username: next });
 });
 
 authRoutes.post("/logout", (c) => {

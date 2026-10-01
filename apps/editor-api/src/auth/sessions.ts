@@ -99,6 +99,16 @@ export class SessionStore {
     this.fallback.delete(hashSessionToken(token));
   }
 
+  renameUser(from: string, to: string): void {
+    if (from === to) return;
+    for (const session of this.sessions.values()) {
+      if (session.username === from) session.username = to;
+    }
+    for (const row of this.fallback.values()) {
+      if (row.username === from) row.username = to;
+    }
+  }
+
   destroyAllForUser(username: string, exceptToken?: string): void {
     for (const [token, session] of this.sessions) {
       if (session.username === username && token !== exceptToken) {

@@ -5,6 +5,7 @@ import {
   hasClass,
   parseFragment,
   serializeChildren,
+  serializeNode,
   textContent,
   type ElNode,
   type HtmlNode,
@@ -102,7 +103,7 @@ export type GalleryMode = "grid" | "slides";
 
 export type Section =
   | { kind: "heading"; level: 1 | 2 | 3; text: string }
-  | { kind: "text"; tag: "p" | "ul" | "ol"; html: string }
+  | { kind: "text"; heading: string; level: 1 | 2 | 3; html: string }
   | { kind: "panel"; tone: ToneId; html: string }
   | { kind: "quote"; tone: ToneId; text: string; attribution: string }
   | { kind: "imgbox"; src: string; alt: string; caption: string }
@@ -161,7 +162,7 @@ export function blankSection(kind: PaletteKind): Section {
     case "heading":
       return { kind: "heading", level: 2, text: "" };
     case "text":
-      return { kind: "text", tag: "p", html: "" };
+      return { kind: "text", heading: "", level: 2, html: "" };
     case "panel":
       return { kind: "panel", tone: "sand", html: "" };
     case "quote":
@@ -226,7 +227,7 @@ export function paintSection(section: Section): string {
     case "heading":
       return `<h${section.level}>${escapeText(section.text)}</h${section.level}>`;
     case "text":
-      return `<${section.tag}>${section.html}</${section.tag}>`;
+      return paintText(section);
     case "panel": {
       const cls = joinClass("w3-panel", "w3-padding", toneClass(section.tone));
       return `<div class="${cls}">${section.html}</div>`;
@@ -259,6 +260,12 @@ export function parseSections(html: string): Section[] {
   return walk(root.children, true);
 }
 
+function paintText(section: Extract<Section, { kind: "text" }>): string {
+  const heading = section.heading.trim();
+  const title = heading ? `<h${section.level}>${escapeText(heading)}</h${section.level}>` : "";
+  return `<div class="tessera-text">${title}${section.html}</div>`;
+}
+
 function paintYoutube(section: Extract<Section, { kind: "youtube" }>): string {
   const id = youtubeVideoId(section.videoId);
   const src = id ? ` src="https://www.youtube-nocookie.com/embed/${escapeAttr(id)}"` : "";
@@ -289,30 +296,96 @@ function paintColumns(cells: ColumnCell[]): string {
   return `<div class="w3-row-padding w3-stretch">${inner}</div>`;
 }
 
+type Atom =
+  | { type: "flow"; html: string }
+  | { type: "heading"; level: 1 | 2 | 3; text: string }
+  | { type: "section"; section: Section };
+
 function walk(nodes: HtmlNode[], allowColumns: boolean): Section[] {
+  return groupAtoms(nodes.flatMap((node) => atomsFrom(node, allowColumns)));
+}
+
+/** A heading followed by paragraphs or lists is one text run. A heading before anything else stays a heading. */
+function groupAtoms(atoms: Atom[]): Section[] {
   const sections: Section[] = [];
-  for (const node of nodes) {
-    if (node.type === "text") {
-      splitText(sections, node.text);
+  let i = 0;
+  while (i < atoms.length) {
+    const atom = atoms[i]!;
+    if (atom.type === "section") {
+      sections.push(atom.section);
+      i += 1;
       continue;
     }
-    sections.push(...classify(node, allowColumns));
+    let heading = "";
+    let level: 1 | 2 | 3 = 2;
+    if (atom.type === "heading") {
+      if (atoms[i + 1]?.type !== "flow") {
+        sections.push({ kind: "heading", level: atom.level, text: atom.text });
+        i += 1;
+        continue;
+      }
+      heading = atom.text;
+      level = atom.level;
+      i += 1;
+    }
+    let html = "";
+    while (i < atoms.length && atoms[i]?.type === "flow") {
+      html += (atoms[i] as { type: "flow"; html: string }).html;
+      i += 1;
+    }
+    sections.push({ kind: "text", heading, level, html });
   }
   return sections;
 }
 
-function splitText(sections: Section[], text: string): void {
+function atomsFrom(node: HtmlNode, allowColumns: boolean): Atom[] {
+  if (node.type === "text") {
+    if (!node.text.trim()) return [];
+    return splitTextAtoms(node.text);
+  }
+  const textRun = asTextRun(node);
+  if (textRun) return [{ type: "section", section: textRun }];
+  if (isBareDiv(node)) return node.children.flatMap((child) => atomsFrom(child, allowColumns));
+  if (node.tag === "p" || node.tag === "ul" || node.tag === "ol") {
+    const insert = onlyInsert(node);
+    if (insert) return [{ type: "section", section: insert }];
+    return [{ type: "flow", html: serializeNode(node) }];
+  }
+  if (node.tag === "h1" || node.tag === "h2" || node.tag === "h3") {
+    return [{ type: "heading", level: Number(node.tag[1]) as 1 | 2 | 3, text: textContent(node).trim() }];
+  }
+  return classify(node, allowColumns).map((section) => ({ type: "section", section }));
+}
+
+function splitTextAtoms(text: string): Atom[] {
+  const atoms: Atom[] = [];
   const re = /\{\{([A-Za-z0-9_-]+)\}\}/g;
   let last = 0;
   for (const match of text.matchAll(re)) {
     const index = match.index ?? 0;
     const before = text.slice(last, index).trim();
-    if (before) sections.push({ kind: "text", tag: "p", html: escapeText(before) });
-    sections.push({ kind: "insert", id: match[1]! });
+    if (before) atoms.push({ type: "flow", html: `<p>${escapeText(before)}</p>` });
+    atoms.push({ type: "section", section: { kind: "insert", id: match[1]! } });
     last = index + match[0].length;
   }
   const after = text.slice(last).trim();
-  if (after) sections.push({ kind: "text", tag: "p", html: escapeText(after) });
+  if (after) atoms.push({ type: "flow", html: `<p>${escapeText(after)}</p>` });
+  return atoms;
+}
+
+function asTextRun(el: ElNode): Section | null {
+  if (!hasClass(el, "tessera-text")) return null;
+  const children = el.children.filter((child) => child.type !== "text" || child.text.trim());
+  let heading = "";
+  let level: 1 | 2 | 3 = 2;
+  let start = 0;
+  const first = children[0];
+  if (first?.type === "el" && (first.tag === "h1" || first.tag === "h2" || first.tag === "h3")) {
+    heading = textContent(first).trim();
+    level = Number(first.tag[1]) as 1 | 2 | 3;
+    start = 1;
+  }
+  return { kind: "text", heading, level, html: serializeChildren(children.slice(start)) };
 }
 
 function classify(el: ElNode, allowColumns: boolean): Section[] {
@@ -331,14 +404,6 @@ function classify(el: ElNode, allowColumns: boolean): Section[] {
   if (panel) return [panel];
   const card = asCard(el);
   if (card) return [card];
-  if (el.tag === "h1" || el.tag === "h2" || el.tag === "h3") {
-    return [{ kind: "heading", level: Number(el.tag[1]) as 1 | 2 | 3, text: textContent(el).trim() }];
-  }
-  if (el.tag === "p" || el.tag === "ul" || el.tag === "ol") {
-    const only = onlyInsert(el);
-    if (only) return only;
-    return [{ kind: "text", tag: el.tag, html: serializeChildren(el.children) }];
-  }
   if (!el.raw.trim()) return [];
   return [{ kind: "html", html: el.raw }];
 }
@@ -453,11 +518,11 @@ function toneOf(el: ElNode): ToneId {
   return "plain";
 }
 
-function onlyInsert(el: ElNode): Section[] | null {
+function onlyInsert(el: ElNode): Section | null {
   const text = textContent(el).trim();
   const match = text.match(/^\{\{([A-Za-z0-9_-]+)\}\}$/);
   if (!match) return null;
-  return [{ kind: "insert", id: match[1]! }];
+  return { kind: "insert", id: match[1]! };
 }
 
 function hasIcon(el: ElNode, name: string): boolean {

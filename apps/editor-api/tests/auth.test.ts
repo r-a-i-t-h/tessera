@@ -166,6 +166,85 @@ describe("auth routes", () => {
     expect(mismatch.status).toBe(400);
   });
 
+  it("rejects a disabled account only after the password matches", async () => {
+    await users.setDisabled("alice", true);
+    const wrong = await login("nope");
+    expect(wrong.status).toBe(401);
+    expect(await wrong.json()).toEqual({ error: "Invalid username or password." });
+
+    const res = await login();
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: "This account is disabled." });
+  });
+
+  it("ignores an existing session once the account is disabled", async () => {
+    const token = sessions.create("alice").token;
+    await users.setDisabled("alice", true);
+    const res = await app().request("/auth/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it("changes the signed-in username and keeps this session", async () => {
+    const token = sessions.create("alice").token;
+    const password = await hashPassword("secret1");
+    await users.createUser("bob", password.hash, password.salt);
+
+    const clash = await app().request("/auth/username", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username: "BOB" }),
+    });
+    expect(clash.status).toBe(409);
+    expect(await clash.json()).toEqual({ error: "That username is already in use." });
+
+    const blank = await app().request("/auth/username", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username: "   " }),
+    });
+    expect(blank.status).toBe(400);
+    expect(await blank.json()).toEqual({
+      error: "Username must include at least one visible character.",
+    });
+
+    const digit = await app().request("/auth/username", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username: "1alice" }),
+    });
+    expect(digit.status).toBe(400);
+
+    const res = await app().request("/auth/username", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username: "  alice2 " }),
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, username: "alice2" });
+
+    const me = await app().request("/auth/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(me.status).toBe(200);
+    expect(await me.json()).toMatchObject({ ok: true, username: "alice2" });
+    expect(users.getUser("alice")).toBeUndefined();
+    expect(users.getUser("alice2")?.username).toBe("alice2");
+  });
+
   it("logout is idempotent and clears the cookie", async () => {
     const token = sessions.create("alice").token;
     const res = await app().request("/auth/logout", {

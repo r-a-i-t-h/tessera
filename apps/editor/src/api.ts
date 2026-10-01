@@ -77,6 +77,55 @@ export function changePassword(
   });
 }
 
+export function changeUsername(username: string): Promise<{ ok: true; username: string }> {
+  return request("/auth/username", {
+    method: "POST",
+    body: JSON.stringify({ username }),
+  });
+}
+
+export type ManagedUser = {
+  username: string;
+  createdAt: string;
+  disabled: boolean;
+};
+
+export type UserList = {
+  ok: true;
+  users: ManagedUser[];
+};
+
+export type UserWrite = {
+  username?: string;
+  password?: string;
+  disabled?: boolean;
+};
+
+export function listUsers(): Promise<UserList> {
+  return request("/api/users");
+}
+
+export function createUser(username: string, password: string): Promise<{ ok: true; user: ManagedUser }> {
+  return request("/api/users", {
+    method: "POST",
+    body: JSON.stringify({ username, password }),
+  });
+}
+
+export function updateUser(
+  username: string,
+  patch: UserWrite,
+): Promise<{ ok: true; user: ManagedUser }> {
+  return request(`/api/users/${encodeURIComponent(username)}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+}
+
+export function deleteUser(username: string): Promise<{ ok: true }> {
+  return request(`/api/users/${encodeURIComponent(username)}`, { method: "DELETE" });
+}
+
 export function ping(): Promise<PingResult> {
   return request("/api/ping", { method: "POST" });
 }

@@ -76,6 +76,20 @@ export function mountComposeCanvases(
     const canvas = (event.target as HTMLElement | null)?.closest<HTMLElement>("[data-canvas]");
     if (canvas?.dataset.zone) state.active = canvas.dataset.zone;
   });
+  form.addEventListener("keydown", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement) || target.dataset.field !== "heading") return;
+    if (event.key === "Enter") event.preventDefault();
+  });
+  form.addEventListener("focusin", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement) || target.dataset.blocks !== "true") return;
+    try {
+      document.execCommand("defaultParagraphSeparator", false, "p");
+    } catch {
+      // The editing host may not implement paragraph separators.
+    }
+  });
   form.addEventListener("input", (event) => onField(form, event.target, false));
   form.addEventListener("change", (event) => onField(form, event.target, true));
   form.addEventListener("click", (event) => onClick(form, event));
@@ -187,7 +201,7 @@ function labelFor(node: EditNode): string {
     case "heading":
       return "Heading";
     case "text":
-      return node.tag === "p" ? "Text" : "List";
+      return "Text";
     case "panel":
       return "Panel";
     case "quote":
@@ -217,11 +231,9 @@ function propsFor(node: EditNode, choices: Choices, locked: boolean): string {
   if (locked) return lockedProps(node, choices);
   switch (node.kind) {
     case "heading":
-      return `<label class="editor-prop">Level <select data-field="level">${[1, 2, 3]
-        .map((level) => `<option value="${level}"${node.level === level ? " selected" : ""}>${level}</option>`)
-        .join("")}</select></label>`;
+      return levelSelect(node.level);
     case "text":
-      return `<span class="editor-prop">${inlineTools()}<button type="button" class="w3-button w3-small w3-white" data-list>${node.tag === "p" ? "Make list" : "Make paragraph"}</button></span>`;
+      return `${levelSelect(node.level)}<span class="editor-prop">${inlineTools()}${listTools()}</span>`;
     case "panel":
       return `<label class="editor-prop">Tone <select data-field="tone">${toneOptions(node.tone)}</select></label>${inlineTools()}`;
     case "quote":
@@ -254,7 +266,7 @@ function lockedProps(node: EditNode, choices: Choices): string {
     case "text":
     case "panel":
     case "pasted":
-      return inlineTools();
+      return node.kind === "text" ? `${inlineTools()}${listTools()}` : inlineTools();
     case "quote":
       return `<label class="editor-prop">Attribution <input data-field="attribution" class="w3-input" value="${escapeAttr(node.attribution)}"></label>`;
     case "imgbox":
@@ -272,16 +284,74 @@ function lockedProps(node: EditNode, choices: Choices): string {
   }
 }
 
-function inlineTools(): string {
-  return `<span class="editor-inline"><button type="button" class="w3-button w3-small w3-white" data-cmd="bold">Bold</button><button type="button" class="w3-button w3-small w3-white" data-cmd="italic">Italic</button><button type="button" class="w3-button w3-small w3-white" data-cmd="link">Link</button></span>`;
+function headingLevel(value: string): 1 | 2 | 3 {
+  const level = Number(value);
+  return level === 1 ? 1 : level === 3 ? 3 : 2;
 }
+
+function retagHeading(article: HTMLElement, level: 1 | 2 | 3, field: "heading" | "text"): void {
+  const current = article.querySelector<HTMLElement>(`[data-field="${field}"]`);
+  if (!current || current.tagName === `H${level}`) return;
+  const next = document.createElement(`h${level}`);
+  for (const attr of current.attributes) next.setAttribute(attr.name, attr.value);
+  next.innerHTML = current.innerHTML;
+  current.replaceWith(next);
+}
+
+function levelSelect(level: 1 | 2 | 3): string {
+  return `<label class="editor-prop">Level <select data-field="level">${[1, 2, 3]
+    .map((item) => `<option value="${item}"${level === item ? " selected" : ""}>${item}</option>`)
+    .join("")}</select></label>`;
+}
+
+function inlineTools(): string {
+  return `<span class="editor-inline">${[
+    markButton("bold", "Bold", "<b>B</b>"),
+    markButton("italic", "Italic", "<i>I</i>"),
+    markButton("underline", "Underline", "<u>U</u>"),
+    markButton("strikeThrough", "Strikethrough", "<s>S</s>"),
+    markButton("code", "Code", `<span class="editor-mark-code">&lt;/&gt;</span>`),
+    markGap(),
+    markButton("link", "Link", LINK_ICON),
+    markButton("removeFormat", "Clear formatting", CLEAR_ICON),
+  ].join("")}</span>`;
+}
+
+function listTools(): string {
+  return `<span class="editor-inline">${[
+    markButton("insertUnorderedList", "Bulleted list", LIST_ICON),
+    markButton("insertOrderedList", "Numbered list", NUMBER_ICON),
+    markGap(),
+    markButton("align:w3-left-align", "Align left", ALIGN_LEFT_ICON),
+    markButton("align:w3-center", "Align center", ALIGN_CENTER_ICON),
+    markButton("align:w3-right-align", "Align right", ALIGN_RIGHT_ICON),
+    markButton("align:w3-justify", "Justify", ALIGN_JUSTIFY_ICON),
+  ].join("")}</span>`;
+}
+
+function markButton(cmd: string, label: string, glyph: string): string {
+  return `<button type="button" class="editor-mark" data-cmd="${cmd}" aria-label="${escapeAttr(label)}" title="${escapeAttr(label)}">${glyph}</button>`;
+}
+
+function markGap(): string {
+  return `<span class="editor-mark-gap" aria-hidden="true"></span>`;
+}
+
+const LINK_ICON = `<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M6.8 9.2 9.2 6.8"/><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M7.2 4.5 8.3 3.4a2.2 2.2 0 0 1 3.1 3.1L10.3 7.6M8.8 11.5 7.7 12.6a2.2 2.2 0 0 1-3.1-3.1L5.7 8.4"/></svg>`;
+const CLEAR_ICON = `<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" d="m3.4 10.2 4.8-6.4 4.4 3.3-4.8 6.4H5.2z"/><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M8.2 13.4h5"/></svg>`;
+const LIST_ICON = `<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="4" r="1.05" fill="currentColor"/><circle cx="3" cy="8" r="1.05" fill="currentColor"/><circle cx="3" cy="12" r="1.05" fill="currentColor"/><path fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" d="M6 4h7.2M6 8h7.2M6 12h7.2"/></svg>`;
+const NUMBER_ICON = `<svg viewBox="0 0 16 16" aria-hidden="true"><text x="0.4" y="5" font-size="4.6" font-family="ui-sans-serif, system-ui, sans-serif" fill="currentColor">1</text><text x="0.4" y="9.3" font-size="4.6" font-family="ui-sans-serif, system-ui, sans-serif" fill="currentColor">2</text><text x="0.4" y="13.6" font-size="4.6" font-family="ui-sans-serif, system-ui, sans-serif" fill="currentColor">3</text><path fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" d="M6 3.6h7.2M6 7.9h7.2M6 12.2h7.2"/></svg>`;
+const ALIGN_LEFT_ICON = `<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M2.5 3.5h11M2.5 7h7M2.5 10.5h11M2.5 14h5"/></svg>`;
+const ALIGN_CENTER_ICON = `<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M2.5 3.5h11M4.5 7h7M2.5 10.5h11M5.5 14h5"/></svg>`;
+const ALIGN_RIGHT_ICON = `<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M2.5 3.5h11M6.5 7h7M2.5 10.5h11M8.5 14h5"/></svg>`;
+const ALIGN_JUSTIFY_ICON = `<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M2.5 3.5h11M2.5 7h11M2.5 10.5h11M2.5 14h11"/></svg>`;
 
 function bodyFor(node: EditNode, choices: Choices, zone: string, locked: boolean): string {
   switch (node.kind) {
     case "heading":
       return `<h${node.level} contenteditable="true" data-field="text" data-plain="true" data-placeholder="Heading">${escapeText(node.text)}</h${node.level}>`;
     case "text":
-      return `<${node.tag} contenteditable="true" data-field="html" data-placeholder="Write…">${node.html}</${node.tag}>`;
+      return `<div class="editor-text"><h${node.level} contenteditable="true" data-field="heading" data-plain="true" data-placeholder="Heading">${escapeText(node.heading)}</h${node.level}><div class="editor-text-body" contenteditable="true" data-field="html" data-blocks="true" data-placeholder="Write…">${node.html}</div></div>`;
     case "panel":
       return `<div class="${joinClass("w3-panel", "w3-padding", toneClass(node.tone))}"><div contenteditable="true" data-field="html" data-placeholder="Panel">${node.html}</div></div>`;
     case "quote":
@@ -379,8 +449,16 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
   if (!node || node.kind === "columns") return;
   if (state.locked && isDesignField(node.kind, field)) return;
   mark(form);
-  if (field === "html" && target.isContentEditable && (node.kind === "text" || node.kind === "panel" || node.kind === "card" || node.kind === "pasted")) {
+  if (field === "html" && target.isContentEditable && node.kind === "text") {
+    node.html = readTextHtml(target.innerHTML);
+    return;
+  }
+  if (field === "html" && target.isContentEditable && (node.kind === "panel" || node.kind === "card" || node.kind === "pasted")) {
     node.html = sanitize(target.innerHTML);
+    return;
+  }
+  if (field === "heading" && target.isContentEditable && node.kind === "text") {
+    node.heading = (target.textContent ?? "").replace(/\n+/g, " ");
     return;
   }
   if (field === "text" && target.isContentEditable) {
@@ -389,9 +467,9 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
   }
   if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement)) return;
   const value = target.value;
-  if (node.kind === "heading" && field === "level") {
-    node.level = value === "1" ? 1 : value === "3" ? 3 : 2;
-    if (fromChange) rerenderArticle(form, node.uid);
+  if ((node.kind === "heading" || node.kind === "text") && field === "level") {
+    node.level = headingLevel(value);
+    if (fromChange && article) retagHeading(article, node.level, node.kind === "text" ? "heading" : "text");
     return;
   }
   if ((node.kind === "panel" || node.kind === "quote") && field === "tone") {
@@ -474,13 +552,6 @@ function onClick(form: HTMLFormElement, event: MouseEvent): void {
     runCommand(form, command.dataset.cmd);
     return;
   }
-  const list = target.closest<HTMLElement>("[data-list]");
-  if (list) {
-    event.preventDefault();
-    if (state.locked) return;
-    toggleList(form, list);
-    return;
-  }
   const cols = target.closest<HTMLElement>("[data-cols]");
   if (cols?.dataset.cols) {
     event.preventDefault();
@@ -514,37 +585,107 @@ function appendPalette(form: HTMLFormElement, kind: string): void {
   renderZone(form, zone);
 }
 
+const ALIGN_CLASS = ["w3-left-align", "w3-right-align", "w3-center", "w3-text-center", "w3-justify"];
+
 function runCommand(form: HTMLFormElement, command: string): void {
   mark(form);
+  if (command.startsWith("align:")) {
+    alignBlock(command.slice("align:".length));
+    return;
+  }
   if (command === "link") {
     const href = window.prompt("Link address");
     if (!href || /^\s*javascript:/i.test(href)) return;
     document.execCommand("createLink", false, href);
+    touchEditable();
     return;
   }
-  if (command === "bold") document.execCommand("bold");
-  if (command === "italic") document.execCommand("italic");
+  if (command === "code") {
+    toggleCode();
+    return;
+  }
+  if (command === "removeFormat") {
+    document.execCommand("removeFormat");
+    document.execCommand("unlink");
+    clearAlign();
+    unwrapTag("code");
+    touchEditable();
+    return;
+  }
+  if (command === "bold" || command === "italic" || command === "underline" || command === "strikeThrough") {
+    document.execCommand(command);
+    touchEditable();
+    return;
+  }
+  if (command === "insertUnorderedList" || command === "insertOrderedList") {
+    document.execCommand("defaultParagraphSeparator", false, "p");
+    document.execCommand(command);
+    touchEditable();
+  }
 }
 
-function toggleList(form: HTMLFormElement, button: HTMLElement): void {
-  const state = mounted.get(form);
-  if (state?.locked) return;
-  const article = button.closest<HTMLElement>("[data-item-id]");
-  const node = state && article ? findNode(allItems(state), article.dataset.itemId ?? "") : undefined;
-  if (!state || !node || node.kind !== "text") return;
-  mark(form);
-  syncAll(state);
-  if (node.tag === "p") {
-    node.tag = "ul";
-    node.html = node.html.includes("<li") ? node.html : `<li>${node.html}</li>`;
-  } else {
-    const holder = document.createElement("div");
-    holder.innerHTML = node.html;
-    node.tag = "p";
-    node.html = escapeText(holder.textContent ?? "");
+function alignBlock(className: string): void {
+  const block = currentBlock();
+  if (!block) return;
+  const on = block.classList.contains(className);
+  for (const name of ALIGN_CLASS) block.classList.remove(name);
+  if (!on) block.classList.add(className);
+  touchEditable();
+}
+
+function clearAlign(): void {
+  const block = currentBlock();
+  if (!block) return;
+  for (const name of ALIGN_CLASS) block.classList.remove(name);
+}
+
+function currentBlock(): HTMLElement | null {
+  const sel = document.getSelection();
+  const node = sel?.anchorNode;
+  const el = node instanceof Element ? node : node?.parentElement;
+  const editable = el?.closest<HTMLElement>("[contenteditable]");
+  if (!editable || editable.dataset.blocks !== "true") return null;
+  const block = el?.closest("p, ul, ol");
+  return block instanceof HTMLElement && editable.contains(block) ? block : null;
+}
+
+function toggleCode(): void {
+  const sel = document.getSelection();
+  if (!sel || sel.rangeCount === 0) return;
+  const anchor = sel.anchorNode;
+  const from = anchor instanceof Element ? anchor : anchor?.parentElement;
+  const editable = from?.closest("[contenteditable]");
+  const code = from?.closest("code");
+  if (code && editable?.contains(code)) {
+    code.replaceWith(document.createTextNode(code.textContent ?? ""));
+    touchEditable();
+    return;
   }
-  const zone = zoneOf(state, node.uid);
-  if (zone) renderZone(form, zone);
+  const text = sel.toString();
+  if (!text) return;
+  document.execCommand("insertHTML", false, `<code>${escapeText(text)}</code>`);
+  touchEditable();
+}
+
+function unwrapTag(tag: string): void {
+  const sel = document.getSelection();
+  if (!sel || sel.rangeCount === 0) return;
+  const range = sel.getRangeAt(0);
+  const root = range.commonAncestorContainer;
+  const scope = root instanceof Element ? root : root.parentElement;
+  if (!scope) return;
+  const hits = scope.tagName.toLowerCase() === tag ? [scope] : [...scope.querySelectorAll(tag)];
+  for (const el of hits) {
+    if (!range.intersectsNode(el) && !el.contains(range.startContainer)) continue;
+    el.replaceWith(...el.childNodes);
+  }
+}
+
+function touchEditable(): void {
+  const sel = document.getSelection();
+  const node = sel?.anchorNode;
+  const el = node instanceof Element ? node : node?.parentElement;
+  el?.closest("[contenteditable]")?.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
 function setColumns(form: HTMLFormElement, button: HTMLElement): void {
@@ -576,6 +717,11 @@ function onPaste(event: ClipboardEvent): void {
   }
   const html = event.clipboardData?.getData("text/html") ?? "";
   const text = event.clipboardData?.getData("text/plain") ?? "";
+  if (target.dataset.blocks === "true") {
+    const pasted = html ? readTextHtml(html) : paragraphsFromPlain(text);
+    if (pasted) document.execCommand("insertHTML", false, pasted);
+    return;
+  }
   document.execCommand("insertHTML", false, html ? sanitize(html) : escapeText(text).replace(/\n/g, "<br>"));
 }
 
@@ -740,7 +886,13 @@ function syncAll(state: Mounted): void {
       const article = field.closest<HTMLElement>("[data-item-id]");
       const node = article ? findNode(zone.items, article.dataset.itemId ?? "") : undefined;
       if (!node || node.kind === "columns") continue;
-      if (field.dataset.field === "html" && field.isContentEditable && (node.kind === "text" || node.kind === "panel" || node.kind === "card" || node.kind === "pasted")) {
+      if (field.dataset.field === "html" && field.isContentEditable && node.kind === "text") {
+        node.html = readTextHtml(field.innerHTML);
+      }
+      if (field.dataset.field === "heading" && field.isContentEditable && node.kind === "text") {
+        node.heading = (field.textContent ?? "").replace(/\n+/g, " ");
+      }
+      if (field.dataset.field === "html" && field.isContentEditable && (node.kind === "panel" || node.kind === "card" || node.kind === "pasted")) {
         node.html = sanitize(field.innerHTML);
       }
       if (field.dataset.field === "text" && field.isContentEditable && (node.kind === "heading" || node.kind === "quote")) {
@@ -754,7 +906,7 @@ function syncAll(state: Mounted): void {
 }
 
 function applyControl(node: EditLeaf, field: string, value: string): void {
-  if (node.kind === "heading" && field === "level") node.level = value === "1" ? 1 : value === "3" ? 3 : 2;
+  if ((node.kind === "heading" || node.kind === "text") && field === "level") node.level = headingLevel(value);
   if ((node.kind === "panel" || node.kind === "quote") && field === "tone" && isTone(value)) node.tone = value;
   if (node.kind === "quote" && field === "attribution") node.attribution = value;
   if (node.kind === "imgbox" && field === "src") node.src = value;
@@ -828,7 +980,80 @@ function isTone(value: string): value is ToneId {
   );
 }
 
-const ALLOWED = new Set(["strong", "b", "em", "i", "a", "br", "ul", "ol", "li", "p"]);
+const ALLOWED = new Set(["strong", "b", "em", "i", "u", "s", "code", "a", "br", "ul", "ol", "li", "p"]);
+
+function paragraphsFromPlain(text: string): string {
+  return text
+    .split(/\n{2,}/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => `<p>${escapeText(part).replace(/\n/g, "<br>")}</p>`)
+    .join("");
+}
+
+function readTextHtml(html: string): string {
+  const doc = new DOMParser().parseFromString(`<div>${html}</div>`, "text/html");
+  const root = doc.body.firstElementChild;
+  return root ? blocksIn(root) : "";
+}
+
+function blocksIn(parent: Element): string {
+  let out = "";
+  let inline = "";
+  const flush = () => {
+    const cleaned = inline.trim();
+    if (cleaned && cleaned !== "<br>") out += `<p>${cleaned}</p>`;
+    inline = "";
+  };
+  for (const node of parent.childNodes) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      if ((node.textContent ?? "").trim()) inline += escapeText(node.textContent ?? "");
+      continue;
+    }
+    if (!(node instanceof Element)) continue;
+    const tag = node.tagName.toLowerCase();
+    if (tag === "ul" || tag === "ol") {
+      flush();
+      const items = [...node.children]
+        .filter((child) => child.tagName.toLowerCase() === "li")
+        .map((child) => `<li>${sanitize(child.innerHTML)}</li>`)
+        .join("");
+      if (items) out += `<${tagOpen(node, tag)}>${items}</${tag}>`;
+      continue;
+    }
+    if (tag === "p" || tag === "div") {
+      const nested =
+        tag === "div" &&
+        [...node.children].some((child) => {
+          const name = child.tagName.toLowerCase();
+          return name === "p" || name === "div" || name === "ul" || name === "ol";
+        });
+      if (nested) {
+        flush();
+        out += blocksIn(node);
+        continue;
+      }
+      flush();
+      const inner = sanitize(node.innerHTML);
+      if (!inner.replace(/<br>/g, "").trim()) continue;
+      const open = tag === "p" ? tagOpen(node, "p") : "p";
+      out += `<${open}>${inner}</p>`;
+      continue;
+    }
+    if (tag === "br") {
+      inline += "<br>";
+      continue;
+    }
+    inline += sanitize(node.outerHTML);
+  }
+  flush();
+  return out;
+}
+
+function tagOpen(el: Element, tag: string): string {
+  const className = el.getAttribute("class")?.trim() ?? "";
+  return className ? `${tag} class="${escapeAttr(className)}"` : tag;
+}
 
 function sanitize(html: string): string {
   const doc = new DOMParser().parseFromString(`<div>${html}</div>`, "text/html");
@@ -848,6 +1073,10 @@ function cleanChildren(parent: Element): string {
     if (tag === "div") {
       if (out && !out.endsWith("<br>")) out += "<br>";
       out += cleanChildren(node);
+      continue;
+    }
+    if (tag === "strike") {
+      out += `<s>${cleanChildren(node)}</s>`;
       continue;
     }
     if (!ALLOWED.has(tag)) {

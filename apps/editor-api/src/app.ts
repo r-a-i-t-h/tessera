@@ -10,6 +10,7 @@ import { recordRoutes } from "./routes/records.js";
 import { libraryRoutes } from "./routes/library.js";
 import { renderRoutes } from "./routes/render.js";
 import { siteRoutes } from "./routes/site.js";
+import { userRoutes } from "./routes/users.js";
 import type { SiteStore } from "./site/store.js";
 import { mountPreview, type PreviewRoots } from "./preview.js";
 import { mountSpa } from "./spa.js";
@@ -61,6 +62,7 @@ export function createApp(opts: {
   app.route("/api", renderRoutes);
   app.route("/api", siteRoutes);
   app.route("/api", backupRoutes);
+  app.route("/api", userRoutes);
 
   if (opts.preview) mountPreview(app, opts.preview);
   if (opts.spaDir) mountSpa(app, opts.spaDir);

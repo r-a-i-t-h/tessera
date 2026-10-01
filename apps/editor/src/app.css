@@ -56,7 +56,8 @@ body {
   margin-bottom: 1.5rem;
 }
 
-.editor-backup {
+.editor-backup,
+.editor-user {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem 0.75rem;
@@ -304,7 +305,68 @@ body {
 
 .editor-inline {
   display: inline-flex;
-  gap: 0.25rem;
+  gap: 0.05rem;
+  align-items: center;
+}
+
+.editor-prop .editor-inline + .editor-inline {
+  margin-left: 0.3rem;
+  padding-left: 0.3rem;
+  border-left: 1px solid #ddd;
+}
+
+.editor-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  margin: 0;
+  padding: 0 0.22rem;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: #333;
+  cursor: pointer;
+  font: 500 0.78rem/1 ui-sans-serif, system-ui, sans-serif;
+}
+
+.editor-mark b {
+  font-weight: 800;
+}
+
+.editor-mark i {
+  font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  font-style: italic;
+  font-weight: 600;
+}
+
+.editor-mark u {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 1px;
+}
+
+.editor-mark-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+}
+
+.editor-mark svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.editor-mark:hover {
+  background: #eee;
+  color: #111;
+}
+
+.editor-mark-gap {
+  width: 0.28rem;
+  flex: none;
 }
 
 .editor-drop-line {
@@ -331,6 +393,29 @@ body {
 .editor-section-body [contenteditable]:empty::before {
   content: attr(data-placeholder);
   color: #888;
+}
+
+.editor-text [data-field="heading"] {
+  margin: 0 0 0.35rem;
+}
+
+.editor-text [data-field="heading"]:empty {
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.editor-text-body {
+  min-height: 2.5rem;
+  outline: none;
+}
+
+.editor-text-body :where(p, ul, ol) {
+  margin: 0 0 0.75rem;
+}
+
+.editor-text-body :where(p, ul, ol):last-child {
+  margin-bottom: 0;
 }
 
 .editor-section,

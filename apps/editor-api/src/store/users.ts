@@ -1,5 +1,7 @@
-import { cp, mkdir, readdir } from "node:fs/promises";
+import { randomBytes } from "node:crypto";
+import { cp, mkdir, readdir, rename, unlink } from "node:fs/promises";
 import { join } from "node:path";
+import { normalizedUsername, usernameError } from "../auth/username.js";
 import type { UserRecord } from "../model.js";
 import { readJson, writeJsonAtomic } from "./fs.js";
 
@@ -12,12 +14,14 @@ function normalizeUser(raw: Record<string, unknown>): UserRecord | undefined {
   const passwordHash = String(raw.passwordHash ?? "");
   const passwordSalt = String(raw.passwordSalt ?? "");
   if (!username || !passwordHash || !passwordSalt) return undefined;
-  return {
+  const user: UserRecord = {
     username,
     passwordHash,
     passwordSalt,
     createdAt: String(raw.createdAt ?? nowIso()),
   };
+  if (raw.disabled === true) user.disabled = true;
+  return user;
 }
 
 async function listJsonFiles(dir: string): Promise<string[]> {
@@ -65,6 +69,20 @@ export class UserStore {
     return this.users.get(username);
   }
 
+  /** Case-insensitive match. `Admin` and `admin` share one file on a case-insensitive disk. */
+  findUser(username: string): UserRecord | undefined {
+    const key = normalizedUsername(username).toLowerCase();
+    if (!key) return undefined;
+    for (const user of this.users.values()) {
+      if (user.username.toLowerCase() === key) return user;
+    }
+    return undefined;
+  }
+
+  listUsers(): UserRecord[] {
+    return [...this.users.values()].sort((a, b) => a.username.localeCompare(b.username));
+  }
+
   async saveUser(user: UserRecord): Promise<void> {
     this.users.set(user.username, user);
     await writeJsonAtomic(join(this.dataDir, "users", `${user.username}.json`), user, {
@@ -73,17 +91,62 @@ export class UserStore {
   }
 
   async createUser(username: string, passwordHash: string, passwordSalt: string): Promise<UserRecord> {
-    if (this.users.has(username)) {
-      throw new Error("Username already taken");
-    }
+    const name = checkedUsername(username);
+    if (this.findUser(name)) throw new Error("Username already taken");
     const user: UserRecord = {
-      username,
+      username: name,
       passwordHash,
       passwordSalt,
       createdAt: nowIso(),
     };
     await this.saveUser(user);
     return user;
+  }
+
+  async renameUser(from: string, to: string): Promise<UserRecord> {
+    const existing = this.users.get(from);
+    if (!existing) throw new Error("User not found");
+    const next = checkedUsername(to);
+    if (from === next) return existing;
+    const clash = this.findUser(next);
+    if (clash && clash.username !== from) throw new Error("Username already taken");
+
+    const updated: UserRecord = { ...existing, username: next };
+    const dir = join(this.dataDir, "users");
+    const fromPath = join(dir, `${from}.json`);
+    const toPath = join(dir, `${next}.json`);
+    const staging = join(dir, `.${randomBytes(8).toString("hex")}.json.staging`);
+    const backup = `${fromPath}.bak`;
+    await writeJsonAtomic(staging, updated, { mode: 0o600 });
+    await rename(fromPath, backup);
+    try {
+      await rename(staging, toPath);
+    } catch (err) {
+      await rename(backup, fromPath).catch(() => undefined);
+      await unlink(staging).catch(() => undefined);
+      throw err;
+    }
+    await unlink(backup).catch(() => undefined);
+    this.users.delete(from);
+    this.users.set(next, updated);
+    return updated;
+  }
+
+  async setDisabled(username: string, disabled: boolean): Promise<UserRecord> {
+    const existing = this.users.get(username);
+    if (!existing) throw new Error("User not found");
+    const updated: UserRecord = { ...existing, disabled: disabled ? true : undefined };
+    await this.saveUser(updated);
+    return updated;
+  }
+
+  async deleteUser(username: string): Promise<void> {
+    const existing = this.users.get(username);
+    if (!existing) throw new Error("User not found");
+    await unlink(join(this.dataDir, "users", `${username}.json`)).catch((err: NodeJS.ErrnoException) => {
+      if (err.code !== "ENOENT") throw err;
+    });
+    this.users.delete(username);
   }
 
   async updatePassword(
@@ -97,4 +160,10 @@ export class UserStore {
     await this.saveUser(updated);
     return updated;
   }
+}
+
+function checkedUsername(raw: string): string {
+  const problem = usernameError(raw);
+  if (problem) throw new Error(problem);
+  return normalizedUsername(raw);
 }

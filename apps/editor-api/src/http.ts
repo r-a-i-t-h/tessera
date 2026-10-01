@@ -16,3 +16,17 @@ export function isResponse(value: unknown): value is Response {
 export function publicUser(user: UserRecord): { username: string; createdAt: string } {
   return { username: user.username, createdAt: user.createdAt };
 }
+
+export type ManagedUser = {
+  username: string;
+  createdAt: string;
+  disabled: boolean;
+};
+
+export function managedUser(user: UserRecord): ManagedUser {
+  return {
+    username: user.username,
+    createdAt: user.createdAt,
+    disabled: user.disabled === true,
+  };
+}

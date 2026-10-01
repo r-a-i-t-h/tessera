@@ -33,13 +33,13 @@ Hono app (Node ≥20). JSON routes first; if `spa/index.html` (a release), `apps
 
 | Concern | Contract |
 |---------|----------|
-| Users | `$TESSERA_DATA/users/<username>.json` (hash + salt), one set per site directory. No `/auth/register`. The release seed (`seed/users`, `admin` / `admin`) is copied only when `users/` is empty. `npm run seed:user` rewrites that seed, not the open site. |
+| Users | `$TESSERA_DATA/users/<username>.json` (hash + salt, optional `disabled`). No `/auth/register`. A name is trimmed, starts with a letter, includes at least one visible character, and then uses letters, numbers, `.`, `_`, or `-` (up to 64). It cannot match another editor, ignoring case. `POST /auth/username` renames the signed-in editor. `/api/users` lists, adds, edits, deletes, and disables editors. A disabled user cannot sign in, and an existing session stops working. You cannot delete or disable yourself. The release seed (`seed/users`, `admin` / `admin`) is copied only when `users/` is empty. `npm run seed:user` rewrites that seed, not the open site. |
 | Sessions | In-memory tokens; httpOnly `tessera_session` cookie (`Path=/`) or `Authorization: Bearer`. The editor is served at the hostname root. SIGTERM dumps hashed tokens to `$TESSERA_DATA/.sessions.json` once. |
 | Permission | `requireEditor`: authenticated ⇒ full access; anonymous ⇒ 401. Every mutation must call it. |
 | Records | YAML files in `$TESSERA_DATA/records`. Filename = Tessera `id`. `GET/PUT /api/records` accepts structured `data` or raw YAML. A changed content page appends the previous file to `$TESSERA_DATA/history/content/<id>.history`, then writes the SPA snapshot to `$TESSERA_DATA/preview/data/`. **Publish** writes the copyable `$TESSERA_DATA/publish/` dist. Templates live in `records/templates/` and are omitted from that document. |
 | Library | `GET/POST/PATCH/DELETE` under `/api/library`. Blobs stay in `files/<id>.<ext>`. A folder move does not rename the blob. |
 | Site actions | `POST /api/site/init` writes a blank site when `site.yaml` is absent. `POST /api/render` refreshes `preview/`. `POST /api/publish` writes `publish/`. |
-| Public | `GET /health`, `POST /auth/login`. Protected: `GET /auth/me`, `POST /auth/password`, `POST /api/ping`, record CRUD, library, render, publish, backups. Logout is idempotent. |
+| Public | `GET /health`, `POST /auth/login`. Protected: `GET /auth/me`, `POST /auth/password`, `POST /auth/username`, `POST /api/ping`, `/api/users`, record CRUD, library, render, publish, backups. Logout is idempotent. |
 
 Public HTML is the editor SPA when built. The published site remains `site.json` for the renderer. Authoring is file-based YAML (not JSON) so HTML does not need escaping.
 
