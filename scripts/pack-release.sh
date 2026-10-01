@@ -114,6 +114,28 @@ echo "pack-release: production node_modules"
 )
 rm -f "$DEST/package-lock.json"
 
+# npm installs only the sharp binary for this machine. A second install with
+# --os/--cpu replaces that binary, so fetch each Linux build in its own tree
+# and copy it in. One tarball then runs on linux-x64 and linux-arm64.
+SHARP_VERSION=$(node -p "require('$DEST/node_modules/sharp/package.json').version")
+for CPU in arm64 x64; do
+  if [ -d "$DEST/node_modules/@img/sharp-linux-$CPU" ] && [ -d "$DEST/node_modules/@img/sharp-libvips-linux-$CPU" ]; then
+    echo "pack-release: sharp linux-$CPU already present"
+    continue
+  fi
+  echo "pack-release: fetching sharp linux-$CPU"
+  SIDE=$(mktemp -d)
+  (
+    cd "$SIDE"
+    npm init -y >/dev/null
+    npm install --omit=dev --os=linux --cpu="$CPU" --libc=glibc "sharp@$SHARP_VERSION"
+  )
+  mkdir -p "$DEST/node_modules/@img"
+  cp -R "$SIDE/node_modules/@img/sharp-linux-$CPU" "$DEST/node_modules/@img/"
+  cp -R "$SIDE/node_modules/@img/sharp-libvips-linux-$CPU" "$DEST/node_modules/@img/"
+  rm -rf "$SIDE"
+done
+
 chmod 755 "$DEST/deploy/post-update.sh" "$DEST/deploy/migrate.sh"
 if [ -d "$DEST/deploy/migrations" ]; then
   find "$DEST/deploy/migrations" -name '*.sh' -exec chmod 755 {} +
