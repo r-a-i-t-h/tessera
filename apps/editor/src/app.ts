@@ -198,6 +198,10 @@ function parseRoute(): Route {
     if (rest.includes("/")) return { page: "missing" };
     return { page: "records", kind: rest || undefined };
   }
+  if (head === "site" || head === "nav") {
+    if (!rest || rest.includes("/")) return { page: "missing" };
+    return { page: "records", kind: head };
+  }
   if (head === "library") return { page: "library", id: rest || null };
   if (head === "backups") return rest ? { page: "missing" } : { page: "backups" };
   if (head === "styles") return rest ? { page: "missing" } : { page: "styles" };
@@ -736,10 +740,19 @@ async function bindList(
   notice = "",
   error = "",
 ): Promise<void> {
+  if (kind === "media" || kind === "folders") {
+    window.location.hash = "#/library";
+    return;
+  }
   const listing = await listRecords();
+  const active = activeRecordKind(listing, kind);
   root.innerHTML = chrome(user, listHtml(listing, kind, notice, error), true, "records");
   bindChrome(root);
   bindInitSite(root, (nextNotice, nextError) => bindList(root, user, kind, nextNotice, nextError));
+  if (active === "site" || active === "nav") {
+    const row = listing.records.find((item) => item.kind === active);
+    if (row) await bindEdit(root, user, active, row.id, "fields", "", false, "tab");
+  }
   root.querySelector("[data-action=new-page]")?.addEventListener("click", () => {
     const form = root.querySelector<HTMLFormElement>("#new-page-form");
     if (!form) return;
@@ -1029,6 +1042,20 @@ function statusHtml(notice: string, error: string): string {
     ${error ? `<p class="w3-panel w3-pale-red" role="alert">${escapeHtml(error)}</p>` : ""}`;
 }
 
+/** Media and folders are edited in the Library, not as record lists. */
+const LIBRARY_RECORD_KINDS = new Set(["media", "folders"]);
+
+function recordTabs(listing: RecordList): { kind: string; label: string }[] {
+  return listing.kinds.filter((item) => !LIBRARY_RECORD_KINDS.has(item.kind));
+}
+
+function activeRecordKind(listing: RecordList, selected?: string): string | undefined {
+  const kinds = recordTabs(listing);
+  if (selected && kinds.some((item) => item.kind === selected)) return selected;
+  if (selected) return undefined;
+  return kinds[0]?.kind;
+}
+
 function listHtml(listing: RecordList, selected?: string, notice = "", error = ""): string {
   const byKind = new Map<string, RecordSummary[]>();
   for (const rec of listing.records) {
@@ -1036,10 +1063,10 @@ function listHtml(listing: RecordList, selected?: string, notice = "", error = "
     list.push(rec);
     byKind.set(rec.kind, list);
   }
-  const known = listing.kinds.some((kind) => kind.kind === selected);
-  const active = selected && known ? selected : selected ? undefined : listing.kinds[0]?.kind;
+  const kinds = recordTabs(listing);
+  const active = activeRecordKind(listing, selected);
   const siteReady = listing.records.some((row) => row.kind === "site");
-  const tabs = listing.kinds
+  const tabs = kinds
     .map((kind) => {
       const on = kind.kind === active;
       return `<a class="w3-button ${on ? "w3-theme" : "w3-white"}" href="#/records/${encodeURIComponent(kind.kind)}"${on ? ' aria-current="page"' : ""}>${escapeHtml(kind.label)}</a>`;
@@ -1066,16 +1093,23 @@ function recordTab(
       ? contentSection(rows, byKind.get("templates") ?? [], siteReady)
       : kind.kind === "templates"
         ? templateSection(rows, siteReady)
-        : kindPanel(kind.kind, rows);
+        : kind.kind === "site" || kind.kind === "nav"
+          ? singletonEditorMount(kind.kind, rows[0])
+          : kindPanel(rows);
   return `<section class="editor-kind" aria-label="${escapeHtml(kind.label)}">${body}</section>`;
 }
 
-function kindPanel(kind: string, rows: RecordSummary[]): string {
-  const library =
-    kind === "media" || kind === "folders"
-      ? `<p class="w3-text-grey">These records are also managed in the <a href="#/library">Library</a>.</p>`
-      : "";
-  return `${library}${rows.length ? recordList(rows) : `<p class="w3-text-grey">No records yet.</p>`}`;
+function singletonEditorMount(kind: string, row: RecordSummary | undefined): string {
+  if (!row) {
+    const message =
+      kind === "site" ? "This site has no site record yet." : "This site has no navigation file yet.";
+    return `<p class="w3-text-grey">${message}</p>`;
+  }
+  return `<div id="record-editor" data-kind="${escapeHtml(kind)}" data-id="${escapeHtml(row.id)}"><p class="w3-text-grey">Loading…</p></div>`;
+}
+
+function kindPanel(rows: RecordSummary[]): string {
+  return rows.length ? recordList(rows) : `<p class="w3-text-grey">No records yet.</p>`;
 }
 
 function contentSection(rows: RecordSummary[], templates: RecordSummary[], siteReady: boolean): string {
@@ -1148,6 +1182,7 @@ async function bindEdit(
   mode: EditMode,
   notice = "",
   keepDraft = false,
+  host: "page" | "tab" = "page",
 ): Promise<void> {
   const key = `${kind}/${id}`;
   let payload: RecordPayload;
@@ -1183,11 +1218,7 @@ async function bindEdit(
       : navList
         ? `<div id="nav-editor">${renderNavList(navRows(payload.data), pages)}</div>`
         : `${navNote}${fieldsHtml(kind, record ?? payload.data, payload.layout, galleryFolders)}`;
-  root.innerHTML = chrome(
-    user,
-    `<p><a href="#/records/${encodeURIComponent(kind)}">← Records</a></p>
-     <h1 class="w3-large">${escapeHtml(kind)} / ${escapeHtml(id)}</h1>
-     ${lifecycleHtml(payload)}
+  const editor = `${lifecycleHtml(payload)}
      ${notice ? `<p class="w3-panel w3-pale-green" role="status">${escapeHtml(notice)}</p>` : ""}
      <p class="editor-tabs">
        ${
@@ -1208,15 +1239,28 @@ async function bindEdit(
            : ""
        }</p>
      </form>
-     ${historyHtml(payload)}`,
-    true,
-    "records",
-  );
-  bindChrome(root);
+     ${historyHtml(payload)}`;
+  let scope: ParentNode = root;
+  if (host === "tab") {
+    const slot = root.querySelector<HTMLElement>("#record-editor");
+    if (!slot?.isConnected || slot.dataset.kind !== kind || slot.dataset.id !== id) return;
+    slot.innerHTML = editor;
+    scope = slot;
+  } else {
+    root.innerHTML = chrome(
+      user,
+      `<p><a href="#/records/${encodeURIComponent(kind)}">← Records</a></p>
+       <h1 class="w3-large">${escapeHtml(kind)} / ${escapeHtml(id)}</h1>
+       ${editor}`,
+      true,
+      "records",
+    );
+    bindChrome(root);
+  }
   if (editMode === "compose") root.querySelector(".editor-main")?.classList.add("editor-compose");
-  const form = root.querySelector<HTMLFormElement>("#record-form");
+  const form = scope.querySelector<HTMLFormElement>("#record-form");
   if (form && editMode === "compose" && record) await mountPageCanvas(form, record, bodyLayout);
-  for (const button of root.querySelectorAll<HTMLButtonElement>("[data-mode]")) {
+  for (const button of scope.querySelectorAll<HTMLButtonElement>("[data-mode]")) {
     button.addEventListener("click", () => {
       const next = button.dataset.mode;
       if (next !== "compose" && next !== "fields" && next !== "raw") return;
@@ -1231,13 +1275,13 @@ async function bindEdit(
           contentSession.draft = taken.draft;
           contentSession.fromEditor = taken.fromEditor;
         }
-        void bindEdit(root, user, kind, id, next, "", true);
+        void bindEdit(root, user, kind, id, next, "", true, host);
         return;
       }
-      void bindEdit(root, user, kind, id, next === "compose" ? "fields" : next);
+      void bindEdit(root, user, kind, id, next === "compose" ? "fields" : next, "", false, host);
     });
   }
-  for (const button of root.querySelectorAll<HTMLButtonElement>("[data-history]")) {
+  for (const button of scope.querySelectorAll<HTMLButtonElement>("[data-history]")) {
     button.addEventListener("click", () => {
       const index = Number(button.dataset.history);
       void showHistory(root, kind, id, index);
@@ -1254,7 +1298,7 @@ async function bindEdit(
   form?.querySelector<HTMLButtonElement>("[data-action=revert]")?.addEventListener("click", () => {
     if (!window.confirm("Discard unsaved edits and restore the last saved file?")) return;
     contentSession = undefined;
-    void bindEdit(root, user, kind, id, editMode);
+    void bindEdit(root, user, kind, id, editMode, "", false, host);
   });
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -1289,7 +1333,7 @@ async function bindEdit(
                   : saveRecordBody(kind, form, payload.data),
               );
       }
-      await bindEdit(root, user, kind, id, editMode, saveNotice(saved));
+      await bindEdit(root, user, kind, id, editMode, saveNotice(saved), false, host);
     } catch (err) {
       showSaveError(root, err instanceof Error ? err.message : "Save failed.");
       if (button) (button as HTMLButtonElement).disabled = false;
