@@ -59,6 +59,17 @@ import {
   type PageChoice,
 } from "./forms/nav.js";
 import { newPageBody, newTemplateBody, pageFromTemplate, pageIdError, withSidebarLink } from "./forms/page.js";
+import {
+  applyTypeAction,
+  draftFromControls,
+  isTypeAction,
+  newTypeBody,
+  renderTypeForm,
+  typeDraft,
+  typeFieldError,
+  typeRecord,
+  type LayoutChoice,
+} from "./forms/type.js";
 import { authoredSchema, schemaFor } from "./forms/schema.js";
 import { assetDetail, renderLibrary } from "./forms/library.js";
 import {
@@ -800,6 +811,16 @@ async function bindList(
     event.preventDefault();
     void createLayout(root, user, listing);
   });
+  root.querySelector("[data-action=new-type]")?.addEventListener("click", () => {
+    const form = root.querySelector<HTMLFormElement>("#new-type-form");
+    if (!form) return;
+    form.hidden = false;
+    form.querySelector<HTMLInputElement>("#new-type-id")?.focus();
+  });
+  root.querySelector<HTMLFormElement>("#new-type-form")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void createType(root, user, listing);
+  });
 }
 
 async function createPage(root: HTMLElement, user: PublicUser, listing: RecordList): Promise<void> {
@@ -907,6 +928,32 @@ async function createLayout(root: HTMLElement, user: PublicUser, listing: Record
   else window.location.hash = hash;
 }
 
+async function createType(root: HTMLElement, user: PublicUser, listing: RecordList): Promise<void> {
+  const form = root.querySelector<HTMLFormElement>("#new-type-form");
+  if (!form) return;
+  const id = form.querySelector<HTMLInputElement>("#new-type-id")?.value ?? "";
+  const existing = listing.records.filter((row) => row.kind === "types").map((row) => row.id);
+  const problem = pageIdError(id, existing)?.replace("A page with id", "A type with id");
+  if (problem) {
+    showNewPageError(form, problem);
+    return;
+  }
+  const button = form.querySelector<HTMLButtonElement>("button[type=submit]");
+  if (button) button.disabled = true;
+  const typeId = id.trim();
+  try {
+    await saveRecord("types", typeId, newTypeBody(typeId));
+  } catch (err) {
+    showNewPageError(form, err instanceof Error ? err.message : "Could not create the type.");
+    if (button) button.disabled = false;
+    return;
+  }
+  pendingEdit = { mode: "fields", notice: `Created ${typeId}.` };
+  const hash = `#/types/${encodeURIComponent(typeId)}`;
+  if (window.location.hash === hash) await render(root);
+  else window.location.hash = hash;
+}
+
 function showNewPageError(form: HTMLFormElement, message: string): void {
   const error = form.querySelector<HTMLElement>("[data-form-error]");
   if (!error) return;
@@ -940,6 +987,64 @@ function bindNavEditor(form: HTMLFormElement, pages: PageChoice[]): void {
     );
     editor.innerHTML = renderNavList(rows, pages);
   });
+}
+
+function bindTypeEditor(form: HTMLFormElement, id: string, layouts: readonly LayoutChoice[]): void {
+  form.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest("button");
+    if (!(button instanceof HTMLButtonElement) || !form.contains(button)) return;
+    const action = button.dataset.typeAction;
+    if (!action || !isTypeAction(action)) return;
+    const editor = form.querySelector<HTMLElement>("#type-editor");
+    if (!editor) return;
+    event.preventDefault();
+    const draft = applyTypeAction(draftFromControls(typeControls(form), id), action, Number(button.dataset.typeIndex ?? 0));
+    editor.innerHTML = renderTypeForm(draft, layouts);
+    form.dataset.dirty = "true";
+  });
+}
+
+function typeBody(id: string, form: HTMLFormElement): Record<string, unknown> {
+  const draft = draftFromControls(typeControls(form), id);
+  const problem = typeFieldError(draft.fields);
+  if (problem) throw new Error(problem);
+  return typeRecord(id, draft);
+}
+
+async function typeLayoutChoices(current: string): Promise<LayoutChoice[]> {
+  try {
+    const listing = await listRecords();
+    const layouts = listing.records.filter((row) => row.kind === "layouts");
+    const payloads = await Promise.all(layouts.map((row) => getRecord("layouts", row.id)));
+    const choices: LayoutChoice[] = [];
+    layouts.forEach((row, index) => {
+      const data = asRecord(payloads[index]?.data);
+      const root = asLayoutNode(data?.root);
+      if (root && isFrame(root) && row.id !== current) return;
+      choices.push({ id: row.id });
+    });
+    return choices;
+  } catch {
+    return current ? [{ id: current }] : [];
+  }
+}
+
+function typeControls(form: HTMLFormElement): ControlValue[] {
+  const controls: ControlValue[] = [];
+  for (const el of Array.from(form.elements)) {
+    if (!(el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement)) {
+      continue;
+    }
+    if (!el.name.startsWith("type-")) continue;
+    controls.push({
+      name: el.name,
+      value: el.value,
+      checked: el instanceof HTMLInputElement && el.type === "checkbox" ? el.checked : undefined,
+    });
+  }
+  return controls;
 }
 
 function navControls(form: HTMLFormElement): ControlValue[] {
@@ -1156,7 +1261,9 @@ function recordTab(
         ? templateSection(rows, siteReady)
         : kind.kind === "layouts"
           ? layoutSection(rows, siteReady, layoutNotes)
-          : kind.kind === "site" || kind.kind === "nav"
+          : kind.kind === "types"
+            ? typeSection(rows, siteReady)
+            : kind.kind === "site" || kind.kind === "nav"
           ? singletonEditorMount(kind.kind, rows[0])
           : kindPanel(rows);
   return `<section class="editor-kind" aria-label="${escapeHtml(kind.label)}">${body}</section>`;
@@ -1323,6 +1430,20 @@ function bindEntryFilter(root: HTMLElement): void {
     for (const input of bar.querySelectorAll("input")) input.value = "";
     apply();
   });
+}
+
+function typeSection(rows: RecordSummary[], siteReady: boolean): string {
+  if (!siteReady) return `<p class="w3-text-grey">No records yet.</p>`;
+  return `<p><button type="button" class="w3-button w3-theme" data-action="new-type">New type</button></p>
+    <form id="new-type-form" class="editor-new-page" hidden>
+      <p><label for="new-type-id">Id</label>
+        <input id="new-type-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
+      </p>
+      <p class="w3-text-grey">One file, <code>records/types/&lt;id&gt;.yaml</code>. Start with a letter or number, then letters, numbers, dots, hyphens, or underscores. The id is the name a page’s Type field uses.</p>
+      <p data-form-error class="w3-panel w3-pale-red" role="alert" hidden></p>
+      <p><button type="submit" class="w3-button w3-theme">Create type</button></p>
+    </form>
+    ${rows.length ? recordList(rows) : `<p class="w3-text-grey">No types yet.</p>`}`;
 }
 
 function templateSection(rows: RecordSummary[], siteReady: boolean): string {
@@ -1496,6 +1617,8 @@ async function bindEdit(
   const galleryFolders = kind === "bindings" ? await galleryFolderRows() : [];
   const arrangeInfo = kind === "layouts" ? await loadArrangeInfo(id) : undefined;
   const layoutRoot = kind === "layouts" ? asLayoutNode(record?.root) : undefined;
+  const typeEditor = kind === "types" && editMode === "fields" && !!record;
+  const typeLayouts = typeEditor ? await typeLayoutChoices(typeof record.layoutId === "string" ? record.layoutId : "") : [];
   const formInner =
     editMode === "arrange"
       ? layoutRoot && arrangeInfo
@@ -1510,7 +1633,9 @@ async function bindEdit(
       : navList
         ? `<p class="w3-text-grey">Sidebar, Top bar, and Footer choose which menu component can show the row. A heading’s Type lists every page of that type. <strong>Show in nav</strong> on a page does not add a link. <a href="#/guide">Guide</a>.</p>
            <div id="nav-editor">${renderNavList(navRows(payload.data), pages)}</div>`
-        : `${navNote}${fieldsHtml(kind, record ?? payload.data, payload.layout, galleryFolders)}`;
+        : typeEditor
+          ? `<div id="type-editor">${renderTypeForm(typeDraft(record), typeLayouts)}</div>`
+          : `${navNote}${fieldsHtml(kind, record ?? payload.data, payload.layout, galleryFolders)}`;
   const editor = `${lifecycleHtml(payload)}
      ${notice ? `<p class="w3-panel w3-pale-green" role="status">${escapeHtml(notice)}</p>` : ""}
      <p class="editor-tabs">
@@ -1600,6 +1725,7 @@ async function bindEdit(
     });
   }
   if (form && navList) bindNavEditor(form, pages);
+  if (form && typeEditor) bindTypeEditor(form, id, typeLayouts);
   if (form) bindPickers(form);
   form?.addEventListener("input", () => {
     form.dataset.dirty = "true";
@@ -1658,7 +1784,9 @@ async function bindEdit(
                 id,
                 navList
                   ? navEntries(rowsFromControls(navControls(form)))
-                  : saveRecordBody(kind, form, payload.data),
+                  : kind === "types" && editMode === "fields"
+                    ? typeBody(id, form)
+                    : saveRecordBody(kind, form, payload.data),
               );
       }
       await bindEdit(root, user, kind, id, editMode, saveNotice(saved), false, host);
