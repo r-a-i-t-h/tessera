@@ -72,6 +72,7 @@ import {
   type LayoutChoice,
 } from "./forms/type.js";
 import { authoredSchema, schemaFor, withFrameChoices } from "./forms/schema.js";
+import { readDataTransfer } from "./forms/drop.js";
 import { assetDetail, renderLibrary } from "./forms/library.js";
 import {
   checkedFolderIds,
@@ -2311,15 +2312,17 @@ async function bindLibrary(root: HTMLElement, user: PublicUser, openId: string |
     libraryAddOpen = addPanel.open;
   });
   const form = root.querySelector<HTMLFormElement>("#library-upload");
-  let dropped: { file: File; path: string }[] = [];
+  let incoming: Promise<{ file: File; path: string }[]> = Promise.resolve([]);
   form?.addEventListener("dragover", (event) => {
     event.preventDefault();
   });
   form?.addEventListener("drop", (event) => {
     event.preventDefault();
     if (!event.dataTransfer) return;
-    void readDataTransfer(event.dataTransfer).then((files) => {
-      dropped = files;
+    const read = readDataTransfer(event.dataTransfer);
+    incoming = read;
+    void read.then((files) => {
+      if (incoming !== read) return;
       const status = form.querySelector<HTMLElement>("#library-upload-status");
       if (status) {
         status.hidden = false;
@@ -2329,8 +2332,9 @@ async function bindLibrary(root: HTMLElement, user: PublicUser, openId: string |
   });
   form?.addEventListener("submit", (event) => {
     event.preventDefault();
-    void submitLibraryUpload(root, user, form, openId, dropped);
-    dropped = [];
+    const read = incoming;
+    incoming = Promise.resolve([]);
+    void read.then((files) => submitLibraryUpload(root, user, form, openId, files));
   });
   root.querySelector("[data-action=new-folder]")?.addEventListener("click", () => {
     const id = window.prompt("Folder id");
@@ -2439,36 +2443,3 @@ async function submitLibraryUpload(
   }
 }
 
-type FsEntry = {
-  isFile: boolean;
-  isDirectory: boolean;
-  name: string;
-  file: (cb: (file: File) => void) => void;
-  createReader: () => { readEntries: (cb: (entries: FsEntry[]) => void) => void };
-};
-
-async function readDataTransfer(transfer: DataTransfer): Promise<{ file: File; path: string }[]> {
-  const out: { file: File; path: string }[] = [];
-  const items = [...transfer.items];
-  for (const item of items) {
-    const entry = item.webkitGetAsEntry?.() as FsEntry | null;
-    if (entry) await walkEntry(entry, "", out);
-    else if (item.kind === "file") {
-      const file = item.getAsFile();
-      if (file) out.push({ file, path: file.name });
-    }
-  }
-  return out;
-}
-
-async function walkEntry(entry: FsEntry, prefix: string, out: { file: File; path: string }[]): Promise<void> {
-  if (entry.isFile) {
-    const file = await new Promise<File>((resolve) => entry.file(resolve));
-    out.push({ file, path: `${prefix}${file.name}` });
-    return;
-  }
-  if (!entry.isDirectory) return;
-  const reader = entry.createReader();
-  const children = await new Promise<FsEntry[]>((resolve) => reader.readEntries(resolve));
-  for (const child of children) await walkEntry(child, `${prefix}${entry.name}/`, out);
-}
