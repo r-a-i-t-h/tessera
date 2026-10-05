@@ -1204,8 +1204,28 @@ function statusHtml(notice: string, error: string): string {
 /** Media and folders are edited in the Library, not as record lists. */
 const LIBRARY_RECORD_KINDS = new Set(["media", "folders"]);
 
+/**
+ * Left to right: the assembled site, then the layers under it.
+ * A layout declares the zones. A type picks one. Items fill those zones, and a
+ * binding mounts a component on that fill. A template is a page body copied into
+ * content. Navigation is the menu over those pages. Site names the home page and the layouts.
+ */
+const RECORD_TAB_ORDER = [
+  "site",
+  "nav",
+  "content",
+  "templates",
+  "bindings",
+  "items",
+  "types",
+  "layouts",
+];
+
 function recordTabs(listing: RecordList): { kind: string; label: string }[] {
-  return listing.kinds.filter((item) => !LIBRARY_RECORD_KINDS.has(item.kind));
+  const rank = new Map(RECORD_TAB_ORDER.map((kind, index) => [kind, index]));
+  return listing.kinds
+    .filter((item) => !LIBRARY_RECORD_KINDS.has(item.kind))
+    .sort((a, b) => (rank.get(a.kind) ?? RECORD_TAB_ORDER.length) - (rank.get(b.kind) ?? RECORD_TAB_ORDER.length));
 }
 
 function activeRecordKind(listing: RecordList, selected?: string): string | undefined {
