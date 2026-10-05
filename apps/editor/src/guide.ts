@@ -38,10 +38,21 @@ export function guideHtml(): string {
       <li><code>breadcrumbs</code> prints Home, then parent pages, then the current page.</li>
       <li><code>subpageList</code> prints the current page’s children. Optional prop <code>title</code>.</li>
       <li><code>linkCluster</code> prints a group of links in the page body. <code>source</code> is <code>children</code> (the default), <code>type</code> (also set <code>type</code> to a type id), or <code>nav</code> (also set <code>heading</code> to a Nav heading). <code>variant</code> is <code>list</code>, <code>pills</code>, or <code>cards</code>.</li>
-      <li><code>pageNav</code> lists every page that has no type. It ignores the Nav record.</li>
-    </ul>
+    <li><code>pageNav</code> lists every page that has no type. It ignores the Nav record.</li>
+  </ul>
 
-    <h2>Three different “styles”</h2>
+  <h2>Bindings</h2>
+  <p>A binding is a named piece you can drop on any page. The choices live once, under <a href="#/records/bindings">Records → Bindings</a> (<code>records/bindings/&lt;id&gt;.yaml</code>). Compose → Insert writes <code>{{id}}</code> into the page.</p>
+  <p>A Gallery section in Compose is a different thing. That paints one folder into that page only. A gallery binding can combine folders, keep filenames that match a pattern, and play as slides.</p>
+  <ul>
+    <li><strong>Gallery</strong> shows pictures from library folders, as a grid or as slides.</li>
+    <li><strong>Dated list</strong> shows pages of a type that have a date field. Upcoming, past, or all. Precis is the line under the date. Willow’s upcoming events list is one of these.</li>
+    <li><strong>People grid</strong> shows pages of a type, using the photo and role fields.</li>
+    <li><strong>Link group</strong> shows a titled set of links: this page’s children, every page of a type, or one menu heading. Children follow the page the insert sits on.</li>
+  </ul>
+  <p>A list stored as JSON, and any other component, is edited as the raw file. Menus, breadcrumbs, and the profile lines (<code>articleByline</code>, <code>profileKicker</code>, <code>profilePhoto</code>, <code>profileFacts</code>) belong on a layout. Subpages is a Compose section.</p>
+
+  <h2>Three different “styles”</h2>
     <p>A class on a layout region is an ordinary CSS class. Three stylesheets supply them, and they do not stand in for each other.</p>
     <ul>
       <li><strong>W3.CSS</strong> (<code>skin/w3.css</code>), linked by every shell. Examples: <code>w3-sidebar</code>, <code>w3-bar-block</code>, <code>w3-collapse</code>, <code>w3-hide-large</code>, <code>w3-row</code>, <code>w3-col</code>. <code>w3-collapse</code> on a <code>w3-sidebar</code> shows that sidebar from 993px up and hides it below that, where the Menu button opens it. <code>w3-hide-large</code> hides an element from 993px up.</li>

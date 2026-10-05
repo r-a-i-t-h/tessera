@@ -54,6 +54,19 @@ Put one of these in the master layout as a component. `scope` is `sidebar` (the 
 | `linkCluster` | A group of links in the page body. `source` is `children` (the default), `type` (also set `type` to a type id), or `nav` (also set `heading` to a Nav heading). `variant` is `list`, `pills`, or `cards`. |
 | `pageNav` | Every page that has no type. Ignores the Nav record. |
 
+## Bindings
+
+A binding is a named piece you can drop on any page. The choices live once, under Records → Bindings (`records/bindings/<id>.yaml`). Compose → Insert writes `{{id}}` into the page.
+
+A Gallery section in Compose is a different thing. That paints one folder into that page only. A gallery binding can combine folders, keep filenames that match a pattern, and play as slides.
+
+- **Gallery** shows pictures from library folders, as a grid or as slides.
+- **Dated list** shows pages of a type that have a date field. Upcoming, past, or all. Precis is the line under the date. Willow’s upcoming events list is one of these.
+- **People grid** shows pages of a type, using the photo and role fields.
+- **Link group** shows a titled set of links: this page’s children, every page of a type, or one menu heading. Children follow the page the insert sits on.
+
+A list stored as JSON, and any other component, is edited as the raw file. Menus, breadcrumbs, and the profile lines (`articleByline`, `profileKicker`, `profilePhoto`, `profileFacts`) belong on a layout. Subpages is a Compose section.
+
 ## Three different styles
 
 A class on a layout region is an ordinary CSS class. Three stylesheets supply them, and they do not stand in for each other.

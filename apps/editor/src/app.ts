@@ -75,10 +75,32 @@ import { authoredSchema, schemaFor, withFrameChoices } from "./forms/schema.js";
 import { readDataTransfer } from "./forms/drop.js";
 import { assetDetail, renderLibrary } from "./forms/library.js";
 import {
+  bindingIdError,
+  bindingIdsIn,
+  bindingKind,
+  bindingSentence,
+  blankNewBinding,
+  datedDraftFromForm,
+  datedRecord,
+  galleryDraftFromForm,
+  galleryRecord,
+  limitError,
+  linksDraftFromForm,
+  linksRecord,
+  navHeadings,
+  newBindingError,
+  newBindingRecord,
+  peopleDraftFromForm,
+  peopleRecord,
+  readNewBinding,
+  renderBindingForm,
+  renderNewBinding,
+  type BindingChoices,
+  type NewBinding,
+} from "./forms/binding.js";
+import {
   checkedFolderIds,
   documentLink,
-  folderChecklist,
-  foldersValue,
   imageSlideSnippet,
   imageTag,
   mediaBlockSnippet,
@@ -775,7 +797,9 @@ async function bindList(
   const listing = await listRecords();
   const active = activeRecordKind(listing, kind);
   const layoutNotes = active === "layouts" ? await loadLayoutListNotes(listing) : new Map<string, string>();
-  root.innerHTML = chrome(user, listHtml(listing, kind, notice, error, layoutNotes), true, "records");
+  const bindingInfo = active === "bindings" ? await loadBindingListInfo(listing) : undefined;
+  const listNotes = bindingInfo?.notes ?? layoutNotes;
+  root.innerHTML = chrome(user, listHtml(listing, kind, notice, error, listNotes), true, "records");
   bindChrome(root);
   bindInitSite(root, (nextNotice, nextError) => bindList(root, user, kind, nextNotice, nextError));
   if (active === "site" || active === "nav") {
@@ -823,6 +847,7 @@ async function bindList(
     event.preventDefault();
     void createType(root, user, listing);
   });
+  if (bindingInfo) bindNewBinding(root, listing, bindingInfo.choices);
 }
 
 async function createPage(root: HTMLElement, user: PublicUser, listing: RecordList): Promise<void> {
@@ -954,6 +979,165 @@ async function createType(root: HTMLElement, user: PublicUser, listing: RecordLi
   const hash = `#/types/${encodeURIComponent(typeId)}`;
   if (window.location.hash === hash) await render(root);
   else window.location.hash = hash;
+}
+
+function bindNewBinding(root: HTMLElement, listing: RecordList, choices: BindingChoices): void {
+  const form = root.querySelector<HTMLFormElement>("#new-binding-form");
+  const open = root.querySelector<HTMLButtonElement>("[data-action=new-binding]");
+  if (!form || !open) return;
+  const existing = listing.records.filter((row) => row.kind === "bindings").map((row) => row.id);
+  let state = blankNewBinding();
+
+  const paint = (error = "") => {
+    form.hidden = false;
+    form.innerHTML = renderNewBinding(state, choices);
+    if (error) showNewPageError(form, error);
+    form.querySelector<HTMLElement>("[data-binding-focus]")?.focus();
+  };
+
+  open.addEventListener("click", () => {
+    state = blankNewBinding();
+    paint();
+  });
+  form.addEventListener("input", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement) || target.name !== "binding-id") return;
+    const token = form.querySelector("[data-binding-token]");
+    if (token) token.textContent = `{{${target.value.trim() || "id"}}}`;
+  });
+  form.addEventListener("change", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLSelectElement)) return;
+    if (target.name === "binding-kind") {
+      state = readNewBinding(bindingControls(form), folderSelection(form));
+      state.step = 1;
+      paint();
+      return;
+    }
+    if (target.name === "links-source") syncLinkSource(form);
+    if (target.name === "gallery-mode") syncGalleryMode(form);
+  });
+  form.addEventListener("click", (event) => {
+    const button = event.target instanceof Element ? event.target.closest("button") : null;
+    if (!(button instanceof HTMLButtonElement) || button.dataset.bindingStep !== "back") return;
+    event.preventDefault();
+    state = readNewBinding(bindingControls(form), folderSelection(form));
+    state.step = state.step === 3 ? 2 : 1;
+    paint();
+  });
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    state = readNewBinding(bindingControls(form), folderSelection(form));
+    if (state.kind === "gallery" && state.step < 3) {
+      const problem = state.step === 1 ? bindingIdError(state.id, existing) : undefined;
+      if (problem) {
+        showNewPageError(form, problem);
+        return;
+      }
+      state = { ...state, step: state.step === 1 ? 2 : 3 };
+      paint();
+      return;
+    }
+    void createBinding(root, form, state, existing);
+  });
+}
+
+async function createBinding(
+  root: HTMLElement,
+  form: HTMLFormElement,
+  state: NewBinding,
+  existing: readonly string[],
+): Promise<void> {
+  const problem = newBindingError(state, existing);
+  if (problem) {
+    showNewPageError(form, problem);
+    return;
+  }
+  const button = form.querySelector<HTMLButtonElement>("button[type=submit]");
+  if (button) button.disabled = true;
+  const id = state.id.trim();
+  try {
+    await saveRecord("bindings", id, newBindingRecord(state));
+  } catch (err) {
+    showNewPageError(form, err instanceof Error ? err.message : "Could not create the binding.");
+    if (button) button.disabled = false;
+    return;
+  }
+  const notice =
+    state.kind === "gallery" ? `Created ${id}. Put it on a page with Compose → Insert.` : `Created ${id}.`;
+  pendingEdit = { mode: state.kind === "other" ? "raw" : "fields", notice };
+  const hash = `#/bindings/${encodeURIComponent(id)}`;
+  if (window.location.hash === hash) await render(root);
+  else window.location.hash = hash;
+}
+
+function folderSelection(form: HTMLFormElement): string[] | undefined {
+  if (!form.querySelector("[data-folder-id]")) return undefined;
+  return checkedFolderIds(
+    [...form.querySelectorAll<HTMLInputElement>("[data-folder-id]")].map((el) => ({
+      id: el.dataset.folderId ?? "",
+      checked: el.checked,
+    })),
+  );
+}
+
+function bindingControls(form: HTMLFormElement): { name: string; value: string; checked?: boolean }[] {
+  const prefixes = ["binding-", "gallery-", "dated-", "people-", "links-"];
+  const controls: { name: string; value: string; checked?: boolean }[] = [];
+  for (const el of Array.from(form.elements)) {
+    if (!(el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement)) {
+      continue;
+    }
+    if (!el.name || !prefixes.some((prefix) => el.name.startsWith(prefix))) continue;
+    controls.push({
+      name: el.name,
+      value: el.value,
+      checked: el instanceof HTMLInputElement && el.type === "checkbox" ? el.checked : undefined,
+    });
+  }
+  return controls;
+}
+
+async function loadBindingListInfo(listing: RecordList): Promise<{ notes: Map<string, string>; choices: BindingChoices }> {
+  const bindings = listing.records.filter((row) => row.kind === "bindings");
+  const content = listing.records.filter((row) => row.kind === "content");
+  const types = listing.records.filter((row) => row.kind === "types").map((row) => row.id);
+  const empty = { notes: new Map<string, string>(), choices: { folders: [], types, headings: [] } };
+  try {
+    const [bindingPayloads, contentPayloads, library, nav] = await Promise.all([
+      Promise.all(bindings.map((row) => getRecord("bindings", row.id))),
+      Promise.all(content.map((row) => getRecord("content", row.id))),
+      getLibrary().catch(() => ({ folders: [], assets: [] })),
+      getRecord("nav", "nav").catch(() => undefined),
+    ]);
+    const notes = new Map<string, string>();
+    bindings.forEach((row, index) => {
+      const used = content.flatMap((page, pageIndex) =>
+        bindingIdsIn(contentPayloads[pageIndex]?.data).includes(row.id) ? [{ id: page.id, title: page.title }] : [],
+      );
+      notes.set(row.id, bindingSentence(bindingPayloads[index]?.data, used));
+    });
+    return {
+      notes,
+      choices: { folders: library.folders, types, headings: navHeadings(nav?.data) },
+    };
+  } catch {
+    return empty;
+  }
+}
+
+async function loadBindingChoices(): Promise<BindingChoices> {
+  try {
+    const listing = await listRecords();
+    const types = listing.records.filter((row) => row.kind === "types").map((row) => row.id);
+    const [library, nav] = await Promise.all([
+      getLibrary().catch(() => ({ folders: [], assets: [] })),
+      getRecord("nav", "nav").catch(() => undefined),
+    ]);
+    return { folders: library.folders, types, headings: navHeadings(nav?.data) };
+  } catch {
+    return { folders: [], types: [], headings: [] };
+  }
 }
 
 function showNewPageError(form: HTMLFormElement, message: string): void {
@@ -1299,7 +1483,9 @@ function recordTab(
           ? layoutSection(rows, siteReady, layoutNotes)
           : kind.kind === "types"
             ? typeSection(rows, siteReady)
-            : kind.kind === "site" || kind.kind === "nav"
+            : kind.kind === "bindings"
+              ? bindingSection(rows, siteReady, layoutNotes)
+              : kind.kind === "site" || kind.kind === "nav"
           ? singletonEditorMount(kind.kind, rows[0])
           : kindPanel(rows);
   return `<section class="editor-kind" aria-label="${escapeHtml(kind.label)}">${body}</section>`;
@@ -1482,6 +1668,14 @@ function typeSection(rows: RecordSummary[], siteReady: boolean): string {
     ${rows.length ? recordList(rows) : `<p class="w3-text-grey">No types yet.</p>`}`;
 }
 
+function bindingSection(rows: RecordSummary[], siteReady: boolean, notes: Map<string, string>): string {
+  if (!siteReady) return `<p class="w3-text-grey">No records yet.</p>`;
+  return `<p><button type="button" class="w3-button w3-theme" data-action="new-binding">New binding</button></p>
+    <form id="new-binding-form" class="editor-new-page" hidden></form>
+    <p class="w3-text-grey">A binding is a named piece you drop on a page with Compose → Insert. <a href="#/guide">Guide</a>.</p>
+    ${rows.length ? recordList(rows, false, (row) => notes.get(row.id) ?? "") : `<p class="w3-text-grey">No bindings yet.</p>`}`;
+}
+
 function templateSection(rows: RecordSummary[], siteReady: boolean): string {
   if (!siteReady) return `<p class="w3-text-grey">No records yet.</p>`;
   return `<p><button type="button" class="w3-button w3-theme" data-action="new-template">New template</button></p>
@@ -1510,6 +1704,7 @@ function initialEditMode(kind: string, pending: { mode: EditMode } | undefined):
     if (mode === "arrange" || mode === "fields" || mode === "raw") return mode;
     return "arrange";
   }
+  if (kind === "bindings" && (mode === "fields" || mode === "raw")) return mode;
   return "fields";
 }
 
@@ -1650,7 +1845,8 @@ async function bindEdit(
     kind === "nav" && editMode === "fields" && !Array.isArray(payload.data)
       ? `<p class="w3-text-grey">This navigation file is not a list. Edit it as YAML, or switch to Raw file.</p>`
       : "";
-  const galleryFolders = kind === "bindings" ? await galleryFolderRows() : [];
+  const assisted = kind === "bindings" && editMode === "fields" && bindingKind(record) !== "other";
+  const bindingChoices = assisted ? await loadBindingChoices() : undefined;
   const arrangeInfo = kind === "layouts" ? await loadArrangeInfo(id) : undefined;
   const layoutRoot = kind === "layouts" ? asLayoutNode(record?.root) : undefined;
   const typeEditor = kind === "types" && editMode === "fields" && !!record;
@@ -1671,7 +1867,9 @@ async function bindEdit(
            <div id="nav-editor">${renderNavList(navRows(payload.data), pages)}</div>`
         : typeEditor
           ? `<div id="type-editor">${renderTypeForm(typeDraft(record), typeLayouts)}</div>`
-          : `${navNote}${fieldsHtml(kind, record ?? payload.data, payload.layout, galleryFolders)}`;
+          : assisted && record && bindingChoices
+            ? renderBindingForm(id, record, bindingChoices)
+            : `${navNote}${fieldsHtml(kind, record ?? payload.data, payload.layout)}`;
   const editor = `${lifecycleHtml(payload)}
      ${notice ? `<p class="w3-panel w3-pale-green" role="status">${escapeHtml(notice)}</p>` : ""}
      <p class="editor-tabs">
@@ -1762,6 +1960,7 @@ async function bindEdit(
   }
   if (form && navList) bindNavEditor(form, pages);
   if (form && typeEditor) bindTypeEditor(form, id, typeLayouts);
+  if (form && assisted) bindBindingForm(form);
   if (form) bindPickers(form);
   form?.addEventListener("input", () => {
     form.dataset.dirty = "true";
@@ -1822,7 +2021,9 @@ async function bindEdit(
                   ? navEntries(rowsFromControls(navControls(form)))
                   : kind === "types" && editMode === "fields"
                     ? typeBody(id, form)
-                    : saveRecordBody(kind, form, payload.data),
+                    : kind === "bindings" && editMode === "fields"
+                      ? bindingBody(id, form, payload.data)
+                      : saveRecordBody(kind, form, payload.data),
               );
       }
       await bindEdit(root, user, kind, id, editMode, saveNotice(saved), false, host);
@@ -1929,7 +2130,6 @@ function fieldsHtml(
   kind: string,
   data: unknown,
   layout?: PageLayoutHint,
-  galleryFolders: { id: string; parentId: string | null }[] = [],
 ): string {
   if (Array.isArray(data) || !data || typeof data !== "object") {
     return renderForm(
@@ -1938,7 +2138,7 @@ function fieldsHtml(
     );
   }
   const record = data as Record<string, unknown>;
-  if (kind === "bindings") return bindingFields(record, galleryFolders);
+  if (kind === "bindings") return bindingFields(record);
   const baseSchema = schemaFor(kind, record);
   const schema =
     baseSchema && kind === "content" && layout?.frames
@@ -2113,60 +2313,61 @@ function pruneEmptyHtmlZones(data: unknown): unknown {
   return withZones;
 }
 
-async function galleryFolderRows(): Promise<{ id: string; parentId: string | null }[]> {
-  try {
-    const listing = await getLibrary();
-    return listing.folders;
-  } catch {
-    return [];
-  }
+function bindingFields(record: Record<string, unknown>): string {
+  const schema = schemaFor("bindings", record);
+  return schema ? renderForm(schema, record) : "";
 }
 
-function bindingFields(
-  record: Record<string, unknown>,
-  folders: { id: string; parentId: string | null }[],
-): string {
-  const props =
-    record.props && typeof record.props === "object" && !Array.isArray(record.props)
-      ? { ...(record.props as Record<string, unknown>) }
-      : {};
-  const raw = props.folders ?? props.folder;
-  const selected = Array.isArray(raw)
-    ? raw.filter((item): item is string => typeof item === "string")
-    : typeof raw === "string"
-      ? [raw]
-      : [];
-  delete props.folders;
-  delete props.folder;
-  const shown = { ...record, props };
-  const schema = schemaFor("bindings", shown);
-  const form = schema ? renderForm(schema, shown) : "";
-  const usePicker = record.component === "gallery" || raw !== undefined;
-  if (!usePicker) return form;
-  return `${form}<fieldset class="editor-fieldset"><legend>Gallery folders</legend>${folderChecklist(folders, selected)}</fieldset>`;
+function bindingBody(id: string, form: HTMLFormElement, original: unknown): unknown {
+  const kind = bindingKind(original);
+  const controls = bindingControls(form);
+  if (kind === "gallery") return galleryRecord(id, galleryDraftFromForm(controls, folderSelection(form) ?? []));
+  if (kind === "dated") {
+    const draft = datedDraftFromForm(controls);
+    const problem = limitError(draft.limit);
+    if (problem) throw new Error(problem);
+    return datedRecord(id, draft);
+  }
+  if (kind === "people") {
+    const draft = peopleDraftFromForm(controls);
+    const problem = limitError(draft.limit);
+    if (problem) throw new Error(problem);
+    return peopleRecord(id, draft);
+  }
+  if (kind === "links") {
+    const draft = linksDraftFromForm(controls);
+    if (draft.source === "type" && !draft.type.trim()) throw new Error("Choose a type.");
+    if (draft.source === "nav" && !draft.heading.trim()) throw new Error("Enter a menu heading.");
+    return linksRecord(id, draft);
+  }
+  return saveRecordBody("bindings", form, original);
+}
+
+function bindBindingForm(form: HTMLFormElement): void {
+  form.addEventListener("change", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLSelectElement)) return;
+    if (target.name === "gallery-mode") syncGalleryMode(form);
+    if (target.name === "links-source") syncLinkSource(form);
+  });
+}
+
+function syncGalleryMode(form: HTMLFormElement): void {
+  const mode = form.querySelector<HTMLSelectElement>("[name=gallery-mode]")?.value;
+  const autoplay = form.querySelector<HTMLElement>("[data-gallery-autoplay]");
+  if (autoplay) autoplay.hidden = mode !== "slides";
+}
+
+function syncLinkSource(form: HTMLFormElement): void {
+  const source = form.querySelector<HTMLSelectElement>("[name=links-source]")?.value;
+  const type = form.querySelector<HTMLElement>("[data-links-type]");
+  const heading = form.querySelector<HTMLElement>("[data-links-heading]");
+  if (type) type.hidden = source !== "type";
+  if (heading) heading.hidden = source !== "nav";
 }
 
 function saveRecordBody(kind: string, form: HTMLFormElement, original: unknown): unknown {
-  const data = pruneEmptyHtmlZones(readFormValues(form, schemaFor(kind, original), original));
-  if (kind !== "bindings" || !form.querySelector("[data-folder-id]")) return data;
-  if (!data || typeof data !== "object" || Array.isArray(data)) return data;
-  const record = data as Record<string, unknown>;
-  const props =
-    record.props && typeof record.props === "object" && !Array.isArray(record.props)
-      ? { ...(record.props as Record<string, unknown>) }
-      : {};
-  const ids = checkedFolderIds(
-    [...form.querySelectorAll<HTMLInputElement>("[data-folder-id]")].map((el) => ({
-      id: el.dataset.folderId ?? "",
-      checked: el.checked,
-    })),
-  );
-  const value = foldersValue(ids);
-  delete props.folder;
-  if (value === undefined) delete props.folders;
-  else props.folders = value;
-  record.props = props;
-  return record;
+  return pruneEmptyHtmlZones(readFormValues(form, schemaFor(kind, original), original));
 }
 
 function insertButtons(target: string, kind: "html" | "blocks"): string {
