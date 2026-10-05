@@ -154,6 +154,13 @@ export type PageLayoutHint = {
   declaredZones: string[];
   offLayoutZones: string[];
   layouts: Record<string, { zones: string[] }>;
+  /** Layout ids that contain a page slot. */
+  frames?: string[];
+  /** Resolved frame, when the site or a page in the chain names one. */
+  masterLayoutId?: string;
+  masterSource?: "page" | "ancestor" | "site";
+  /** Page that set the frame, when `masterSource` is `page` or `ancestor`. */
+  masterFromPageId?: string;
 };
 
 export type SnapshotRef = {

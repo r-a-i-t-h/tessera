@@ -1,5 +1,5 @@
 import type { Block, LayoutNode, Media, SiteDocument } from "@r-a-i-t-h/tessera-model";
-import { resolvePageProfile } from "@r-a-i-t-h/tessera-model";
+import { resolveMasterLayout, resolvePageProfile } from "@r-a-i-t-h/tessera-model";
 import { normalizeSiteAssetUrl, rewriteMediaUrls } from "./assets.js";
 import { expandMustache, renderNamed } from "./bindings.js";
 import { expandPageElements } from "./page-elements.js";
@@ -106,7 +106,7 @@ export function renderPage(options: RenderPageOptions): string {
   };
 
   const pageHtml = renderNode(layout.root, ctx, skin);
-  const masterId = document.site.masterLayoutId;
+  const masterId = resolveMasterLayout(document, page).layoutId;
   if (!masterId || masterId === profile.layoutId) return pageHtml;
   const master = layoutsById.get(masterId);
   if (!master) throw new Error(`Unknown master layout: ${masterId}`);

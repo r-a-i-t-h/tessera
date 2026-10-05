@@ -158,6 +158,64 @@ describe("publishPages", () => {
   });
 });
 
+describe("publishPages section frame", () => {
+  it("writes the section frame inside the subtree and the site frame outside it", () => {
+    const sectioned = parseSiteDocument({
+      version: 2,
+      site: { id: "hall", title: "Willow Hall", homePageId: "home", masterLayoutId: "master", defaultLayoutId: "L" },
+      layouts: [
+        {
+          id: "master",
+          root: {
+            type: "region",
+            children: [
+              { type: "static", html: "<header>Site frame</header>" },
+              { type: "page" },
+            ],
+          },
+        },
+        {
+          id: "events-frame",
+          root: {
+            type: "region",
+            children: [
+              { type: "static", html: "<header>Events frame</header>" },
+              { type: "page" },
+            ],
+          },
+        },
+        { id: "L", root: { type: "zone", id: "main" } },
+      ],
+      pages: [
+        { id: "home", title: "Home", zones: { main: [{ type: "text", html: "<p>Welcome</p>" }] } },
+        {
+          id: "events",
+          title: "Events",
+          parentId: "home",
+          masterLayoutId: "events-frame",
+          zones: { main: [{ type: "text", html: "<p>List</p>" }] },
+        },
+        {
+          id: "fair",
+          title: "Fair",
+          parentId: "events",
+          zones: { main: [{ type: "text", html: "<p>On the green</p>" }] },
+        },
+        { id: "about", title: "About", zones: { main: [{ type: "text", html: "<p>About</p>" }] } },
+      ],
+    });
+    const files = publishPages(sectioned, { origin: "https://example.test" });
+    const byPath = new Map(files.map((file) => [file.path, file.contents]));
+    const fair = byPath.get("events/fair/index.html")!;
+    const about = byPath.get("about/index.html")!;
+    expect(fair).toContain("<header>Events frame</header>");
+    expect(fair).toContain("On the green");
+    expect(fair).not.toContain("Site frame");
+    expect(about).toContain("<header>Site frame</header>");
+    expect(about).not.toContain("Events frame");
+  });
+});
+
 describe("publishPages style", () => {
   it("writes chrome tokens and body classes when the site has a style", () => {
     const styled = parseSiteDocument({

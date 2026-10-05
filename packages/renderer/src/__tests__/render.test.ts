@@ -159,6 +159,56 @@ describe("renderPage", () => {
     expect(html).toContain("Home title");
     expect(html.indexOf("Frame")).toBeLessThan(html.indexOf("Home title"));
   });
+
+  it("uses a section frame inside the subtree and the site frame outside it", () => {
+    const doc = makeFixtureDoc();
+    doc.site.masterLayoutId = "master";
+    doc.layouts.push(
+      {
+        id: "master",
+        root: {
+          type: "region",
+          children: [
+            { type: "static", html: "<header>Site frame</header>" },
+            { type: "page" },
+          ],
+        },
+      },
+      {
+        id: "events-frame",
+        root: {
+          type: "region",
+          children: [
+            { type: "static", html: "<header>Events frame</header>" },
+            { type: "page" },
+          ],
+        },
+      },
+    );
+    doc.pages.push(
+      {
+        id: "events",
+        title: "Events",
+        parentId: "home",
+        masterLayoutId: "events-frame",
+        zones: { main: [{ type: "text", html: "<p>List</p>" }] },
+      },
+      {
+        id: "fair",
+        title: "Fair",
+        parentId: "events",
+        zones: { main: [{ type: "text", html: "<p>On the green</p>" }] },
+      },
+    );
+    const registry = registryWithDefaults();
+    const fair = renderPage({ document: doc, pageId: "fair", registry });
+    const about = renderPage({ document: doc, pageId: "about", registry });
+    expect(fair).toContain("<header>Events frame</header>");
+    expect(fair).toContain("On the green");
+    expect(fair).not.toContain("Site frame");
+    expect(about).toContain("<header>Site frame</header>");
+    expect(about).not.toContain("Events frame");
+  });
 });
 
 describe("authored zone HTML", () => {

@@ -47,7 +47,7 @@ import { arrangeMarkup, mountArrange, readArrangeRoot } from "./arrange/canvas.j
 import { asLayoutNode, cleanNode, isFrame, newFrame, newPageLayout } from "./arrange/tree.js";
 import type { ArrangeInfo } from "./arrange/view.js";
 import { mountComposeCanvases } from "./compose/canvas.js";
-import { readContentDraft, composeFormInner, htmlByZone, rawText, templateBodyLayout, type ContentMode } from "./compose/view.js";
+import { readContentDraft, composeFormInner, frameNote, htmlByZone, rawText, templateBodyLayout, type ContentMode } from "./compose/view.js";
 import { readFormValues, renderForm } from "./forms/form.js";
 import {
   applyNavAction,
@@ -71,7 +71,7 @@ import {
   typeRecord,
   type LayoutChoice,
 } from "./forms/type.js";
-import { authoredSchema, schemaFor } from "./forms/schema.js";
+import { authoredSchema, schemaFor, withFrameChoices } from "./forms/schema.js";
 import { assetDetail, renderLibrary } from "./forms/library.js";
 import {
   checkedFolderIds,
@@ -1938,7 +1938,15 @@ function fieldsHtml(
   }
   const record = data as Record<string, unknown>;
   if (kind === "bindings") return bindingFields(record, galleryFolders);
-  const schema = schemaFor(kind, record);
+  const baseSchema = schemaFor(kind, record);
+  const schema =
+    baseSchema && kind === "content" && layout?.frames
+      ? withFrameChoices(
+          baseSchema,
+          layout.frames,
+          typeof record.masterLayoutId === "string" ? record.masterLayoutId : undefined,
+        )
+      : baseSchema;
   if (!schema) {
     return renderForm({ fields: [{ name: "_yaml", label: "Data", type: "yaml", rows: 12 }] }, { _yaml: data });
   }
@@ -1947,7 +1955,7 @@ function fieldsHtml(
   const extras = schema.fields.filter((field) => !authoredNames.has(field.name));
   const zones =
     kind === "content"
-      ? `${layoutBanner(layout)}${typeFieldInputs(record, layout)}${zoneFields(zonesOf(record), layout)}`
+      ? `${layoutBanner(layout)}${frameNote(layout)}${typeFieldInputs(record, layout)}${zoneFields(zonesOf(record), layout)}`
       : "";
   const navHint =
     kind === "content"

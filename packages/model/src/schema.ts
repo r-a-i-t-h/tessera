@@ -152,6 +152,12 @@ export const PageSchema = z.object({
    */
   parentId: z.string().min(1).optional(),
   /**
+   * Frame for this page and its descendants.
+   * Omitted means the nearest ancestor that sets one, or `site.masterLayoutId`.
+   * The home page does not inherit: its `parentId` is ignored.
+   */
+  masterLayoutId: z.string().min(1).optional(),
+  /**
    * When `false`, the page still has a URL and an HTML file, and is omitted from nav.
    * Omitted means the page appears in nav. History is not stored here.
    */
@@ -363,6 +369,61 @@ export function resolvePageProfile(document: SiteDocument, page: Page): PageProf
   return { layoutId, layoutSource, ...(page.type ? { typeId: page.type } : {}) };
 }
 
+/** Where the frame id came from. */
+export type MasterLayoutSource = "page" | "ancestor" | "site";
+
+/**
+ * Frame wrapped around a page. `layoutId` is absent when the site names no frame
+ * and no page in the chain sets one.
+ */
+export type ResolvedMasterLayout = {
+  layoutId?: string;
+  source: MasterLayoutSource;
+  /** Page that set `layoutId`, when `source` is `page` or `ancestor`. */
+  fromPageId?: string;
+};
+
+/**
+ * Frame for a page: its own `masterLayoutId`, otherwise the nearest ancestor's,
+ * otherwise `site.masterLayoutId`. The home page's `parentId` is ignored.
+ * A cycle or a missing parent is an error. A named layout must be a frame.
+ */
+export function resolveMasterLayout(document: SiteDocument, page: Page): ResolvedMasterLayout {
+  const byId = new Map(document.pages.map((item) => [item.id, item]));
+  const homeId = document.site.homePageId;
+  const seen: string[] = [];
+  let current: Page | undefined = page;
+  let atStart = true;
+
+  while (current) {
+    if (seen.includes(current.id)) throw new Error(`Page cycle at ${current.id}`);
+    seen.push(current.id);
+    if (current.masterLayoutId) {
+      requireFrame(document, current.masterLayoutId);
+      return {
+        layoutId: current.masterLayoutId,
+        source: atStart ? "page" : "ancestor",
+        fromPageId: current.id,
+      };
+    }
+    atStart = false;
+    if (current.id === homeId || !current.parentId) break;
+    const parent = byId.get(current.parentId);
+    if (!parent) throw new Error(`Page ${current.id} parent ${current.parentId} not found`);
+    current = parent;
+  }
+
+  const layoutId = document.site.masterLayoutId;
+  if (layoutId) requireFrame(document, layoutId);
+  return { source: "site", ...(layoutId ? { layoutId } : {}) };
+}
+
+function requireFrame(document: SiteDocument, layoutId: string): void {
+  const layout = document.layouts.find((item) => item.id === layoutId);
+  if (!layout) throw new Error(`Unknown master layout: ${layoutId}`);
+  if (!layoutHasPageSlot(layout.root)) throw new Error(`Layout ${layoutId} is not a frame`);
+}
+
 /**
  * Caption from filename: strip extension, then a leading ordering prefix (`01-`, `001_`, …),
  * then turn separators into spaces.
@@ -381,6 +442,20 @@ export function parseSiteDocument(data: unknown): SiteDocument {
 
 export function safeParseSiteDocument(data: unknown) {
   return SiteDocumentSchema.safeParse(data);
+}
+
+/** True when the layout tree contains a page slot, which makes it a frame. */
+export function layoutHasPageSlot(node: LayoutNode): boolean {
+  switch (node.type) {
+    case "page":
+      return true;
+    case "region":
+      return node.children.some((child) => layoutHasPageSlot(child));
+    case "component":
+      return node.children?.some((child) => layoutHasPageSlot(child)) ?? false;
+    default:
+      return false;
+  }
 }
 
 /** Collect zone ids declared by a layout tree. */

@@ -23,8 +23,10 @@ export {
   parseSiteDocument,
   safeParseSiteDocument,
   collectDeclaredZones,
+  layoutHasPageSlot,
   captionFromFilename,
   resolvePageProfile,
+  resolveMasterLayout,
 } from "./schema.js";
 export {
   pagePathSegment,
@@ -68,6 +70,8 @@ export type {
   TypeField,
   Type,
   PageProfile,
+  MasterLayoutSource,
+  ResolvedMasterLayout,
   NavSource,
   NavEntry,
   SiteMeta,

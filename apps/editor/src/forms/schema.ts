@@ -52,6 +52,7 @@ export const CONTENT_FORM: FormSchema = {
     { name: "description", label: "Description", type: "string", rows: 3 },
     { name: "slug", label: "Slug", type: "string" },
     { name: "parentId", label: "Parent", type: "string" },
+    { name: "masterLayoutId", label: "Frame", type: "string" },
     { name: "type", label: "Type", type: "string" },
     { name: "showInNav", label: "Show in nav", type: "Checkbox", defaultChecked: true },
     { name: "tags", label: "Tags", type: "string", list: true },
@@ -76,6 +77,30 @@ export function authoredSchema(kind: string): FormSchema | undefined {
 
 export function labelize(key: string): string {
   return key.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase());
+}
+
+/** Replace the Frame text field with Inherit plus the site's frame layouts. */
+export function withFrameChoices(schema: FormSchema, frames: readonly string[], current?: string): FormSchema {
+  const ids = [...frames];
+  if (current && !ids.includes(current)) ids.push(current);
+  return {
+    fields: schema.fields.map((field) =>
+      field.name === "masterLayoutId"
+        ? {
+            ...field,
+            type: "SingleSelect",
+            options: [{ value: "", label: "Inherit" }, ...ids.map((id) => ({ value: id, label: id }))],
+          }
+        : field,
+    ),
+  };
+}
+
+/** Clause after the resolved frame id: "set on events", "set on this page", or "the site frame". */
+export function frameWhere(source: "page" | "ancestor" | "site" | undefined, fromPageId?: string): string {
+  if (source === "page") return "set on this page";
+  if (source === "ancestor" && fromPageId) return `set on ${fromPageId}`;
+  return "the site frame";
 }
 
 /** Fields for keys the authored schema does not name, so extra data stays editable. */

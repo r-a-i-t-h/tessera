@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applySubmitted, renderForm } from "./form.js";
-import { CONTENT_FORM, SITE_FORM, schemaFor } from "./schema.js";
+import { CONTENT_FORM, SITE_FORM, frameWhere, schemaFor, withFrameChoices } from "./schema.js";
 
 describe("schema forms", () => {
   it("offers flavour and origin on a site that has neither", () => {
@@ -38,6 +38,24 @@ describe("schema forms", () => {
     );
     expect(hidden.showInNav).toBe(false);
     expect(hidden.tags).toEqual(["news", "hall"]);
+  });
+
+  it("offers inherit for the page frame and omits it when blank", () => {
+    const schema = withFrameChoices(CONTENT_FORM, ["master", "events-frame"]);
+    const html = renderForm(schema, { id: "fair", title: "Fair" });
+    expect(html).toContain("Frame");
+    expect(html).toContain(">Inherit</option>");
+    expect(html).toContain("events-frame");
+    const cleared = applySubmitted(schema, { id: "fair", title: "Fair", masterLayoutId: "events-frame" }, {
+      title: "Fair",
+      masterLayoutId: "",
+    });
+    expect(cleared).not.toHaveProperty("masterLayoutId");
+    const set = applySubmitted(schema, { id: "events", title: "Events" }, { title: "Events", masterLayoutId: "events-frame" });
+    expect(set.masterLayoutId).toBe("events-frame");
+    expect(frameWhere("ancestor", "events")).toBe("set on events");
+    expect(frameWhere("page")).toBe("set on this page");
+    expect(frameWhere("site")).toBe("the site frame");
   });
 
   it("uses a fixed-width class on yaml fields", () => {

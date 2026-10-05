@@ -51,8 +51,8 @@ Dated site archives live in the sibling `backup/` directory (`TESSERA_BACKUP` ov
 
 ## Content model
 
-- **Layout** — tree of `region` | `zone` | `static` | `component` | `page`. **Only layouts declare zones** (and where they appear). `site.masterLayoutId` is the outer page. Its `page` node is replaced by the resolved page layout.
-- **Page** — `id`, `title`, optional `description`, optional `slug`, optional `parentId` (published tree; ignored on the home page), optional `showInNav` (`false` keeps the URL and drops the nav link), optional `type`, optional `fields`, optional subject `tags`, optional `includes` (shared items), and `zones` contributions. There is no draft flag: every content page is in the flattened document. `locked` and `templateId` may sit on the YAML file and are omitted when the page is assembled. History is not a field on the page.
+- **Layout** — tree of `region` | `zone` | `static` | `component` | `page`. **Only layouts declare zones** (and where they appear). `site.masterLayoutId` is the default outer page. `resolveMasterLayout` may name a different frame for a page subtree. Its `page` node is replaced by the resolved page layout.
+- **Page** — `id`, `title`, optional `description`, optional `slug`, optional `parentId` (published tree; ignored on the home page), optional `masterLayoutId` (frame for this page and its descendants), optional `showInNav` (`false` keeps the URL and drops the nav link), optional `type`, optional `fields`, optional subject `tags`, optional `includes` (shared items), and `zones` contributions. There is no draft flag: every content page is in the flattened document. `locked` and `templateId` may sit on the YAML file and are omitted when the page is assembled. History is not a field on the page.
 - **Style** — optional `site.style` tokens (sidebar width, bar, colours, fonts, nav side). Missing fields use the defaults in `style.ts`. The editor’s Styles page writes this object. Colour themes beyond those tokens stay in the shell stylesheet.
 - **Type** — site-defined `{ id, layoutId?, fields[] }`. `resolvePageProfile` uses that layout, otherwise `site.defaultLayoutId`. A type does not invent zones. Subject tags do not select it.
 - **Item** — reusable zone contributions (footer, promo, …), pulled in via `page.includes`.
@@ -118,7 +118,7 @@ Compose (`@r-a-i-t-h/tessera-sections`) parses a zone’s HTML into sections and
 
 `npm run flatten:site` (or an editor save) writes `$TESSERA_DATA/preview/data/site.json` and stamps `<meta name="tessera-site">` in `shell/index.html`. **Publish** writes `$TESSERA_DATA/publish/` for copying. A pages dist is one HTML file per page plus `sitemap.xml`. A snapshot dist is the SPA shell, `publish/data/site.json`, the hashed file, and `rev.json`. `delivery` on `site.yaml` chooses that dist and defaults to `pages`. A pages dist needs `origin` (an absolute URL with no path). The preview is always the snapshot and ignores `delivery`.
 
-There is **no** recursive `parentId` template chain and **no** inventing zones from inside page HTML. A type chooses the layout for every entry of that type.
+There is **no** recursive `parentId` template chain and **no** inventing zones from inside page HTML. A type chooses the layout for every entry of that type. The one value that follows `parentId` is the frame: a page's `masterLayoutId`, otherwise the nearest ancestor's, otherwise the site master. The home page does not inherit.
 
 ## Page history and authoring schema
 
@@ -202,7 +202,7 @@ Web components follow the same idea: implement with `WCBase`, `customElements.de
 1. Load + validate the hashed site file named by `<meta name="tessera-site">`; persist to `localStorage` under the absolute URL of that file (one cache per published site on a shared origin); fall back to cache on failure (see SPEC §3). While open, poll `rev.json` on a 5-minute TTL.
 2. Resolve page from hash (unknown ids fall back to home — no error UI). Snapshot sites only.
 3. Resolve the page’s **profile** (`resolvePageProfile`: the type's layout, otherwise the site default), then merge `page.zones` then each included item’s zones (stable order).
-4. Walk the master layout when `site.masterLayoutId` is set. Its `page` node is the resolved page layout. Zone nodes render their blocks; unknown component names become HTML comments. Nav components in the master read `document.nav`.
+4. Walk the frame from `resolveMasterLayout` (this page's `masterLayoutId`, otherwise the nearest ancestor's, otherwise `site.masterLayoutId`). Its `page` node is the resolved page layout. Zone nodes render their blocks; unknown component names become HTML comments. Nav components in the frame read `document.nav`.
 5. Optional `onAfterRender` / `onStatusChange` for chrome outside the document (demo sidebar, stale banner).
 6. While open, re-fetch on a 5-minute TTL when `documentUrl` is set.
 

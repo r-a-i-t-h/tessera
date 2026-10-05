@@ -298,4 +298,43 @@ describe("record routes", () => {
     expect(entry?.schemaVersion).toBe(1);
     expect(entry?.raw).toContain("title: Home");
   });
+
+  it("resolves a section frame from the parent page", async () => {
+    const frame = {
+      type: "region",
+      children: [{ type: "static", html: "frame" }, { type: "page" }],
+    };
+    await site.write("layouts", "master", { root: frame });
+    await site.write("layouts", "events-frame", { root: frame });
+    await site.writeSite({
+      version: 2,
+      id: "demo",
+      title: "Demo",
+      homePageId: "home",
+      defaultLayoutId: "standard",
+      masterLayoutId: "master",
+    });
+    await site.write("content", "events", {
+      title: "Events",
+      masterLayoutId: "events-frame",
+      zones: { main: { html: "<p>List</p>" } },
+    });
+    await site.write("content", "fair", {
+      title: "Fair",
+      parentId: "events",
+      zones: { main: { html: "<p>On the green</p>" } },
+    });
+
+    const read = await app().request("/api/records/content/fair", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(read.status).toBe(200);
+    const record = (await read.json()) as {
+      layout: { frames: string[]; masterLayoutId: string; masterSource: string; masterFromPageId: string };
+    };
+    expect(record.layout.frames.sort()).toEqual(["events-frame", "master"]);
+    expect(record.layout.masterLayoutId).toBe("events-frame");
+    expect(record.layout.masterSource).toBe("ancestor");
+    expect(record.layout.masterFromPageId).toBe("events");
+  });
 });

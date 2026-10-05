@@ -104,3 +104,11 @@ Then give the page a left margin in `shell/site.css`:
 Below 993px it stays a drawer opened by Menu. Keep the ids `mySidebar` and `myOverlay`. The runtime binds open and close to those two ids.
 
 A starter site already has this column, on the left. Its master uses `tessera-sidebar` and `w3-collapse`, its shell links `chrome.css`, and the site record sets Menu side to left. The Styles page can move the standing column. Below 993px the column hides. The Menu button sits on the right of the bar and opens a flyout from the right, so the site title stays put and the left of the page stays in view. The flyout position is in `shell/site.css`.
+
+## A different frame for a section
+
+The site record names the frame every page uses until a page names another. On that page, **Frame** is the layout. Leave it as **Inherit** on the children: they use the nearest parent that set one. A page further down can name its own, and that starts again. Naming the site's frame on a nested page steps that subtree back to the site frame.
+
+The parent is the same parent that builds the URL. A winter fair whose parent is Events publishes at `/events/event-winter-fair` and wears the Events frame. A page that is not under Events keeps the site frame, even when it uses the same page layout. The home page does not inherit from a parent.
+
+The page layout does not follow the frame. Style tokens stay on the site. Both frames' classes live in `shell/site.css`. Each frame places its own menu components, and those components still read the one Nav record.

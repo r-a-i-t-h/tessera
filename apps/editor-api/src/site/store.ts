@@ -1,7 +1,13 @@
 import { mkdir, readdir, unlink } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { SiteDocument } from "@r-a-i-t-h/tessera-model";
-import { collectDeclaredZones, resolvePageProfile, SITE_REVISION_FILE } from "@r-a-i-t-h/tessera-model";
+import {
+  collectDeclaredZones,
+  layoutHasPageSlot,
+  resolveMasterLayout,
+  resolvePageProfile,
+  SITE_REVISION_FILE,
+} from "@r-a-i-t-h/tessera-model";
 import { readText, writeTextAtomic } from "../store/fs.js";
 import {
   appendPageHistory,
@@ -57,6 +63,13 @@ export type PageLayoutHint = {
   declaredZones: string[];
   offLayoutZones: string[];
   layouts: Record<string, { zones: string[] }>;
+  /** Layout ids that contain a page slot. */
+  frames: string[];
+  /** Resolved frame, when the site or a page in the chain names one. */
+  masterLayoutId?: string;
+  masterSource?: "page" | "ancestor" | "site";
+  /** Page that set the frame, when `masterSource` is `page` or `ancestor`. */
+  masterFromPageId?: string;
 };
 
 /** These records are named by id. A title on them is not public content. */
@@ -154,6 +167,8 @@ export class SiteStore {
     const declaredZones = layouts[profile.layoutId]?.zones ?? [];
     const present = Object.keys(authored.zones ?? {});
     const type = doc.types?.find((item) => item.id === profile.typeId);
+    const master = resolveMasterLayout(doc, resolved);
+    const frames = doc.layouts.filter((layout) => layoutHasPageSlot(layout.root)).map((layout) => layout.id);
     return {
       layoutId: profile.layoutId,
       layoutSource: profile.layoutSource,
@@ -165,6 +180,10 @@ export class SiteStore {
       declaredZones,
       offLayoutZones: present.filter((id) => !declaredZones.includes(id)),
       layouts,
+      frames,
+      ...(master.layoutId ? { masterLayoutId: master.layoutId } : {}),
+      masterSource: master.source,
+      ...(master.fromPageId ? { masterFromPageId: master.fromPageId } : {}),
     };
   }
 
