@@ -3,7 +3,7 @@ import type { PageLayoutHint } from "../api.js";
 import { draftYaml, parsePageYaml, withZoneHtml } from "./draft.js";
 import { readComposeHtml } from "./canvas.js";
 import { readFormValues, renderForm } from "../forms/form.js";
-import { authoredSchema, frameWhere, schemaFor, withFrameChoices } from "../forms/schema.js";
+import { authoredSchema, frameWhere, schemaFor, withFrameChoices, withTypeChoices } from "../forms/schema.js";
 
 export type ContentMode = "compose" | "fields" | "raw";
 
@@ -33,8 +33,13 @@ export function frameNote(layout?: PageLayoutHint): string {
   return `<p class="w3-text-grey">Frame <strong>${escapeHtml(layout.masterLayoutId)}</strong>, ${escapeHtml(where)}.</p>`;
 }
 
-export function composeFormInner(kind: string, record: Record<string, unknown>, layout?: PageLayoutHint): string {
-  const schema = contentSchema(kind, record, layout);
+export function composeFormInner(
+  kind: string,
+  record: Record<string, unknown>,
+  layout?: PageLayoutHint,
+  types?: readonly string[],
+): string {
+  const schema = contentSchema(kind, record, layout, types);
   const authoredNames = new Set((authoredSchema(kind)?.fields ?? []).map((field) => field.name));
   const base = schema?.fields.filter((field) => authoredNames.has(field.name)) ?? [];
   const extras =
@@ -152,11 +157,21 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
-function contentSchema(kind: string, record: Record<string, unknown>, layout?: PageLayoutHint) {
+function contentSchema(
+  kind: string,
+  record: Record<string, unknown>,
+  layout?: PageLayoutHint,
+  types?: readonly string[],
+) {
   const schema = schemaFor(kind, record);
-  if (!schema || kind !== "content" || !layout?.frames) return schema;
+  if (!schema) return schema;
+  const withTypes =
+    (kind === "content" || kind === "templates") && types
+      ? withTypeChoices(schema, types, typeof record.type === "string" ? record.type : undefined)
+      : schema;
+  if (kind !== "content" || !layout?.frames) return withTypes;
   const current = typeof record.masterLayoutId === "string" ? record.masterLayoutId : undefined;
-  return withFrameChoices(schema, layout.frames, current);
+  return withFrameChoices(withTypes, layout.frames, current);
 }
 
 function layoutBanner(layout?: PageLayoutHint): string {

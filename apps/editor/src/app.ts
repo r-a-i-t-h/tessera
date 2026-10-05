@@ -71,7 +71,7 @@ import {
   typeRecord,
   type LayoutChoice,
 } from "./forms/type.js";
-import { authoredSchema, schemaFor, withFrameChoices } from "./forms/schema.js";
+import { authoredSchema, schemaFor, withFrameChoices, withTypeChoices } from "./forms/schema.js";
 import { readDataTransfer } from "./forms/drop.js";
 import { assetDetail, renderLibrary } from "./forms/library.js";
 import {
@@ -1126,6 +1126,15 @@ async function loadBindingListInfo(listing: RecordList): Promise<{ notes: Map<st
   }
 }
 
+async function loadTypeIds(): Promise<string[]> {
+  try {
+    const listing = await listRecords();
+    return listing.records.filter((row) => row.kind === "types").map((row) => row.id);
+  } catch {
+    return [];
+  }
+}
+
 async function loadBindingChoices(): Promise<BindingChoices> {
   try {
     const listing = await listRecords();
@@ -1851,6 +1860,8 @@ async function bindEdit(
   const layoutRoot = kind === "layouts" ? asLayoutNode(record?.root) : undefined;
   const typeEditor = kind === "types" && editMode === "fields" && !!record;
   const typeLayouts = typeEditor ? await typeLayoutChoices(typeof record.layoutId === "string" ? record.layoutId : "") : [];
+  const typeIds =
+    editsBody(kind) && (editMode === "compose" || editMode === "fields") ? await loadTypeIds() : undefined;
   const formInner =
     editMode === "arrange"
       ? layoutRoot && arrangeInfo
@@ -1861,7 +1872,7 @@ async function bindEdit(
          <textarea id="raw-file" name="raw" rows="24" spellcheck="false" class="w3-input w3-border w3-margin-top editor-raw">${escapeHtml(rawShown)}</textarea></p>
          <p class="w3-text-grey">Indent with spaces. Two spaces per level is what Fields → Save writes. Keys at one level share a column. <a href="#/guide">Guide</a>.</p>`
       : editMode === "compose" && record
-        ? composeFormInner(kind, record, bodyLayout)
+        ? composeFormInner(kind, record, bodyLayout, typeIds)
       : navList
         ? `<p class="w3-text-grey">Sidebar, Top bar, and Footer choose which menu component can show the row. A heading’s Type lists every page of that type. <strong>Show in nav</strong> on a page does not add a link. <a href="#/guide">Guide</a>.</p>
            <div id="nav-editor">${renderNavList(navRows(payload.data), pages)}</div>`
@@ -1869,7 +1880,7 @@ async function bindEdit(
           ? `<div id="type-editor">${renderTypeForm(typeDraft(record), typeLayouts)}</div>`
           : assisted && record && bindingChoices
             ? renderBindingForm(id, record, bindingChoices)
-            : `${navNote}${fieldsHtml(kind, record ?? payload.data, payload.layout)}`;
+            : `${navNote}${fieldsHtml(kind, record ?? payload.data, payload.layout, typeIds)}`;
   const editor = `${lifecycleHtml(payload)}
      ${notice ? `<p class="w3-panel w3-pale-green" role="status">${escapeHtml(notice)}</p>` : ""}
      <p class="editor-tabs">
@@ -2130,6 +2141,7 @@ function fieldsHtml(
   kind: string,
   data: unknown,
   layout?: PageLayoutHint,
+  types?: readonly string[],
 ): string {
   if (Array.isArray(data) || !data || typeof data !== "object") {
     return renderForm(
@@ -2139,15 +2151,7 @@ function fieldsHtml(
   }
   const record = data as Record<string, unknown>;
   if (kind === "bindings") return bindingFields(record);
-  const baseSchema = schemaFor(kind, record);
-  const schema =
-    baseSchema && kind === "content" && layout?.frames
-      ? withFrameChoices(
-          baseSchema,
-          layout.frames,
-          typeof record.masterLayoutId === "string" ? record.masterLayoutId : undefined,
-        )
-      : baseSchema;
+  const schema = recordSchema(kind, record, layout, types);
   if (!schema) {
     return renderForm({ fields: [{ name: "_yaml", label: "Data", type: "yaml", rows: 12 }] }, { _yaml: data });
   }
@@ -2163,6 +2167,26 @@ function fieldsHtml(
       ? `<p class="w3-text-grey"><strong>Show in nav</strong> stores a flag on this page. Links are chosen on <a href="#/records/nav">Nav</a>, then drawn by a component in the master layout. <a href="#/guide">Guide</a>.</p>`
       : "";
   return `${renderForm({ fields: base }, record)}${navHint}${zones}${extras.length ? renderForm({ fields: extras }, record) : ""}`;
+}
+
+function recordSchema(
+  kind: string,
+  record: Record<string, unknown>,
+  layout?: PageLayoutHint,
+  types?: readonly string[],
+) {
+  let schema = schemaFor(kind, record);
+  if (schema && (kind === "content" || kind === "templates") && types) {
+    schema = withTypeChoices(schema, types, typeof record.type === "string" ? record.type : undefined);
+  }
+  if (schema && kind === "content" && layout?.frames) {
+    schema = withFrameChoices(
+      schema,
+      layout.frames,
+      typeof record.masterLayoutId === "string" ? record.masterLayoutId : undefined,
+    );
+  }
+  return schema;
 }
 
 function zonesOf(record: Record<string, unknown>): Record<string, unknown> {

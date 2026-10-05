@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applySubmitted, renderForm } from "./form.js";
-import { CONTENT_FORM, SITE_FORM, frameWhere, schemaFor, withFrameChoices } from "./schema.js";
+import { CONTENT_FORM, SITE_FORM, frameWhere, schemaFor, withFrameChoices, withTypeChoices } from "./schema.js";
 
 describe("schema forms", () => {
   it("offers flavour and origin on a site that has neither", () => {
@@ -56,6 +56,27 @@ describe("schema forms", () => {
     expect(frameWhere("ancestor", "events")).toBe("set on events");
     expect(frameWhere("page")).toBe("set on this page");
     expect(frameWhere("site")).toBe("the site frame");
+  });
+
+  it("offers none for the page type and keeps an unknown id", () => {
+    const schema = withTypeChoices(CONTENT_FORM, ["event", "meeting"]);
+    const html = renderForm(schema, { id: "fair", title: "Fair" });
+    expect(html).toContain(">None</option>");
+    expect(html).toContain('value="" selected');
+    expect(html).toContain('value="event"');
+    expect(html).toContain('value="meeting"');
+    const onlyNone = renderForm(withTypeChoices(CONTENT_FORM, []), { id: "fair", title: "Fair" });
+    expect(onlyNone).toContain(">None</option>");
+    expect(onlyNone).not.toContain('value="event"');
+    const kept = withTypeChoices(CONTENT_FORM, ["event"], "retired");
+    const retired = renderForm(kept, { id: "fair", title: "Fair", type: "retired" });
+    expect(retired).toContain('value="retired" selected');
+    const cleared = applySubmitted(schema, { id: "fair", title: "Fair", type: "event" }, { title: "Fair", type: "" });
+    expect(cleared).not.toHaveProperty("type");
+    const set = applySubmitted(schema, { id: "fair", title: "Fair" }, { title: "Fair", type: "meeting" });
+    expect(set.type).toBe("meeting");
+    const authored = schemaFor("content", { id: "fair", title: "Fair", type: "event" });
+    expect(authored?.fields.find((field) => field.name === "type")?.type).toBe("string");
   });
 
   it("uses a fixed-width class on yaml fields", () => {

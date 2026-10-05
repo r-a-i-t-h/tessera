@@ -96,6 +96,23 @@ export function withFrameChoices(schema: FormSchema, frames: readonly string[], 
   };
 }
 
+/** Replace the Type text field with None plus the site's type ids. */
+export function withTypeChoices(schema: FormSchema, types: readonly string[], current?: string): FormSchema {
+  const ids = [...types];
+  if (current && !ids.includes(current)) ids.push(current);
+  return {
+    fields: schema.fields.map((field) =>
+      field.name === "type"
+        ? {
+            ...field,
+            type: "SingleSelect",
+            options: [{ value: "", label: "None" }, ...ids.map((id) => ({ value: id, label: id }))],
+          }
+        : field,
+    ),
+  };
+}
+
 /** Clause after the resolved frame id: "set on events", "set on this page", or "the site frame". */
 export function frameWhere(source: "page" | "ancestor" | "site" | undefined, fromPageId?: string): string {
   if (source === "page") return "set on this page";
