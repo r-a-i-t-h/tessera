@@ -14,7 +14,7 @@ const SHELL_HTML = `<!DOCTYPE html>
     <link rel="stylesheet" href="./site.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lekton|Roboto|Orbitron|Thasadith" />
   </head>
-  <body class="rightnav fontA">
+  <body class="leftnav fontA">
     <div id="app"></div>
     <script type="module" src="./tessera.js"></script>
   </body>
@@ -22,6 +22,16 @@ const SHELL_HTML = `<!DOCTYPE html>
 `;
 
 const SITE_CSS = `/* Site-specific rules. Shared chrome tokens live in skin/chrome.css. */
+
+/* The column stays on the left from 993px up. Below that it is a flyout
+   from the right, so the title and the left of the page stay in view. */
+@media (max-width: 992px) {
+  body.leftnav .tessera-sidebar {
+    left: auto;
+    right: 0;
+    animation: animateright 0.4s;
+  }
+}
 `;
 
 const SITE_YAML = `version: 2
@@ -31,6 +41,8 @@ homePageId: home
 defaultLayoutId: standard
 masterLayoutId: master
 delivery: pages
+style:
+  navSide: left
 `;
 
 const MASTER_YAML = `id: master
@@ -45,7 +57,7 @@ root:
           className: w3-bar tessera-bar
           children:
             - type: static
-              html: '<a class="w3-bar-item w3-button tessera-menu-btn w3-hide-large" href="javascript:void(0)" onclick="w3_open()" aria-label="Open menu">Menu</a><div class="w3-bar-item tessera-brand">New site</div><span class="tessera-fonts" role="group" aria-label="Font"><button type="button" class="tessera-font-btn" onclick="body_switch.switch(&quot;font&quot;, 0)">A</button><button type="button" class="tessera-font-btn" onclick="body_switch.switch(&quot;font&quot;, 1)">B</button><button type="button" class="tessera-font-btn" onclick="body_switch.switch(&quot;font&quot;, 2)">C</button><button type="button" class="tessera-font-btn" onclick="body_switch.switch(&quot;font&quot;, 3)">D</button></span>'
+              html: '<a class="w3-bar-item w3-button w3-right tessera-menu-btn w3-hide-large" href="javascript:void(0)" onclick="w3_open()" aria-label="Open menu">Menu</a><div class="w3-bar-item tessera-brand">New site</div><span class="tessera-fonts" role="group" aria-label="Font"><button type="button" class="tessera-font-btn" onclick="body_switch.switch(&quot;font&quot;, 0)">A</button><button type="button" class="tessera-font-btn" onclick="body_switch.switch(&quot;font&quot;, 1)">B</button><button type="button" class="tessera-font-btn" onclick="body_switch.switch(&quot;font&quot;, 2)">C</button><button type="button" class="tessera-font-btn" onclick="body_switch.switch(&quot;font&quot;, 3)">D</button></span>'
     - type: region
       tag: nav
       id: mySidebar
@@ -73,29 +85,43 @@ root:
           tag: footer
           className: tessera-footer
           children:
-            - type: static
-              html: '<p>New site</p>'
+            - type: zone
+              id: footer
 `;
 
 const STANDARD_YAML = `id: standard
 root:
   type: region
   children:
-    - type: zone
-      id: title
+    - type: region
+      tag: h1
+      children:
+        - type: zone
+          id: title
     - type: zone
       id: main
 `;
 
+const TYPE_YAML = `id: standard
+layoutId: standard
+`;
+
 const HOME_YAML = `id: home
-title: Home
-tags:
-  - page
+title: Hello world
+type: standard
+includes:
+  - common-footer
 zones:
   title:
-    html: Home
+    html: Hello world
   main:
-    html: '<p>This site started empty. Edit this page, or replace the master layout.</p>'
+    html: '<p>Hello world.</p>'
+`;
+
+const FOOTER_YAML = `id: common-footer
+zones:
+  footer:
+    html: '<p>New site</p>'
 `;
 
 const NAV_YAML = `- id: home
@@ -110,23 +136,41 @@ const LAYOUT_ORDER = `- standard
 const CONTENT_ORDER = `- home
 `;
 
-/** Write a shell, a master layout, and a first page. Refuses when site.yaml exists. */
-export async function writeBlankSite(siteRoot: string): Promise<void> {
+const TYPE_ORDER = `- standard
+`;
+
+const ITEM_ORDER = `- common-footer
+`;
+
+/**
+ * Shell, master layout, standard type and layout, Hello world home page,
+ * and a common-footer item. Overwrites those files when they already exist.
+ */
+export async function writeSeedFiles(siteRoot: string): Promise<void> {
   const records = join(siteRoot, "records");
-  const siteFile = join(records, "site.yaml");
+  await writeTextAtomic(join(siteRoot, "shell", "index.html"), SHELL_HTML);
+  await writeTextAtomic(join(siteRoot, "shell", "site.css"), SITE_CSS);
+  await writeTextAtomic(join(records, "site.yaml"), SITE_YAML);
+  await writeTextAtomic(join(records, "layouts", "master.yaml"), MASTER_YAML);
+  await writeTextAtomic(join(records, "layouts", "standard.yaml"), STANDARD_YAML);
+  await writeTextAtomic(join(records, "layouts", "_order.yaml"), LAYOUT_ORDER);
+  await writeTextAtomic(join(records, "types", "standard.yaml"), TYPE_YAML);
+  await writeTextAtomic(join(records, "types", "_order.yaml"), TYPE_ORDER);
+  await writeTextAtomic(join(records, "items", "common-footer.yaml"), FOOTER_YAML);
+  await writeTextAtomic(join(records, "items", "_order.yaml"), ITEM_ORDER);
+  await writeTextAtomic(join(records, "content", "home.yaml"), HOME_YAML);
+  await writeTextAtomic(join(records, "content", "_order.yaml"), CONTENT_ORDER);
+  await writeTextAtomic(join(records, "nav.yaml"), NAV_YAML);
+}
+
+/** Write the starter site. Refuses when site.yaml exists. */
+export async function writeBlankSite(siteRoot: string): Promise<void> {
+  const siteFile = join(siteRoot, "records", "site.yaml");
   try {
     await readText(siteFile);
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === "ENOENT") {
-      await writeTextAtomic(join(siteRoot, "shell", "index.html"), SHELL_HTML);
-      await writeTextAtomic(join(siteRoot, "shell", "site.css"), SITE_CSS);
-      await writeTextAtomic(siteFile, SITE_YAML);
-      await writeTextAtomic(join(records, "layouts", "master.yaml"), MASTER_YAML);
-      await writeTextAtomic(join(records, "layouts", "standard.yaml"), STANDARD_YAML);
-      await writeTextAtomic(join(records, "layouts", "_order.yaml"), LAYOUT_ORDER);
-      await writeTextAtomic(join(records, "content", "home.yaml"), HOME_YAML);
-      await writeTextAtomic(join(records, "content", "_order.yaml"), CONTENT_ORDER);
-      await writeTextAtomic(join(records, "nav.yaml"), NAV_YAML);
+      await writeSeedFiles(siteRoot);
       return;
     }
     throw err;

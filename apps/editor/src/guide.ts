@@ -80,6 +80,6 @@ export function guideHtml(): string {
   .wh-main { margin-left: 16rem; }
 }</pre>
     <p>Below 993px it stays a drawer opened by Menu. Keep the ids <code>mySidebar</code> and <code>myOverlay</code>. The runtime binds open and close to those two ids.</p>
-    <p>A blank site already has this column. Its master uses <code>tessera-sidebar</code> and <code>w3-collapse</code>, its shell links <code>chrome.css</code>, and Menu side on the Styles page chooses the edge.</p>
+    <p>A starter site already has this column, on the left. Its master uses <code>tessera-sidebar</code> and <code>w3-collapse</code>, its shell links <code>chrome.css</code>, and the site record sets Menu side to left. The Styles page can move the standing column. Below 993px the column hides. The Menu button sits on the right of the bar and opens a flyout from the right, so the site title stays put and the left of the page stays in view. The flyout position is in <code>shell/site.css</code>.</p>
   </article>`;
 }

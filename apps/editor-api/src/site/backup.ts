@@ -3,6 +3,7 @@ import { cp, mkdir, mkdtemp, readdir, rename, rm, stat } from "node:fs/promises"
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { SESSION_HANDOFF_FILE } from "../auth/sessions.js";
+import { writeSeedFiles } from "./blank.js";
 import { SITE_NAMES, type SiteName, isSiteName } from "./paths.js";
 import { adoptLegacyRecordsDir } from "./records-dir.js";
 
@@ -231,6 +232,25 @@ export async function restoreExample(
   return { restored: name, safetyBackup: safetyBackup.name };
 }
 
+/** Kept across a re-seed. Editors, the schema stamp, and the session handoff stay. */
+const RESEED_KEEP = new Set(["users", "meta.json", SESSION_HANDOFF_FILE]);
+
+/**
+ * Replace pages, shell, library files, history, and the published tree
+ * with the starter site. Editors stay. A safety archive is written first.
+ */
+export async function reseedSite(dataDir: string, backupDir: string): Promise<RestoreResult> {
+  const safetyBackup = await createDataBackup(dataDir, backupDir);
+  try {
+    await clearExcept(dataDir, RESEED_KEEP);
+    await writeSeedFiles(dataDir);
+  } catch (err) {
+    await rollback(dataDir, backupDir, safetyBackup.name);
+    throw err;
+  }
+  return { restored: "seed", safetyBackup: safetyBackup.name };
+}
+
 async function assertArchiveFile(archive: string): Promise<void> {
   try {
     const st = await stat(archive);
@@ -274,6 +294,10 @@ async function rollback(dataDir: string, backupDir: string, safetyName: string):
 }
 
 async function clearDataDir(dataDir: string): Promise<void> {
+  await clearExcept(dataDir, new Set());
+}
+
+async function clearExcept(dataDir: string, keep: Set<string>): Promise<void> {
   let entries: string[];
   try {
     entries = await readdir(dataDir);
@@ -285,7 +309,11 @@ async function clearDataDir(dataDir: string): Promise<void> {
     }
     throw err;
   }
-  await Promise.all(entries.map((entry) => rm(join(dataDir, entry), { recursive: true, force: true })));
+  await Promise.all(
+    entries
+      .filter((entry) => !keep.has(entry))
+      .map((entry) => rm(join(dataDir, entry), { recursive: true, force: true })),
+  );
 }
 
 async function isFile(path: string): Promise<boolean> {

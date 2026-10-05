@@ -1,15 +1,17 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../src/app.js";
 import { hashPassword } from "../src/auth/password.js";
 import { SessionStore } from "../src/auth/sessions.js";
+import * as blank from "../src/site/blank.js";
 import {
   createDataBackup,
   ensureExampleArchives,
   listBackups,
   listExamples,
+  reseedSite,
   restoreDataBackup,
   restoreExample,
 } from "../src/site/backup.js";
@@ -100,6 +102,29 @@ describe("site backups", () => {
     expect(await readFile(join(site, "records", "site.yaml"), "utf8")).toBe("title: Willow\n");
     expect(await readFile(join(site, "users", "admin.json"), "utf8")).toContain("admin");
     expect(await readFile(join(site, "meta.json"), "utf8")).toContain("willow");
+  });
+
+  it("re-seeds over the current site and rolls back when the seed cannot be written", async () => {
+    const { site, backup } = await siteWith("Before");
+    await mkdir(join(site, "publish"), { recursive: true });
+    await writeFile(join(site, "publish", "old.txt"), "published\n");
+    await writeFile(join(site, ".sessions.json"), '{"keep":true}\n');
+
+    const result = await reseedSite(site, backup);
+    expect(result.restored).toBe("seed");
+    expect(await readFile(join(site, "records", "content", "home.yaml"), "utf8")).toContain("Hello world");
+    expect(await readFile(join(site, "records", "items", "common-footer.yaml"), "utf8")).toContain("footer");
+    expect(await readFile(join(site, "users", "admin.json"), "utf8")).toContain("admin");
+    expect(await readFile(join(site, "meta.json"), "utf8")).toContain("schemaVersion");
+    expect(await readFile(join(site, ".sessions.json"), "utf8")).toContain("keep");
+    await expect(readFile(join(site, "publish", "old.txt"), "utf8")).rejects.toThrow();
+
+    const again = await siteWith("Before");
+    const spy = vi.spyOn(blank, "writeSeedFiles").mockRejectedValueOnce(new Error("disk full"));
+    await expect(reseedSite(again.site, again.backup)).rejects.toThrow(/disk full/);
+    expect(await readFile(join(again.site, "records", "site.yaml"), "utf8")).toContain("Before");
+    expect(await readFile(join(again.site, "users", "admin.json"), "utf8")).toContain("admin");
+    spy.mockRestore();
   });
 
   it("requires an editor to list backups", async () => {

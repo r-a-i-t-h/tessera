@@ -301,6 +301,10 @@ export function restoreExample(name: string): Promise<RestoreResult> {
   return request(`/api/examples/${encodeURIComponent(name)}/restore`, { method: "POST" });
 }
 
+export function reseedSite(): Promise<RestoreResult> {
+  return request("/api/site/reseed", { method: "POST" });
+}
+
 export type LibraryFolder = { id: string; parentId: string | null; sort?: number };
 export type LibraryAsset = {
   id: string;
