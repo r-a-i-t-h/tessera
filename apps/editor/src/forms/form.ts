@@ -60,9 +60,11 @@ export function renderField(field: FieldSchema, value: unknown): string {
 
 function textarea(field: FieldSchema, id: string, text: string, kind: string): string {
   const rows = field.rows ?? 8;
-  const extra = rows >= 14 ? " editor-body" : "";
+  const yaml = kind === "yaml";
+  const extra = yaml ? " editor-yaml" : rows >= 14 ? " editor-body" : "";
+  const spell = yaml ? ` spellcheck="false"` : "";
   return `<p><label for="${id}">${escapeHtml(field.label)}</label>
-    <textarea id="${id}" name="${escapeHtml(field.name)}" data-kind="${kind}" rows="${rows}" class="w3-input w3-border w3-margin-top${extra}">${escapeHtml(text)}</textarea></p>`;
+    <textarea id="${id}" name="${escapeHtml(field.name)}" data-kind="${kind}" rows="${rows}"${spell} class="w3-input w3-border w3-margin-top${extra}">${escapeHtml(text)}</textarea></p>`;
 }
 
 function displayString(field: FieldSchema, value: unknown): string {

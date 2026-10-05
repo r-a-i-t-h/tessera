@@ -40,6 +40,16 @@ describe("schema forms", () => {
     expect(hidden.tags).toEqual(["news", "hall"]);
   });
 
+  it("uses a fixed-width class on yaml fields", () => {
+    const html = renderForm(
+      { fields: [{ name: "meta", label: "Meta", type: "yaml", rows: 10 }] },
+      { meta: { role: "Host" } },
+    );
+    expect(html).toContain("editor-yaml");
+    expect(html).toContain('data-kind="yaml"');
+    expect(html).toContain('spellcheck="false"');
+  });
+
   it("keeps keys the content schema does not name", () => {
     const schema = schemaFor("content", {
       id: "ada",

@@ -1,4 +1,4 @@
-import { stringify as stringifyYaml } from "yaml";
+import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { version as tesseraVersion } from "../../../package.json";
 import {
   ApiError,
@@ -42,6 +42,9 @@ import {
   type SaveResult,
 } from "./api";
 import { entryVisible } from "./forms/entries.js";
+import { arrangeMarkup, mountArrange, readArrangeRoot } from "./arrange/canvas.js";
+import { asLayoutNode, cleanNode, isFrame, newFrame, newPageLayout } from "./arrange/tree.js";
+import type { ArrangeInfo } from "./arrange/view.js";
 import { mountComposeCanvases } from "./compose/canvas.js";
 import { readContentDraft, composeFormInner, htmlByZone, rawText, templateBodyLayout, type ContentMode } from "./compose/view.js";
 import { readFormValues, renderForm } from "./forms/form.js";
@@ -70,6 +73,7 @@ import {
   type PickerMode,
   type PickedAsset,
 } from "./forms/picker.js";
+import { guideHtml } from "./guide.js";
 import { paintSpecimen, previewStyle, readStyleForm, stylesPageHtml } from "./styles-page.js";
 import { usernameError } from "./username.js";
 
@@ -81,7 +85,7 @@ function escapeHtml(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
-type EditorSection = "home" | "records" | "library" | "backups" | "styles" | "users" | "account";
+type EditorSection = "home" | "records" | "library" | "backups" | "styles" | "guide" | "users" | "account";
 
 function chrome(user: PublicUser, inner: string, wide = false, section: EditorSection = "home"): string {
   const link = (href: string, label: string, key: EditorSection) => {
@@ -94,6 +98,7 @@ function chrome(user: PublicUser, inner: string, wide = false, section: EditorSe
       ${link("#/library", "Library", "library")}
       ${link("#/backups", "Backups", "backups")}
       ${link("#/styles", "Styles", "styles")}
+      ${link("#/guide", "Guide", "guide")}
       ${link("#/users", "Users", "users")}
       <button type="button" class="w3-bar-item w3-button" data-action="render-site">Render site</button>
       <button type="button" class="w3-bar-item w3-button" data-action="publish-site">Publish</button>
@@ -155,10 +160,14 @@ async function render(root: HTMLElement): Promise<void> {
     else if (route.page === "user") await bindUser(root, user, route.username);
     else if (route.page === "backups") await bindBackups(root, user);
     else if (route.page === "styles") await bindStyles(root, user);
+    else if (route.page === "guide") {
+      root.innerHTML = chrome(user, guideHtml(), true, "guide");
+      bindChrome(root);
+    }
     else if (route.page === "library") await bindLibrary(root, user, route.id);
     else if (route.page === "records") await bindList(root, user, route.kind);
     else if (route.page === "edit") {
-      const mode = editsBody(route.kind) ? (pending?.mode ?? "compose") : "fields";
+      const mode = initialEditMode(route.kind, pending);
       await bindEdit(root, user, route.kind, route.id, mode, pending?.notice ?? "");
     } else if (route.page === "missing") {
       root.innerHTML = chrome(
@@ -183,6 +192,7 @@ type Route =
   | { page: "library"; id: string | null }
   | { page: "backups" }
   | { page: "styles" }
+  | { page: "guide" }
   | { page: "account" }
   | { page: "users" }
   | { page: "user"; username: string }
@@ -206,6 +216,7 @@ function parseRoute(): Route {
   if (head === "library") return { page: "library", id: rest || null };
   if (head === "backups") return rest ? { page: "missing" } : { page: "backups" };
   if (head === "styles") return rest ? { page: "missing" } : { page: "styles" };
+  if (head === "guide") return rest ? { page: "missing" } : { page: "guide" };
   if (head === "account") return rest ? { page: "missing" } : { page: "account" };
   if (head === "users") {
     if (!rest) return { page: "users" };
@@ -218,7 +229,7 @@ function parseRoute(): Route {
 
 const previewUrl = "/preview/";
 
-type EditMode = "compose" | "fields" | "raw";
+type EditMode = "arrange" | "compose" | "fields" | "raw";
 
 /** Set just before opening a newly created page, so that page starts on Compose. */
 let pendingEdit: { mode: EditMode; notice: string } | undefined;
@@ -232,6 +243,9 @@ type ContentSession = {
 
 /** Unsaved content page. Tab changes read and write this instead of the saved file. */
 let contentSession: ContentSession | undefined;
+
+/** Unsaved layout. Tab changes read and write this instead of the saved file. */
+let layoutSession: ContentSession | undefined;
 
 function bindChrome(root: HTMLElement): void {
   root.querySelector("[data-action=logout]")?.addEventListener("click", async () => {
@@ -747,7 +761,8 @@ async function bindList(
   }
   const listing = await listRecords();
   const active = activeRecordKind(listing, kind);
-  root.innerHTML = chrome(user, listHtml(listing, kind, notice, error), true, "records");
+  const layoutNotes = active === "layouts" ? await loadLayoutListNotes(listing) : new Map<string, string>();
+  root.innerHTML = chrome(user, listHtml(listing, kind, notice, error, layoutNotes), true, "records");
   bindChrome(root);
   bindInitSite(root, (nextNotice, nextError) => bindList(root, user, kind, nextNotice, nextError));
   if (active === "site" || active === "nav") {
@@ -774,6 +789,16 @@ async function bindList(
   root.querySelector<HTMLFormElement>("#new-template-form")?.addEventListener("submit", (event) => {
     event.preventDefault();
     void createTemplate(root, user, listing);
+  });
+  root.querySelector("[data-action=new-layout]")?.addEventListener("click", () => {
+    const form = root.querySelector<HTMLFormElement>("#new-layout-form");
+    if (!form) return;
+    form.hidden = false;
+    form.querySelector<HTMLInputElement>("#new-layout-id")?.focus();
+  });
+  root.querySelector<HTMLFormElement>("#new-layout-form")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void createLayout(root, user, listing);
   });
 }
 
@@ -851,6 +876,33 @@ async function createTemplate(root: HTMLElement, user: PublicUser, listing: Reco
   }
   pendingEdit = { mode: "compose", notice: `Created ${templateId}.` };
   const hash = `#/templates/${encodeURIComponent(templateId)}`;
+  if (window.location.hash === hash) await render(root);
+  else window.location.hash = hash;
+}
+
+async function createLayout(root: HTMLElement, user: PublicUser, listing: RecordList): Promise<void> {
+  const form = root.querySelector<HTMLFormElement>("#new-layout-form");
+  if (!form) return;
+  const id = form.querySelector<HTMLInputElement>("#new-layout-id")?.value ?? "";
+  const existing = listing.records.filter((row) => row.kind === "layouts").map((row) => row.id);
+  const problem = pageIdError(id, existing)?.replace("A page with id", "A layout with id");
+  if (problem) {
+    showNewPageError(form, problem);
+    return;
+  }
+  const button = form.querySelector<HTMLButtonElement>("button[type=submit]");
+  if (button) button.disabled = true;
+  const layoutId = id.trim();
+  const frame = form.querySelector<HTMLSelectElement>("#new-layout-kind")?.value === "frame";
+  try {
+    await saveRecord("layouts", layoutId, frame ? newFrame(layoutId) : newPageLayout(layoutId));
+  } catch (err) {
+    showNewPageError(form, err instanceof Error ? err.message : "Could not create the layout.");
+    if (button) button.disabled = false;
+    return;
+  }
+  pendingEdit = { mode: "arrange", notice: `Created ${layoutId}.` };
+  const hash = `#/layouts/${encodeURIComponent(layoutId)}`;
   if (window.location.hash === hash) await render(root);
   else window.location.hash = hash;
 }
@@ -1058,7 +1110,13 @@ function activeRecordKind(listing: RecordList, selected?: string): string | unde
   return kinds[0]?.kind;
 }
 
-function listHtml(listing: RecordList, selected?: string, notice = "", error = ""): string {
+function listHtml(
+  listing: RecordList,
+  selected?: string,
+  notice = "",
+  error = "",
+  layoutNotes: Map<string, string> = new Map(),
+): string {
   const byKind = new Map<string, RecordSummary[]>();
   for (const rec of listing.records) {
     const list = byKind.get(rec.kind) ?? [];
@@ -1078,7 +1136,7 @@ function listHtml(listing: RecordList, selected?: string, notice = "", error = "
     ${statusHtml(notice, error)}
     ${siteReady ? "" : startSiteHtml()}
     <nav class="editor-tabs" aria-label="Record types">${tabs}</nav>
-    ${recordTab(listing, active, byKind, siteReady)}`;
+    ${recordTab(listing, active, byKind, siteReady, layoutNotes)}`;
 }
 
 function recordTab(
@@ -1086,6 +1144,7 @@ function recordTab(
   active: string | undefined,
   byKind: Map<string, RecordSummary[]>,
   siteReady: boolean,
+  layoutNotes: Map<string, string> = new Map(),
 ): string {
   const kind = listing.kinds.find((item) => item.kind === active);
   if (!kind) return `<p class="w3-text-grey">That record type is not in this editor.</p>`;
@@ -1095,7 +1154,9 @@ function recordTab(
       ? contentSection(rows, byKind.get("templates") ?? [], siteReady)
       : kind.kind === "templates"
         ? templateSection(rows, siteReady)
-        : kind.kind === "site" || kind.kind === "nav"
+        : kind.kind === "layouts"
+          ? layoutSection(rows, siteReady, layoutNotes)
+          : kind.kind === "site" || kind.kind === "nav"
           ? singletonEditorMount(kind.kind, rows[0])
           : kindPanel(rows);
   return `<section class="editor-kind" aria-label="${escapeHtml(kind.label)}">${body}</section>`;
@@ -1108,6 +1169,80 @@ function singletonEditorMount(kind: string, row: RecordSummary | undefined): str
     return `<p class="w3-text-grey">${message}</p>`;
   }
   return `<div id="record-editor" data-kind="${escapeHtml(kind)}" data-id="${escapeHtml(row.id)}"><p class="w3-text-grey">Loading…</p></div>`;
+}
+
+function layoutSection(rows: RecordSummary[], siteReady: boolean, notes: Map<string, string>): string {
+  if (!siteReady) return `<p class="w3-text-grey">No records yet.</p>`;
+  return `<p><button type="button" class="w3-button w3-theme" data-action="new-layout">New layout</button></p>
+    <form id="new-layout-form" class="editor-new-page" hidden>
+      <p><label for="new-layout-id">Id</label>
+        <input id="new-layout-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
+      </p>
+      <p class="w3-text-grey">One file, <code>records/layouts/&lt;id&gt;.yaml</code>. Start with a letter or number, then letters, numbers, dots, hyphens, or underscores.</p>
+      <p><label for="new-layout-kind">Kind</label>
+        <select id="new-layout-kind" name="kind" class="w3-select w3-border w3-margin-top">
+          <option value="page">Page layout</option>
+          <option value="frame">Frame</option>
+        </select>
+      </p>
+      <p class="w3-text-grey">A page layout declares the zones Compose fills. A frame wraps every page: one page slot, and the menus around it.</p>
+      <p data-form-error class="w3-panel w3-pale-red" role="alert" hidden></p>
+      <p><button type="submit" class="w3-button w3-theme">Create layout</button></p>
+    </form>
+    ${rows.length ? recordList(rows, false, (row) => notes.get(row.id) ?? "Page layout") : `<p class="w3-text-grey">No layouts yet.</p>`}`;
+}
+
+async function loadLayoutListNotes(listing: RecordList): Promise<Map<string, string>> {
+  const notes = new Map<string, string>();
+  const layouts = listing.records.filter((row) => row.kind === "layouts");
+  if (!layouts.length) return notes;
+  try {
+    const site = listing.records.find((row) => row.kind === "site");
+    const types = listing.records.filter((row) => row.kind === "types");
+    const [sitePayload, typePayloads, layoutPayloads] = await Promise.all([
+      site ? getRecord("site", site.id) : Promise.resolve(undefined),
+      Promise.all(types.map((row) => getRecord("types", row.id))),
+      Promise.all(layouts.map((row) => getRecord("layouts", row.id))),
+    ]);
+    const siteData = sitePayload ? asRecord(sitePayload.data) : undefined;
+    const masterId = siteData?.masterLayoutId ? String(siteData.masterLayoutId) : undefined;
+    const defaultId = siteData?.defaultLayoutId ? String(siteData.defaultLayoutId) : undefined;
+    const typesByLayout = new Map<string, string[]>();
+    for (const item of typePayloads) {
+      const data = asRecord(item.data);
+      if (!data?.layoutId || !data.id) continue;
+      const layoutId = String(data.layoutId);
+      const list = typesByLayout.get(layoutId) ?? [];
+      list.push(String(data.id));
+      typesByLayout.set(layoutId, list);
+    }
+    const frames = new Set<string>();
+    layouts.forEach((row, index) => {
+      const data = asRecord(layoutPayloads[index]?.data);
+      const root = asLayoutNode(data?.root);
+      if (root && isFrame(root)) frames.add(row.id);
+    });
+    for (const row of layouts) {
+      notes.set(row.id, layoutListNote(row.id, frames.has(row.id), masterId, defaultId, typesByLayout.get(row.id) ?? []));
+    }
+  } catch {
+    return notes;
+  }
+  return notes;
+}
+
+function layoutListNote(
+  id: string,
+  frame: boolean,
+  masterId: string | undefined,
+  defaultId: string | undefined,
+  typeIds: string[],
+): string {
+  if (masterId === id) return "Frame, used on every page";
+  if (frame) return "Frame";
+  const bits = [...typeIds];
+  if (defaultId === id) bits.push("site default");
+  return bits.length ? `Page layout, ${bits.join(", ")}` : "Page layout";
 }
 
 function kindPanel(rows: RecordSummary[]): string {
@@ -1208,7 +1343,93 @@ function editsBody(kind: string | undefined): boolean {
   return kind === "content" || kind === "templates";
 }
 
-function recordList(rows: RecordSummary[], entries = false): string {
+function initialEditMode(kind: string, pending: { mode: EditMode } | undefined): EditMode {
+  const mode = pending?.mode;
+  if (editsBody(kind)) {
+    if (mode === "compose" || mode === "fields" || mode === "raw") return mode;
+    return "compose";
+  }
+  if (kind === "layouts") {
+    if (mode === "arrange" || mode === "fields" || mode === "raw") return mode;
+    return "arrange";
+  }
+  return "fields";
+}
+
+async function loadArrangeInfo(layoutId: string): Promise<ArrangeInfo> {
+  try {
+    const listing = await listRecords();
+    const site = listing.records.find((row) => row.kind === "site");
+    const types = listing.records.filter((row) => row.kind === "types");
+    const [sitePayload, typePayloads] = await Promise.all([
+      site ? getRecord("site", site.id) : Promise.resolve(undefined),
+      Promise.all(types.map((row) => getRecord("types", row.id))),
+    ]);
+    const siteData = sitePayload ? asRecord(sitePayload.data) : undefined;
+    const typeIds = typePayloads
+      .map((item) => asRecord(item.data))
+      .filter((data): data is Record<string, unknown> => !!data && data.layoutId === layoutId)
+      .map((data) => String(data.id));
+    return {
+      layoutId,
+      master: siteData?.masterLayoutId === layoutId,
+      fallback: siteData?.defaultLayoutId === layoutId,
+      typeIds,
+    };
+  } catch {
+    return { layoutId, master: false, fallback: false, typeIds: [] };
+  }
+}
+
+function readLayoutDraft(
+  form: HTMLFormElement,
+  mode: EditMode,
+  current: Record<string, unknown>,
+  baselineRaw: string,
+  baselineData: unknown,
+):
+  | { ok: true; unchanged: true }
+  | { ok: true; unchanged: false; draft: Record<string, unknown>; fromEditor: boolean }
+  | { ok: false; error: string } {
+  if (mode === "raw") {
+    const text = form.querySelector<HTMLTextAreaElement>("#raw-file")?.value ?? "";
+    if (text === baselineRaw) return { ok: true, unchanged: true };
+    try {
+      const parsed = parseYaml(text) as unknown;
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        return { ok: false, error: "This layout file must be a YAML mapping." };
+      }
+      return { ok: true, unchanged: false, draft: parsed as Record<string, unknown>, fromEditor: false };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : "Could not read this YAML." };
+    }
+  }
+  let draft = current;
+  if (mode === "arrange") {
+    const root = readArrangeRoot(form);
+    if (!root) return { ok: false, error: "Could not read this layout." };
+    draft = { ...current, root };
+  } else {
+    const read = readFormValues(form, schemaFor("layouts", current), current);
+    if (!read || typeof read !== "object" || Array.isArray(read)) return { ok: false, error: "Could not read this layout." };
+    draft = read as Record<string, unknown>;
+  }
+  if (!layoutDraftChanged(draft, baselineData)) return { ok: true, unchanged: true };
+  return { ok: true, unchanged: false, draft, fromEditor: true };
+}
+
+function layoutDraftChanged(draft: Record<string, unknown>, baselineData: unknown): boolean {
+  if (!baselineData || typeof baselineData !== "object" || Array.isArray(baselineData)) return true;
+  const baseline = baselineData as Record<string, unknown>;
+  const nextRoot = asLayoutNode(draft.root);
+  const baseRoot = asLayoutNode(baseline.root);
+  if (!nextRoot || !baseRoot) return JSON.stringify(draft) !== JSON.stringify(baseline);
+  const { root: _next, ...rest } = draft;
+  const { root: _base, ...baseRest } = baseline;
+  return JSON.stringify(cleanNode(nextRoot)) !== JSON.stringify(cleanNode(baseRoot)) || JSON.stringify(rest) !== JSON.stringify(baseRest);
+}
+
+function recordList(rows: RecordSummary[], entries = false, noteFor?: (row: RecordSummary) => string): string {
   return `<ul class="w3-ul"${entries ? ' id="entry-list"' : ""}>
     ${rows
       .map((row) => {
@@ -1219,10 +1440,12 @@ function recordList(rows: RecordSummary[], entries = false): string {
             ? ` <span class="w3-text-grey w3-small">${escapeHtml(row.id)}</span>`
             : "";
         const typeNote = row.type ? ` <span class="w3-text-grey w3-small">${escapeHtml(row.type)}</span>` : "";
+        const extra = noteFor?.(row);
+        const extraNote = extra ? ` <span class="w3-text-grey w3-small">${escapeHtml(extra)}</span>` : "";
         const attrs = entries
           ? ` data-type="${escapeHtml(row.type ?? "")}" data-tags="${escapeHtml((row.tags ?? []).join("\u001f"))}" data-title="${escapeHtml(row.title ?? row.id)}"`
           : "";
-        return `<li${attrs}><a href="#/${encodeURIComponent(row.kind)}/${encodeURIComponent(row.id)}">${escapeHtml(label)}</a>${idNote}${typeNote}</li>`;
+        return `<li${attrs}><a href="#/${encodeURIComponent(row.kind)}/${encodeURIComponent(row.id)}">${escapeHtml(label)}</a>${idNote}${typeNote}${extraNote}</li>`;
       })
       .join("")}
   </ul>`;
@@ -1242,6 +1465,8 @@ async function bindEdit(
   let payload: RecordPayload;
   if (editsBody(kind) && keepDraft && contentSession?.key === key) {
     payload = contentSession.payload;
+  } else if (kind === "layouts" && keepDraft && layoutSession?.key === key) {
+    payload = layoutSession.payload;
   } else {
     payload = await getRecord(kind, id);
     const loaded = asRecord(payload.data);
@@ -1250,11 +1475,17 @@ async function bindEdit(
     } else if (editsBody(kind)) {
       contentSession = undefined;
     }
+    if (kind === "layouts" && loaded) {
+      layoutSession = { key, payload, draft: structuredClone(loaded), fromEditor: false };
+    } else if (kind === "layouts") {
+      layoutSession = undefined;
+    }
   }
-  const session = editsBody(kind) ? contentSession : undefined;
+  const session = editsBody(kind) ? contentSession : kind === "layouts" ? layoutSession : undefined;
   const record = session?.draft ?? asRecord(payload.data);
   const rawShown = session ? rawText(session.fromEditor, session.draft, payload.raw) : payload.raw;
-  const editMode: EditMode = mode === "compose" && !editsBody(kind) ? "fields" : mode;
+  const editMode: EditMode =
+    mode === "compose" && !editsBody(kind) ? "fields" : mode === "arrange" && kind !== "layouts" ? "fields" : mode;
   const bodyLayout = kind === "templates" ? templateBodyLayout() : payload.layout;
   const navList = kind === "nav" && editMode === "fields" && Array.isArray(payload.data);
   const pages: PageChoice[] = navList ? await contentPages() : [];
@@ -1263,18 +1494,31 @@ async function bindEdit(
       ? `<p class="w3-text-grey">This navigation file is not a list. Edit it as YAML, or switch to Raw file.</p>`
       : "";
   const galleryFolders = kind === "bindings" ? await galleryFolderRows() : [];
+  const arrangeInfo = kind === "layouts" ? await loadArrangeInfo(id) : undefined;
+  const layoutRoot = kind === "layouts" ? asLayoutNode(record?.root) : undefined;
   const formInner =
-    editMode === "raw"
+    editMode === "arrange"
+      ? layoutRoot && arrangeInfo
+        ? arrangeMarkup(layoutRoot, arrangeInfo)
+        : `<p class="w3-panel w3-pale-red" role="alert">This layout’s root could not be read. Use Raw file.</p>`
+      : editMode === "raw"
       ? `<p><label for="raw-file">Raw YAML</label>
-         <textarea id="raw-file" name="raw" rows="24" spellcheck="false" class="w3-input w3-border w3-margin-top editor-raw">${escapeHtml(rawShown)}</textarea></p>`
+         <textarea id="raw-file" name="raw" rows="24" spellcheck="false" class="w3-input w3-border w3-margin-top editor-raw">${escapeHtml(rawShown)}</textarea></p>
+         <p class="w3-text-grey">Indent with spaces. Two spaces per level is what Fields → Save writes. Keys at one level share a column. <a href="#/guide">Guide</a>.</p>`
       : editMode === "compose" && record
         ? composeFormInner(kind, record, bodyLayout)
       : navList
-        ? `<div id="nav-editor">${renderNavList(navRows(payload.data), pages)}</div>`
+        ? `<p class="w3-text-grey">Sidebar, Top bar, and Footer choose which menu component can show the row. A heading’s Type lists every page of that type. <strong>Show in nav</strong> on a page does not add a link. <a href="#/guide">Guide</a>.</p>
+           <div id="nav-editor">${renderNavList(navRows(payload.data), pages)}</div>`
         : `${navNote}${fieldsHtml(kind, record ?? payload.data, payload.layout, galleryFolders)}`;
   const editor = `${lifecycleHtml(payload)}
      ${notice ? `<p class="w3-panel w3-pale-green" role="status">${escapeHtml(notice)}</p>` : ""}
      <p class="editor-tabs">
+       ${
+         kind === "layouts"
+           ? `<button type="button" class="w3-button ${editMode === "arrange" ? "w3-theme" : "w3-white"}" data-mode="arrange">Arrange</button>`
+           : ""
+       }
        ${
          editsBody(kind)
            ? `<button type="button" class="w3-button ${editMode === "compose" ? "w3-theme" : "w3-white"}" data-mode="compose">Compose</button>`
@@ -1288,7 +1532,7 @@ async function bindEdit(
        ${formInner}
        <p id="save-status" class="w3-text-grey" hidden></p>
        <p class="editor-actions"><button type="submit" class="w3-button w3-theme">Save</button>${
-         editsBody(kind)
+         editsBody(kind) || kind === "layouts"
            ? `<button type="button" class="w3-button w3-white" data-action="revert">Revert</button>`
            : ""
        }</p>
@@ -1311,15 +1555,16 @@ async function bindEdit(
     );
     bindChrome(root);
   }
-  if (editMode === "compose") root.querySelector(".editor-main")?.classList.add("editor-compose");
+  if (editMode === "compose" || editMode === "arrange") root.querySelector(".editor-main")?.classList.add("editor-compose");
   const form = scope.querySelector<HTMLFormElement>("#record-form");
   if (form && editMode === "compose" && record) await mountPageCanvas(form, record, bodyLayout);
+  if (form && editMode === "arrange" && layoutRoot && arrangeInfo) mountArrange(form, layoutRoot, arrangeInfo);
   for (const button of scope.querySelectorAll<HTMLButtonElement>("[data-mode]")) {
     button.addEventListener("click", () => {
       const next = button.dataset.mode;
-      if (next !== "compose" && next !== "fields" && next !== "raw") return;
+      if (next !== "arrange" && next !== "compose" && next !== "fields" && next !== "raw") return;
       if (next === editMode) return;
-      if (editsBody(kind) && contentSession && form) {
+      if (editsBody(kind) && contentSession && form && (editMode === "compose" || editMode === "fields" || editMode === "raw")) {
         const taken = readContentDraft(form, editMode, contentSession.draft, contentSession.payload.raw, contentSession.payload.data, kind);
         if (!taken.ok) {
           showSaveError(root, taken.error);
@@ -1332,7 +1577,20 @@ async function bindEdit(
         void bindEdit(root, user, kind, id, next, "", true, host);
         return;
       }
-      void bindEdit(root, user, kind, id, next === "compose" ? "fields" : next, "", false, host);
+      if (kind === "layouts" && layoutSession && form && (editMode === "arrange" || editMode === "fields" || editMode === "raw")) {
+        const taken = readLayoutDraft(form, editMode, layoutSession.draft, layoutSession.payload.raw, layoutSession.payload.data);
+        if (!taken.ok) {
+          showSaveError(root, taken.error);
+          return;
+        }
+        if (!taken.unchanged) {
+          layoutSession.draft = taken.draft;
+          layoutSession.fromEditor = taken.fromEditor;
+        }
+        void bindEdit(root, user, kind, id, next, "", true, host);
+        return;
+      }
+      void bindEdit(root, user, kind, id, next === "compose" || next === "arrange" ? "fields" : next, "", false, host);
     });
   }
   for (const button of scope.querySelectorAll<HTMLButtonElement>("[data-history]")) {
@@ -1352,6 +1610,7 @@ async function bindEdit(
   form?.querySelector<HTMLButtonElement>("[data-action=revert]")?.addEventListener("click", () => {
     if (!window.confirm("Discard unsaved edits and restore the last saved file?")) return;
     contentSession = undefined;
+    layoutSession = undefined;
     void bindEdit(root, user, kind, id, editMode, "", false, host);
   });
   form?.addEventListener("submit", async (event) => {
@@ -1360,7 +1619,22 @@ async function bindEdit(
     if (button) (button as HTMLButtonElement).disabled = true;
     try {
       let saved;
-      if (editsBody(kind) && contentSession && (editMode === "compose" || editMode === "fields" || editMode === "raw")) {
+      if (kind === "layouts" && layoutSession && form && (editMode === "arrange" || editMode === "fields" || editMode === "raw")) {
+        const taken = readLayoutDraft(form, editMode, layoutSession.draft, layoutSession.payload.raw, layoutSession.payload.data);
+        if (!taken.ok) {
+          showSaveError(root, taken.error);
+          if (button) (button as HTMLButtonElement).disabled = false;
+          return;
+        }
+        if (!taken.unchanged) {
+          layoutSession.draft = taken.draft;
+          layoutSession.fromEditor = taken.fromEditor;
+        }
+        saved =
+          editMode === "raw"
+            ? await saveRawRecord(kind, id, form.querySelector<HTMLTextAreaElement>("#raw-file")?.value ?? "")
+            : await saveRecord(kind, id, layoutSession.draft);
+      } else if (editsBody(kind) && contentSession && (editMode === "compose" || editMode === "fields" || editMode === "raw")) {
         const taken = readContentDraft(form, editMode, contentSession.draft, contentSession.payload.raw, contentSession.payload.data, kind);
         if (!taken.ok) {
           showSaveError(root, taken.error);
@@ -1512,7 +1786,11 @@ function fieldsHtml(
     kind === "content"
       ? `${layoutBanner(layout)}${typeFieldInputs(record, layout)}${zoneFields(zonesOf(record), layout)}`
       : "";
-  return `${renderForm({ fields: base }, record)}${zones}${extras.length ? renderForm({ fields: extras }, record) : ""}`;
+  const navHint =
+    kind === "content"
+      ? `<p class="w3-text-grey"><strong>Show in nav</strong> stores a flag on this page. Links are chosen on <a href="#/records/nav">Nav</a>, then drawn by a component in the master layout. <a href="#/guide">Guide</a>.</p>`
+      : "";
+  return `${renderForm({ fields: base }, record)}${navHint}${zones}${extras.length ? renderForm({ fields: extras }, record) : ""}`;
 }
 
 function zonesOf(record: Record<string, unknown>): Record<string, unknown> {
@@ -1616,7 +1894,7 @@ function yamlField(name: string, label: string, value: unknown, rows: number): s
   const id = `f-${name.replace(/[^a-zA-Z0-9]+/g, "-")}`;
   const text = stringifyYaml(value, { indent: 2, lineWidth: 0 }).trimEnd();
   return `<p><label for="${id}">${escapeHtml(label)}</label>
-    <textarea id="${id}" name="${escapeHtml(name)}" data-kind="yaml" rows="${rows}" class="w3-input w3-border w3-margin-top editor-yaml">${escapeHtml(text)}</textarea></p>`;
+    <textarea id="${id}" name="${escapeHtml(name)}" data-kind="yaml" rows="${rows}" spellcheck="false" class="w3-input w3-border w3-margin-top editor-yaml">${escapeHtml(text)}</textarea></p>`;
 }
 
 function labelize(key: string): string {

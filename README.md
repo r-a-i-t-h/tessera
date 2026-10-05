@@ -7,6 +7,7 @@ Client-side site runtime that renders an entire small website from one validated
 | [SPEC.md](./SPEC.md) | Product + architecture: goals, design decisions, acceptance criteria |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | As-built engine contract (packages, pipeline, Zod) |
 | [ROADMAP.md](./ROADMAP.md) | Where the product is, and the work still ahead |
+| [GUIDE.md](./GUIDE.md) | Authoring how-to: YAML, menus, and styles. The editor’s Guide page shows the same notes |
 
 ## Quick start
 

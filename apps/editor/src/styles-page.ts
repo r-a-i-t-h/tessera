@@ -12,7 +12,7 @@ export function stylesPageHtml(record: Record<string, unknown>, notice = "", err
     )
     .join("");
   return `<h1 class="w3-large">Styles</h1>
-    <p class="w3-text-grey">Dimensions, colours, and font names for the default chrome. Render or publish the site to see them on the pages.</p>
+    <p class="w3-text-grey">These tokens size and colour the default chrome: a <code>tessera-sidebar</code>, a <code>tessera-bar</code>, and <code>tessera-main</code>. Willow’s shell uses <code>site.css</code> and <code>wh-</code> classes, so saving here leaves the hall unchanged. Menu side moves a <code>tessera-sidebar</code>. Willow’s drawer is placed by the master layout. <a href="#/guide">Guide</a>.</p>
     ${notice ? `<p class="w3-panel w3-pale-green" role="status">${escapeHtml(notice)}</p>` : ""}
     ${error ? `<p class="w3-panel w3-pale-red" role="alert">${escapeHtml(error)}</p>` : ""}
     <div id="style-specimen" class="style-specimen" data-side="${escapeHtml(values.navSide)}">
