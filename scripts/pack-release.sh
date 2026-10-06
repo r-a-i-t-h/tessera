@@ -72,21 +72,16 @@ cp apps/site/dist/*.js "$DEST/runtime/"
 cp packages/skin-w3/css/*.css "$DEST/skin/"
 cp -R apps/editor-api/seed "$DEST/seed"
 mkdir -p "$DEST/seed/examples"
-for name in pure ineffable millersark willow; do
-  # A committed seed/examples archive is the demo that ships.
-  if [ -f "apps/editor-api/seed/examples/$name.tar.gz" ]; then
-    continue
-  fi
-  if [ -f "sites/$name/meta.json" ]; then
-    tar -czf "$DEST/seed/examples/$name.tar.gz" \
-      --exclude=users \
-      --exclude=history \
-      --exclude=.sessions.json \
-      --exclude=node_modules \
-      --exclude=backup \
-      -C "sites/$name" .
-  fi
-done
+# A committed seed/examples archive is the demo that ships.
+if [ ! -f "apps/editor-api/seed/examples/willow.tar.gz" ] && [ -f "sites/willow/meta.json" ]; then
+  tar -czf "$DEST/seed/examples/willow.tar.gz" \
+    --exclude=users \
+    --exclude=history \
+    --exclude=.sessions.json \
+    --exclude=node_modules \
+    --exclude=backup \
+    -C "sites/willow" .
+fi
 cp -R deploy "$DEST/deploy"
 printf '%s\n' "$TAG" >"$DEST/VERSION"
 

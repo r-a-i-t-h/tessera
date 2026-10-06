@@ -7,9 +7,12 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
   },
   "devDependencies": {
+    "happy-dom": "^20.0.2",
+    "vitest": "^3.0.9",
     "typescript": "^5.8.2"
   }
 }
