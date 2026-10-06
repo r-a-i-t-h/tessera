@@ -267,7 +267,7 @@ describe("record routes", () => {
     expect(unchanged.historyCount).toBe(1);
   });
 
-  it("restores the page file when publish rejects the edit", async () => {
+  it("rejects invalid authored fields before writing", async () => {
     const before = await readFile(join(siteDir, "content", "home.yaml"), "utf8");
     const beforeDocument = await readFile(join(siteDir, "out.json"), "utf8");
     const beforeRevision = await readFile(join(siteDir, "rev.json"), "utf8");
@@ -282,6 +282,11 @@ describe("record routes", () => {
       }),
     });
     expect(saved.status).toBe(400);
+    expect(await saved.json()).toMatchObject({
+      kind: "content",
+      id: "home",
+      field: "zones.main",
+    });
     expect(await readFile(join(siteDir, "content", "home.yaml"), "utf8")).toBe(before);
     expect(await readFile(join(siteDir, "out.json"), "utf8")).toBe(beforeDocument);
     expect(await readFile(join(siteDir, "rev.json"), "utf8")).toBe(beforeRevision);

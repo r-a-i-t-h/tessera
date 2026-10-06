@@ -33,6 +33,7 @@ import {
   yamlToRecord,
 } from "./document.js";
 import { DOCUMENT_KINDS, isRecordId, KIND_DIRS, RECORD_KINDS, type RecordKind } from "./kinds.js";
+import { validateAuthoredRecord } from "./authored-schema.js";
 
 export type SnapshotRef = { hash: string; file: string };
 
@@ -210,6 +211,7 @@ export class SiteStore {
   async write(kind: RecordKind, id: string, data: Record<string, unknown>): Promise<SaveResult> {
     this.assertId(id);
     const record = dropPrivateTitle(kind, { ...data, id });
+    validateAuthoredRecord(kind, id, record);
     return this.commitRecord(kind, id, recordToYaml(kind, record));
   }
 
@@ -220,7 +222,9 @@ export class SiteStore {
     options: CommitOptions = {},
   ): Promise<SaveResult> {
     this.assertId(id);
-    return this.commitRecord(kind, id, recordToYaml(kind, { ...data, id }), options);
+    const record = { ...data, id };
+    validateAuthoredRecord(kind, id, record);
+    return this.commitRecord(kind, id, recordToYaml(kind, record), options);
   }
 
   async deleteLibraryRecord(
@@ -268,11 +272,13 @@ export class SiteStore {
       if (!data || typeof data !== "object" || Array.isArray(data)) {
         throw new Error("Site file must be a YAML mapping.");
       }
+      validateAuthoredRecord("site", id, data);
       const { snapshot } = await this.commitText(this.siteFile(), text);
       return { historyAppended: false, historyCount: 0, ...(snapshot ? { snapshot } : {}) };
     }
     if (kind === "nav") {
-      fromYaml(text);
+      const data = fromYaml(text);
+      validateAuthoredRecord("nav", id, data);
       const { snapshot } = await this.commitText(this.navFile(), text);
       return { historyAppended: false, historyCount: 0, ...(snapshot ? { snapshot } : {}) };
     }
@@ -282,6 +288,7 @@ export class SiteStore {
       throw new Error(`Raw file must include id: ${id}.`);
     }
     const data = dropPrivateTitle(kind, parsed);
+    validateAuthoredRecord(kind, id, { ...data, id });
     const body = Object.prototype.hasOwnProperty.call(parsed, "title") && !Object.prototype.hasOwnProperty.call(data, "title")
       ? recordToYaml(kind, { ...data, id })
       : text;
@@ -318,6 +325,7 @@ export class SiteStore {
   }
 
   async writeSite(data: Record<string, unknown>): Promise<SaveResult> {
+    validateAuthoredRecord("site", typeof data.id === "string" ? data.id : "site", data);
     const saved = await this.commitText(this.siteFile(), toYaml(data));
     return { historyAppended: false, historyCount: 0, ...outputFields(saved) };
   }
@@ -327,6 +335,7 @@ export class SiteStore {
   }
 
   async writeNav(data: unknown): Promise<SaveResult> {
+    validateAuthoredRecord("nav", "nav", data);
     const saved = await this.commitText(this.navFile(), toYaml(data));
     return { historyAppended: false, historyCount: 0, ...outputFields(saved) };
   }

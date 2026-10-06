@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { requireEditor } from "../access/editor.js";
 import { apiError, isResponse } from "../http.js";
+import { AuthoredRecordError } from "../site/authored-schema.js";
 import { isRecordId, isRecordKind, KIND_LABELS, RECORD_KINDS, type RecordKind } from "../site/kinds.js";
 
 export const recordRoutes = new Hono();
@@ -147,6 +148,14 @@ recordRoutes.put("/records/:kind/:id", async (c) => {
     const saved = await site.write(kind, id, data);
     return c.json({ ok: true, kind, id, ...saved });
   } catch (err) {
+    if (err instanceof AuthoredRecordError) {
+      return c.json({
+        error: err.message,
+        kind: err.kind,
+        id: err.id,
+        field: err.field,
+      }, 400);
+    }
     return apiError(c, 400, err instanceof Error ? err.message : "Could not save record.");
   }
 });
