@@ -1,4 +1,5 @@
 import { escapeHtml, fieldId } from "../dom.js";
+import { iconButton, REORDER_ICONS } from "../editor-icons.js";
 
 export type PageChoice = { id: string; title?: string };
 
@@ -216,12 +217,6 @@ function placeFlags(prefix: string, row: { sidebar: boolean; topbar: boolean; fo
     ${check(`${prefix}-footer`, "Footer", row.footer)}`;
 }
 
-const NAV_ICONS = {
-  up: `<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M3.2 10.4 8 4.4l4.8 6"/></svg>`,
-  down: `<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M3.2 5.6 8 11.6l4.8-6"/></svg>`,
-  remove: `<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" d="M3.6 3.6 12.4 12.4M12.4 3.6 3.6 12.4"/></svg>`,
-} as const;
-
 function rowActions(index: number): string {
   return actionIcons(index);
 }
@@ -234,14 +229,23 @@ function actionIcons(index: number, child?: number): string {
   const childAttr = child === undefined ? "" : ` data-nav-child="${child}"`;
   const suffix = child === undefined ? "" : "-child";
   return `<span class="editor-nav-actions">
-    ${iconButton(`up${suffix}`, "Up", NAV_ICONS.up, index, childAttr)}
-    ${iconButton(`down${suffix}`, "Down", NAV_ICONS.down, index, childAttr)}
-    ${iconButton(`remove${suffix}`, "Remove", NAV_ICONS.remove, index, childAttr)}
+    ${navIconButton(`up${suffix}`, "Up", REORDER_ICONS.up, index, childAttr)}
+    ${navIconButton(`down${suffix}`, "Down", REORDER_ICONS.down, index, childAttr)}
+    ${navIconButton(`remove${suffix}`, "Remove", REORDER_ICONS.remove, index, childAttr)}
   </span>`;
 }
 
-function iconButton(action: string, label: string, icon: string, index: number, childAttr: string): string {
-  return `<button type="button" class="editor-nav-icon" aria-label="${label}" title="${label}" data-nav-action="${action}" data-nav-index="${index}"${childAttr}>${icon}</button>`;
+function navIconButton(action: string, label: string, icon: string, index: number, extraAttributes: string): string {
+  return iconButton({
+    className: "editor-nav-icon",
+    label,
+    actionAttribute: "data-nav-action",
+    action,
+    indexAttribute: "data-nav-index",
+    index,
+    icon,
+    extraAttributes,
+  });
 }
 
 function pageSelect(name: string, label: string, current: string, pages: readonly PageChoice[]): string {

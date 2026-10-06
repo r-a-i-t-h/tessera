@@ -51,6 +51,7 @@ import type { ArrangeInfo } from "./arrange/view.js";
 import { mountComposeCanvases } from "./compose/canvas.js";
 import { draftYaml, parsePageYaml } from "./compose/draft.js";
 import { readContentDocument, readContentDraft, composeFormInner, frameNote, htmlByZone, rawText, templateBodyLayout, type ContentMode } from "./compose/view.js";
+import { createRecord, type CreateRecordDestination } from "./create-record.js";
 import { readFormValues, renderForm } from "./forms/form.js";
 import { canRedo, canUndo, clearBurst, noteChange, redo, undo, undoHistory, type UndoHistory } from "./undo.js";
 import {
@@ -810,7 +811,7 @@ async function bindList(
   });
   root.querySelector<HTMLFormElement>("#new-page-form")?.addEventListener("submit", (event) => {
     event.preventDefault();
-    void createPage(root, user, listing);
+    void createPage(root, listing);
   });
   root.querySelector("[data-action=new-template]")?.addEventListener("click", () => {
     const form = root.querySelector<HTMLFormElement>("#new-template-form");
@@ -820,7 +821,7 @@ async function bindList(
   });
   root.querySelector<HTMLFormElement>("#new-template-form")?.addEventListener("submit", (event) => {
     event.preventDefault();
-    void createTemplate(root, user, listing);
+    void createTemplate(root, listing);
   });
   root.querySelector("[data-action=new-layout]")?.addEventListener("click", () => {
     const form = root.querySelector<HTMLFormElement>("#new-layout-form");
@@ -830,7 +831,7 @@ async function bindList(
   });
   root.querySelector<HTMLFormElement>("#new-layout-form")?.addEventListener("submit", (event) => {
     event.preventDefault();
-    void createLayout(root, user, listing);
+    void createLayout(root, listing);
   });
   root.querySelector("[data-action=new-type]")?.addEventListener("click", () => {
     const form = root.querySelector<HTMLFormElement>("#new-type-form");
@@ -840,54 +841,52 @@ async function bindList(
   });
   root.querySelector<HTMLFormElement>("#new-type-form")?.addEventListener("submit", (event) => {
     event.preventDefault();
-    void createType(root, user, listing);
+    void createType(root, listing);
   });
   if (bindingInfo) bindNewBinding(root, listing, bindingInfo.choices);
 }
 
-async function createPage(root: HTMLElement, user: PublicUser, listing: RecordList): Promise<void> {
+async function createPage(root: HTMLElement, listing: RecordList): Promise<void> {
   const form = root.querySelector<HTMLFormElement>("#new-page-form");
   if (!form) return;
-  const id = form.querySelector<HTMLInputElement>("#new-page-id")?.value ?? "";
   const title = form.querySelector<HTMLInputElement>("#new-page-title")?.value ?? "";
   const sidebar = form.querySelector<HTMLInputElement>("[name=sidebar]")?.checked ?? false;
   const existing = listing.records.filter((row) => row.kind === "content").map((row) => row.id);
-  const problem = pageIdError(id, existing);
-  if (problem) {
-    showNewPageError(form, problem);
-    return;
-  }
-  const button = form.querySelector<HTMLButtonElement>("button[type=submit]");
-  if (button) button.disabled = true;
-  const pageId = id.trim();
-  const pageTitle = title.trim() || pageId;
   const templateId = form.querySelector<HTMLSelectElement>("#new-page-template")?.value ?? "";
-  try {
-    const body = templateId
-      ? pageFromTemplate(pageId, pageTitle, templateId, await templateRecord(templateId))
-      : newPageBody(pageId, pageTitle);
-    await saveRecord("content", pageId, body);
-  } catch (err) {
-    showNewPageError(form, err instanceof Error ? err.message : "Could not create the page.");
-    if (button) button.disabled = false;
-    return;
-  }
-  let notice = `Created ${pageTitle}.`;
-  if (sidebar) {
-    try {
-      const nav = await getRecord("nav", "nav");
-      const linked = withSidebarLink(nav.data, pageId, pageTitle);
-      if (!linked.ok) notice = `Created ${pageTitle}. ${linked.message}`;
-      else await saveRecord("nav", "nav", linked.nav);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Could not add it to the sidebar.";
-      notice = `Created ${pageTitle}. ${message}`;
-    }
-  }
-  pendingEdit = { mode: "compose", notice };
-  const hash = `#/content/${encodeURIComponent(pageId)}`;
-  if (window.location.hash === hash) await render(root);
-  else window.location.hash = hash;
+  await createRecord({
+    kind: "content",
+    form,
+    idField: "#new-page-id",
+    existingIds: existing,
+    validateId: pageIdError,
+    buildBody: async (pageId) => {
+      const pageTitle = title.trim() || pageId;
+      return templateId
+        ? pageFromTemplate(pageId, pageTitle, templateId, await templateRecord(templateId))
+        : newPageBody(pageId, pageTitle);
+    },
+    save: saveRecord,
+    destinationMode: "compose",
+    destinationHash: (pageId) => `#/content/${encodeURIComponent(pageId)}`,
+    successMessage: (pageId) => `Created ${title.trim() || pageId}.`,
+    failureMessage: "Could not create the page.",
+    showError: showFormError,
+    afterSave: async (pageId, notice) => {
+      if (!sidebar) return notice;
+      const pageTitle = title.trim() || pageId;
+      try {
+        const nav = await getRecord("nav", "nav");
+        const linked = withSidebarLink(nav.data, pageId, pageTitle);
+        if (!linked.ok) return `${notice} ${linked.message}`;
+        await saveRecord("nav", "nav", linked.nav);
+        return notice;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Could not add it to the sidebar.";
+        return `${notice} ${message}`;
+      }
+    },
+    navigate: (destination) => navigateToCreatedRecord(root, destination),
+  });
 }
 
 async function templateRecord(id: string): Promise<Record<string, unknown>> {
@@ -897,83 +896,74 @@ async function templateRecord(id: string): Promise<Record<string, unknown>> {
   return data;
 }
 
-async function createTemplate(root: HTMLElement, user: PublicUser, listing: RecordList): Promise<void> {
+async function createTemplate(root: HTMLElement, listing: RecordList): Promise<void> {
   const form = root.querySelector<HTMLFormElement>("#new-template-form");
   if (!form) return;
-  const id = form.querySelector<HTMLInputElement>("#new-template-id")?.value ?? "";
   const existing = listing.records.filter((row) => row.kind === "templates").map((row) => row.id);
-  const problem = pageIdError(id, existing);
-  if (problem) {
-    showNewPageError(form, problem);
-    return;
-  }
-  const button = form.querySelector<HTMLButtonElement>("button[type=submit]");
-  if (button) button.disabled = true;
-  const templateId = id.trim();
-  try {
-    await saveRecord("templates", templateId, newTemplateBody(templateId));
-  } catch (err) {
-    showNewPageError(form, err instanceof Error ? err.message : "Could not create the template.");
-    if (button) button.disabled = false;
-    return;
-  }
-  pendingEdit = { mode: "compose", notice: `Created ${templateId}.` };
-  const hash = `#/templates/${encodeURIComponent(templateId)}`;
-  if (window.location.hash === hash) await render(root);
-  else window.location.hash = hash;
+  await createRecord({
+    kind: "templates",
+    form,
+    idField: "#new-template-id",
+    existingIds: existing,
+    validateId: pageIdError,
+    buildBody: newTemplateBody,
+    save: saveRecord,
+    destinationMode: "compose",
+    destinationHash: (id) => `#/templates/${encodeURIComponent(id)}`,
+    successMessage: (id) => `Created ${id}.`,
+    failureMessage: "Could not create the template.",
+    showError: showFormError,
+    navigate: (destination) => navigateToCreatedRecord(root, destination),
+  });
 }
 
-async function createLayout(root: HTMLElement, user: PublicUser, listing: RecordList): Promise<void> {
+async function createLayout(root: HTMLElement, listing: RecordList): Promise<void> {
   const form = root.querySelector<HTMLFormElement>("#new-layout-form");
   if (!form) return;
-  const id = form.querySelector<HTMLInputElement>("#new-layout-id")?.value ?? "";
   const existing = listing.records.filter((row) => row.kind === "layouts").map((row) => row.id);
-  const problem = pageIdError(id, existing)?.replace("A page with id", "A layout with id");
-  if (problem) {
-    showNewPageError(form, problem);
-    return;
-  }
-  const button = form.querySelector<HTMLButtonElement>("button[type=submit]");
-  if (button) button.disabled = true;
-  const layoutId = id.trim();
   const frame = form.querySelector<HTMLSelectElement>("#new-layout-kind")?.value === "frame";
-  try {
-    await saveRecord("layouts", layoutId, frame ? newFrame(layoutId) : newPageLayout(layoutId));
-  } catch (err) {
-    showNewPageError(form, err instanceof Error ? err.message : "Could not create the layout.");
-    if (button) button.disabled = false;
-    return;
-  }
-  pendingEdit = { mode: "arrange", notice: `Created ${layoutId}.` };
-  const hash = `#/layouts/${encodeURIComponent(layoutId)}`;
-  if (window.location.hash === hash) await render(root);
-  else window.location.hash = hash;
+  await createRecord({
+    kind: "layouts",
+    form,
+    idField: "#new-layout-id",
+    existingIds: existing,
+    validateId: (id, ids) => pageIdError(id, ids)?.replace("A page with id", "A layout with id"),
+    buildBody: (id) => frame ? newFrame(id) : newPageLayout(id),
+    save: saveRecord,
+    destinationMode: "arrange",
+    destinationHash: (id) => `#/layouts/${encodeURIComponent(id)}`,
+    successMessage: (id) => `Created ${id}.`,
+    failureMessage: "Could not create the layout.",
+    showError: showFormError,
+    navigate: (destination) => navigateToCreatedRecord(root, destination),
+  });
 }
 
-async function createType(root: HTMLElement, user: PublicUser, listing: RecordList): Promise<void> {
+async function createType(root: HTMLElement, listing: RecordList): Promise<void> {
   const form = root.querySelector<HTMLFormElement>("#new-type-form");
   if (!form) return;
-  const id = form.querySelector<HTMLInputElement>("#new-type-id")?.value ?? "";
   const existing = listing.records.filter((row) => row.kind === "types").map((row) => row.id);
-  const problem = pageIdError(id, existing)?.replace("A page with id", "A type with id");
-  if (problem) {
-    showNewPageError(form, problem);
-    return;
-  }
-  const button = form.querySelector<HTMLButtonElement>("button[type=submit]");
-  if (button) button.disabled = true;
-  const typeId = id.trim();
-  try {
-    await saveRecord("types", typeId, newTypeBody(typeId));
-  } catch (err) {
-    showNewPageError(form, err instanceof Error ? err.message : "Could not create the type.");
-    if (button) button.disabled = false;
-    return;
-  }
-  pendingEdit = { mode: "fields", notice: `Created ${typeId}.` };
-  const hash = `#/types/${encodeURIComponent(typeId)}`;
-  if (window.location.hash === hash) await render(root);
-  else window.location.hash = hash;
+  await createRecord({
+    kind: "types",
+    form,
+    idField: "#new-type-id",
+    existingIds: existing,
+    validateId: (id, ids) => pageIdError(id, ids)?.replace("A page with id", "A type with id"),
+    buildBody: newTypeBody,
+    save: saveRecord,
+    destinationMode: "fields",
+    destinationHash: (id) => `#/types/${encodeURIComponent(id)}`,
+    successMessage: (id) => `Created ${id}.`,
+    failureMessage: "Could not create the type.",
+    showError: showFormError,
+    navigate: (destination) => navigateToCreatedRecord(root, destination),
+  });
+}
+
+async function navigateToCreatedRecord(root: HTMLElement, destination: CreateRecordDestination): Promise<void> {
+  pendingEdit = { mode: destination.mode, notice: destination.notice };
+  if (window.location.hash === destination.hash) await render(root);
+  else window.location.hash = destination.hash;
 }
 
 function bindNewBinding(root: HTMLElement, listing: RecordList, choices: BindingChoices): void {
@@ -986,7 +976,7 @@ function bindNewBinding(root: HTMLElement, listing: RecordList, choices: Binding
   const paint = (error = "") => {
     form.hidden = false;
     form.innerHTML = renderNewBinding(state, choices);
-    if (error) showNewPageError(form, error);
+    if (error) showFormError(form, error);
     form.querySelector<HTMLElement>("[data-binding-focus]")?.focus();
   };
 
@@ -1026,7 +1016,7 @@ function bindNewBinding(root: HTMLElement, listing: RecordList, choices: Binding
     if (state.kind === "gallery" && state.step < 3) {
       const problem = state.step === 1 ? bindingIdError(state.id, existing) : undefined;
       if (problem) {
-        showNewPageError(form, problem);
+        showFormError(form, problem);
         return;
       }
       state = { ...state, step: state.step === 1 ? 2 : 3 };
@@ -1045,7 +1035,7 @@ async function createBinding(
 ): Promise<void> {
   const problem = newBindingError(state, existing);
   if (problem) {
-    showNewPageError(form, problem);
+    showFormError(form, problem);
     return;
   }
   const button = form.querySelector<HTMLButtonElement>("button[type=submit]");
@@ -1054,7 +1044,7 @@ async function createBinding(
   try {
     await saveRecord("bindings", id, newBindingRecord(state));
   } catch (err) {
-    showNewPageError(form, err instanceof Error ? err.message : "Could not create the binding.");
+    showFormError(form, err instanceof Error ? err.message : "Could not create the binding.");
     if (button) button.disabled = false;
     return;
   }
@@ -1144,7 +1134,7 @@ async function loadBindingChoices(): Promise<BindingChoices> {
   }
 }
 
-function showNewPageError(form: HTMLFormElement, message: string): void {
+function showFormError(form: HTMLFormElement, message: string): void {
   const error = form.querySelector<HTMLElement>("[data-form-error]");
   if (!error) return;
   error.hidden = false;

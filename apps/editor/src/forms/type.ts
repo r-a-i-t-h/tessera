@@ -1,4 +1,5 @@
 import { escapeHtml } from "../dom.js";
+import { iconButton, REORDER_ICONS } from "../editor-icons.js";
 import type { ControlValue } from "./nav.js";
 
 export type LayoutChoice = { id: string };
@@ -173,22 +174,24 @@ function fieldHtml(field: TypeFieldRow, index: number): string {
   </li>`;
 }
 
-const ICONS = {
-  up: `<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M3.2 10.4 8 4.4l4.8 6"/></svg>`,
-  down: `<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M3.2 5.6 8 11.6l4.8-6"/></svg>`,
-  remove: `<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" d="M3.6 3.6 12.4 12.4M12.4 3.6 3.6 12.4"/></svg>`,
-} as const;
-
 function actions(index: number): string {
   return `<span class="editor-type-actions">
-    ${iconButton("up", "Up", ICONS.up, index)}
-    ${iconButton("down", "Down", ICONS.down, index)}
-    ${iconButton("remove", "Remove", ICONS.remove, index)}
+    ${typeIconButton("up", "Up", REORDER_ICONS.up, index)}
+    ${typeIconButton("down", "Down", REORDER_ICONS.down, index)}
+    ${typeIconButton("remove", "Remove", REORDER_ICONS.remove, index)}
   </span>`;
 }
 
-function iconButton(action: TypeAction, label: string, icon: string, index: number): string {
-  return `<button type="button" class="editor-type-icon" aria-label="${label}" title="${label}" data-type-action="${action}" data-type-index="${index}">${icon}</button>`;
+function typeIconButton(action: TypeAction, label: string, icon: string, index: number): string {
+  return iconButton({
+    className: "editor-type-icon",
+    label,
+    actionAttribute: "data-type-action",
+    action,
+    indexAttribute: "data-type-index",
+    index,
+    icon,
+  });
 }
 
 function hidden(name: string, value: unknown): string {
