@@ -1,18 +1,18 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
-import { requireEditor } from "../access/editor.js";
 import { normalizedUsername, usernameError } from "../auth/username.js";
 import { hashPassword } from "../auth/password.js";
-import { apiError, isResponse, managedUser } from "../http.js";
+import { apiError, managedUser } from "../http.js";
+import { authenticatedEditor } from "../middleware/editor-site.js";
 import type { UserRecord } from "../model.js";
 import { requestSessionToken } from "../middleware/auth.js";
 import type { SessionStore } from "../auth/sessions.js";
 
 export const userRoutes = new Hono();
+userRoutes.use("/users", authenticatedEditor);
+userRoutes.use("/users/*", authenticatedEditor);
 
 userRoutes.get("/users", (c) => {
-  const actor = requireEditor(c);
-  if (isResponse(actor)) return actor;
   return c.json({
     ok: true,
     users: c.get("users").listUsers().map(managedUser),
@@ -20,8 +20,6 @@ userRoutes.get("/users", (c) => {
 });
 
 userRoutes.post("/users", async (c) => {
-  const actor = requireEditor(c);
-  if (isResponse(actor)) return actor;
   const body = await readUserBody(c);
   const problem = usernameError(body.username ?? "");
   if (problem) return apiError(c, 400, problem);
@@ -41,8 +39,7 @@ userRoutes.post("/users", async (c) => {
 });
 
 userRoutes.patch("/users/:username", async (c) => {
-  const actor = requireEditor(c);
-  if (isResponse(actor)) return actor;
+  const actor = c.get("editor");
   const users = c.get("users");
   const sessions = c.get("sessions");
   const current = users.getUser(c.req.param("username"));
@@ -90,8 +87,7 @@ userRoutes.patch("/users/:username", async (c) => {
 });
 
 userRoutes.delete("/users/:username", async (c) => {
-  const actor = requireEditor(c);
-  if (isResponse(actor)) return actor;
+  const actor = c.get("editor");
   const users = c.get("users");
   const username = c.req.param("username");
   const current = users.getUser(username);

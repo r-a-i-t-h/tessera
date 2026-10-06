@@ -1,16 +1,15 @@
 import { Hono } from "hono";
-import { requireEditor } from "../access/editor.js";
-import { apiError, isResponse } from "../http.js";
+import { apiError } from "../http.js";
+import { authenticatedSite } from "../middleware/editor-site.js";
 import { AuthoredRecordError } from "../site/authored-schema.js";
 import { isRecordId, isRecordKind, KIND_LABELS, RECORD_KINDS, type RecordKind } from "../site/kinds.js";
 
 export const recordRoutes = new Hono();
+recordRoutes.use("/records", authenticatedSite);
+recordRoutes.use("/records/*", authenticatedSite);
 
 recordRoutes.get("/records", async (c) => {
-  const user = requireEditor(c);
-  if (isResponse(user)) return user;
-  const site = c.get("site");
-  if (!site) return apiError(c, 404, "No site data directory configured.");
+  const site = c.get("requiredSite");
   const records = await site.list();
   return c.json({
     ok: true,
@@ -24,10 +23,7 @@ recordRoutes.get("/records", async (c) => {
 });
 
 recordRoutes.get("/records/:kind/:id/history/:index", async (c) => {
-  const user = requireEditor(c);
-  if (isResponse(user)) return user;
-  const site = c.get("site");
-  if (!site) return apiError(c, 404, "No site data directory configured.");
+  const site = c.get("requiredSite");
 
   const kind = c.req.param("kind");
   const id = c.req.param("id");
@@ -48,10 +44,7 @@ recordRoutes.get("/records/:kind/:id/history/:index", async (c) => {
 });
 
 recordRoutes.get("/records/:kind/:id", async (c) => {
-  const user = requireEditor(c);
-  if (isResponse(user)) return user;
-  const site = c.get("site");
-  if (!site) return apiError(c, 404, "No site data directory configured.");
+  const site = c.get("requiredSite");
 
   const kind = c.req.param("kind");
   const id = c.req.param("id");
@@ -104,10 +97,7 @@ recordRoutes.get("/records/:kind/:id", async (c) => {
 });
 
 recordRoutes.put("/records/:kind/:id", async (c) => {
-  const user = requireEditor(c);
-  if (isResponse(user)) return user;
-  const site = c.get("site");
-  if (!site) return apiError(c, 404, "No site data directory configured.");
+  const site = c.get("requiredSite");
 
   const kind = c.req.param("kind");
   const id = c.req.param("id");

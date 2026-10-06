@@ -1,12 +1,11 @@
 import { Hono } from "hono";
-import { requireEditor } from "../access/editor.js";
-import { isResponse } from "../http.js";
+import { authenticatedEditor } from "../middleware/editor-site.js";
 
 /** Placeholder mutation used until content CRUD lands. Always permission-checked. */
 export const apiRoutes = new Hono();
+apiRoutes.use("/ping", authenticatedEditor);
 
 apiRoutes.post("/ping", (c) => {
-  const user = requireEditor(c);
-  if (isResponse(user)) return user;
+  const user = c.get("editor");
   return c.json({ ok: true, username: user.username });
 });

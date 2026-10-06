@@ -1,14 +1,14 @@
 import type { Context } from "hono";
 import { Hono } from "hono";
-import { requireEditor } from "../access/editor.js";
 import { apiError, isResponse } from "../http.js";
+import { authenticatedEditor } from "../middleware/editor-site.js";
 import { listStylesheets, saveStylesheet, StylesheetError } from "../site/stylesheets.js";
 
 export const stylesheetRoutes = new Hono();
+stylesheetRoutes.use("/stylesheets", authenticatedEditor);
+stylesheetRoutes.use("/stylesheets/*", authenticatedEditor);
 
 stylesheetRoutes.get("/stylesheets", async (c) => {
-  const user = requireEditor(c);
-  if (isResponse(user)) return user;
   const roots = sheetRoots(c);
   if (isResponse(roots)) return roots;
   const sheets = await listStylesheets(roots.siteRoot, roots.skinDir);
@@ -16,8 +16,6 @@ stylesheetRoutes.get("/stylesheets", async (c) => {
 });
 
 stylesheetRoutes.put("/stylesheets/:id", async (c) => {
-  const user = requireEditor(c);
-  if (isResponse(user)) return user;
   const roots = sheetRoots(c);
   if (isResponse(roots)) return roots;
   const body: unknown = await c.req.json().catch(() => null);

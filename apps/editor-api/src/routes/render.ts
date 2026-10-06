@@ -1,16 +1,15 @@
 import { Hono } from "hono";
-import { requireEditor } from "../access/editor.js";
-import { apiError, isResponse } from "../http.js";
+import { apiError } from "../http.js";
+import { authenticatedSite } from "../middleware/editor-site.js";
 import { isReferenceSitePath } from "../site/paths.js";
 
 export const renderRoutes = new Hono();
+renderRoutes.use("/render", authenticatedSite);
+renderRoutes.use("/publish", authenticatedSite);
 
 /** Flatten every record into the snapshot the preview host is serving. */
 renderRoutes.post("/render", async (c) => {
-  const user = requireEditor(c);
-  if (isResponse(user)) return user;
-  const site = c.get("site");
-  if (!site) return apiError(c, 404, "No site data directory configured.");
+  const site = c.get("requiredSite");
 
   const siteRoot = c.get("siteRoot");
   if (
@@ -41,10 +40,7 @@ renderRoutes.post("/render", async (c) => {
 
 /** Write the copyable `publish/` tree. Leaves the preview where the last edit put it. */
 renderRoutes.post("/publish", async (c) => {
-  const user = requireEditor(c);
-  if (isResponse(user)) return user;
-  const site = c.get("site");
-  if (!site) return apiError(c, 404, "No site data directory configured.");
+  const site = c.get("requiredSite");
 
   const siteRoot = c.get("siteRoot");
   if (

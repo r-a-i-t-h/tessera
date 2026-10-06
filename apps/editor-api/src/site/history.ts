@@ -22,8 +22,8 @@ export type HistorySummary = {
   bytes: number;
 };
 
-export function pageHistoryPath(siteDir: string, id: string): string {
-  return join(siteDir, "history", "content", `${id}.history`);
+export function pageHistoryPath(recordsDir: string, id: string): string {
+  return join(recordsDir, "history", "content", `${id}.history`);
 }
 
 /** Append the previous raw page file. Does not rewrite earlier entries. */

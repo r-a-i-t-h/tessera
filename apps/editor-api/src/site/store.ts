@@ -90,21 +90,21 @@ function dropPrivateTitle(kind: RecordKind, data: Record<string, unknown>): Reco
 }
 
 export class SiteStore {
-  /** Directory that contains `content/<id>.history`. Defaults to `<siteDir>/history`. */
+  /** Directory that contains `content/<id>.history`. Defaults to `<recordsDir>/history`. */
   readonly historyDir: string;
 
   /** True while this process is writing `publish/` or installing it. */
   private publishing = false;
 
   constructor(
-    readonly siteDir: string,
+    readonly recordsDir: string,
     readonly flattenOut?: string,
     /** Authoring schema from `$TESSERA_DATA/meta.json`. Missing or non-numeric is 0. */
     private readonly schemaVersion: () => Promise<number> = async () => 0,
     historyDir?: string,
     readonly dist?: DistTarget,
   ) {
-    this.historyDir = historyDir ?? join(siteDir, "history");
+    this.historyDir = historyDir ?? join(recordsDir, "history");
   }
 
   currentSchemaVersion(): Promise<number> {
@@ -387,11 +387,11 @@ export class SiteStore {
 
   async writeFromDocument(doc: SiteDocument): Promise<void> {
     const split = splitDocument(doc);
-    await mkdir(this.siteDir, { recursive: true });
+    await mkdir(this.recordsDir, { recursive: true });
     await writeTextAtomic(this.siteFile(), toYaml(split.site));
     await writeTextAtomic(this.navFile(), toYaml(split.nav));
     for (const kind of DOCUMENT_KINDS) {
-      const dir = join(this.siteDir, KIND_DIRS[kind]);
+      const dir = join(this.recordsDir, KIND_DIRS[kind]);
       await mkdir(dir, { recursive: true });
       const keep = new Set<string>();
       const records = split[kind];
@@ -482,15 +482,15 @@ export class SiteStore {
   }
 
   private siteFile(): string {
-    return join(this.siteDir, "site.yaml");
+    return join(this.recordsDir, "site.yaml");
   }
 
   private navFile(): string {
-    return join(this.siteDir, "nav.yaml");
+    return join(this.recordsDir, "nav.yaml");
   }
 
   private recordFile(kind: RecordKind, id: string): string {
-    return join(this.siteDir, KIND_DIRS[kind], `${id}.yaml`);
+    return join(this.recordsDir, KIND_DIRS[kind], `${id}.yaml`);
   }
 
   private async hasSiteFile(): Promise<boolean> {
@@ -504,7 +504,7 @@ export class SiteStore {
 
   private async listIds(kind: RecordKind): Promise<string[]> {
     try {
-      const dir = join(this.siteDir, KIND_DIRS[kind]);
+      const dir = join(this.recordsDir, KIND_DIRS[kind]);
       const names = await readdir(dir);
       const found = names
         .filter((name) => name.endsWith(".yaml"))
@@ -529,7 +529,7 @@ export class SiteStore {
   }
 
   private orderFile(kind: RecordKind): string {
-    return join(this.siteDir, KIND_DIRS[kind], "_order.yaml");
+    return join(this.recordsDir, KIND_DIRS[kind], "_order.yaml");
   }
 
   private async loadParts(): Promise<LoadedSite> {

@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { Hono } from "hono";
 import type { Context } from "hono";
-import { requireEditor } from "../access/editor.js";
 import { apiError, isResponse } from "../http.js";
+import { authenticatedEditor } from "../middleware/editor-site.js";
 import {
   backupPath,
   createDataBackup,
@@ -14,10 +14,11 @@ import {
 } from "../site/backup.js";
 
 export const backupRoutes = new Hono();
+backupRoutes.use("/backups", authenticatedEditor);
+backupRoutes.use("/backups/*", authenticatedEditor);
+backupRoutes.use("/examples/*", authenticatedEditor);
 
 backupRoutes.get("/backups", async (c) => {
-  const user = requireEditor(c);
-  if (isResponse(user)) return user;
   const dirs = configured(c);
   if (isResponse(dirs)) return dirs;
   const backups = await listBackups(dirs.backupDir);
@@ -26,8 +27,6 @@ backupRoutes.get("/backups", async (c) => {
 });
 
 backupRoutes.post("/backups", async (c) => {
-  const user = requireEditor(c);
-  if (isResponse(user)) return user;
   const dirs = configured(c);
   if (isResponse(dirs)) return dirs;
   try {
@@ -39,8 +38,6 @@ backupRoutes.post("/backups", async (c) => {
 });
 
 backupRoutes.get("/backups/:name", async (c) => {
-  const user = requireEditor(c);
-  if (isResponse(user)) return user;
   const dirs = configured(c);
   if (isResponse(dirs)) return dirs;
   const name = c.req.param("name");
@@ -64,8 +61,6 @@ backupRoutes.get("/backups/:name", async (c) => {
 });
 
 backupRoutes.post("/backups/:name/delete", async (c) => {
-  const user = requireEditor(c);
-  if (isResponse(user)) return user;
   const dirs = configured(c);
   if (isResponse(dirs)) return dirs;
   const name = c.req.param("name");
@@ -76,8 +71,6 @@ backupRoutes.post("/backups/:name/delete", async (c) => {
 });
 
 backupRoutes.post("/backups/:name/restore", async (c) => {
-  const user = requireEditor(c);
-  if (isResponse(user)) return user;
   const dirs = configured(c);
   if (isResponse(dirs)) return dirs;
   const name = c.req.param("name");
@@ -92,8 +85,6 @@ backupRoutes.post("/backups/:name/restore", async (c) => {
 });
 
 backupRoutes.post("/examples/:name/restore", async (c) => {
-  const user = requireEditor(c);
-  if (isResponse(user)) return user;
   const dirs = configured(c);
   if (isResponse(dirs)) return dirs;
   try {

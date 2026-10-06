@@ -1,18 +1,16 @@
 import { Hono } from "hono";
-import { requireEditor } from "../access/editor.js";
-import { apiError, isResponse } from "../http.js";
+import { apiError } from "../http.js";
+import { authenticatedSiteRoot } from "../middleware/editor-site.js";
 import { reseedSite } from "../site/backup.js";
 import { writeBlankSite } from "../site/blank.js";
 
 export const siteRoutes = new Hono();
+siteRoutes.use("/site/*", authenticatedSiteRoot);
 
 /** Create a shell, master layout, and first page in an empty instance. */
 siteRoutes.post("/site/init", async (c) => {
-  const user = requireEditor(c);
-  if (isResponse(user)) return user;
-  const site = c.get("site");
-  const siteRoot = c.get("siteRoot");
-  if (!site || !siteRoot) return apiError(c, 404, "No site data directory configured.");
+  const site = c.get("requiredSite");
+  const siteRoot = c.get("requiredSiteRoot");
 
   try {
     await writeBlankSite(siteRoot);
@@ -33,12 +31,10 @@ siteRoutes.post("/site/init", async (c) => {
 
 /** Replace the open site with the starter. Editors stay. A safety archive is written first. */
 siteRoutes.post("/site/reseed", async (c) => {
-  const user = requireEditor(c);
-  if (isResponse(user)) return user;
-  const site = c.get("site");
-  const siteRoot = c.get("siteRoot");
+  const site = c.get("requiredSite");
+  const siteRoot = c.get("requiredSiteRoot");
   const backupDir = c.get("backupDir");
-  if (!site || !siteRoot || !backupDir) return apiError(c, 404, "No site data directory configured.");
+  if (!backupDir) return apiError(c, 404, "No site data directory configured.");
 
   try {
     const result = await reseedSite(siteRoot, backupDir);

@@ -1,38 +1,33 @@
 import { join } from "node:path";
 import { Hono } from "hono";
-import { requireEditor } from "../access/editor.js";
 import type { UploadLimits } from "../config/upload-limits.js";
-import { apiError, isResponse } from "../http.js";
+import { apiError } from "../http.js";
+import { authenticatedSiteRoot } from "../middleware/editor-site.js";
 import { AssetLibrary, type UploadFile } from "../site/library-store.js";
 import type { SiteStore } from "../site/store.js";
 
 export const libraryRoutes = new Hono();
+libraryRoutes.use("/library", authenticatedSiteRoot);
+libraryRoutes.use("/library/*", authenticatedSiteRoot);
 
-function libraryFor(site: SiteStore, siteRoot: string | undefined): AssetLibrary {
-  const root = siteRoot ?? join(site.siteDir, "..");
-  return new AssetLibrary(site, join(root, "files"));
+function libraryFor(site: SiteStore, siteRoot: string): AssetLibrary {
+  return new AssetLibrary(site, join(siteRoot, "files"));
 }
 
 libraryRoutes.get("/library", async (c) => {
-  const user = requireEditor(c);
-  if (isResponse(user)) return user;
-  const site = c.get("site");
-  if (!site) return apiError(c, 404, "No site data directory configured.");
-  const listing = await libraryFor(site, c.get("siteRoot")).list();
+  const site = c.get("requiredSite");
+  const listing = await libraryFor(site, c.get("requiredSiteRoot")).list();
   return c.json({ ok: true, ...listing });
 });
 
 libraryRoutes.post("/library/folders", async (c) => {
-  const user = requireEditor(c);
-  if (isResponse(user)) return user;
-  const site = c.get("site");
-  if (!site) return apiError(c, 404, "No site data directory configured.");
+  const site = c.get("requiredSite");
   const body = (await c.req.json().catch(() => null)) as { id?: unknown; parentId?: unknown } | null;
   const id = typeof body?.id === "string" ? body.id.trim() : "";
   if (!id) return apiError(c, 400, "A folder needs an id.");
   const parentId = typeof body?.parentId === "string" && body.parentId ? body.parentId : undefined;
   try {
-    const created = await libraryFor(site, c.get("siteRoot")).createFolder(id, parentId);
+    const created = await libraryFor(site, c.get("requiredSiteRoot")).createFolder(id, parentId);
     return c.json({ ok: true, ...created });
   } catch (err) {
     return apiError(c, 400, err instanceof Error ? err.message : "Could not create the folder.");
@@ -40,16 +35,13 @@ libraryRoutes.post("/library/folders", async (c) => {
 });
 
 libraryRoutes.patch("/library/folders/:id", async (c) => {
-  const user = requireEditor(c);
-  if (isResponse(user)) return user;
-  const site = c.get("site");
-  if (!site) return apiError(c, 404, "No site data directory configured.");
+  const site = c.get("requiredSite");
   const body = (await c.req.json().catch(() => null)) as {
     parentId?: unknown;
     sort?: unknown;
   } | null;
   try {
-    const updated = await libraryFor(site, c.get("siteRoot")).patchFolder(c.req.param("id"), {
+    const updated = await libraryFor(site, c.get("requiredSiteRoot")).patchFolder(c.req.param("id"), {
       ...(body && "parentId" in body ? { parentId: typeof body.parentId === "string" ? body.parentId : null } : {}),
       ...(typeof body?.sort === "number" ? { sort: body.sort } : {}),
     });
@@ -60,12 +52,9 @@ libraryRoutes.patch("/library/folders/:id", async (c) => {
 });
 
 libraryRoutes.delete("/library/folders/:id", async (c) => {
-  const user = requireEditor(c);
-  if (isResponse(user)) return user;
-  const site = c.get("site");
-  if (!site) return apiError(c, 404, "No site data directory configured.");
+  const site = c.get("requiredSite");
   try {
-    const deleted = await libraryFor(site, c.get("siteRoot")).deleteFolder(c.req.param("id"));
+    const deleted = await libraryFor(site, c.get("requiredSiteRoot")).deleteFolder(c.req.param("id"));
     return c.json({ ok: true, ...deleted });
   } catch (err) {
     return apiError(c, 400, err instanceof Error ? err.message : "Could not delete the folder.");
@@ -73,10 +62,7 @@ libraryRoutes.delete("/library/folders/:id", async (c) => {
 });
 
 libraryRoutes.post("/library/upload", async (c) => {
-  const user = requireEditor(c);
-  if (isResponse(user)) return user;
-  const site = c.get("site");
-  if (!site) return apiError(c, 404, "No site data directory configured.");
+  const site = c.get("requiredSite");
   try {
     const form = await c.req.parseBody({ all: true });
     const files = await readUploads(form.file, form.path, c.get("uploadLimits"));
@@ -84,7 +70,7 @@ libraryRoutes.post("/library/upload", async (c) => {
     const folderId = stringField(form.folderId);
     const folderTitle = stringField(form.folderTitle);
     const parentId = stringField(form.parentId);
-    const result = await libraryFor(site, c.get("siteRoot")).upload({
+    const result = await libraryFor(site, c.get("requiredSiteRoot")).upload({
       files,
       ...(folderId ? { folderId } : {}),
       ...(folderTitle ? { folderTitle } : {}),
@@ -98,13 +84,10 @@ libraryRoutes.post("/library/upload", async (c) => {
 });
 
 libraryRoutes.patch("/library/assets/:id", async (c) => {
-  const user = requireEditor(c);
-  if (isResponse(user)) return user;
-  const site = c.get("site");
-  if (!site) return apiError(c, 404, "No site data directory configured.");
+  const site = c.get("requiredSite");
   const body = (await c.req.json().catch(() => null)) as Record<string, unknown> | null;
   try {
-    const updated = await libraryFor(site, c.get("siteRoot")).patchAsset(c.req.param("id"), {
+    const updated = await libraryFor(site, c.get("requiredSiteRoot")).patchAsset(c.req.param("id"), {
       ...(typeof body?.name === "string" ? { name: body.name } : {}),
       ...(typeof body?.title === "string" ? { title: body.title } : {}),
       ...(typeof body?.alt === "string" ? { alt: body.alt } : {}),
@@ -119,12 +102,9 @@ libraryRoutes.patch("/library/assets/:id", async (c) => {
 });
 
 libraryRoutes.delete("/library/assets/:id", async (c) => {
-  const user = requireEditor(c);
-  if (isResponse(user)) return user;
-  const site = c.get("site");
-  if (!site) return apiError(c, 404, "No site data directory configured.");
+  const site = c.get("requiredSite");
   try {
-    const deleted = await libraryFor(site, c.get("siteRoot")).deleteAsset(c.req.param("id"));
+    const deleted = await libraryFor(site, c.get("requiredSiteRoot")).deleteAsset(c.req.param("id"));
     return c.json({ ok: true, ...deleted });
   } catch (err) {
     return apiError(c, 400, err instanceof Error ? err.message : "Could not delete the file.");
@@ -132,11 +112,8 @@ libraryRoutes.delete("/library/assets/:id", async (c) => {
 });
 
 libraryRoutes.get("/library/assets/:id/file", async (c) => {
-  const user = requireEditor(c);
-  if (isResponse(user)) return user;
-  const site = c.get("site");
-  if (!site) return apiError(c, 404, "No site data directory configured.");
-  const file = await libraryFor(site, c.get("siteRoot")).readOriginal(c.req.param("id"));
+  const site = c.get("requiredSite");
+  const file = await libraryFor(site, c.get("requiredSiteRoot")).readOriginal(c.req.param("id"));
   if (!file) return apiError(c, 404, "File not found.");
   return c.body(new Uint8Array(file.bytes), 200, {
     "Content-Type": file.type,
@@ -145,11 +122,8 @@ libraryRoutes.get("/library/assets/:id/file", async (c) => {
 });
 
 libraryRoutes.get("/library/assets/:id/thumb", async (c) => {
-  const user = requireEditor(c);
-  if (isResponse(user)) return user;
-  const site = c.get("site");
-  if (!site) return apiError(c, 404, "No site data directory configured.");
-  const bytes = await libraryFor(site, c.get("siteRoot")).readThumb(c.req.param("id"));
+  const site = c.get("requiredSite");
+  const bytes = await libraryFor(site, c.get("requiredSiteRoot")).readThumb(c.req.param("id"));
   if (!bytes) return apiError(c, 404, "No thumbnail.");
   return c.body(new Uint8Array(bytes), 200, { "Content-Type": "image/webp" });
 });
