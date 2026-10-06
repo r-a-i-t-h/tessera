@@ -3,7 +3,7 @@ import type { UserRecord } from "./model.js";
 
 export function apiError(
   c: Context,
-  status: 400 | 401 | 403 | 404 | 409 | 429,
+  status: 400 | 401 | 403 | 404 | 409 | 413 | 429,
   message: string,
 ): Response {
   return c.json({ error: message }, status);

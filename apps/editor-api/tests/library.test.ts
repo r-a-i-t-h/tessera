@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../src/app.js";
 import { hashPassword } from "../src/auth/password.js";
 import { SessionStore } from "../src/auth/sessions.js";
+import type { UploadLimits } from "../src/config/upload-limits.js";
 import { projectLibrary, publicAssetUrl } from "../src/site/library.js";
 import { AssetLibrary } from "../src/site/library-store.js";
 import { SiteStore } from "../src/site/store.js";
@@ -61,7 +62,7 @@ describe("asset library", () => {
     return { site, library };
   }
 
-  async function authenticatedApp(site: SiteStore) {
+  async function authenticatedApp(site: SiteStore, uploadLimits?: Partial<UploadLimits>) {
     const users = new UserStore(join(root, "users"));
     await users.load();
     const password = await hashPassword("secret1");
@@ -69,7 +70,7 @@ describe("asset library", () => {
     const sessions = new SessionStore();
     const token = sessions.create("alice").token;
     return {
-      app: createApp({ users, sessions, site, siteRoot: root }),
+      app: createApp({ users, sessions, site, siteRoot: root, uploadLimits }),
       token,
     };
   }
@@ -118,6 +119,54 @@ describe("asset library", () => {
     });
     expect(thumb.status).toBe(200);
     expect(thumb.headers.get("content-type")).toMatch(/webp/);
+  });
+
+  it("rejects too many or oversized files before storing upload bytes", async () => {
+    const { site } = await setup();
+    const { app, token } = await authenticatedApp(site, {
+      maxFileBytes: 3,
+      maxFiles: 1,
+      maxTotalBytes: 10_000,
+    });
+    const oversized = new FormData();
+    oversized.append("file", new File(["four"], "large.txt"));
+    const fileResponse = await app.request("/api/library/upload", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: oversized,
+    });
+    expect(fileResponse.status).toBe(413);
+    expect(await fileResponse.json()).toMatchObject({ error: expect.stringContaining("large.txt") });
+
+    const crowded = new FormData();
+    crowded.append("file", new File(["a"], "a.txt"));
+    crowded.append("file", new File(["b"], "b.txt"));
+    const countResponse = await app.request("/api/library/upload", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: crowded,
+    });
+    expect(countResponse.status).toBe(413);
+    expect(await countResponse.json()).toMatchObject({ error: expect.stringContaining("at most 1") });
+    expect(await readdir(join(root, "files")).catch(() => [])).toEqual([]);
+  });
+
+  it("rejects an upload request over the total body limit", async () => {
+    const { site } = await setup();
+    const { app, token } = await authenticatedApp(site, {
+      maxFileBytes: 1_000,
+      maxFiles: 10,
+      maxTotalBytes: 100,
+    });
+    const body = new FormData();
+    body.append("file", new File(["small"], "small.txt"));
+    const response = await app.request("/api/library/upload", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body,
+    });
+    expect(response.status).toBe(413);
+    expect(await response.json()).toMatchObject({ error: expect.stringContaining("total limit") });
   });
 
   it("rebuilds once for a direct library mutation", async () => {

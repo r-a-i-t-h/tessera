@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { Hono } from "hono";
 import { requireEditor } from "../access/editor.js";
+import type { UploadLimits } from "../config/upload-limits.js";
 import { apiError, isResponse } from "../http.js";
 import { AssetLibrary, type UploadFile } from "../site/library-store.js";
 import type { SiteStore } from "../site/store.js";
@@ -76,13 +77,13 @@ libraryRoutes.post("/library/upload", async (c) => {
   if (isResponse(user)) return user;
   const site = c.get("site");
   if (!site) return apiError(c, 404, "No site data directory configured.");
-  const form = await c.req.parseBody({ all: true });
-  const files = await readUploads(form.file, form.path);
-  if (!files.length) return apiError(c, 400, "Choose at least one file.");
-  const folderId = stringField(form.folderId);
-  const folderTitle = stringField(form.folderTitle);
-  const parentId = stringField(form.parentId);
   try {
+    const form = await c.req.parseBody({ all: true });
+    const files = await readUploads(form.file, form.path, c.get("uploadLimits"));
+    if (!files.length) return apiError(c, 400, "Choose at least one file.");
+    const folderId = stringField(form.folderId);
+    const folderTitle = stringField(form.folderTitle);
+    const parentId = stringField(form.parentId);
     const result = await libraryFor(site, c.get("siteRoot")).upload({
       files,
       ...(folderId ? { folderId } : {}),
@@ -91,6 +92,7 @@ libraryRoutes.post("/library/upload", async (c) => {
     });
     return c.json({ ok: true, ...result });
   } catch (err) {
+    if (err instanceof UploadLimitError) return apiError(c, 413, err.message);
     return apiError(c, 400, err instanceof Error ? err.message : "Could not add those files.");
   }
 });
@@ -157,8 +159,21 @@ function stringField(value: unknown): string | undefined {
   return undefined;
 }
 
-async function readUploads(fileField: unknown, pathField: unknown): Promise<UploadFile[]> {
+async function readUploads(
+  fileField: unknown,
+  pathField: unknown,
+  limits: UploadLimits,
+): Promise<UploadFile[]> {
   const files = asFiles(fileField);
+  if (files.length > limits.maxFiles) {
+    throw new UploadLimitError(`Choose at most ${limits.maxFiles} files per upload.`);
+  }
+  const oversized = files.find((file) => file.size > limits.maxFileBytes);
+  if (oversized) {
+    throw new UploadLimitError(
+      `File "${oversized.name}" exceeds the ${limits.maxFileBytes}-byte file limit.`,
+    );
+  }
   const paths = asStrings(pathField);
   const out: UploadFile[] = [];
   for (let i = 0; i < files.length; i++) {
@@ -171,6 +186,8 @@ async function readUploads(fileField: unknown, pathField: unknown): Promise<Uplo
   }
   return out;
 }
+
+class UploadLimitError extends Error {}
 
 function asFiles(value: unknown): File[] {
   if (value instanceof File) return [value];

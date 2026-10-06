@@ -1,5 +1,7 @@
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import type { SessionStore } from "./auth/sessions.js";
+import { mergeUploadLimits, type UploadLimits } from "./config/upload-limits.js";
 import { loadUser } from "./middleware/auth.js";
 import { mergeRateLimits, type RateLimitConfig } from "./rate-limit/limits.js";
 import { RateLimiter } from "./rate-limit/limiter.js";
@@ -35,16 +37,19 @@ export function createApp(opts: {
   seedDir?: string;
   rateLimiter?: RateLimiter;
   rateLimits?: Partial<RateLimitConfig>;
+  uploadLimits?: Partial<UploadLimits>;
 }) {
   const app = new Hono({ strict: false });
   const rateLimiter = opts.rateLimiter ?? new RateLimiter();
   const rateLimits = mergeRateLimits(opts.rateLimits);
+  const uploadLimits = mergeUploadLimits(opts.uploadLimits);
 
   app.use("*", async (c, next) => {
     c.set("users", opts.users);
     c.set("sessions", opts.sessions);
     c.set("rateLimiter", rateLimiter);
     c.set("rateLimits", rateLimits);
+    c.set("uploadLimits", uploadLimits);
     if (opts.site) c.set("site", opts.site);
     if (opts.siteRoot) c.set("siteRoot", opts.siteRoot);
     if (opts.backupDir) c.set("backupDir", opts.backupDir);
@@ -54,6 +59,12 @@ export function createApp(opts: {
   });
 
   app.use("*", loadUser);
+  app.use("/api/library/upload", bodyLimit({
+    maxSize: uploadLimits.maxTotalBytes,
+    onError: (c) => c.json({
+      error: `Upload request exceeds the ${uploadLimits.maxTotalBytes}-byte total limit.`,
+    }, 413),
+  }));
 
   app.get("/health", (c) => c.json({ ok: true, name: "tessera-editor-api" }));
 

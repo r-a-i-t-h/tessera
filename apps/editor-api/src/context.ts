@@ -1,4 +1,5 @@
 import type { SessionStore } from "./auth/sessions.js";
+import type { UploadLimits } from "./config/upload-limits.js";
 import type { RateLimitConfig } from "./rate-limit/limits.js";
 import type { RateLimiter } from "./rate-limit/limiter.js";
 import type { UserRecord } from "./model.js";
@@ -19,6 +20,7 @@ export type AppVariables = {
   skinDir?: string;
   rateLimiter: RateLimiter;
   rateLimits: RateLimitConfig;
+  uploadLimits: UploadLimits;
 };
 
 declare module "hono" {
