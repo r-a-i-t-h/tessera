@@ -1,6 +1,16 @@
 export { ComponentRegistry } from "./registry.js";
+export {
+  createDefaultRegistry,
+  type RegistryExtension,
+} from "./default-registry.js";
 export { mergeZones, indexDocument } from "./merge.js";
-export { renderPage, resolvePageId, escapeHtml, type Skin, type RenderPageOptions } from "./render.js";
+export {
+  renderPage,
+  resolvePageId,
+  escapeHtml,
+  type Skin,
+  type RenderPageOptions,
+} from "./render.js";
 export { resolvePageProfile } from "@r-a-i-t-h/tessera-model";
 export type { PageProfile, Type } from "@r-a-i-t-h/tessera-model";
 export {
@@ -55,6 +65,7 @@ export {
 export { normalizeSiteAssetUrl, isRootAbsoluteUrl } from "./assets.js";
 export { hrefForPage } from "./page-href.js";
 export {
+  DEFAULT_PAGE_STYLESHEETS,
   publishPages,
   hrefFor,
   canonicalUrl,
@@ -62,4 +73,9 @@ export {
   type PublishPagesOptions,
   type PublishedFile,
 } from "./publish-pages.js";
-export type { RenderContext, ComponentFn, ZoneMap, MicroAppMount } from "./types.js";
+export type {
+  RenderContext,
+  ComponentFn,
+  ZoneMap,
+  MicroAppMount,
+} from "./types.js";

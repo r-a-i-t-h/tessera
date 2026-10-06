@@ -6,12 +6,30 @@ import { createApp } from "../src/app.js";
 import { hashPassword } from "../src/auth/password.js";
 import { SessionStore } from "../src/auth/sessions.js";
 import type { UploadLimits } from "../src/config/upload-limits.js";
-import { projectLibrary, publicAssetUrl } from "../src/site/library.js";
+import { parseLibraryAsset, projectLibrary, publicAssetUrl } from "../src/site/library.js";
 import { AssetLibrary } from "../src/site/library-store.js";
 import { SiteStore } from "../src/site/store.js";
 import { UserStore } from "../src/store/users.js";
 
 describe("projectLibrary", () => {
+  it("normalizes one library record for both listing and document projection", () => {
+    expect(parseLibraryAsset({
+      id: "portrait",
+      name: "",
+      kind: "image",
+      ext: ".JPEG",
+      folderId: "people",
+      alt: "Portrait",
+    })).toEqual({
+      id: "portrait",
+      name: "portrait.jpeg",
+      kind: "image",
+      ext: "jpg",
+      folderId: "people",
+      alt: "Portrait",
+    });
+  });
+
   it("derives a stable media url and folder membership without using the virtual path", () => {
     const projected = projectLibrary(
       [

@@ -2,7 +2,10 @@ import { unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
 import { readText, writeTextAtomic } from "../store/fs.js";
+import { themeFileFromShell } from "./shell-stylesheets.js";
 import { isSkinOverrideName, skinOverrideFile } from "./skin-override.js";
+
+export { themeFileFromShell };
 
 export const MAX_STYLESHEET_BYTES = 256 * 1024;
 
@@ -27,19 +30,6 @@ export class StylesheetError extends Error {
     this.name = "StylesheetError";
     this.status = status;
   }
-}
-
-/** Theme file linked from the shell, such as `w3-theme-teal.css`. */
-export function themeFileFromShell(html: string): string | null {
-  for (const tag of html.matchAll(/<link\b[^>]*>/gi)) {
-    const link = tag[0];
-    if (!/\brel\s*=\s*["']stylesheet["']/i.test(link)) continue;
-    const href = link.match(/\bhref\s*=\s*["']([^"']+)["']/i)?.[1];
-    if (!href) continue;
-    const name = href.split("/").pop() ?? "";
-    if (/^w3-theme-[a-z0-9-]+\.css$/.test(name)) return name;
-  }
-  return null;
 }
 
 export async function listStylesheets(siteRoot: string, skinDir: string): Promise<StylesheetRecord[]> {

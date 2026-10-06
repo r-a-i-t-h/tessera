@@ -107,7 +107,7 @@ function mediaType(asset: LibraryAsset): Media["type"] {
   return "image";
 }
 
-function asAsset(row: Record<string, unknown>): LibraryAsset | undefined {
+export function parseLibraryAsset(row: Record<string, unknown>): LibraryAsset | undefined {
   if (typeof row.id !== "string" || !isLibraryAsset(row)) return undefined;
   const ext = typeof row.ext === "string" ? row.ext.replace(/^\./, "").toLowerCase() : "";
   if (!ext) return undefined;
@@ -172,7 +172,7 @@ export function projectLibrary(mediaRows: unknown[], folderRows: unknown[]): { m
   for (const row of mediaRows) {
     if (!isRecord(row)) continue;
     if (isLibraryAsset(row)) {
-      const asset = asAsset(row);
+      const asset = parseLibraryAsset(row);
       if (asset) assets.push(asset);
       continue;
     }

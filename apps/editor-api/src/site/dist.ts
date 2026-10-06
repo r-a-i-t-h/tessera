@@ -3,15 +3,14 @@ import { dirname, join } from "node:path";
 import { existsSync } from "node:fs";
 import type { SiteDocument } from "@r-a-i-t-h/tessera-model";
 import {
-  ComponentRegistry,
+  createDefaultRegistry,
   publishPages,
-  registerGalleryComponents,
-  registerNavComponents,
 } from "@r-a-i-t-h/tessera-renderer";
 import { registerExtras } from "@r-a-i-t-h/tessera-extras";
 import { w3Skin } from "@r-a-i-t-h/tessera-skin-w3";
 import { skinOverrideFile } from "./skin-override.js";
 import { writeTextAtomic } from "../store/fs.js";
+import { stylesheetsFromShell } from "./shell-stylesheets.js";
 import { writeSnapshotFiles } from "./snapshot.js";
 
 export class DistError extends Error {
@@ -61,7 +60,7 @@ async function emitPages(document: SiteDocument, target: DistTarget): Promise<Di
   const shell = await readOptional(target.shellIndex);
   const files = publishPages(document, {
     origin,
-    registry: pagesRegistry(),
+    registry: createDefaultRegistry(registerExtras),
     skin: w3Skin,
     stylesheets: stylesheetsFromShell(shell),
     script: "./tessera-pages.js",
@@ -104,15 +103,6 @@ async function emitSnapshot(document: SiteDocument, target: DistTarget): Promise
   return { flavour: "snapshot", snapshot };
 }
 
-function pagesRegistry(): ComponentRegistry {
-  const registry = new ComponentRegistry();
-  const define = (name: string, fn: Parameters<ComponentRegistry["define"]>[1]) => registry.define(name, fn);
-  registerNavComponents(define);
-  registerGalleryComponents(define);
-  registerExtras(define);
-  return registry;
-}
-
 function requireOrigin(value: string | undefined): string {
   const raw = value?.trim() ?? "";
   if (!raw) {
@@ -144,20 +134,6 @@ function typedPath(raw: string): string {
   if (slash === -1) return "";
   const end = raw.search(/[?#]/);
   return raw.slice(slash, end === -1 ? undefined : end);
-}
-
-const DEFAULT_STYLESHEETS = ["./skin/w3.css", "./skin/tessera.css", "./skin/microapps.css", "./site.css"];
-
-function stylesheetsFromShell(html: string | undefined): string[] {
-  if (!html) return DEFAULT_STYLESHEETS;
-  const found: string[] = [];
-  for (const tag of html.matchAll(/<link\b[^>]*>/gi)) {
-    const link = tag[0];
-    if (!/\brel\s*=\s*["']stylesheet["']/i.test(link)) continue;
-    const href = link.match(/\bhref\s*=\s*["']([^"']+)["']/i)?.[1];
-    if (href) found.push(href);
-  }
-  return found.length ? found : DEFAULT_STYLESHEETS;
 }
 
 async function syncLibraryMedia(document: SiteDocument, publishDir: string): Promise<void> {

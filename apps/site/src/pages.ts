@@ -1,9 +1,8 @@
 import { parseSiteDocument, type SiteDocument } from "@r-a-i-t-h/tessera-model";
 import {
   ComponentRegistry,
+  createDefaultRegistry,
   escapeHtml,
-  registerGalleryComponents,
-  registerNavComponents,
   type MicroAppMount,
   type RenderContext,
 } from "@r-a-i-t-h/tessera-renderer";
@@ -46,10 +45,7 @@ function renderMount(registry: ComponentRegistry, mount: MicroAppMount): string 
 
 /** Fill leftover micro-app mounts. Static HTML from the pages dist stays put. */
 function hydrate(): void {
-  const registry = new ComponentRegistry();
-  registerNavComponents((name, fn) => registry.define(name, fn));
-  registerGalleryComponents((name, fn) => registry.define(name, fn));
-  registerExtras((name, fn) => registry.define(name, fn));
+  const registry = createDefaultRegistry(registerExtras);
 
   const script = document.getElementById("tessera-microapps");
   if (!script?.textContent) return;

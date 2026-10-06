@@ -5,6 +5,7 @@ import { isRecordId } from "./kinds.js";
 import {
   kindForExt,
   normalizeExt,
+  parseLibraryAsset,
   publicAssetUrl,
   slugFromFilename,
   splitRelativePath,
@@ -111,23 +112,13 @@ export class AssetLibrary {
     for (const id of mediaIds) {
       const row = await this.site.read("media", id);
       // Library assets only. A hand-authored `url` record has no `kind` and is left for flatten.
-      if (row.kind === "image" || row.kind === "document") {
-        const ext = typeof row.ext === "string" ? row.ext.replace(/^\./, "").toLowerCase() : "";
-        if (!ext) continue;
-        const normalized = ext === "jpeg" ? "jpg" : ext;
-        assets.push({
-          id,
-          name: typeof row.name === "string" ? row.name : `${id}.${normalized}`,
-          kind: row.kind,
-          ext: normalized,
-          folderId: typeof row.folderId === "string" ? row.folderId : null,
-          ...(typeof row.title === "string" ? { title: row.title } : {}),
-          ...(typeof row.alt === "string" ? { alt: row.alt } : {}),
-          ...(typeof row.caption === "string" ? { caption: row.caption } : {}),
-          ...(typeof row.sort === "number" ? { sort: row.sort } : {}),
-          url: publicAssetUrl(id, normalized),
-        });
-      }
+      const asset = parseLibraryAsset(row);
+      if (!asset) continue;
+      assets.push({
+        ...asset,
+        folderId: asset.folderId ?? null,
+        url: publicAssetUrl(asset.id, asset.ext),
+      });
     }
     return { folders, assets };
   }
