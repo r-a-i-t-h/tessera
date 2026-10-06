@@ -50,7 +50,7 @@ export const CONTENT_FORM: FormSchema = {
   fields: [
     { name: "id", label: "Id", type: "string", readOnly: true, required: true },
     { name: "title", label: "Title", type: "string", required: true },
-    { name: "description", label: "Description", type: "string", rows: 3 },
+    { name: "description", label: "Description", type: "string" },
     { name: "slug", label: "Slug", type: "string" },
     { name: "parentId", label: "Parent", type: "string" },
     { name: "masterLayoutId", label: "Frame", type: "string" },

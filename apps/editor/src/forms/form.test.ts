@@ -26,12 +26,15 @@ describe("schema forms", () => {
     expect(next.id).toBe("hall");
   });
 
-  it("lays short content fields in two columns and keeps description full width", () => {
+  it("lays short content fields, including description, in two columns", () => {
     const html = renderForm(CONTENT_FORM, { id: "home", title: "Home", description: "A hall" });
     expect(html.startsWith(`<div class="editor-props">`)).toBe(true);
-    expect(html).toContain(`<p class="editor-prop-wide"><label for="f-description">Description</label>`);
+    expect(html).toContain(`<p><label for="f-description">Description</label>`);
+    expect(html).toContain(`<input id="f-description" name="description" type="text"`);
+    expect(html).not.toContain(`<textarea id="f-description"`);
     expect(html).toContain(`<p><label for="f-title">Title</label>`);
     expect(html).not.toContain(`editor-prop-wide"><label for="f-title"`);
+    expect(html).not.toContain(`editor-prop-wide"><label for="f-description"`);
   });
 
   it("shows showInNav checked when the key is missing and omits it when checked", () => {
