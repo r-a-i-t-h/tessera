@@ -310,6 +310,11 @@ export const SiteMetaSchema = z.object({
   delivery: SiteDeliverySchema.optional(),
   /** Public URL of the published folder, used for canonical URLs in a pages dist. A path is that folder. */
   origin: z.string().optional(),
+  /**
+   * Existing directory whose contents Publish replaces with `publish/`.
+   * Omitted means write `publish/` only. The directory is not created.
+   */
+  publishTo: z.string().optional(),
   /** Chrome tokens. Missing fields use the defaults in `style.ts`. */
   style: SiteStyleSchema.optional(),
   settings: z.record(z.unknown()).optional(),

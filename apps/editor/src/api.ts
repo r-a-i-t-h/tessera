@@ -222,6 +222,8 @@ export type PublishResult = {
   ok: true;
   pages: number;
   dist: DistResult;
+  /** Set when `publishTo` was installed. */
+  installed?: string;
 };
 
 export function renderSite(): Promise<RenderResult> {

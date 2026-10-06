@@ -42,6 +42,7 @@ export const SITE_FORM: FormSchema = {
       ],
     },
     { name: "origin", label: "Origin", type: "string", inputType: "url" },
+    { name: "publishTo", label: "Publish to", type: "string" },
   ],
 };
 

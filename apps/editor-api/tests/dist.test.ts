@@ -149,7 +149,35 @@ describe("emitDist", () => {
     expect(await readFile(join(fixture.root, "publish", "old", "index.html"), "utf8")).toContain("old");
     const report = await store.publish();
     expect(report.dist.flavour).toBe("pages");
+    expect(report.installed).toBeUndefined();
     expect(await readFile(join(fixture.root, "publish", "index.html"), "utf8")).toContain("Welcome");
+  });
+
+  it("installs publishTo outside the site and rejects a second publish", async () => {
+    const fixture = await target("pages");
+    const live = await mkdtemp(join(tmpdir(), "tessera-live-"));
+    dirs.push(live);
+    await writeFile(join(live, "stale.txt"), "stale\n");
+    const doc = parseSiteDocument({
+      ...fixture.document,
+      site: { ...fixture.document.site, publishTo: live },
+    });
+    const store = new SiteStore(
+      join(fixture.root, "records"),
+      join(fixture.root, "preview", "data", "site.json"),
+      async () => 0,
+      join(fixture.root, "history"),
+      fixture.target,
+    );
+    await store.writeFromDocument(doc);
+    const pending = store.publish();
+    await expect(store.publish()).rejects.toThrow(/already running/);
+    const report = await pending;
+    expect(report.installed).toBe(live);
+    expect(await readFile(join(live, "index.html"), "utf8")).toContain("Welcome");
+    await expect(readFile(join(live, "stale.txt"), "utf8")).rejects.toThrow();
+    expect(await readFile(join(fixture.root, "publish", "index.html"), "utf8")).toContain("Welcome");
+    await expect(readFile(join(live, ".tessera-incoming"))).rejects.toThrow();
   });
 
   it("writes a snapshot dist and removes page directories", async () => {

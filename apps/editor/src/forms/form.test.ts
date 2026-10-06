@@ -11,16 +11,18 @@ describe("schema forms", () => {
     expect(html).toContain("Snapshot");
     expect(html).toContain('type="url"');
     expect(html).toContain('name="origin"');
+    expect(html).toContain('name="publishTo"');
   });
 
   it("writes delivery and omits a blank origin", () => {
     const next = applySubmitted(
       SITE_FORM,
       { id: "hall", title: "Hall", homePageId: "home" },
-      { title: "Hall", homePageId: "home", delivery: "snapshot", origin: "  " },
+      { title: "Hall", homePageId: "home", delivery: "snapshot", origin: "  ", publishTo: "  " },
     );
     expect(next.delivery).toBe("snapshot");
     expect(next).not.toHaveProperty("origin");
+    expect(next).not.toHaveProperty("publishTo");
     expect(next.id).toBe("hall");
   });
 

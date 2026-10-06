@@ -433,12 +433,15 @@ async function runPublish(root: HTMLElement): Promise<void> {
 }
 
 function publishNotice(result: PublishResult): string {
+  const where = result.installed
+    ? ` Installed at ${result.installed}.`
+    : " Copy that folder to the live host.";
   if (result.dist.flavour === "pages") {
     const count = result.dist.pages ?? 0;
-    return `Published ${count} HTML ${count === 1 ? "file" : "files"} to publish/. Copy that folder to the live host.`;
+    return `Published ${count} HTML ${count === 1 ? "file" : "files"} to publish/.${where}`;
   }
   const file = result.dist.snapshot ? ` ${result.dist.snapshot.file}.` : "";
-  return `Published the snapshot dist to publish/.${file} Copy that folder to the live host.`;
+  return `Published the snapshot dist to publish/.${file}${where}`;
 }
 
 async function bindAccount(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {
@@ -1427,7 +1430,7 @@ function homeHtml(listing: RecordList, notice = "", error = ""): string {
     : startSiteHtml();
   return `<h1 class="w3-large">Tessera editor</h1>
     ${statusHtml(notice, error)}
-    <p class="w3-text-grey">YAML files named with Tessera <code>id</code>, outside the web root. Saving a page appends the previous file to a history file and refreshes the preview at <code>${previewUrl}</code>. <strong>Render site</strong> rebuilds that preview for every page. <strong>Publish</strong> writes the copyable <code>publish/</code> folder, and leaves it alone until the next time you publish.</p>
+    <p class="w3-text-grey">YAML files named with Tessera <code>id</code>, outside the web root. Saving a page appends the previous file to a history file and refreshes the preview at <code>${previewUrl}</code>. <strong>Render site</strong> rebuilds that preview for every page. <strong>Publish</strong> writes the copyable <code>publish/</code> folder. Set <strong>Publish to</strong> on the site record to also replace the files in an existing directory this process can write. That directory is not created, and files already in it are removed.</p>
     ${body}`;
 }
 

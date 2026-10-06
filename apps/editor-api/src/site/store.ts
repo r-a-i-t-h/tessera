@@ -19,6 +19,7 @@ import {
 } from "./history.js";
 import { writeSnapshotFiles } from "./snapshot.js";
 import type { DistReport, DistTarget } from "./dist.js";
+import { installPublish } from "./install-publish.js";
 import {
   assembleDocument,
   authoredPageToPage,
@@ -85,6 +86,9 @@ function dropPrivateTitle(kind: RecordKind, data: Record<string, unknown>): Reco
 export class SiteStore {
   /** Directory that contains `content/<id>.history`. Defaults to `<siteDir>/history`. */
   readonly historyDir: string;
+
+  /** True while this process is writing `publish/` or installing it. */
+  private publishing = false;
 
   constructor(
     readonly siteDir: string,
@@ -284,13 +288,27 @@ export class SiteStore {
     return { doc, ...outputs };
   }
 
-  /** Write `publish/` from the current records. Does not refresh the preview. */
-  async publish(): Promise<{ doc?: SiteDocument; dist: DistReport }> {
-    if (!this.dist) throw new Error("No publish directory configured.");
-    const doc = await this.loadReadyDocument();
-    if (!doc) throw new Error("Nothing to publish yet. This site needs a layout and at least one page.");
-    const { emitDist } = await import("./dist.js");
-    return { doc, dist: await emitDist(doc, this.dist) };
+  /**
+   * Write `publish/` from the current records. Does not refresh the preview.
+   * When the site names `publishTo`, replace the files in that directory afterwards.
+   * One publish runs at a time in this process.
+   */
+  async publish(): Promise<{ doc?: SiteDocument; dist: DistReport; installed?: string }> {
+    if (this.publishing) throw new Error("A publish is already running.");
+    this.publishing = true;
+    try {
+      if (!this.dist) throw new Error("No publish directory configured.");
+      const doc = await this.loadReadyDocument();
+      if (!doc) throw new Error("Nothing to publish yet. This site needs a layout and at least one page.");
+      const { emitDist } = await import("./dist.js");
+      const dist = await emitDist(doc, this.dist);
+      const publishTo = doc.site.publishTo?.trim();
+      if (!publishTo) return { doc, dist };
+      const installed = await installPublish(this.dist.publishDir, publishTo, dirname(this.dist.publishDir));
+      return { doc, dist, installed };
+    } finally {
+      this.publishing = false;
+    }
   }
 
   async flatten(): Promise<SiteDocument | undefined> {
