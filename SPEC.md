@@ -1,4 +1,4 @@
-# Tessera specification (v0.1)
+# Tessera specification
 
 Tessera publishes a small website from structured records and a shared catalogue of micro-apps. A site is one of two flavours: a **snapshot** (one JSON document, rendered in the browser) or **pages** (one static HTML file per page). Neither flavour renders on request, and neither uses a runtime datastore. Content cannot invent recursive zones.
 
@@ -6,7 +6,7 @@ It is the successor to Rec-Tem (“recursive templates”). The mosaic metaphor 
 
 | Doc | Role |
 |-----|------|
-| **This SPEC** | Product + architecture ambition: concepts, requirements, Phase-1 design decisions, acceptance criteria, and open refinements |
+| **This SPEC** | Product + architecture ambition: concepts, requirements, design decisions, acceptance criteria, and open refinements |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | As-built engine contract (packages, pipeline, Zod shapes as implemented) |
 | [ROADMAP.md](./ROADMAP.md) | Sequenced upcoming work; links here for the “why/what” |
 
@@ -22,9 +22,9 @@ It is the successor to Rec-Tem (“recursive templates”). The mosaic metaphor 
 - Ship enough shared components to build a complete site (listings, blog, gallery, document browser, layout primitives) without blocking site-specific components.
 - Provide a clear inclusion story without recursive zones (see [Inclusion](#6-inclusion-without-recursive-zones)).
 - Survive fetch failures after a successful load via `localStorage`, with a signal for stale/offline chrome.
-- Leave a clean contract for a later **editor** that flattens many records into the same document shape.
+- Keep a clean editor boundary: authoring flattens many records into the same document shape consumed by the renderer.
 
-### Non-goals (Phase 1)
+### Non-goals
 
 - Request-time rendering, and a generic server that loads site micro-app code.
 - Publishing static stand-ins so micro-apps work with JavaScript disabled.
@@ -33,8 +33,8 @@ It is the successor to Rec-Tem (“recursive templates”). The mosaic metaphor 
 - Recursive zone invention from inside page content.
 - Edit-in-place on the rendered site.
 - Multi-version / draft content on the client (one published snapshot only).
-- Shipping the editor as part of the renderer phase.
-- Full installable offline (Service Worker / app manifest) as a Phase-1 requirement — see [Needs refinement](#12-needs-refinement).
+- Coupling the editor or its server to the public runtime.
+- Full installable offline (Service Worker / app manifest) as a current requirement — see [Needs refinement](#12-needs-refinement).
 
 ---
 
@@ -151,7 +151,7 @@ While a snapshot stays open, re-check `rev.json` on a fixed interval of **5 minu
 | Level | Expectation |
 |-------|-------------|
 | **Required** | After a successful load, browsing continues if a later fetch fails (including going offline mid-session), using in-memory / `localStorage` data and a stale/offline signal. |
-| **Icing** | Cold-starting the SPA while already offline (browser HTTP cache delivers the app shell; app then reads `localStorage`). Research and optional hardening; not a Phase-1 gate. |
+| **Icing** | Cold-starting the SPA while already offline (browser HTTP cache delivers the app shell; app then reads `localStorage`). Research and optional hardening; not a release gate. |
 
 ### Schema and app versioning
 
@@ -238,7 +238,7 @@ Gallery, layout primitives, nav, and bindings are in the product. Listings, a bl
 
 ---
 
-## 9. Editor boundary (Phase 2)
+## 9. Editor boundary
 
 - The public site stays free of request-time rendering, a live datastore, and edit-in-place. Drafts and history belong to the editor and are not fields on the published page. Once exported, visitors are served from static files. Those files may stay beside the editable site (`publish/`) or be copied elsewhere. The editor can be stopped while that static tree keeps working.
 - Tessera’s version is the engine (editor API, editor SPA, model, renderer, and the shared component catalogue). A site is one directory, `$TESSERA_DATA`. Replacing that directory and restarting changes the site being edited. Nav, styling, and content travel with the directory. Micro-app implementations do not: they ship with Tessera, and the static export stamps that runtime into `publish/`. The editor API does not load site code.
@@ -254,7 +254,7 @@ Gallery, layout primitives, nav, and bindings are in the product. Listings, a bl
 - A page is a page. A site-defined type names its fields and its layout. Subject tags filter and do not choose the type. Editor forms are drawn from a field schema for the record kind (string, number, date, Checkbox, SingleSelect), including fields that have no value yet. Keys the schema does not name stay on the form. `schemaVersion` is the authoring-file format, not a Person field list. There is no per-page draft flag.
 - A content-page save appends the previous raw file to `$TESSERA_DATA/history/content/<id>.history`. That history is an editor file, not a field on the published page. The framing is a proof of concept; the authoring spec will replace it.
 - **Authoring schema** (`schemaVersion` in `$TESSERA_DATA/meta.json`) is separate from `SiteDocument.version`. `deploy/post-update.sh` is the [node-vps-kit](https://github.com/r-a-i-t-h/node-vps-kit) hook that applies `deploy/migrations/NNN-*.sh`. The app reads the counter and does not bump it. Records live inside `$TESSERA_DATA`, so a migration can rewrite them.
-- The renderer never depends on the editor. The editor does not host the renderer yet. Preview is the snapshot in `preview/`, served by the site runtime. Hosting that render beside Compose is the next editor step.
+- The renderer never depends on the editor. The editor API serves the real snapshot runtime from `/preview/`; the editing screen does not embed it yet. Hosting that render beside Compose is the next editor step.
 - Flatten output **is** the renderer contract.
 
 ---
@@ -334,7 +334,7 @@ Parking lot for design that is sound enough to proceed in spirit but not yet nai
 4. **`localStorage` size** — strategy when documents are large (HTML-heavy converted sites); quotas, compression, or alternate cache.
 5. **Missing-page policy** — global silent home fallback vs site setting.
 6. **Nav source vs list-as-pages** — how much machinery is shared between content-implied nav links and generating pages from items.
-7. **HTML trust / sanitization** — trusted-author model is Phase 1; multi-author sanitization later if needed.
+7. **HTML trust / sanitization** — the current model trusts authors; add sanitization if untrusted authors become a requirement.
 8. **Topbar vs sidebar** — how shell chrome consumes document nav flags/roles.
 9. **Fanciness scope** — motion and polish criteria when ready to schedule.
 10. **`lastModified` placement** — which entities require it and how it is surfaced in UI.

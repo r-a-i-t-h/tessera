@@ -19,11 +19,15 @@ npm run dev:api             # editor API only (seed login admin / admin)
 npm run dev:editor          # editor SPA only (proxies /auth /api /health /preview)
 ```
 
+The seed login is for first setup only. Change its password before exposing the editor outside a trusted development network.
+
 ## Test
 
 ```bash
 npm test
 ```
+
+GitHub CI runs the existing install, typecheck, test, and build commands on Node 20, 22, and 24. Those root scripts remain the source of truth and work on any CI service or local machine; the tag release workflow and local `npm run pack` stay independent.
 
 ## Packages
 
@@ -60,7 +64,16 @@ The editor’s Backups page writes a dated `tar.gz` of `data/` into the sibling 
 
 `npm run release -- --patch` (or `--minor` / `--major`) bumps the root `package.json` version, commits it, tags `vX.Y.Z`, and pushes. That tag runs `.github/workflows/release.yml`, which packs `dist-release/tessera.tar.gz` (and a versioned copy) and attaches both to a GitHub Release. [node-vps-kit](https://github.com/r-a-i-t-h/node-vps-kit) installs that tarball as one process: `node dist/server.js` serves the API and the editor UI in `spa/`. The same tree carries `runtime/` and `skin/`, which preview and publish copy into the site. The kit keeps instance data at `/opt/tessera/<name>/data` and sets `TESSERA_DATA` to that path. Updates replace `current/` and leave `data/` alone. Locally: `npm run pack`.
 
-Authoring schema migrations (the hook node-vps-kit runs as `deploy/post-update.sh`) stamp `schemaVersion` on `$TESSERA_DATA/meta.json`. The app does not bump that counter. Records are inside that directory, so a later migration can rewrite them.
+Before making a production editor reachable:
+
+- terminate HTTPS at the reverse proxy and set `TESSERA_SECURE_COOKIES=1` if Node is not running with `NODE_ENV=production`;
+- sign in with the seed account and change the known `admin` password immediately;
+- restrict editor access to trusted authors; authored HTML is trusted and every signed-in user currently has full editor access;
+- keep `$TESSERA_DATA` and the sibling backup directory writable only by the app user, and test restore separately from the live directory;
+- set a reverse-proxy request-body limit for library uploads (for example nginx `client_max_body_size`) because the API currently reads an upload request into memory;
+- use the HTML and immutable-asset cache rules in `ARCHITECTURE.md` for the published site.
+
+Authoring schema migrations (the hook node-vps-kit runs as `deploy/post-update.sh`) stamp `schemaVersion` on `$TESSERA_DATA/meta.json`. The app does not bump that counter. Migrations `001` and `002` stamp versions 1 and 2 without rewriting records. Records are inside that directory, so a later migration can rewrite them and must carry before/after fixture coverage.
 
 ```bash
 TESSERA_DATA=sites/willow sh deploy/migrate.sh

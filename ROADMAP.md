@@ -35,7 +35,7 @@ That is a small-site CMS for prose pages, media, and a designed menu. It is one 
 
 1. **Editor preview**  
    Compose, Fields, and Raw file edit the same page. The rendered page is another origin (the site runtime, port 5173 in dev). Next: host the renderer beside the canvas so a section change is visible without a separate reload.  
-   → [SPEC §9](./SPEC.md#9-editor-boundary-phase-2)
+   → [SPEC §9](./SPEC.md#9-editor-boundary)
 
 2. **Items listing patterns**  
    First-class list-on-page / as-pages beyond ad-hoc bindings. Subpages already lists child pages. People, events, and news are a type plus a binding.  
@@ -43,7 +43,7 @@ That is a small-site CMS for prose pages, media, and a designed menu. It is one 
 
 3. **Editor chrome**  
    The authoring model is ahead of the screens an author lives in. The next input is a snagging pass: Willow first, then a site started empty. Schedule UI work from that list.  
-   → [SPEC §9](./SPEC.md#9-editor-boundary-phase-2)
+   → [SPEC §9](./SPEC.md#9-editor-boundary)
 
 4. **Fanciness / polish**  
    Motion and richer presentation beyond minimal W3 chrome — scope before large effort.  

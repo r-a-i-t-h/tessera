@@ -1,12 +1,12 @@
-# Tessera architecture (v0.1)
+# Tessera architecture
 
-As-built engine contract. Product ambition, Phase-1 design decisions, and acceptance criteria live in [SPEC.md](./SPEC.md). Upcoming work is sequenced in [ROADMAP.md](./ROADMAP.md).
+As-built engine contract. Product ambition, design decisions, and acceptance criteria live in [SPEC.md](./SPEC.md). Upcoming work is sequenced in [ROADMAP.md](./ROADMAP.md).
 
 Tessera is a small CMS runtime for sites whose full text/data payload is cheaper than a typical image. Content is authored as structured records. A **snapshot** site is flattened to one JSON document and rendered in the browser. A **pages** site publishes one HTML file per page. Micro-apps (event lists, galleries, and other interactive mounts) stay client-side in both flavours.
 
 The name evokes mosaic tiles: layouts place the tiles (zones); content fills them — or leaves them empty.
 
-The **editor** (see SPEC §9) edits one site directory and emits the flattened file. The **renderer** consumes that file. The site runtime registers the shared component catalogue. The renderer never depends on the editor. Preview today is the snapshot in `preview/`, served by the site runtime. The editor does not host the renderer yet.
+The **editor** (see SPEC §9) edits one site directory and emits the flattened file. The **renderer** consumes that file. The site runtime registers the shared component catalogue. The renderer never depends on the editor. Preview is the snapshot in `preview/`; the editor API serves its real runtime at `/preview/`. The editing screen does not embed that runtime yet.
 
 Tessera’s version is the engine: `apps/editor-api`, `apps/editor`, and the packages below. A site is data. Replacing `$TESSERA_DATA` (and restarting) changes which site the instance edits. The public site is the static `publish/` tree inside that directory. Nginx can keep serving `publish/` with the editor process stopped, or that tree can be copied to another host.
 
@@ -129,13 +129,13 @@ The editor can open that raw YAML, save it, and read earlier copies back. The sa
 
 **Authoring schema** is `schemaVersion` in `$TESSERA_DATA/meta.json`. It is not `SiteDocument.version` (the number the renderer validates). The process reads `schemaVersion` and stamps it on each history entry. It does not bump the counter. Missing or non-numeric means **0**.
 
-[node-vps-kit](https://github.com/r-a-i-t-h/node-vps-kit) runs `deploy/post-update.sh` as the app user after it swaps `current` and before systemd restarts. The hook receives `TESSERA_DATA`, `TESSERA_SEED`, and `TESSERA_BACKUP`. It applies `deploy/migrations/NNN-*.sh` when `NNN` is greater than `schemaVersion`. `001` stamps `schemaVersion: 1` and leaves every other meta key alone. First boot copies `seed/meta.json` into `data/` only when `meta.json` is absent, so a later boot does not wipe the stamp.
+[node-vps-kit](https://github.com/r-a-i-t-h/node-vps-kit) runs `deploy/post-update.sh` as the app user after it swaps `current` and before systemd restarts. The hook receives `TESSERA_DATA`, `TESSERA_SEED`, and `TESSERA_BACKUP`. It applies `deploy/migrations/NNN-*.sh` when `NNN` is greater than `schemaVersion`. `001` stamps `schemaVersion: 1`; `002` stamps version 2 after the asset-library file layout became the authoring contract. Both leave records unchanged and preserve other meta keys. First boot copies `seed/meta.json` into `data/` only when `meta.json` is absent, so a later boot does not wipe the stamp.
 
 ```bash
 TESSERA_DATA=sites/willow sh deploy/migrate.sh
 ```
 
-Records live at `$TESSERA_DATA/records`, so a later migration can rewrite page files. `001` only stamps `schemaVersion` on `meta.json`. Three numbers stay distinct: the Tessera release (editor and libraries), `schemaVersion` (authoring files), and `SiteDocument.version` (the flattened document the renderer validates). An editor-only release does not require a new export. A renderer or document-schema change needs a migration, then a flatten. Already-exported `publish/` trees keep the shell they were built with until that export.
+Records live at `$TESSERA_DATA/records`, so a later migration can rewrite page files. The current `001` and `002` migrations only stamp `schemaVersion` on `meta.json`; a migration that rewrites records needs fixture tests for the before and after files. Three numbers stay distinct: the Tessera release (editor and libraries), `schemaVersion` (authoring files), and `SiteDocument.version` (the flattened document the renderer validates). An editor-only release does not require a new export. A renderer or document-schema change needs a migration, then a flatten. Already-exported `publish/` trees keep the shell they were built with until that export.
 
 ## Relative assets
 

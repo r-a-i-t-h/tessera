@@ -56,6 +56,14 @@ describe("auth routes", () => {
     expect(setCookie.toLowerCase()).toContain("path=/");
   });
 
+  it.fails("logs in case-insensitively while preserving the stored username", async () => {
+    await users.renameUser("alice", "Alice");
+
+    const res = await login();
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ ok: true, username: "Alice" });
+  });
+
   it("rejects a bad password", async () => {
     const res = await login("nope");
     expect(res.status).toBe(401);

@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../src/app.js";
 import { hashPassword } from "../src/auth/password.js";
 import { SessionStore } from "../src/auth/sessions.js";
@@ -46,6 +46,7 @@ describe("asset library", () => {
   let root: string;
 
   afterEach(async () => {
+    vi.restoreAllMocks();
     if (root) await rm(root, { recursive: true, force: true });
   });
 
@@ -58,6 +59,19 @@ describe("asset library", () => {
     await site.writeSite({ version: 2, id: "demo", title: "Demo", homePageId: "home", defaultLayoutId: "page" });
     const library = new AssetLibrary(site, join(root, "files"));
     return { site, library };
+  }
+
+  async function authenticatedApp(site: SiteStore) {
+    const users = new UserStore(join(root, "users"));
+    await users.load();
+    const password = await hashPassword("secret1");
+    await users.createUser("alice", password.hash, password.salt);
+    const sessions = new SessionStore();
+    const token = sessions.create("alice").token;
+    return {
+      app: createApp({ users, sessions, site, siteRoot: root }),
+      token,
+    };
   }
 
   it("uploads a folder of files into nested virtual folders and keeps the url after a move", async () => {
@@ -87,13 +101,7 @@ describe("asset library", () => {
 
   it("serves an upload over HTTP", async () => {
     const { site } = await setup();
-    const users = new UserStore(join(root, "users"));
-    await users.load();
-    const password = await hashPassword("secret1");
-    await users.createUser("alice", password.hash, password.salt);
-    const sessions = new SessionStore();
-    const token = sessions.create("alice").token;
-    const app = createApp({ users, sessions, site, siteRoot: root });
+    const { app, token } = await authenticatedApp(site);
     const body = new FormData();
     body.append("file", new File([`<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"/>`], "mark.svg", { type: "image/svg+xml" }));
     body.append("path", "mark.svg");
@@ -110,5 +118,86 @@ describe("asset library", () => {
     });
     expect(thumb.status).toBe(200);
     expect(thumb.headers.get("content-type")).toMatch(/webp/);
+  });
+
+  it("rebuilds once for a direct library mutation", async () => {
+    const { site, library } = await setup();
+    const uploaded = await library.upload({
+      files: [
+        {
+          filename: "notes.pdf",
+          relativePath: "notes.pdf",
+          bytes: new TextEncoder().encode("%PDF-1.1"),
+        },
+      ],
+    });
+    const rebuild = vi.spyOn(site, "rebuild");
+
+    await library.patchAsset(uploaded.created[0]!.id, { title: "Meeting notes" });
+
+    expect(rebuild).toHaveBeenCalledTimes(1);
+  });
+
+  it.fails("restores media metadata when rebuilding a library update fails", async () => {
+    const { site, library } = await setup();
+    const uploaded = await library.upload({
+      files: [
+        {
+          filename: "notes.pdf",
+          relativePath: "notes.pdf",
+          bytes: new TextEncoder().encode("%PDF-1.1"),
+        },
+      ],
+    });
+    const id = uploaded.created[0]!.id;
+    const recordPath = join(root, "records", "media", `${id}.yaml`);
+    const before = await readFile(recordPath, "utf8");
+    vi.spyOn(site, "rebuild").mockRejectedValueOnce(new Error("rebuild blocked"));
+
+    await expect(library.patchAsset(id, { title: "Changed" })).rejects.toThrow("rebuild blocked");
+
+    expect(await readFile(recordPath, "utf8")).toBe(before);
+  });
+
+  it.fails("restores media files when rebuilding a library deletion fails", async () => {
+    const { site, library } = await setup();
+    const uploaded = await library.upload({
+      files: [
+        {
+          filename: "notes.pdf",
+          relativePath: "notes.pdf",
+          bytes: new TextEncoder().encode("%PDF-1.1"),
+        },
+      ],
+    });
+    const id = uploaded.created[0]!.id;
+    const recordPath = join(root, "records", "media", `${id}.yaml`);
+    const blobPath = join(root, "files", `${id}.pdf`);
+    const beforeRecord = await readFile(recordPath, "utf8");
+    const beforeBlob = await readFile(blobPath);
+    vi.spyOn(site, "rebuild").mockRejectedValueOnce(new Error("rebuild blocked"));
+
+    await expect(library.deleteAsset(id)).rejects.toThrow("rebuild blocked");
+
+    expect(await readFile(recordPath, "utf8")).toBe(beforeRecord);
+    expect(await readFile(blobPath)).toEqual(beforeBlob);
+  });
+
+  it.fails("rebuilds at most once for an HTTP library mutation", async () => {
+    const { site } = await setup();
+    const { app, token } = await authenticatedApp(site);
+    const rebuild = vi.spyOn(site, "rebuild");
+
+    const response = await app.request("/api/library/folders", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id: "documents" }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(rebuild).toHaveBeenCalledTimes(1);
   });
 });

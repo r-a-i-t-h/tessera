@@ -269,6 +269,8 @@ describe("record routes", () => {
 
   it("restores the page file when publish rejects the edit", async () => {
     const before = await readFile(join(siteDir, "content", "home.yaml"), "utf8");
+    const beforeDocument = await readFile(join(siteDir, "out.json"), "utf8");
+    const beforeRevision = await readFile(join(siteDir, "rev.json"), "utf8");
     const saved = await app().request("/api/records/content/home", {
       method: "PUT",
       headers: {
@@ -281,11 +283,40 @@ describe("record routes", () => {
     });
     expect(saved.status).toBe(400);
     expect(await readFile(join(siteDir, "content", "home.yaml"), "utf8")).toBe(before);
+    expect(await readFile(join(siteDir, "out.json"), "utf8")).toBe(beforeDocument);
+    expect(await readFile(join(siteDir, "rev.json"), "utf8")).toBe(beforeRevision);
     const listed = await app().request("/api/records/content/home", {
       headers: { Authorization: `Bearer ${token}` },
     });
-    const record = (await listed.json()) as { history: unknown[] };
+    const record = (await listed.json()) as {
+      history: unknown[];
+      snapshot: { hash: string; file: string };
+    };
     expect(record.history).toEqual([]);
+    expect(record.snapshot).toEqual(JSON.parse(beforeRevision));
+  });
+
+  it("removes a new record when its first rebuild rejects it", async () => {
+    const beforeDocument = await readFile(join(siteDir, "out.json"), "utf8");
+    const beforeRevision = await readFile(join(siteDir, "rev.json"), "utf8");
+    const saved = await app().request("/api/records/content/draft-page", {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        raw: "id: draft-page\ntitle: Draft\nzones:\n  main:\n    nope: true\n",
+      }),
+    });
+
+    expect(saved.status).toBe(400);
+    await expect(readFile(join(siteDir, "content", "draft-page.yaml"), "utf8")).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+    expect(await readFile(join(siteDir, "out.json"), "utf8")).toBe(beforeDocument);
+    expect(await readFile(join(siteDir, "rev.json"), "utf8")).toBe(beforeRevision);
+    expect((await site.list()).some((record) => record.kind === "content" && record.id === "draft-page")).toBe(false);
   });
 
   it("records the authoring schema version on the history entry", async () => {

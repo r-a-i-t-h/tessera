@@ -121,13 +121,10 @@ These limitations should be described as deployment boundaries, not hidden as im
 
 The project has a strong specification, architecture guide, roadmap, user guide, and README. They explain intent as well as mechanics.
 
-There is some drift:
+Phase 1 corrected stale version/phase wording, clarified that `/preview/` already serves the real runtime, and documented migration 002. Remaining drift is smaller:
 
-- `SPEC.md` and `ARCHITECTURE.md` still say version 0.1 while the root package is 0.2.7;
-- parts of `SPEC.md` still describe the editor as a later phase even though a substantial editor is shipped;
-- `ARCHITECTURE.md` can be read as saying the renderer is not hosted by the editor, although the API already serves the snapshot at `/preview/`; the missing feature is an embedded Compose preview;
-- migration `002-asset-library.sh` is not described alongside migration 001;
-- `scripts/pack-release.sh` still checks removed example-site names even though Willow is the only current example.
+- `scripts/pack-release.sh` still checks removed example-site names even though Willow is the only current example;
+- `GUIDE.md` and the editor's `guide.ts` remain parallel sources that can drift without an automated check.
 
 ## How well Tessera meets its stated goals
 
@@ -369,13 +366,11 @@ There is no shared linter or formatter configuration. `apps/editor` imports `hap
 
 These issues are real but should not displace data-integrity and editor-boundary work. Introduce formatting with a baseline-only commit to avoid mixing mechanical changes with behavior.
 
-### Low: documentation and naming drift
+### Low: remaining documentation and naming drift
 
-The documentation needs a consistency pass, and a few names obscure current intent:
+Phase 1 corrected the stale phase/version, preview, migration, and production-deployment guidance. A few lower-priority issues remain:
 
-- update old phase/version language;
-- document migration 002;
-- explain that `/preview/` exists but is not embedded in Compose;
+- keep `GUIDE.md` and the editor Guide page synchronized automatically;
 - remove stale example names from the release pack loop;
 - rename `packages/extras/src/pure.ts` if it no longer represents a current example;
 - rename editor helpers such as `showNewPageError` when they serve templates, layouts, and types too.
@@ -1156,16 +1151,9 @@ Steps:
 5. Document whether committed Willow publish output is a reference fixture or generated artifact.
 6. Test the packed tarball by starting it against a temporary site before attaching it to a release.
 
-## Documentation corrections to make early
+## Documentation corrections
 
-These changes are low risk and can accompany Phase 1 if kept separate from behavior:
-
-1. Update `SPEC.md` and `ARCHITECTURE.md` version/status wording without confusing product version, authoring schema version, and `SiteDocument.version`.
-2. Change “editor later” language to historical context or current boundaries.
-3. State precisely that the API serves `/preview/`, while the missing roadmap feature is embedding that preview in the editing screen.
-4. Document migration 002 and the rule for future record-transforming migrations.
-5. Keep `GUIDE.md` and `apps/editor/src/guide.ts` synchronized, preferably with a test or one generated source.
-6. Add a production checklist: HTTPS, secure cookies, bootstrap credential change, data/backup permissions, upload limit, and nginx cache rules.
+Phase 1 completed the low-risk corrections for version/status wording, the current editor boundary, `/preview/`, migration 002, and the production checklist. The remaining documentation task is to keep `GUIDE.md` and `apps/editor/src/guide.ts` synchronized, preferably with a test or one generated source.
 
 ## Decisions required before implementation
 
@@ -1217,14 +1205,16 @@ npm run typecheck
 npm test
 ```
 
-Typechecking passed in all ten workspaces named by the root script. The test run passed **294 tests in 60 test files**:
+Typechecking passed in all ten workspaces named by the root script. After the Phase 1 safety work, the test run completes **329 tests in 62 test files**:
 
 - model: 23 tests;
 - sections: 12 tests;
 - renderer: 73 tests;
 - site: 6 tests;
-- editor: 79 tests;
-- editor API: 101 tests.
+- editor: 108 tests;
+- editor API: 107 tests.
 
-The test command also completed the production builds that are part of the site and editor workspace test scripts. These results establish a healthy current baseline, not a measurement of code coverage or a substitute for the missing browser journey and pull-request CI.
+Four editor API tests use Vitest's expected-failure mode to keep known Phase 2 defects executable and visible: case-insensitive login, library update rollback, library deletion rollback, and duplicate HTTP-triggered rebuilds. They must be converted to normal tests when those defects are fixed.
+
+The test command also completed the production builds that are part of the site and editor workspace test scripts. These results establish a healthy current baseline, not a measurement of code coverage or a substitute for the missing browser journey.
 

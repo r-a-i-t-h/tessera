@@ -113,6 +113,7 @@ import {
   type PickedAsset,
 } from "./forms/picker.js";
 import { guideHtml } from "./guide.js";
+import { parseRoute } from "./router.js";
 import { paintSpecimen, previewStyle, readStyleForm, stylesheetEditors, stylesPageHtml } from "./styles-page.js";
 import { usernameError } from "./username.js";
 
@@ -190,7 +191,7 @@ async function render(root: HTMLElement): Promise<void> {
     return;
   }
 
-  const route = parseRoute();
+  const route = parseRoute(window.location.hash);
   const pending = pendingEdit;
   pendingEdit = undefined;
   try {
@@ -223,47 +224,6 @@ async function render(root: HTMLElement): Promise<void> {
     );
     bindChrome(root);
   }
-}
-
-type Route =
-  | { page: "home" }
-  | { page: "records"; kind?: string }
-  | { page: "library"; id: string | null }
-  | { page: "backups" }
-  | { page: "styles" }
-  | { page: "guide" }
-  | { page: "account" }
-  | { page: "users" }
-  | { page: "user"; username: string }
-  | { page: "edit"; kind: string; id: string }
-  | { page: "missing" };
-
-function parseRoute(): Route {
-  const path = window.location.hash.replace(/^#\/?/, "");
-  if (!path) return { page: "home" };
-  const slash = path.indexOf("/");
-  const head = decodeURIComponent(slash === -1 ? path : path.slice(0, slash));
-  const rest = slash === -1 ? "" : decodeURIComponent(path.slice(slash + 1));
-  if (head === "records") {
-    if (rest.includes("/")) return { page: "missing" };
-    return { page: "records", kind: rest || undefined };
-  }
-  if (head === "site" || head === "nav") {
-    if (!rest || rest.includes("/")) return { page: "missing" };
-    return { page: "records", kind: head };
-  }
-  if (head === "library") return { page: "library", id: rest || null };
-  if (head === "backups") return rest ? { page: "missing" } : { page: "backups" };
-  if (head === "styles") return rest ? { page: "missing" } : { page: "styles" };
-  if (head === "guide") return rest ? { page: "missing" } : { page: "guide" };
-  if (head === "account") return rest ? { page: "missing" } : { page: "account" };
-  if (head === "users") {
-    if (!rest) return { page: "users" };
-    if (rest.includes("/")) return { page: "missing" };
-    return { page: "user", username: rest };
-  }
-  if (!rest || rest.includes("/")) return { page: "missing" };
-  return { page: "edit", kind: head, id: rest };
 }
 
 const previewUrl = "/preview/";
