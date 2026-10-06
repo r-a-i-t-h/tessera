@@ -1,3 +1,5 @@
+import { escapeHtml, fieldId } from "../dom.js";
+
 export type PageChoice = { id: string; title?: string };
 
 export type ControlValue = {
@@ -279,14 +281,6 @@ function hidden(name: string, value: unknown): string {
 
 function hiddenValue(name: string, value: string): string {
   return `<input type="hidden" name="${escapeHtml(name)}" value="${escapeHtml(value)}" />`;
-}
-
-function fieldId(name: string): string {
-  return `f-${name.replace(/[^a-zA-Z0-9]+/g, "-")}`;
-}
-
-function escapeHtml(value: string): string {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 type RawRow = {

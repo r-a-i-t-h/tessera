@@ -1,5 +1,6 @@
 import { PALETTE } from "@r-a-i-t-h/tessera-sections";
 import type { PageLayoutHint } from "../api.js";
+import { escapeHtml } from "../dom.js";
 import { draftYaml, parsePageYaml, withZoneHtml } from "./draft.js";
 import { readComposeHtml } from "./canvas.js";
 import { readFormValues, renderForm } from "../forms/form.js";
@@ -193,8 +194,4 @@ function layoutBanner(layout?: PageLayoutHint): string {
   if (!layout?.layoutId) return "";
   const via = layout.layoutSource === "type" ? `type ${layout.typeId ?? ""}`.trim() : "site default";
   return `<p class="w3-text-grey">Zones from layout <strong>${escapeHtml(layout.layoutId)}</strong> (${escapeHtml(via)}).</p>`;
-}
-
-function escapeHtml(value: string): string {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }

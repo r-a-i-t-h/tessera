@@ -1,19 +1,8 @@
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
+import { escapeHtml, fieldId } from "../dom.js";
 import { type FieldSchema, type FormSchema } from "./schema.js";
 
 export type SubmittedValue = string | boolean;
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function fieldId(name: string): string {
-  return `f-${name.replace(/[^a-zA-Z0-9]+/g, "-")}`;
-}
 
 /** Draw every schema field, including ones with no stored value. */
 export function renderForm(schema: FormSchema, values: Record<string, unknown>): string {

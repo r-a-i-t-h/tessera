@@ -1,4 +1,5 @@
 import type { LayoutNode } from "@r-a-i-t-h/tessera-model";
+import { escapeHtml } from "../dom.js";
 import {
   COMPONENT_CHOICES,
   MENU_SHAPES,
@@ -278,8 +279,4 @@ function yamlish(value: Record<string, unknown>): string {
   return Object.entries(value)
     .map(([key, item]) => `${key}: ${typeof item === "string" ? item : JSON.stringify(item)}`)
     .join("\n");
-}
-
-function escapeHtml(value: string): string {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }

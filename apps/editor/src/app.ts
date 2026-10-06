@@ -113,17 +113,10 @@ import {
   type PickedAsset,
 } from "./forms/picker.js";
 import { guideHtml } from "./guide.js";
+import { escapeHtml, fieldId, formErrorPanel, noticePanel, statusPanels } from "./dom.js";
 import { parseRoute } from "./router.js";
 import { paintSpecimen, previewStyle, readStyleForm, stylesheetEditors, stylesPageHtml } from "./styles-page.js";
 import { usernameError } from "./username.js";
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
 
 type EditorSection = "home" | "records" | "library" | "backups" | "styles" | "guide" | "users" | "account";
 
@@ -479,7 +472,7 @@ async function bindAccount(root: HTMLElement, user: PublicUser, notice = "", err
 function accountHtml(user: PublicUser, notice: string, error: string): string {
   return `<h1 class="w3-large">Account</h1>
     <p class="w3-text-grey">Signed in as <strong>${escapeHtml(user.username)}</strong>.</p>
-    ${statusHtml(notice, error)}
+    ${statusPanels(notice, error)}
     <form id="username-form" class="w3-card w3-white w3-padding-large editor-card">
       <h2 class="w3-medium">Change username</h2>
       <p class="w3-text-grey">Start with a letter. Use letters, numbers, dots, underscores, and hyphens. It has to be different from every other editor.</p>
@@ -649,7 +642,7 @@ function usersHtml(users: ManagedUser[], actor: PublicUser, notice: string, erro
     ? `<ul class="w3-ul">${users.map((item) => userRow(item, actor)).join("")}</ul>`
     : `<p class="w3-text-grey">No editors yet.</p>`;
   return `<h1 class="w3-large">Users</h1>
-    ${statusHtml(notice, error)}
+    ${statusPanels(notice, error)}
     <p class="w3-text-grey">Every signed-in editor can reach the whole site. A disabled editor is signed out and cannot sign in. You cannot delete or disable the account you are using.</p>
     <form id="new-user-form" class="w3-card w3-white w3-padding-large editor-card">
       <h2 class="w3-medium">Add user</h2>
@@ -703,7 +696,7 @@ function userEditHtml(target: ManagedUser, actor: PublicUser, notice: string, er
     ? `<p class="w3-text-grey">You cannot disable the account you are signed in with.</p>`
     : "";
   return `<h1 class="w3-large">Edit ${escapeHtml(target.username)}</h1>
-    ${statusHtml(notice, error)}
+    ${statusPanels(notice, error)}
     <form id="edit-user-form" class="w3-card w3-white w3-padding-large editor-card">
       <p>
         <label for="edit-username">Username</label>
@@ -1370,8 +1363,7 @@ function backupsHtml(listing: BackupList, notice: string, error: string): string
         .join("")}</ul>`
     : `<p class="w3-text-grey">No example archives are in the backup folder yet.</p>`;
   return `<h1 class="w3-large">Backups</h1>
-    ${notice ? `<p class="w3-panel w3-pale-green" role="status">${escapeHtml(notice)}</p>` : ""}
-    ${error ? `<p class="w3-panel w3-pale-red" role="alert">${escapeHtml(error)}</p>` : ""}
+    ${statusPanels(notice, error)}
     <p class="w3-text-grey">A backup is a dated <code>.tar.gz</code> of this site directory (records, editors, history, shell, and <code>publish/</code>). Session handoff is left out. Files live in <code>${escapeHtml(listing.directory)}</code>, outside the release, so an update does not remove them. Drop a file named like <code>2026-09-28T191500Z.tar.gz</code> there over SFTP and it shows up in this list.</p>
     <p><button type="button" class="w3-button w3-theme" data-action="backup">Back up now</button></p>
     ${rows}
@@ -1397,7 +1389,7 @@ function homeHtml(listing: RecordList, notice = "", error = ""): string {
           <a class="w3-button w3-white" href="#/records">Records</a></p>`
     : startSiteHtml();
   return `<h1 class="w3-large">Tessera editor</h1>
-    ${statusHtml(notice, error)}
+    ${statusPanels(notice, error)}
     <p class="w3-text-grey">YAML files named with Tessera <code>id</code>, outside the web root. Saving a page appends the previous file to a history file and refreshes the preview at <code>${previewUrl}</code>. <strong>Render site</strong> rebuilds that preview for every page. <strong>Publish</strong> writes the copyable <code>publish/</code> folder. Set <strong>Publish to</strong> on the site record to also replace the files in an existing directory this process can write. That directory is not created, and files already in it are removed.</p>
     ${body}`;
 }
@@ -1405,11 +1397,6 @@ function homeHtml(listing: RecordList, notice = "", error = ""): string {
 function startSiteHtml(): string {
   return `<p><button type="button" class="w3-button w3-theme" data-action="init-site">Start an empty site</button></p>
     <p class="w3-text-grey">This writes a shell, a master layout, a standard type and page layout, a Hello world home page, and a common-footer item. It does not replace a site that already has records. To replace one, use Re-seed on Backups.</p>`;
-}
-
-function statusHtml(notice: string, error: string): string {
-  return `${notice ? `<p class="w3-panel w3-pale-green" role="status">${escapeHtml(notice)}</p>` : ""}
-    ${error ? `<p class="w3-panel w3-pale-red" role="alert">${escapeHtml(error)}</p>` : ""}`;
 }
 
 /** Media and folders are edited in the Library, not as record lists. */
@@ -1469,7 +1456,7 @@ function listHtml(
     })
     .join("");
   return `<h1 class="w3-large">Records</h1>
-    ${statusHtml(notice, error)}
+    ${statusPanels(notice, error)}
     ${siteReady ? "" : startSiteHtml()}
     <nav class="editor-tabs" aria-label="Record types">${tabs}</nav>
     ${recordTab(listing, active, byKind, siteReady, layoutNotes)}`;
@@ -1526,7 +1513,7 @@ function layoutSection(rows: RecordSummary[], siteReady: boolean, notes: Map<str
         </select>
       </p>
       <p class="w3-text-grey">A page layout declares the zones Compose fills. A frame wraps every page: one page slot, and the menus around it.</p>
-      <p data-form-error class="w3-panel w3-pale-red" role="alert" hidden></p>
+      ${formErrorPanel()}
       <p><button type="submit" class="w3-button w3-theme">Create layout</button></p>
     </form>
     ${rows.length ? recordList(rows, false, (row) => notes.get(row.id) ?? "Page layout") : `<p class="w3-text-grey">No layouts yet.</p>`}`;
@@ -1611,7 +1598,7 @@ function contentSection(rows: RecordSummary[], templates: RecordSummary[], siteR
       </p>
       <p class="w3-text-grey">Free form starts empty and can be rearranged. A template copies that prototype, including its placeholder text.</p>
       <p class="editor-check"><label><input name="sidebar" type="checkbox" checked /> Include in the sidebar</label></p>
-      <p data-form-error class="w3-panel w3-pale-red" role="alert" hidden></p>
+      ${formErrorPanel()}
       <p><button type="submit" class="w3-button w3-theme">Create page</button></p>
     </form>
     ${rows.length ? `${entryFilter()}${recordList(rows, true)}<p id="entry-filter-empty" class="w3-text-grey" hidden>No entries match.</p>` : `<p class="w3-text-grey">No records yet.</p>`}`;
@@ -1673,7 +1660,7 @@ function typeSection(rows: RecordSummary[], siteReady: boolean): string {
         <input id="new-type-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
       </p>
       <p class="w3-text-grey">One file, <code>records/types/&lt;id&gt;.yaml</code>. Start with a letter or number, then letters, numbers, dots, hyphens, or underscores. The id is the name a page’s Type field uses.</p>
-      <p data-form-error class="w3-panel w3-pale-red" role="alert" hidden></p>
+      ${formErrorPanel()}
       <p><button type="submit" class="w3-button w3-theme">Create type</button></p>
     </form>
     ${rows.length ? recordList(rows) : `<p class="w3-text-grey">No types yet.</p>`}`;
@@ -1695,7 +1682,7 @@ function templateSection(rows: RecordSummary[], siteReady: boolean): string {
         <input id="new-template-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
       </p>
       <p class="w3-text-grey">One file, <code>records/templates/&lt;id&gt;.yaml</code>. Copy that file to reuse the template on another site. Start with a letter or number, then letters, numbers, dots, hyphens, or underscores.</p>
-      <p data-form-error class="w3-panel w3-pale-red" role="alert" hidden></p>
+      ${formErrorPanel()}
       <p><button type="submit" class="w3-button w3-theme">Create template</button></p>
     </form>
     ${rows.length ? recordList(rows) : `<p class="w3-text-grey">No records yet.</p>`}`;
@@ -2020,7 +2007,7 @@ async function bindEdit(
   const actionRow = `<p class="editor-actions"><button type="submit" id="record-save"${pageHost ? ' form="record-form"' : ""} class="w3-button w3-theme">Save</button>${sessionActions}</p>`;
   const saveStatus = `<p id="save-status" class="w3-text-grey" hidden></p>`;
   const editor = `${lifecycleHtml(payload)}
-     ${notice ? `<p class="w3-panel w3-pale-green" role="status">${escapeHtml(notice)}</p>` : ""}
+     ${noticePanel(notice)}
      <p class="editor-tabs">
        ${
          kind === "layouts"
@@ -2452,20 +2439,20 @@ function jsonZoneFields(name: string, json: unknown, offLayout = false): string 
 }
 
 function textField(name: string, label: string, value: string, type = "text", after = ""): string {
-  const id = `f-${name.replace(/[^a-zA-Z0-9]+/g, "-")}`;
+  const id = fieldId(name);
   return `<p><label for="${id}">${escapeHtml(label)}</label>
     <input id="${id}" name="${escapeHtml(name)}" data-kind="${type}" class="w3-input w3-border" value="${escapeHtml(value)}" />${after}</p>`;
 }
 
 function textareaField(name: string, label: string, value: string, rows: number): string {
-  const id = `f-${name.replace(/[^a-zA-Z0-9]+/g, "-")}`;
+  const id = fieldId(name);
   const extra = rows >= 14 ? " editor-body" : "";
   return `<p><label for="${id}">${escapeHtml(label)}</label>
     <textarea id="${id}" name="${escapeHtml(name)}" rows="${rows}" class="w3-input w3-border w3-margin-top${extra}">${escapeHtml(value)}</textarea></p>`;
 }
 
 function yamlField(name: string, label: string, value: unknown, rows: number): string {
-  const id = `f-${name.replace(/[^a-zA-Z0-9]+/g, "-")}`;
+  const id = fieldId(name);
   const text = stringifyYaml(value, { indent: 2, lineWidth: 0 }).trimEnd();
   return `<p><label for="${id}">${escapeHtml(label)}</label>
     <textarea id="${id}" name="${escapeHtml(name)}" data-kind="yaml" rows="${rows}" spellcheck="false" class="w3-input w3-border w3-margin-top editor-yaml">${escapeHtml(text)}</textarea></p>`;

@@ -1,3 +1,4 @@
+import { escapeHtml } from "../dom.js";
 import type { ControlValue } from "./nav.js";
 
 export type LayoutChoice = { id: string };
@@ -217,8 +218,4 @@ function parseObject(text: string): Record<string, unknown> {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
-}
-
-function escapeHtml(value: string): string {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }

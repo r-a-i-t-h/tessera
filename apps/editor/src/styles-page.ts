@@ -1,4 +1,5 @@
 import { siteStyleCss, type SiteStyle } from "@r-a-i-t-h/tessera-model";
+import { errorPanel, escapeHtml, noticePanel } from "./dom.js";
 import { STYLE_FIELDS, styleDraft, styleFieldValues, styleFromValues, styleGroups } from "./forms/style.js";
 
 export function stylesPageHtml(record: Record<string, unknown>, notice = "", error = ""): string {
@@ -13,8 +14,8 @@ export function stylesPageHtml(record: Record<string, unknown>, notice = "", err
     .join("");
   return `<h1 class="w3-large">Styles</h1>
     <p class="w3-text-grey">These tokens size and colour the default frame: a <code>tessera-sidebar</code>, a <code>tessera-bar</code>, and <code>tessera-main</code>. They are saved on the site record and written into a style element after the files below, so they override <code>:root</code> in Tessera. Willow’s shell uses <code>site.css</code> and <code>wh-</code> classes, so saving here leaves the hall unchanged. Menu side moves a <code>tessera-sidebar</code>. Willow’s drawer is placed by the master layout. <a href="#/guide">Guide</a>.</p>
-    ${notice ? `<p class="w3-panel w3-pale-green" role="status">${escapeHtml(notice)}</p>` : ""}
-    ${error ? `<p class="w3-panel w3-pale-red" role="alert">${escapeHtml(error)}</p>` : ""}
+    ${noticePanel(notice)}
+    ${errorPanel(error)}
     <div id="style-specimen" class="style-specimen" data-side="${escapeHtml(values.navSide)}">
       <style id="style-specimen-css">${siteStyleCss(values, ".style-specimen")}</style>
       <div class="style-specimen-bar"><span>Site title</span><span>A B</span></div>
@@ -78,14 +79,6 @@ function fieldHtml(name: string, label: string, kind: string, value: string): st
   const type = kind === "url" ? "url" : "text";
   return `<p${wide}><label for="${id}">${escapeHtml(label)}</label>
     <input id="${id}" name="${escapeHtml(name)}" class="w3-input w3-border" type="${type}" value="${escapeHtml(value)}" /></p>`;
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }
 
 export type StylesheetView = {

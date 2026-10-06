@@ -1,3 +1,4 @@
+import { escapeHtml } from "../dom.js";
 import type { AssetRow, FolderRow, LibraryListing } from "./library.js";
 
 export type PickerMode = "image" | "document" | "folder";
@@ -11,14 +12,6 @@ export type PickedAsset = {
   title?: string;
   caption?: string;
 };
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
 
 export function imageTag(asset: PickedAsset): string {
   const alt = asset.alt || asset.title || asset.name;

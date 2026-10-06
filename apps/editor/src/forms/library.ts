@@ -1,3 +1,5 @@
+import { escapeHtml, noticePanel } from "../dom.js";
+
 export type FolderRow = {
   id: string;
   parentId: string | null;
@@ -20,14 +22,6 @@ export type LibraryListing = {
   folders: FolderRow[];
   assets: AssetRow[];
 };
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
 
 /** Relative path from a drop, as folder ids plus a filename. */
 export function placement(relativePath: string): { folders: string[]; file: string } | undefined {
@@ -113,7 +107,7 @@ export function renderLibrary(listing: LibraryListing, openId: string | null, no
     ? `<p class="w3-text-grey">This folder is empty.</p>`
     : `<ul class="w3-ul editor-library">${rows}</ul>`;
   return `<h1 class="w3-large">Library</h1>
-    ${notice ? `<p class="w3-panel w3-pale-green" role="status">${escapeHtml(notice)}</p>` : ""}
+    ${noticePanel(notice)}
     <div class="editor-library-split">
       <section class="editor-library-browse" aria-label="Folders and files">
         <p class="editor-crumbs">${crumbs}</p>

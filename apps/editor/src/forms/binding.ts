@@ -1,3 +1,4 @@
+import { escapeHtml, formErrorPanel } from "../dom.js";
 import { pageIdError } from "./page.js";
 import { folderChecklist } from "./picker.js";
 import type { ControlValue } from "./nav.js";
@@ -368,7 +369,7 @@ export function renderNewBinding(state: NewBinding, choices: BindingChoices): st
   return `${kindField(state)}
     ${idField(state)}
     ${state.kind === "gallery" ? `${carryPictures(state.gallery)}${carryLook(state.gallery)}` : kindBody(state, choices)}
-    ${formError()}
+    ${formErrorPanel()}
     <p><button type="submit" class="w3-button w3-theme">${state.kind === "gallery" ? "Next" : "Create binding"}</button></p>`;
 }
 
@@ -432,7 +433,7 @@ function galleryWizard(state: NewBinding, choices: BindingChoices): string {
       <fieldset class="editor-fieldset"><legend>Pictures</legend>
         ${pictureFields(state.gallery, choices.folders, true)}
       </fieldset>
-      ${formError()}
+      ${formErrorPanel()}
       <p><button type="button" class="w3-button w3-white" data-binding-step="back">Back</button>
         <button type="submit" class="w3-button w3-theme">Next</button></p>`;
   }
@@ -444,7 +445,7 @@ function galleryWizard(state: NewBinding, choices: BindingChoices): string {
     <fieldset class="editor-fieldset"><legend>Look</legend>
       ${lookFields(state.gallery, true)}
     </fieldset>
-    ${formError()}
+    ${formErrorPanel()}
     <p><button type="button" class="w3-button w3-white" data-binding-step="back">Back</button>
       <button type="submit" class="w3-button w3-theme">Create binding</button></p>`;
 }
@@ -639,10 +640,6 @@ function hiddenExtra(prefix: string, propsExtra: Record<string, unknown>, record
     <input type="hidden" name="${prefix}-record-extra" value="${escapeHtml(JSON.stringify(recordExtra))}" />`;
 }
 
-function formError(): string {
-  return `<p data-form-error class="w3-panel w3-pale-red" role="alert" hidden></p>`;
-}
-
 function galleryPhrase(draft: GalleryDraft): string {
   const look = draft.mode === "slides" ? "Slides" : "Grid";
   if (!draft.folders.length) return "A gallery with no folders yet.";
@@ -799,8 +796,4 @@ function parseObject(text: string): Record<string, unknown> {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
-}
-
-function escapeHtml(value: string): string {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
