@@ -132,7 +132,7 @@ function staticFields(html: string): string {
     return `<p><label>Text <input class="w3-input w3-border" data-field="paragraph" value="${escapeHtml(text)}" /></label></p>
       <p class="w3-small w3-text-grey">Stored as a paragraph. The same text is on every page.</p>`;
   }
-  return `<p><label>HTML <textarea class="w3-input w3-border editor-yaml" data-field="html" rows="8" spellcheck="false">${escapeHtml(html)}</textarea></label></p>
+  return `<p><label>HTML <textarea class="w3-input w3-border editor-html" data-field="html" rows="14" spellcheck="false">${escapeHtml(html)}</textarea></label></p>
     <p class="w3-small w3-text-grey">This fragment is the same on every page.</p>`;
 }
 

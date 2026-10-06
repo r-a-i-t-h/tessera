@@ -40,7 +40,7 @@ export function publishPages(document: SiteDocument, options: PublishPagesOption
   const origin = options.origin.replace(/\/$/, "");
   const lang = options.lang ?? "en";
   const registry = options.registry ?? new ComponentRegistry();
-  const stylesheets = options.stylesheets ?? ["./skin/w3.css", "./site.css"];
+  const stylesheets = options.stylesheets ?? ["./skin/w3.css", "./skin/tessera.css", "./skin/microapps.css", "./site.css"];
   const script = options.script ?? "./tessera-pages.js";
   const tree = publishedPageTree(document);
   const pages = flattenPageTree(tree);

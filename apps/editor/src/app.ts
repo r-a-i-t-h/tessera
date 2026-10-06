@@ -27,6 +27,8 @@ import {
   reseedSite,
   saveRawRecord,
   saveRecord,
+  listStylesheets,
+  saveStylesheet,
   updateLibraryAsset,
   updateUser,
   uploadLibrary,
@@ -109,7 +111,7 @@ import {
   type PickedAsset,
 } from "./forms/picker.js";
 import { guideHtml } from "./guide.js";
-import { paintSpecimen, previewStyle, readStyleForm, stylesPageHtml } from "./styles-page.js";
+import { paintSpecimen, previewStyle, readStyleForm, stylesheetEditors, stylesPageHtml } from "./styles-page.js";
 import { usernameError } from "./username.js";
 
 function escapeHtml(value: string): string {
@@ -314,8 +316,9 @@ async function bindStyles(root: HTMLElement, user: PublicUser, notice = "", erro
     payload.data && typeof payload.data === "object" && !Array.isArray(payload.data)
       ? (payload.data as Record<string, unknown>)
       : {};
-  root.innerHTML = chrome(user, stylesPageHtml(record, notice, error), true, "styles");
+  root.innerHTML = chrome(user, stylesPageHtml(record, notice, error) + (await stylesheetBlock()), true, "styles");
   bindChrome(root);
+  bindStylesheetSaves(root, user);
   const form = root.querySelector<HTMLFormElement>("#style-form");
   if (!form) return;
   const paint = () => paintSpecimen(root, previewStyle(form));
@@ -337,6 +340,34 @@ async function bindStyles(root: HTMLElement, user: PublicUser, notice = "", erro
       }
     })();
   });
+}
+
+async function stylesheetBlock(): Promise<string> {
+  try {
+    return stylesheetEditors(await listStylesheets());
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Could not load stylesheets.";
+    return stylesheetEditors([], message);
+  }
+}
+
+function bindStylesheetSaves(root: HTMLElement, user: PublicUser): void {
+  for (const form of root.querySelectorAll<HTMLFormElement>("form[data-sheet]")) {
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const id = form.dataset.sheet ?? "";
+      const field = form.elements.namedItem("text");
+      const text = field instanceof HTMLTextAreaElement ? field.value : "";
+      void (async () => {
+        try {
+          await saveStylesheet(id, text);
+          await bindStyles(root, user, "Saved. The preview uses this immediately. Publish to update the published site.");
+        } catch (err) {
+          await bindStyles(root, user, "", err instanceof Error ? err.message : "Could not save that stylesheet.");
+        }
+      })();
+    });
+  }
 }
 
 async function runRender(root: HTMLElement): Promise<void> {

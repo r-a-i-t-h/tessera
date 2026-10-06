@@ -68,6 +68,33 @@ textarea.w3-input[data-kind="yaml"] {
   padding: 0.75rem 1rem;
 }
 
+textarea.w3-input.editor-html {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: #f6f6f4;
+  border: 1px solid #c8c8c4;
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+}
+
+.style-sheet {
+  margin: 1rem 0 1.5rem;
+}
+
+.style-sheet summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.style-sheet textarea {
+  width: 100%;
+  min-height: 16rem;
+}
+
 .editor-kind {
   margin-bottom: 1.5rem;
 }

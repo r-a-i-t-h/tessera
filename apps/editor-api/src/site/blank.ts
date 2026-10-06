@@ -10,7 +10,8 @@ const SHELL_HTML = `<!DOCTYPE html>
     <title>New site</title>
     <link rel="stylesheet" href="./skin/w3.css" />
     <link rel="stylesheet" href="./skin/w3-theme-teal.css" />
-    <link rel="stylesheet" href="./skin/chrome.css" />
+    <link rel="stylesheet" href="./skin/tessera.css" />
+    <link rel="stylesheet" href="./skin/microapps.css" />
     <link rel="stylesheet" href="./site.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lekton|Roboto|Orbitron|Thasadith" />
   </head>
@@ -21,7 +22,7 @@ const SHELL_HTML = `<!DOCTYPE html>
 </html>
 `;
 
-const SITE_CSS = `/* Site-specific rules. Shared chrome tokens live in skin/chrome.css. */
+const SITE_CSS = `/* Site-specific rules. Shared frame tokens live in skin/tessera.css. */
 
 /* The column stays on the left from 993px up. Below that it is a flyout
    from the right, so the title and the left of the page stay in view. */

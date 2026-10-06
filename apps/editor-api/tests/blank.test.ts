@@ -48,7 +48,10 @@ describe("blank site", () => {
     expect(siteYaml).toContain("masterLayoutId: master");
     const shell = await readFile(join(root, "shell", "index.html"), "utf8");
     expect(shell).toContain('id="app"');
-    expect(shell).toContain("./skin/chrome.css");
+    expect(shell).toContain("./skin/tessera.css");
+    expect(shell).toContain("./skin/microapps.css");
+    expect(shell).toContain("./skin/w3-theme-teal.css");
+    expect(shell).not.toContain("chrome.css");
     expect(shell).toContain('class="leftnav fontA"');
     const siteCss = await readFile(join(root, "shell", "site.css"), "utf8");
     expect(siteCss).toContain("max-width: 992px");

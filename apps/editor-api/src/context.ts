@@ -15,6 +15,8 @@ export type AppVariables = {
   /** Offline dated archives, sibling of the site directory unless `TESSERA_BACKUP` is set. */
   backupDir?: string;
   seedDir?: string;
+  /** Skin CSS directory. Set with the preview roots. */
+  skinDir?: string;
   rateLimiter: RateLimiter;
   rateLimits: RateLimitConfig;
 };

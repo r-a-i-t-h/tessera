@@ -43,73 +43,6 @@ export class TesseraGallery extends WCBase {
     this.style.display = "block";
     this.classList.add("tessera-gallery");
 
-    const style = this.e("style");
-    style.textContent = `
-      tessera-gallery .tessera-gallery-thumb { cursor: pointer; }
-      tessera-gallery .tessera-gallery-btn {
-        box-sizing: border-box;
-        width: 2.5rem;
-        height: 2.5rem;
-        padding: 0;
-        margin: 0;
-        border: none;
-        border-radius: 50%;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        background: #616161;
-        color: #fff;
-        font-size: 1.5rem;
-        line-height: 1;
-        cursor: pointer;
-      }
-      tessera-gallery .tessera-gallery-btn:hover,
-      tessera-gallery .tessera-gallery-btn:focus {
-        background: #757575;
-        color: #fff;
-      }
-      tessera-gallery .tessera-gallery-dialog {
-        border: none;
-        padding: 0;
-        max-width: min(960px, 96vw);
-        width: 96vw;
-        background: #111;
-        color: #fff;
-      }
-      tessera-gallery .tessera-gallery-dialog::backdrop { background: rgba(0,0,0,0.72); }
-      tessera-gallery .tessera-gallery-dialog-img {
-        display: block;
-        width: 100%;
-        max-height: 80vh;
-        object-fit: contain;
-        background: #000;
-      }
-      tessera-gallery .tessera-gallery-dialog-controls {
-        display: grid;
-        grid-template-columns: 1fr auto 1fr;
-        align-items: center;
-        gap: 0.5rem;
-      }
-      tessera-gallery .tessera-gallery-dialog-nav {
-        display: flex;
-        gap: 0.35rem;
-        justify-content: center;
-        grid-column: 2;
-      }
-      tessera-gallery .tessera-gallery-close {
-        grid-column: 3;
-        justify-self: end;
-      }
-      tessera-gallery .tessera-gallery-slides .w3-display-left,
-      tessera-gallery .tessera-gallery-slides .w3-display-right {
-        position: absolute;
-        top: 50%;
-        transform: translate(0, -50%);
-      }
-      tessera-gallery .tessera-gallery-slides .w3-display-left { left: 0; }
-      tessera-gallery .tessera-gallery-slides .w3-display-right { right: 0; }
-    `;
-
     const img = this.e("img", { className: "tessera-gallery-dialog-img" });
     img.alt = "";
     const caption = this.d({ className: "tessera-gallery-dialog-caption w3-padding" });
@@ -161,7 +94,7 @@ export class TesseraGallery extends WCBase {
       if (e.key === "ArrowRight") this.#step(1);
     });
 
-    return [style, this.gridEl, this.slidesEl, this.dialogEl];
+    return [this.gridEl, this.slidesEl, this.dialogEl];
   }
 
   c() {

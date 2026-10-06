@@ -164,4 +164,12 @@ describe("emitDist", () => {
     await expect(readFile(join(fixture.root, "publish", "old", "index.html"), "utf8")).rejects.toThrow();
     expect(await readFile(join(fixture.root, "publish", "media", "logo.svg"), "utf8")).toContain("svg");
   });
+
+  it("copies a site skin override over the shared file", async () => {
+    const fixture = await target("pages");
+    await mkdir(join(fixture.root, "shell", "css"), { recursive: true });
+    await writeFile(join(fixture.root, "shell", "css", "w3.css"), "body{color:site}\n");
+    await emitDist(fixture.document, fixture.target);
+    expect(await readFile(join(fixture.root, "publish", "skin", "w3.css"), "utf8")).toContain("color:site");
+  });
 });

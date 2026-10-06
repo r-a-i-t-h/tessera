@@ -4,6 +4,7 @@ import { extname, join, relative, resolve, sep } from "node:path";
 import type { Context, Hono } from "hono";
 import { requireEditor } from "./access/editor.js";
 import { isResponse } from "./http.js";
+import { skinOverrideFile } from "./site/skin-override.js";
 
 const MIME: Record<string, string> = {
   ".css": "text/css; charset=utf-8",
@@ -147,7 +148,10 @@ function resolvePreviewFile(rel: string, roots: PreviewRoots): string | null {
     return fileInDir(roots.bundleDir, rel);
   }
   if (rel.startsWith("skin/")) {
-    return fileInDir(roots.skinDir, rel.slice("skin/".length));
+    const name = rel.slice("skin/".length);
+    const override = skinOverrideFile(join(roots.siteRoot, "shell"), name);
+    if (override) return override;
+    return fileInDir(roots.skinDir, name);
   }
   if (rel.startsWith("data/")) {
     return fileInDir(join(roots.siteRoot, "preview"), rel);

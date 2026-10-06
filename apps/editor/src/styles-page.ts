@@ -12,7 +12,7 @@ export function stylesPageHtml(record: Record<string, unknown>, notice = "", err
     )
     .join("");
   return `<h1 class="w3-large">Styles</h1>
-    <p class="w3-text-grey">These tokens size and colour the default chrome: a <code>tessera-sidebar</code>, a <code>tessera-bar</code>, and <code>tessera-main</code>. Willow’s shell uses <code>site.css</code> and <code>wh-</code> classes, so saving here leaves the hall unchanged. Menu side moves a <code>tessera-sidebar</code>. Willow’s drawer is placed by the master layout. <a href="#/guide">Guide</a>.</p>
+    <p class="w3-text-grey">These tokens size and colour the default frame: a <code>tessera-sidebar</code>, a <code>tessera-bar</code>, and <code>tessera-main</code>. They are saved on the site record and written into a style element after the files below, so they override <code>:root</code> in Tessera. Willow’s shell uses <code>site.css</code> and <code>wh-</code> classes, so saving here leaves the hall unchanged. Menu side moves a <code>tessera-sidebar</code>. Willow’s drawer is placed by the master layout. <a href="#/guide">Guide</a>.</p>
     ${notice ? `<p class="w3-panel w3-pale-green" role="status">${escapeHtml(notice)}</p>` : ""}
     ${error ? `<p class="w3-panel w3-pale-red" role="alert">${escapeHtml(error)}</p>` : ""}
     <div id="style-specimen" class="style-specimen" data-side="${escapeHtml(values.navSide)}">
@@ -31,7 +31,9 @@ export function stylesPageHtml(record: Record<string, unknown>, notice = "", err
     <form id="style-form">
       ${fields}
       <p><button type="submit" class="w3-button w3-theme">Save styles</button></p>
-    </form>`;
+    </form>
+    <h2 class="w3-large">Stylesheets</h2>
+    <p class="w3-text-grey">These are the files the site loads. Shared files start as the copies shipped with Tessera. Saving one stores a copy for this site. The preview uses a save immediately. Publish to update the published site.</p>`;
 }
 
 export function readStyleForm(form: HTMLFormElement): { ok: true; style: SiteStyle } | { ok: false; error: string } {
@@ -83,4 +85,40 @@ function escapeHtml(value: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+export type StylesheetView = {
+  id: string;
+  label: string;
+  text: string;
+  overridden: boolean;
+};
+
+export function stylesheetEditors(sheets: readonly StylesheetView[], error = ""): string {
+  const alert = error ? `<p class="w3-panel w3-pale-red" role="alert">${escapeHtml(error)}</p>` : "";
+  if (!sheets.length) return `${alert}<p>No stylesheets are available.</p>`;
+  return alert + sheets.map(sheetEditor).join("");
+}
+
+function sheetEditor(sheet: StylesheetView): string {
+  const open = sheet.id === "site" ? " open" : "";
+  const own = sheet.overridden ? " This site has its own copy." : "";
+  return `<details class="style-sheet"${open}>
+    <summary>${escapeHtml(sheet.label)}</summary>
+    <p class="w3-small w3-text-grey">${escapeHtml(sheetNote(sheet.id) + own)}</p>
+    <form data-sheet="${escapeHtml(sheet.id)}">
+      <p><textarea name="text" rows="18" spellcheck="false" class="w3-input w3-border editor-yaml">${escapeHtml(sheet.text)}</textarea></p>
+      <p><button type="submit" class="w3-button w3-theme">Save ${escapeHtml(sheet.label)}</button></p>
+    </form>
+  </details>`;
+}
+
+function sheetNote(id: string): string {
+  const publish = "The preview uses a save immediately. Publish to update the published site.";
+  const tokens =
+    "Styles tokens are written into a style element after these files, so they override :root variables in Tessera. Editing those variables here does not change the form above.";
+  const shared = "This starts as the copy shipped with Tessera. Saving stores a copy for this site.";
+  if (id === "site") return `This file is this site's layout. ${tokens} ${publish}`;
+  if (id === "tessera") return `${shared} ${tokens} ${publish}`;
+  return `${shared} ${publish}`;
 }

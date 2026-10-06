@@ -366,3 +366,21 @@ export function updateLibraryAsset(
 export function deleteLibraryAsset(id: string): Promise<{ ok: true }> {
   return request(`/api/library/assets/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
+
+export type StylesheetRecord = {
+  id: string;
+  label: string;
+  text: string;
+  overridden: boolean;
+};
+
+export function listStylesheets(): Promise<StylesheetRecord[]> {
+  return request<{ ok: true; sheets: StylesheetRecord[] }>("/api/stylesheets").then((body) => body.sheets);
+}
+
+export function saveStylesheet(id: string, text: string): Promise<void> {
+  return request(`/api/stylesheets/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: JSON.stringify({ text }),
+  });
+}

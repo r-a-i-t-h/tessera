@@ -67,17 +67,22 @@ A Gallery section in Compose is a different thing. That paints one folder into t
 
 A list stored as JSON, and any other component, is edited as the raw file. Menus, breadcrumbs, and the profile lines (`articleByline`, `profileKicker`, `profilePhoto`, `profileFacts`) belong on a layout. Subpages is a Compose section.
 
-## Three different styles
+## Four stylesheets
 
-A class on a layout region is an ordinary CSS class. Three stylesheets supply them, and they do not stand in for each other.
+A class on a layout region is an ordinary CSS class. Four stylesheets supply them, and they do not stand in for each other.
 
 - **W3.CSS** (`skin/w3.css`), linked by every shell. Examples: `w3-sidebar`, `w3-bar-block`, `w3-collapse`, `w3-hide-large`, `w3-row`, `w3-col`. `w3-collapse` on a `w3-sidebar` shows that sidebar from 993px up and hides it below that, where the Menu button opens it. `w3-hide-large` hides an element from 993px up.
-- **Site CSS** (`shell/site.css`). Willow’s look is here: `wh-header`, `wh-topnav`, `wh-drawer`, `wh-main`, and the colours under `--wh-`. `.wh-drawer` is `display: none` until Menu runs.
-- **Default chrome** (`skin/chrome.css`). A blank site links this. Classes: `tessera-sidebar`, `tessera-bar`, `tessera-main`, `tessera-content`, `tessera-footer`. The Styles page writes tokens that this file reads.
+- **Tessera** (`skin/tessera.css`), linked by every shell. The default frame and shared widgets: `tessera-sidebar`, `tessera-bar`, `tessera-main`, `tessera-content`, `tessera-footer`, link clusters, video, pasted notes, and `tessera-imgbox`. The Styles page tokens override `:root` in this file.
+- **Micro-apps** (`skin/microapps.css`). The gallery lives here.
+- **Site CSS** (`shell/site.css`). This site’s layout. Willow’s look is here: `wh-header`, `wh-topnav`, `wh-drawer`, `wh-main`, and the colours under `--wh-`. `.wh-drawer` is `display: none` until Menu runs.
+
+A shell that links a W3 theme, such as `skin/w3-theme-teal.css`, keeps that file between W3 and Tessera. Willow paints those colours in `site.css` instead. The fonts link is a URL, not one of these files.
+
+The Styles page can open each of these files. Saving W3, Tessera, micro-apps, or the theme stores a copy for this site and leaves the shared file alone. Saving site layout writes `shell/site.css`. The preview uses a save immediately. Publish updates the published copy.
 
 ## What the Styles page changes
 
-Styles saves `site.style`. The preview turns those tokens into CSS variables and adds `leftnav` or `rightnav` on the body. Willow’s shell does not link `chrome.css`, and its master layout uses `wh-` classes, so saving Styles leaves the hall looking the same. The specimen on the Styles page is the default chrome, which is the frame a blank site starts with.
+Styles saves `site.style`. A pages build writes those tokens into a style element after the stylesheet links, and adds `leftnav` or `rightnav` on the body. That style element overrides `:root` in `tessera.css`. Editing the same variables in a stylesheet does not change this form. Willow’s master layout uses `wh-` classes, so saving the tokens leaves the hall looking the same. The specimen on the Styles page is the default frame, which is the frame a blank site starts with.
 
 | Field | Effect on the default chrome |
 |-------|-------------------------------|
@@ -102,7 +107,7 @@ Lengths are values such as `300px` or `1.5rem`. Colours are hex, such as `#00968
 The drawer is already in the master layout, with id `mySidebar`. To keep it open on a wide window, add `w3-collapse` to that region’s classes:
 
 ```yaml
-className: w3-sidebar w3-bar-block w3-collapse w3-animate-left wh-drawer
+className: w3-sidebar w3-bar-block w3-collapse wh-drawer
 ```
 
 Then give the page a left margin in `shell/site.css`:
@@ -114,9 +119,9 @@ Then give the page a left margin in `shell/site.css`:
 }
 ```
 
-Below 993px it stays a drawer opened by Menu. Keep the ids `mySidebar` and `myOverlay`. The runtime binds open and close to those two ids.
+Below 993px it stays a drawer opened by Menu, and that flyout may slide in. Leave `w3-animate-left` off the standing column: from 993px up the column is already on the page, and a slide on every new page is only noise. Keep the ids `mySidebar` and `myOverlay`. The runtime binds open and close to those two ids.
 
-A starter site already has this column, on the left. Its master uses `tessera-sidebar` and `w3-collapse`, its shell links `chrome.css`, and the site record sets Menu side to left. The Styles page can move the standing column. Below 993px the column hides. The Menu button sits on the right of the bar and opens a flyout from the right, so the site title stays put and the left of the page stays in view. The flyout position is in `shell/site.css`.
+A starter site already has this column, on the left. Its master uses `tessera-sidebar` and `w3-collapse`, its shell links `tessera.css`, and the site record sets Menu side to left. The Styles page can move the standing column. Below 993px the column hides. The Menu button sits on the right of the bar and opens a flyout from the right, so the site title stays put and the left of the page stays in view. The flyout position is in `shell/site.css`.
 
 ## A different frame for a section
 

@@ -143,6 +143,7 @@ describe("paintSections", () => {
     expect(html).toContain("fa-quote-left");
     expect(html).toContain("w3-theme-l4");
     expect(html).toContain("w3-display-container");
+    expect(html).toContain("tessera-imgbox");
     expect(html).toContain('src="a.jpg"');
     expect(html).toContain("w3-row-padding");
     expect(html).toContain("w3-half");

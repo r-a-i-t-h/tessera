@@ -61,6 +61,11 @@ const MIME: Record<string, string> = {
 
 const placeholderHtml = readFileSync(emptyIndex, "utf8");
 
+function isSkinOverrideName(name: string): boolean {
+  if (name.includes("/") || name.includes("\\") || name.includes("\0")) return false;
+  return name === "w3.css" || name === "tessera.css" || name === "microapps.css" || /^w3-theme-[a-z0-9-]+\.css$/.test(name);
+}
+
 function fileInDir(dir: string, rel: string): string | null {
   const file = join(dir, rel);
   const rootPrefix = dir.endsWith(sep) ? dir : dir + sep;
@@ -124,6 +129,14 @@ function serveSite(
           return;
         }
         if (rel.startsWith("skin/")) {
+          const name = rel.slice("skin/".length);
+          if (isSkinOverrideName(name)) {
+            const override = fileInDir(join(shellDir, "css"), name);
+            if (override) {
+              sendFile(res, override);
+              return;
+            }
+          }
           const fromSkin = fileInDir(skinDir, rel.slice("skin/".length));
           if (fromSkin) {
             sendFile(res, fromSkin);

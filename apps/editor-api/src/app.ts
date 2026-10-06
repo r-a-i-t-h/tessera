@@ -10,6 +10,7 @@ import { recordRoutes } from "./routes/records.js";
 import { libraryRoutes } from "./routes/library.js";
 import { renderRoutes } from "./routes/render.js";
 import { siteRoutes } from "./routes/site.js";
+import { stylesheetRoutes } from "./routes/stylesheets.js";
 import { userRoutes } from "./routes/users.js";
 import type { SiteStore } from "./site/store.js";
 import { mountPreview, type PreviewRoots } from "./preview.js";
@@ -48,6 +49,7 @@ export function createApp(opts: {
     if (opts.siteRoot) c.set("siteRoot", opts.siteRoot);
     if (opts.backupDir) c.set("backupDir", opts.backupDir);
     if (opts.seedDir) c.set("seedDir", opts.seedDir);
+    if (opts.preview) c.set("skinDir", opts.preview.skinDir);
     await next();
   });
 
@@ -61,6 +63,7 @@ export function createApp(opts: {
   app.route("/api", libraryRoutes);
   app.route("/api", renderRoutes);
   app.route("/api", siteRoutes);
+  app.route("/api", stylesheetRoutes);
   app.route("/api", backupRoutes);
   app.route("/api", userRoutes);
 

@@ -1,5 +1,6 @@
-/* Default site chrome. Tokens fall back to the ineffable sidebar measurements
-   and the teal theme the blank shell links. The Styles page overrides :root. */
+/* Shared Tessera styles: the default frame, links, video, pasted notes, and image boxes.
+   Tokens fall back to the measurements below. The Styles page writes site.style, which
+   the published page turns into a later style element on :root. */
 
 :root {
   --tessera-sidebar-width: 300px;
@@ -128,13 +129,23 @@ body.fontD h6 {
 body.leftnav .tessera-sidebar {
   left: 0;
   right: auto;
-  animation: animateleft 0.4s;
 }
 
 body.rightnav .tessera-sidebar {
   right: 0;
   left: auto;
-  animation: animateright 0.4s;
+}
+
+/* The standing column is already on the page from 993px up. The slide is
+   only for the flyout below that. */
+@media (max-width: 992px) {
+  body.leftnav .tessera-sidebar {
+    animation: animateleft 0.4s;
+  }
+
+  body.rightnav .tessera-sidebar {
+    animation: animateright 0.4s;
+  }
 }
 
 @media (min-width: 993px) {
@@ -144,6 +155,12 @@ body.rightnav .tessera-sidebar {
 
   body.rightnav .tessera-main {
     margin-right: var(--tessera-sidebar-width);
+  }
+
+  .tessera-sidebar,
+  .w3-sidebar.w3-collapse.w3-animate-left,
+  .w3-sidebar.w3-collapse.w3-animate-right {
+    animation: none;
   }
 }
 
@@ -214,6 +231,10 @@ body.rightnav .tessera-sidebar {
   color: var(--tessera-text);
   border: 1px solid var(--tessera-muted);
   text-decoration: none;
+}
+
+.tessera-imgbox img {
+  width: 100%;
 }
 
 .tessera-video {

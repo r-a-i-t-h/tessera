@@ -285,7 +285,7 @@ function paintImgbox(section: Extract<Section, { kind: "imgbox" }>): string {
   const caption = section.caption
     ? `<div class="w3-display-middle w3-container w3-padding-16 w3-display-hover w3-normal w3-round-large w3-opacity-min w3-white">${escapeText(section.caption)}</div>`
     : "";
-  return `<div class="w3-display-container w3-container w3-padding-16 w3-card w3-center"><img src="${escapeAttr(section.src)}" class="w3-image" style="width: 100%" alt="${escapeAttr(section.alt)}">${caption}</div>`;
+  return `<div class="tessera-imgbox w3-display-container w3-container w3-padding-16 w3-card w3-center"><img src="${escapeAttr(section.src)}" class="w3-image" alt="${escapeAttr(section.alt)}">${caption}</div>`;
 }
 
 function paintColumns(cells: ColumnCell[]): string {

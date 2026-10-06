@@ -53,7 +53,7 @@ Dated site archives live in the sibling `backup/` directory (`TESSERA_BACKUP` ov
 
 - **Layout** — tree of `region` | `zone` | `static` | `component` | `page`. **Only layouts declare zones** (and where they appear). `site.masterLayoutId` is the default outer page. `resolveMasterLayout` may name a different frame for a page subtree. Its `page` node is replaced by the resolved page layout.
 - **Page** — `id`, `title`, optional `description`, optional `slug`, optional `parentId` (published tree; ignored on the home page), optional `masterLayoutId` (frame for this page and its descendants), optional `showInNav` (`false` keeps the URL and drops the nav link), optional `type`, optional `fields`, optional subject `tags`, optional `includes` (shared items), and `zones` contributions. There is no draft flag: every content page is in the flattened document. `locked` and `templateId` may sit on the YAML file and are omitted when the page is assembled. History is not a field on the page.
-- **Style** — optional `site.style` tokens (sidebar width, bar, colours, fonts, nav side). Missing fields use the defaults in `style.ts`. The editor’s Styles page writes this object. Colour themes beyond those tokens stay in the shell stylesheet.
+- **Style** — optional `site.style` tokens (sidebar width, bar, colours, fonts, nav side). Missing fields use the defaults in `style.ts`. The editor’s Styles page writes this object. A pages build turns it into a style element after the stylesheet links, which overrides `:root` in `skin/tessera.css`. The same page can edit the linked stylesheets. Saving W3, Tessera, micro-apps, or a theme file stores a copy in `shell/css/` for this site. `site.css` stays in the shell.
 - **Type** — site-defined `{ id, layoutId?, fields[] }`. `resolvePageProfile` uses that layout, otherwise `site.defaultLayoutId`. A type does not invent zones. Subject tags do not select it.
 - **Item** — reusable zone contributions (footer, promo, …), pulled in via `page.includes`.
 - **Blocks** inside a zone: `text` | `json` | `media` | `component`.
@@ -76,6 +76,7 @@ sites/willow/
   files/                    # flat asset blobs and editor thumbnails, not on the web path
   shell/                    # document shell, no TypeScript and no frame
     index.html  site.css
+    css/                  # optional copies of skin stylesheets for this site
   preview/                  # SPA snapshot for editing; the editor serves it at /preview/
     data/site.json  site.<hash>.json  rev.json
   publish/                  # copyable dist; nginx document root after you copy it

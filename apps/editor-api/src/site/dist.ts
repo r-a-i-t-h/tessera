@@ -10,6 +10,7 @@ import {
 } from "@r-a-i-t-h/tessera-renderer";
 import { registerExtras } from "@r-a-i-t-h/tessera-extras";
 import { w3Skin } from "@r-a-i-t-h/tessera-skin-w3";
+import { skinOverrideFile } from "./skin-override.js";
 import { writeTextAtomic } from "../store/fs.js";
 import { writeSnapshotFiles } from "./snapshot.js";
 
@@ -145,8 +146,10 @@ function typedPath(raw: string): string {
   return raw.slice(slash, end === -1 ? undefined : end);
 }
 
+const DEFAULT_STYLESHEETS = ["./skin/w3.css", "./skin/tessera.css", "./skin/microapps.css", "./site.css"];
+
 function stylesheetsFromShell(html: string | undefined): string[] {
-  if (!html) return ["./skin/w3.css", "./site.css"];
+  if (!html) return DEFAULT_STYLESHEETS;
   const found: string[] = [];
   for (const tag of html.matchAll(/<link\b[^>]*>/gi)) {
     const link = tag[0];
@@ -154,7 +157,7 @@ function stylesheetsFromShell(html: string | undefined): string[] {
     const href = link.match(/\bhref\s*=\s*["']([^"']+)["']/i)?.[1];
     if (href) found.push(href);
   }
-  return found.length ? found : ["./skin/w3.css", "./site.css"];
+  return found.length ? found : DEFAULT_STYLESHEETS;
 }
 
 async function syncLibraryMedia(document: SiteDocument, publishDir: string): Promise<void> {
@@ -195,6 +198,13 @@ async function copyRuntime(target: DistTarget): Promise<void> {
   for (const name of await readdir(target.skinDir)) {
     if (!name.endsWith(".css")) continue;
     await copyFile(join(target.skinDir, name), join(skinOut, name));
+  }
+  const shellDir = dirname(target.shellIndex);
+  const cssDir = join(shellDir, "css");
+  if (!existsSync(cssDir)) return;
+  for (const name of await readdir(cssDir)) {
+    const override = skinOverrideFile(shellDir, name);
+    if (override) await copyFile(override, join(skinOut, name));
   }
 }
 

@@ -400,7 +400,7 @@ function imgboxBody(node: Extract<EditLeaf, { kind: "imgbox" }>): string {
     ? `<div class="w3-display-middle w3-container w3-padding-16 w3-round-large w3-white" data-caption>${escapeText(node.caption)}</div>`
     : `<div class="w3-display-middle w3-hide" data-caption></div>`;
   const src = node.src || "";
-  return `<div class="w3-display-container w3-container w3-padding-16 w3-card w3-center">${src ? `<img src="${escapeAttr(src)}" class="w3-image" style="width: 100%" alt="${escapeAttr(node.alt)}">` : `<p class="w3-text-grey">Add an image address.</p>`}${caption}</div>`;
+  return `<div class="tessera-imgbox w3-display-container w3-container w3-padding-16 w3-card w3-center">${src ? `<img src="${escapeAttr(src)}" class="w3-image" alt="${escapeAttr(node.alt)}">` : `<p class="w3-text-grey">Add an image address.</p>`}${caption}</div>`;
 }
 
 function columnsBody(node: EditColumns, choices: Choices, zone: string, locked: boolean): string {

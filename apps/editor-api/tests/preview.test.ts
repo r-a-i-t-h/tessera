@@ -174,4 +174,11 @@ describe("editor preview host", () => {
     expect(page.status).toBe(200);
     expect(await page.text()).toContain("This site folder is empty");
   });
+
+  it("serves a site copy of a skin stylesheet ahead of the shared file", async () => {
+    await mkdir(join(siteRoot, "shell", "css"), { recursive: true });
+    await writeFile(join(siteRoot, "shell", "css", "w3.css"), "body{color:site}\n");
+    const headers = { Cookie: await cookie() };
+    expect(await (await app().request("/preview/skin/w3.css", { headers })).text()).toContain("color:site");
+  });
 });
