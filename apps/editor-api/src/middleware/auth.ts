@@ -22,7 +22,7 @@ export const loadUser = createMiddleware(async (c, next) => {
 
   const session = sessions.get(token);
   if (session) {
-    const user = users.getUser(session.username);
+    const user = users.resolveUser(session.username);
     if (user && user.disabled !== true) c.set("user", user);
   }
 

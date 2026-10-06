@@ -56,10 +56,22 @@ describe("auth routes", () => {
     expect(setCookie.toLowerCase()).toContain("path=/");
   });
 
-  it.fails("logs in case-insensitively while preserving the stored username", async () => {
+  it("logs in case-insensitively while preserving the stored username", async () => {
     await users.renameUser("alice", "Alice");
 
     const res = await login();
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ ok: true, username: "Alice" });
+  });
+
+  it("loads a session whose username casing differs from the stored spelling", async () => {
+    await users.renameUser("alice", "Alice");
+    const token = sessions.create("alice").token;
+
+    const res = await app().request("/auth/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
     expect(res.status).toBe(200);
     expect(await res.json()).toMatchObject({ ok: true, username: "Alice" });
   });

@@ -41,6 +41,7 @@ async function listJsonFiles(dir: string): Promise<string[]> {
  */
 export class UserStore {
   private users = new Map<string, UserRecord>();
+  private normalizedUsers = new Map<string, string>();
 
   constructor(readonly dataDir: string) {}
 
@@ -58,10 +59,11 @@ export class UserStore {
     }
 
     this.users.clear();
+    this.normalizedUsers.clear();
     for (const file of await listJsonFiles(usersDir)) {
       const raw = await readJson<Record<string, unknown>>(join(usersDir, file));
       const user = normalizeUser(raw);
-      if (user) this.users.set(user.username, user);
+      if (user) this.indexUser(user);
     }
   }
 
@@ -69,14 +71,20 @@ export class UserStore {
     return this.users.get(username);
   }
 
-  /** Case-insensitive match. `Admin` and `admin` share one file on a case-insensitive disk. */
-  findUser(username: string): UserRecord | undefined {
+  /** Resolve an identity without changing the spelling stored on disk. */
+  resolveUser(username: string): UserRecord | undefined {
+    const exact = normalizedUsername(username);
+    const found = this.users.get(exact);
+    if (found) return found;
     const key = normalizedUsername(username).toLowerCase();
     if (!key) return undefined;
-    for (const user of this.users.values()) {
-      if (user.username.toLowerCase() === key) return user;
-    }
-    return undefined;
+    const stored = this.normalizedUsers.get(key);
+    return stored ? this.users.get(stored) : undefined;
+  }
+
+  /** Case-insensitive match. `Admin` and `admin` are one identity. */
+  findUser(username: string): UserRecord | undefined {
+    return this.resolveUser(username);
   }
 
   listUsers(): UserRecord[] {
@@ -84,10 +92,10 @@ export class UserStore {
   }
 
   async saveUser(user: UserRecord): Promise<void> {
-    this.users.set(user.username, user);
     await writeJsonAtomic(join(this.dataDir, "users", `${user.username}.json`), user, {
       mode: 0o600,
     });
+    this.indexUser(user);
   }
 
   async createUser(username: string, passwordHash: string, passwordSalt: string): Promise<UserRecord> {
@@ -128,7 +136,8 @@ export class UserStore {
     }
     await unlink(backup).catch(() => undefined);
     this.users.delete(from);
-    this.users.set(next, updated);
+    this.normalizedUsers.delete(normalizedUsername(from).toLowerCase());
+    this.indexUser(updated);
     return updated;
   }
 
@@ -147,6 +156,7 @@ export class UserStore {
       if (err.code !== "ENOENT") throw err;
     });
     this.users.delete(username);
+    this.normalizedUsers.delete(normalizedUsername(username).toLowerCase());
   }
 
   async updatePassword(
@@ -159,6 +169,16 @@ export class UserStore {
     const updated: UserRecord = { ...existing, passwordHash, passwordSalt };
     await this.saveUser(updated);
     return updated;
+  }
+
+  private indexUser(user: UserRecord): void {
+    const key = normalizedUsername(user.username).toLowerCase();
+    const existing = this.normalizedUsers.get(key);
+    if (existing && existing !== user.username) {
+      throw new Error(`Usernames "${existing}" and "${user.username}" differ only by case.`);
+    }
+    this.users.set(user.username, user);
+    this.normalizedUsers.set(key, user.username);
   }
 }
 

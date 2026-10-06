@@ -68,6 +68,7 @@ describe("UserStore seed load", () => {
     await reloaded.load();
     expect(reloaded.getUser("Alice")?.username).toBe("Alice");
     expect(reloaded.getUser("alice")).toBeUndefined();
+    expect(reloaded.resolveUser("alice")?.username).toBe("Alice");
     expect(reloaded.findUser("ALICE")?.username).toBe("Alice");
   });
 

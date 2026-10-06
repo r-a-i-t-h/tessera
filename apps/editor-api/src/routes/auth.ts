@@ -33,7 +33,7 @@ authRoutes.post("/login", authAttemptLimit, async (c) => {
   if (!body.username || !body.password) {
     return apiError(c, 400, "Username and password required.");
   }
-  const user = users.getUser(body.username);
+  const user = users.resolveUser(body.username);
   if (!user || !(await verifyPassword(body.password, user.passwordHash, user.passwordSalt))) {
     return apiError(c, 401, "Invalid username or password.");
   }
