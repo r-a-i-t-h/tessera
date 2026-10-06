@@ -103,6 +103,8 @@ describe("editor route orchestration", () => {
     await mount(root);
     await vi.waitFor(() => {
       expect(root.querySelector("[data-mode=compose]")?.classList.contains("w3-theme")).toBe(true);
+      expect(root.querySelector("[data-mode=compose]")?.getAttribute("aria-pressed")).toBe("true");
+      expect(root.querySelector('[role="toolbar"][aria-label="Editing mode"]')).toBeTruthy();
     });
 
     root
@@ -110,6 +112,8 @@ describe("editor route orchestration", () => {
       ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await vi.waitFor(() => {
       expect(root.querySelector("[data-mode=fields]")?.classList.contains("w3-theme")).toBe(true);
+      expect(root.querySelector("[data-mode=fields]")?.getAttribute("aria-pressed")).toBe("true");
+      expect(root.querySelector("[data-mode=compose]")?.getAttribute("aria-pressed")).toBe("false");
     });
     const title = root.querySelector<HTMLInputElement>("#f-title");
     if (!title) throw new Error("title");

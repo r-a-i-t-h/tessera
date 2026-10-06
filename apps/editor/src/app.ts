@@ -1,5 +1,4 @@
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
-import { version as tesseraVersion } from "../../../package.json";
 import {
   ApiError,
   createBackup,
@@ -51,7 +50,9 @@ import type { ArrangeInfo } from "./arrange/view.js";
 import { mountComposeCanvases } from "./compose/canvas.js";
 import { draftYaml, parsePageYaml } from "./compose/draft.js";
 import { readContentDocument, readContentDraft, composeFormInner, frameNote, htmlByZone, rawText, templateBodyLayout, type ContentMode } from "./compose/view.js";
+import { announceRoute, editorChrome as chrome, loginView } from "./chrome.js";
 import { createRecord, type CreateRecordDestination } from "./create-record.js";
+import { activateDialog, type DialogController } from "./dialog.js";
 import { readFormValues, renderForm } from "./forms/form.js";
 import { canRedo, canUndo, clearBurst, noteChange, redo, undo, undoHistory, type UndoHistory } from "./undo.js";
 import {
@@ -119,58 +120,12 @@ import { parseRoute } from "./router.js";
 import { paintSpecimen, previewStyle, readStyleForm, stylesheetEditors, stylesPageHtml } from "./styles-page.js";
 import { usernameError } from "./username.js";
 
-type EditorSection = "home" | "records" | "library" | "backups" | "styles" | "guide" | "users" | "account";
-
-function chrome(user: PublicUser, inner: string, wide = false, section: EditorSection = "home"): string {
-  const link = (href: string, label: string, key: EditorSection) => {
-    const current = section === key;
-    return `<a class="w3-bar-item w3-button${current ? " w3-white" : ""}" href="${href}"${current ? ' aria-current="page"' : ""}>${label}</a>`;
-  };
-  return `<header class="w3-bar w3-theme">
-      ${link("#/", "Tessera editor", "home")}
-      ${link("#/records", "Records", "records")}
-      ${link("#/library", "Library", "library")}
-      ${link("#/styles", "Styles", "styles")}
-      ${link("#/backups", "Backups", "backups")}
-      ${link("#/users", "Users", "users")}
-      <button type="button" class="w3-bar-item w3-button" data-action="render-site">Render site</button>
-      <button type="button" class="w3-bar-item w3-button" data-action="publish-site">Publish</button>
-      ${link("#/guide", "Guide", "guide")}
-      <button type="button" class="w3-bar-item w3-button w3-right" data-action="logout">Sign out</button>
-      <a class="w3-bar-item w3-button w3-right${section === "account" ? " w3-white" : ""}" href="#/account" title="Account"${section === "account" ? ' aria-current="page"' : ""}>${escapeHtml(user.username)}</a>
-    </header>
-    <p id="render-status" class="editor-render-status" hidden></p>
-    <main class="editor-main${wide ? " editor-wide" : ""}">${inner}</main>
-    ${editorFooter()}`;
-}
-
-function loginView(error = "", username = ""): string {
-  return `<header class="w3-bar w3-theme w3-large"><span class="w3-bar-item">Tessera editor</span></header>
-    <main class="editor-main"><form id="login-form" class="w3-card w3-white w3-padding-large editor-card">
-      <h1 class="w3-large">Sign in</h1>
-      <p class="w3-text-grey">Session cookie stays on this origin. Seed user: <code>admin</code> / <code>admin</code>.</p>
-      ${error ? `<p class="w3-panel w3-pale-red w3-leftbar w3-border-red" role="alert">${escapeHtml(error)}</p>` : ""}
-      <p>
-        <label for="username">Username</label>
-        <input id="username" name="username" class="w3-input w3-border w3-margin-top" autocomplete="username" required value="${escapeHtml(username)}" />
-      </p>
-      <p>
-        <label for="password">Password</label>
-        <input id="password" name="password" type="password" class="w3-input w3-border w3-margin-top" autocomplete="current-password" required />
-      </p>
-      <p><button type="submit" class="w3-button w3-theme">Sign in</button></p>
-    </form></main>
-    ${editorFooter()}`;
-}
-
-function editorFooter(): string {
-  return `<footer class="editor-footer"><span class="editor-footer-version">v${escapeHtml(tesseraVersion)}</span></footer>`;
-}
-
 export async function mount(root: HTMLElement): Promise<void> {
   window.addEventListener("hashchange", () => void render(root));
   await render(root);
 }
+
+let lastAnnouncedHash = "";
 
 async function render(root: HTMLElement): Promise<void> {
   let user: PublicUser;
@@ -210,6 +165,11 @@ async function render(root: HTMLElement): Promise<void> {
       );
       bindChrome(root);
     } else await bindHome(root, user);
+    const routeHash = window.location.hash || "#/";
+    if (routeHash !== lastAnnouncedHash) {
+      announceRoute(root);
+      lastAnnouncedHash = routeHash;
+    }
   } catch (err) {
     root.innerHTML = chrome(
       user,
@@ -736,6 +696,7 @@ function passwordChangeError(currentPassword: string, newPassword: string, confi
 }
 
 function bindLogin(root: HTMLElement, error?: string, username = ""): void {
+  lastAnnouncedHash = "";
   root.innerHTML = loginView(error, username);
   const form = root.querySelector<HTMLFormElement>("#login-form");
   form?.addEventListener("submit", async (event) => {
@@ -1998,20 +1959,20 @@ async function bindEdit(
   const saveStatus = `<p id="save-status" class="w3-text-grey" hidden></p>`;
   const editor = `${lifecycleHtml(payload)}
      ${noticePanel(notice)}
-     <p class="editor-tabs">
+     <div class="editor-tabs" role="toolbar" aria-label="Editing mode">
        ${
          kind === "layouts"
-           ? `<button type="button" class="w3-button ${editMode === "arrange" ? "w3-theme" : "w3-white"}" data-mode="arrange">Arrange</button>`
+           ? `<button type="button" class="w3-button ${editMode === "arrange" ? "w3-theme" : "w3-white"}" data-mode="arrange" aria-pressed="${editMode === "arrange"}">Arrange</button>`
            : ""
        }
        ${
          editsBody(kind)
-           ? `<button type="button" class="w3-button ${editMode === "compose" ? "w3-theme" : "w3-white"}" data-mode="compose">Compose</button>`
+           ? `<button type="button" class="w3-button ${editMode === "compose" ? "w3-theme" : "w3-white"}" data-mode="compose" aria-pressed="${editMode === "compose"}">Compose</button>`
            : ""
        }
-       <button type="button" class="w3-button ${editMode === "fields" ? "w3-theme" : "w3-white"}" data-mode="fields">Fields</button>
-       <button type="button" class="w3-button ${editMode === "raw" ? "w3-theme" : "w3-white"}" data-mode="raw">Raw file</button>
-     </p>
+       <button type="button" class="w3-button ${editMode === "fields" ? "w3-theme" : "w3-white"}" data-mode="fields" aria-pressed="${editMode === "fields"}">Fields</button>
+       <button type="button" class="w3-button ${editMode === "raw" ? "w3-theme" : "w3-white"}" data-mode="raw" aria-pressed="${editMode === "raw"}">Raw file</button>
+     </div>
      <p class="w3-text-grey editor-record-note"><code>${escapeHtml(payload.file)}</code></p>
      <form id="record-form" class="w3-card w3-white w3-padding-large editor-card">
        ${formInner}
@@ -2625,6 +2586,7 @@ function insertAtCursor(el: HTMLTextAreaElement, text: string): void {
 }
 
 function openLibraryPicker(initial: PickerMode): Promise<PickedAsset | { id: string; kind: "folder" } | undefined> {
+  const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   return getLibrary().then(
     (listing) =>
       new Promise((resolve) => {
@@ -2633,14 +2595,17 @@ function openLibraryPicker(initial: PickerMode): Promise<PickedAsset | { id: str
         let mode = initial;
         let openId: string | null = null;
         let done = false;
+        let dialog: DialogController | undefined;
         const finish = (value: PickedAsset | { id: string; kind: "folder" } | undefined) => {
           if (done) return;
           done = true;
           host.remove();
+          dialog?.destroy();
           resolve(value);
         };
         const paint = () => {
-          host.innerHTML = `<div class="editor-picker-backdrop"><div class="w3-card w3-white w3-padding editor-card" role="dialog">
+          host.innerHTML = `<div class="editor-picker-backdrop" data-dialog-backdrop><div class="w3-card w3-white w3-padding editor-card" role="dialog" aria-modal="true" aria-labelledby="library-picker-title" tabindex="-1">
+            <h2 id="library-picker-title" class="w3-large">Choose from the library</h2>
             <p><button type="button" class="w3-button w3-white" data-picker-close>Close</button>
             ${openId ? `<button type="button" class="w3-button w3-white" data-picker-up>Up</button>` : ""}</p>
             ${renderPicker(listing, mode, openId)}
@@ -2656,16 +2621,19 @@ function openLibraryPicker(initial: PickerMode): Promise<PickedAsset | { id: str
           if (button.dataset.pickerMode === "image" || button.dataset.pickerMode === "document" || button.dataset.pickerMode === "folder") {
             mode = button.dataset.pickerMode;
             paint();
+            dialog?.focus();
             return;
           }
           if (button.dataset.openFolder) {
             openId = button.dataset.openFolder;
             paint();
+            dialog?.focus();
             return;
           }
           if (button.hasAttribute("data-picker-up")) {
             openId = listing.folders.find((folder) => folder.id === openId)?.parentId ?? null;
             paint();
+            dialog?.focus();
             return;
           }
           if (button.dataset.pickFolder) {
@@ -2677,6 +2645,12 @@ function openLibraryPicker(initial: PickerMode): Promise<PickedAsset | { id: str
         });
         paint();
         document.body.appendChild(host);
+        dialog = activateDialog(host, {
+          onCancel: () => finish(undefined),
+          returnFocus,
+          initialFocus: "[data-picker-close]",
+          closeOnBackdrop: false,
+        });
       }),
   );
 }
