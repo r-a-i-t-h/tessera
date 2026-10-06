@@ -79,12 +79,12 @@ export function renderTypeForm(draft: TypeDraft, layouts: readonly LayoutChoice[
   const list = draft.fields.length
     ? `<ul class="editor-type-fields">${rows}</ul>`
     : `<p class="editor-type-empty">No fields yet. Title and the body zone are always available.</p>`;
-  return `<p><label for="f-type-id">Id</label>
-    <input id="f-type-id" class="w3-input w3-border w3-margin-top" value="${escapeHtml(draft.id)}" disabled /></p>
-    <p class="w3-text-grey">The id is the filename. A page’s Type field names it.</p>
-    ${hidden("type-extra", draft.extra)}
+  return `<div class="editor-props"><p><label for="f-type-id">Id</label>
+    <input id="f-type-id" class="w3-input w3-border" value="${escapeHtml(draft.id)}" disabled /></p>
     <p><label for="f-type-layout">Layout</label>
-    <select id="f-type-layout" name="type-layout" class="w3-select w3-border w3-margin-top">${layoutOptions(draft.layoutId, choices)}</select></p>
+    <select id="f-type-layout" name="type-layout" class="w3-select w3-border">${layoutOptions(draft.layoutId, choices)}</select></p></div>
+    ${hidden("type-extra", draft.extra)}
+    <p class="w3-text-grey">The id is the filename. A page’s Type field names it.</p>
     <p class="w3-text-grey">Pages of this type use this layout. Site default leaves the choice to the site record.</p>
     <fieldset class="editor-fieldset"><legend>Fields</legend>
       ${list}

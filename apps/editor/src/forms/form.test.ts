@@ -24,6 +24,14 @@ describe("schema forms", () => {
     expect(next.id).toBe("hall");
   });
 
+  it("lays short content fields in two columns and keeps description full width", () => {
+    const html = renderForm(CONTENT_FORM, { id: "home", title: "Home", description: "A hall" });
+    expect(html.startsWith(`<div class="editor-props">`)).toBe(true);
+    expect(html).toContain(`<p class="editor-prop-wide"><label for="f-description">Description</label>`);
+    expect(html).toContain(`<p><label for="f-title">Title</label>`);
+    expect(html).not.toContain(`editor-prop-wide"><label for="f-title"`);
+  });
+
   it("shows showInNav checked when the key is missing and omits it when checked", () => {
     const html = renderForm(CONTENT_FORM, { id: "home", title: "Home" });
     expect(html).toContain("Show in nav");
@@ -85,6 +93,7 @@ describe("schema forms", () => {
       { meta: { role: "Host" } },
     );
     expect(html).toContain("editor-yaml");
+    expect(html).toContain("editor-prop-wide");
     expect(html).toContain('data-kind="yaml"');
     expect(html).toContain('spellcheck="false"');
   });

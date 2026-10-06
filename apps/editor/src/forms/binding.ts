@@ -489,9 +489,9 @@ function kindBody(state: NewBinding, choices: BindingChoices): string {
   if (state.kind === "dated") return datedFields(state.dated, choices.types);
   if (state.kind === "people") return peopleFields(state.people, choices.types);
   if (state.kind === "links") return linksFields(state.links, choices);
-  return `<p><label for="new-binding-component">Component</label>
-    <input id="new-binding-component" name="binding-component" class="w3-input w3-border w3-margin-top" spellcheck="false" autocomplete="off" value="${escapeHtml(state.component)}" /></p>
-    <p class="w3-text-grey">The catalogue name, such as <code>eventList</code>.</p>`;
+  return `<div class="editor-props"><p><label for="new-binding-component">Component</label>
+    <input id="new-binding-component" name="binding-component" class="w3-input w3-border" spellcheck="false" autocomplete="off" value="${escapeHtml(state.component)}" /></p>
+    <p class="editor-prop-wide w3-text-grey">The catalogue name, such as <code>eventList</code>.</p></div>`;
 }
 
 function galleryIntro(): string {
@@ -506,58 +506,60 @@ function pictureFields(draft: GalleryDraft, folders: readonly { id: string }[], 
   const listed = listedFolders(draft.folders, folders);
   const checks = listed.length
     ? folderChecklist(listed, draft.folders)
-    : `<p class="w3-text-grey">The library has no folders yet.</p>`;
-  return `${checks}
+    : `<p class="editor-prop-wide w3-text-grey">The library has no folders yet.</p>`;
+  return `<div class="editor-props">${checks}
     <p><label for="gallery-filter">Only filenames matching</label>
-      <input id="gallery-filter" name="gallery-filter" class="w3-input w3-border w3-margin-top" spellcheck="false" placeholder="2024" value="${escapeHtml(draft.filter)}"${focusFilter ? " data-binding-focus" : ""} /></p>
-    <p class="w3-text-grey">A pattern. 2024 keeps filenames that contain 2024.</p>`;
+      <input id="gallery-filter" name="gallery-filter" class="w3-input w3-border" spellcheck="false" placeholder="2024" value="${escapeHtml(draft.filter)}"${focusFilter ? " data-binding-focus" : ""} /></p>
+    <p class="editor-prop-wide w3-text-grey">A pattern. 2024 keeps filenames that contain 2024.</p></div>`;
 }
 
 function lookFields(draft: GalleryDraft, focus = false): string {
-  return `<p><label for="gallery-mode">Mode</label>
-      <select id="gallery-mode" name="gallery-mode" class="w3-select w3-border w3-margin-top"${focus ? " data-binding-focus" : ""}>
+  return `<div class="editor-props"><p><label for="gallery-mode">Mode</label>
+      <select id="gallery-mode" name="gallery-mode" class="w3-select w3-border"${focus ? " data-binding-focus" : ""}>
         <option value="grid"${draft.mode === "grid" ? " selected" : ""}>Grid</option>
         <option value="slides"${draft.mode === "slides" ? " selected" : ""}>Slides</option>
       </select></p>
-    <p class="editor-check" data-gallery-autoplay${draft.mode === "slides" ? "" : " hidden"}><label><input name="gallery-autoplay" type="checkbox"${draft.autoplay ? " checked" : ""} /> Autoplay</label></p>`;
+    <p class="editor-check" data-gallery-autoplay${draft.mode === "slides" ? "" : " hidden"}><label><input name="gallery-autoplay" type="checkbox"${draft.autoplay ? " checked" : ""} /> Autoplay</label></p></div>`;
 }
 
 function datedFields(draft: DatedDraft, types: readonly string[]): string {
   return `<fieldset class="editor-fieldset"><legend>Types</legend>
-      ${typeChecklist("dated-type", draft.types, types)}
+      <div class="editor-props">${typeChecklist("dated-type", draft.types, types)}</div>
     </fieldset>
-    <p class="w3-text-grey">Only pages with a date field are listed. Precis is the line under the date.</p>
+    <div class="editor-props">
+    <p class="editor-prop-wide w3-text-grey">Only pages with a date field are listed. Precis is the line under the date.</p>
     <p><label for="dated-when">When</label>
-      <select id="dated-when" name="dated-when" class="w3-select w3-border w3-margin-top">
+      <select id="dated-when" name="dated-when" class="w3-select w3-border">
         <option value="upcoming"${draft.when === "upcoming" ? " selected" : ""}>Upcoming</option>
         <option value="past"${draft.when === "past" ? " selected" : ""}>Past</option>
         <option value="all"${draft.when === "all" ? " selected" : ""}>All</option>
       </select></p>
     <p><label for="dated-limit">Limit</label>
-      <input id="dated-limit" name="dated-limit" class="w3-input w3-border w3-margin-top" inputmode="numeric" value="${escapeHtml(draft.limit)}" /></p>
-    <p class="w3-text-grey">Leave blank to list every matching page.</p>
+      <input id="dated-limit" name="dated-limit" class="w3-input w3-border" inputmode="numeric" value="${escapeHtml(draft.limit)}" /></p>
+    <p class="editor-prop-wide w3-text-grey">Leave blank to list every matching page.</p>
     <p><label for="dated-empty">Empty message</label>
-      <input id="dated-empty" name="dated-empty" class="w3-input w3-border w3-margin-top" value="${escapeHtml(draft.empty)}" /></p>
-    <p class="w3-text-grey">Shown when nothing matches. Leave blank for the usual line.</p>`;
+      <input id="dated-empty" name="dated-empty" class="w3-input w3-border" value="${escapeHtml(draft.empty)}" /></p>
+    <p class="editor-prop-wide w3-text-grey">Shown when nothing matches. Leave blank for the usual line.</p></div>`;
 }
 
 function peopleFields(draft: PeopleDraft, types: readonly string[]): string {
   return `<fieldset class="editor-fieldset"><legend>Types</legend>
-      ${typeChecklist("people-type", draft.types, types)}
+      <div class="editor-props">${typeChecklist("people-type", draft.types, types)}</div>
     </fieldset>
-    <p class="w3-text-grey">Each page uses its photo and role fields. Leave every type unticked to list person pages.</p>
+    <div class="editor-props">
+    <p class="editor-prop-wide w3-text-grey">Each page uses its photo and role fields. Leave every type unticked to list person pages.</p>
     <p><label for="people-limit">Limit</label>
-      <input id="people-limit" name="people-limit" class="w3-input w3-border w3-margin-top" inputmode="numeric" value="${escapeHtml(draft.limit)}" /></p>
-    <p class="w3-text-grey">Leave blank to list every matching page.</p>`;
+      <input id="people-limit" name="people-limit" class="w3-input w3-border" inputmode="numeric" value="${escapeHtml(draft.limit)}" /></p>
+    <p class="editor-prop-wide w3-text-grey">Leave blank to list every matching page.</p></div>`;
 }
 
 function linksFields(draft: LinksDraft, choices: BindingChoices): string {
-  return `<p class="w3-text-grey">Children follow the page the insert sits on.</p>
+  return `<div class="editor-props"><p class="editor-prop-wide w3-text-grey">Children follow the page the insert sits on.</p>
     <p><label for="links-title">Title</label>
-      <input id="links-title" name="links-title" class="w3-input w3-border w3-margin-top" value="${escapeHtml(draft.title)}" /></p>
-    <p class="w3-text-grey">Leave blank and the list has no heading of its own.</p>
+      <input id="links-title" name="links-title" class="w3-input w3-border" value="${escapeHtml(draft.title)}" /></p>
+    <p class="editor-prop-wide w3-text-grey">Leave blank and the list has no heading of its own.</p>
     <p><label for="links-source">Source</label>
-      <select id="links-source" name="links-source" class="w3-select w3-border w3-margin-top">
+      <select id="links-source" name="links-source" class="w3-select w3-border">
         <option value="children"${draft.source === "children" ? " selected" : ""}>This page's children</option>
         <option value="type"${draft.source === "type" ? " selected" : ""}>Pages of a type</option>
         <option value="nav"${draft.source === "nav" ? " selected" : ""}>A menu heading</option>
@@ -567,17 +569,17 @@ function linksFields(draft: LinksDraft, choices: BindingChoices): string {
     <p data-links-heading${draft.source === "nav" ? "" : " hidden"}><label for="links-heading">Menu heading</label>
       ${headingControl(draft.heading, choices.headings)}</p>
     <p><label for="links-variant">Look</label>
-      <select id="links-variant" name="links-variant" class="w3-select w3-border w3-margin-top">
+      <select id="links-variant" name="links-variant" class="w3-select w3-border">
         <option value="list"${draft.variant === "list" ? " selected" : ""}>List</option>
         <option value="pills"${draft.variant === "pills" ? " selected" : ""}>Pills</option>
         <option value="cards"${draft.variant === "cards" ? " selected" : ""}>Cards</option>
-      </select></p>`;
+      </select></p></div>`;
 }
 
 function typeChecklist(name: string, selected: readonly string[], types: readonly string[]): string {
   const ids = [...types];
   for (const id of selected) if (id && !ids.includes(id)) ids.push(id);
-  if (!ids.length) return `<p class="w3-text-grey">This site has no types yet. Create one under Records → Types.</p>`;
+  if (!ids.length) return `<p class="editor-prop-wide w3-text-grey">This site has no types yet. Create one under Records → Types.</p>`;
   return ids
     .map((id) => {
       const checked = selected.includes(id) ? " checked" : "";
@@ -596,14 +598,14 @@ function typeSelect(current: string, types: readonly string[]): string {
       ),
     )
     .join("");
-  return `<select id="links-type" name="links-type" class="w3-select w3-border w3-margin-top">${options}</select>`;
+  return `<select id="links-type" name="links-type" class="w3-select w3-border">${options}</select>`;
 }
 
 function headingControl(current: string, headings: readonly string[]): string {
   const known = headings.filter(Boolean);
   const options = current && !known.includes(current) ? [current, ...known] : known;
   if (!options.length) {
-    return `<input id="links-heading" name="links-heading" class="w3-input w3-border w3-margin-top" value="${escapeHtml(current)}" />`;
+    return `<input id="links-heading" name="links-heading" class="w3-input w3-border" value="${escapeHtml(current)}" />`;
   }
   const html = [`<option value=""${!current ? " selected" : ""}>Choose a heading</option>`]
     .concat(
@@ -613,7 +615,7 @@ function headingControl(current: string, headings: readonly string[]): string {
       ),
     )
     .join("");
-  return `<select id="links-heading" name="links-heading" class="w3-select w3-border w3-margin-top">${html}</select>`;
+  return `<select id="links-heading" name="links-heading" class="w3-select w3-border">${html}</select>`;
 }
 
 function listedFolders(selected: readonly string[], folders: readonly { id: string }[]): { id: string; parentId: null }[] {

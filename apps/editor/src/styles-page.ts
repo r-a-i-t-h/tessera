@@ -7,7 +7,7 @@ export function stylesPageHtml(record: Record<string, unknown>, notice = "", err
     .map(
       (group) => `<fieldset class="style-group">
         <legend>${escapeHtml(group.group)}</legend>
-        ${group.fields.map((field) => fieldHtml(field.name, field.label, field.kind, values[field.name])).join("")}
+        <div class="editor-props">${group.fields.map((field) => fieldHtml(field.name, field.label, field.kind, values[field.name])).join("")}</div>
       </fieldset>`,
     )
     .join("");
@@ -63,6 +63,7 @@ export function paintSpecimen(root: ParentNode, style: SiteStyle): void {
 
 function fieldHtml(name: string, label: string, kind: string, value: string): string {
   const id = `style-${name}`;
+  const wide = kind === "url" ? ` class="editor-prop-wide"` : "";
   if (kind === "side") {
     return `<p><label for="${id}">${escapeHtml(label)}</label>
       <select id="${id}" name="${escapeHtml(name)}" class="w3-select w3-border">
@@ -75,7 +76,7 @@ function fieldHtml(name: string, label: string, kind: string, value: string): st
       <input id="${id}" name="${escapeHtml(name)}" class="style-color" type="color" value="${escapeHtml(value)}" /></p>`;
   }
   const type = kind === "url" ? "url" : "text";
-  return `<p><label for="${id}">${escapeHtml(label)}</label>
+  return `<p${wide}><label for="${id}">${escapeHtml(label)}</label>
     <input id="${id}" name="${escapeHtml(name)}" class="w3-input w3-border" type="${type}" value="${escapeHtml(value)}" /></p>`;
 }
 

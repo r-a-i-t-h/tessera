@@ -1928,7 +1928,7 @@ async function bindEdit(
        <button type="button" class="w3-button ${editMode === "fields" ? "w3-theme" : "w3-white"}" data-mode="fields">Fields</button>
        <button type="button" class="w3-button ${editMode === "raw" ? "w3-theme" : "w3-white"}" data-mode="raw">Raw file</button>
      </p>
-     <p class="w3-text-grey"><code>${escapeHtml(payload.file)}</code></p>
+     <p class="w3-text-grey editor-record-note"><code>${escapeHtml(payload.file)}</code></p>
      <form id="record-form" class="w3-card w3-white w3-padding-large editor-card">
        ${formInner}
        <p id="save-status" class="w3-text-grey" hidden></p>
@@ -2121,7 +2121,7 @@ function lifecycleHtml(payload: RecordPayload): string {
   const published = payload.snapshot
     ? ` Published snapshot <code>${escapeHtml(payload.snapshot.file)}</code> is the name the browser caches.`
     : "";
-  return `<p class="w3-text-grey" id="lifecycle">Authoring schema ${payload.schemaVersion}.${published}</p>`;
+  return `<p class="w3-text-grey editor-record-note" id="lifecycle">Authoring schema ${payload.schemaVersion}.${published}</p>`;
 }
 
 function historyHtml(payload: RecordPayload): string {
@@ -2243,7 +2243,7 @@ function typeFieldInputs(record: Record<string, unknown>, layout?: PageLayoutHin
     : Object.keys(stored);
   if (!ids.length) return "";
   const inputs = ids.map((id) => textField(`fields.${id}`, labelize(id), typeof stored[id] === "string" ? stored[id] : ""));
-  return `<fieldset class="editor-fieldset"><legend>Fields</legend>${inputs.join("")}</fieldset>`;
+  return `<fieldset class="editor-fieldset"><legend>Fields</legend><div class="editor-props">${inputs.join("")}</div></fieldset>`;
 }
 
 function zoneFields(zones: Record<string, unknown>, layout?: PageLayoutHint): string {
@@ -2291,23 +2291,24 @@ function jsonZoneFields(name: string, json: unknown, offLayout = false): string 
   if (json && typeof json === "object" && !Array.isArray(json)) {
     const entries = Object.entries(json as Record<string, unknown>);
     if (entries.every(([, v]) => v === undefined || ["string", "number", "boolean"].includes(typeof v))) {
-      return `<fieldset class="editor-fieldset${offLayout ? " editor-off-layout-fields" : ""}"><legend>${escapeHtml(legend)}</legend>${entries
+      return `<fieldset class="editor-fieldset${offLayout ? " editor-off-layout-fields" : ""}"><legend>${escapeHtml(legend)}</legend><div class="editor-props">${entries
         .map(([k, v]) => {
-          const field = textField(`zones.${name}.json.${k}`, labelize(k), String(v ?? ""));
-          return typeof v === "string" || v === undefined
-            ? `${field}<p><button type="button" class="w3-button w3-small w3-white" data-insert="id" data-target="${escapeHtml(`zones.${name}.json.${k}`)}">Library</button></p>`
-            : field;
+          const library =
+            typeof v === "string" || v === undefined
+              ? `<button type="button" class="w3-button w3-small w3-white" data-insert="id" data-target="${escapeHtml(`zones.${name}.json.${k}`)}">Library</button>`
+              : "";
+          return textField(`zones.${name}.json.${k}`, labelize(k), String(v ?? ""), "text", library);
         })
-        .join("")}</fieldset>`;
+        .join("")}</div></fieldset>`;
     }
   }
   return yamlField(`zones.${name}.json`, legend, json, 8);
 }
 
-function textField(name: string, label: string, value: string, type = "text"): string {
+function textField(name: string, label: string, value: string, type = "text", after = ""): string {
   const id = `f-${name.replace(/[^a-zA-Z0-9]+/g, "-")}`;
   return `<p><label for="${id}">${escapeHtml(label)}</label>
-    <input id="${id}" name="${escapeHtml(name)}" data-kind="${type}" class="w3-input w3-border w3-margin-top" value="${escapeHtml(value)}" /></p>`;
+    <input id="${id}" name="${escapeHtml(name)}" data-kind="${type}" class="w3-input w3-border" value="${escapeHtml(value)}" />${after}</p>`;
 }
 
 function textareaField(name: string, label: string, value: string, rows: number): string {

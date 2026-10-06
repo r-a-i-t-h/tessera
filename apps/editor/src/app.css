@@ -326,8 +326,8 @@ textarea.w3-input.editor-html {
 
 .editor-fieldset {
   border: 1px solid #ddd;
-  margin: 1rem 0;
-  padding: 0.5rem 1rem 1rem;
+  margin: 0.75rem 0;
+  padding: 0.35rem 0.85rem 0.75rem;
 }
 
 .editor-fieldset legend {
@@ -345,12 +345,79 @@ textarea.w3-input.editor-html {
   border-style: dashed;
 }
 
+.editor-props {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 1.25rem;
+  row-gap: 0.65rem;
+  margin: 0 0 0.75rem;
+}
+
+.editor-fieldset .editor-props,
+.style-group .editor-props {
+  margin-bottom: 0;
+}
+
+.editor-props > p {
+  margin: 0;
+  min-width: 0;
+}
+
+.editor-props > .editor-prop-wide {
+  grid-column: 1 / -1;
+}
+
+.editor-props label {
+  display: block;
+  margin: 0 0 0.2rem;
+  font-size: 0.85rem;
+}
+
+.editor-props .w3-input,
+.editor-props .w3-select {
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 0 !important;
+  padding: 0.35rem 0.5rem;
+}
+
+.editor-props > .editor-check:not([hidden]) {
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 0.35rem;
+}
+
+.editor-props > .editor-check label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 1rem;
+}
+
+.editor-props .style-color {
+  height: 2.15rem;
+  margin-top: 0;
+}
+
+.editor-props .w3-button {
+  margin-top: 0.35rem;
+}
+
+.editor-record-note {
+  margin: 0.15rem 0 0.35rem;
+}
+
+.editor-card > .w3-text-grey {
+  margin: 0.3rem 0 0.45rem;
+}
+
 .editor-tabs {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
-  margin: 0 0 1rem;
+  margin: 0 0 0.5rem;
 }
 
 .editor-entry-filter {
@@ -366,7 +433,8 @@ textarea.w3-input.editor-html {
 }
 
 @media (max-width: 40rem) {
-  .editor-entry-filter {
+  .editor-entry-filter,
+  .editor-props {
     grid-template-columns: 1fr;
   }
 }
@@ -375,16 +443,12 @@ textarea.w3-input.editor-html {
   max-width: 80rem;
 }
 
-.editor-zones {
-  max-width: 48rem;
-}
-
 .editor-compose-layout {
   display: grid;
   grid-template-columns: 11rem minmax(0, 1fr);
   gap: 1rem;
   align-items: start;
-  margin-top: 1rem;
+  margin-top: 0.65rem;
 }
 
 .editor-palette {
@@ -625,8 +689,8 @@ textarea.w3-input.editor-html {
 
 .style-group {
   border: 1px solid #ddd;
-  margin: 0 0 1rem;
-  padding: 0.75rem 1rem 0.25rem;
+  margin: 0 0 0.75rem;
+  padding: 0.35rem 0.85rem 0.75rem;
 }
 
 .style-group legend {
