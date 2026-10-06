@@ -135,12 +135,12 @@ function chrome(user: PublicUser, inner: string, wide = false, section: EditorSe
       ${link("#/", "Tessera editor", "home")}
       ${link("#/records", "Records", "records")}
       ${link("#/library", "Library", "library")}
-      ${link("#/backups", "Backups", "backups")}
       ${link("#/styles", "Styles", "styles")}
-      ${link("#/guide", "Guide", "guide")}
+      ${link("#/backups", "Backups", "backups")}
       ${link("#/users", "Users", "users")}
       <button type="button" class="w3-bar-item w3-button" data-action="render-site">Render site</button>
       <button type="button" class="w3-bar-item w3-button" data-action="publish-site">Publish</button>
+      ${link("#/guide", "Guide", "guide")}
       <button type="button" class="w3-bar-item w3-button w3-right" data-action="logout">Sign out</button>
       <a class="w3-bar-item w3-button w3-right${section === "account" ? " w3-white" : ""}" href="#/account" title="Account"${section === "account" ? ' aria-current="page"' : ""}>${escapeHtml(user.username)}</a>
     </header>
@@ -1903,9 +1903,9 @@ function applyPresent(session: ContentSession): boolean {
   return true;
 }
 
-function syncUndoButtons(form: HTMLFormElement, history: UndoHistory): void {
-  const undoButton = form.querySelector<HTMLButtonElement>("[data-action=undo]");
-  const redoButton = form.querySelector<HTMLButtonElement>("[data-action=redo]");
+function syncUndoButtons(scope: ParentNode, history: UndoHistory): void {
+  const undoButton = scope.querySelector<HTMLButtonElement>("[data-action=undo]");
+  const redoButton = scope.querySelector<HTMLButtonElement>("[data-action=redo]");
   if (undoButton) undoButton.disabled = !canUndo(history);
   if (redoButton) redoButton.disabled = !canRedo(history);
 }
@@ -2052,6 +2052,13 @@ async function bindEdit(
           : assisted && record && bindingChoices
             ? renderBindingForm(id, record, bindingChoices)
             : `${navNote}${fieldsHtml(kind, record ?? payload.data, payload.layout, typeIds)}`;
+  const pageHost = host === "page";
+  const sessionActions =
+    editsBody(kind) || kind === "layouts"
+      ? `<button type="button" class="w3-button w3-white" data-action="undo" title="Undo (Ctrl+Z)" disabled>Undo</button><button type="button" class="w3-button w3-white" data-action="redo" title="Redo (Ctrl+Shift+Z)" disabled>Redo</button><button type="button" class="w3-button w3-white" data-action="revert">Revert</button>`
+      : "";
+  const actionRow = `<p class="editor-actions"><button type="submit" id="record-save"${pageHost ? ' form="record-form"' : ""} class="w3-button w3-theme">Save</button>${sessionActions}</p>`;
+  const saveStatus = `<p id="save-status" class="w3-text-grey" hidden></p>`;
   const editor = `${lifecycleHtml(payload)}
      ${notice ? `<p class="w3-panel w3-pale-green" role="status">${escapeHtml(notice)}</p>` : ""}
      <p class="editor-tabs">
@@ -2071,12 +2078,7 @@ async function bindEdit(
      <p class="w3-text-grey editor-record-note"><code>${escapeHtml(payload.file)}</code></p>
      <form id="record-form" class="w3-card w3-white w3-padding-large editor-card">
        ${formInner}
-       <p id="save-status" class="w3-text-grey" hidden></p>
-       <p class="editor-actions"><button type="submit" class="w3-button w3-theme">Save</button>${
-         editsBody(kind) || kind === "layouts"
-           ? `<button type="button" class="w3-button w3-white" data-action="undo" title="Undo (Ctrl+Z)" disabled>Undo</button><button type="button" class="w3-button w3-white" data-action="redo" title="Redo (Ctrl+Shift+Z)" disabled>Redo</button><button type="button" class="w3-button w3-white" data-action="revert">Revert</button>`
-           : ""
-       }</p>
+       ${pageHost ? "" : `${saveStatus}${actionRow}`}
      </form>
      ${historyHtml(payload)}`;
   let scope: ParentNode = root;
@@ -2088,8 +2090,14 @@ async function bindEdit(
   } else {
     root.innerHTML = chrome(
       user,
-      `<p><a href="#/records/${encodeURIComponent(kind)}">← Records</a></p>
-       <h1 class="w3-large">${escapeHtml(kind)} / ${escapeHtml(id)}</h1>
+      `<div class="editor-toolbar">
+         <div class="editor-toolbar-row">
+           <a class="w3-button w3-white editor-back" href="#/records/${encodeURIComponent(kind)}" aria-label="Back" title="Back">←</a>
+           <h1 class="w3-large">${escapeHtml(kind)} / ${escapeHtml(id)}</h1>
+           ${actionRow}
+         </div>
+         ${saveStatus}
+       </div>
        ${editor}`,
       true,
       "records",
@@ -2103,7 +2111,7 @@ async function bindEdit(
     const yaml = snapshotYaml(form, editMode, session, kind);
     if (yaml === undefined) return;
     noteChange(session.undo, yaml, burstId);
-    syncUndoButtons(form, session.undo);
+    syncUndoButtons(scope, session.undo);
   };
   if (session && form) bindUndoKeys(form, root, user, kind, id, editMode, host);
   else {
@@ -2177,13 +2185,13 @@ async function bindEdit(
       (target instanceof HTMLInputElement && target.type !== "checkbox" && target.type !== "radio");
     if (text) clearBurst(session.undo);
   });
-  form?.querySelector<HTMLButtonElement>("[data-action=undo]")?.addEventListener("click", () => {
+  scope.querySelector<HTMLButtonElement>("[data-action=undo]")?.addEventListener("click", () => {
     void restoreHistory(root, user, kind, id, editMode, host, "undo");
   });
-  form?.querySelector<HTMLButtonElement>("[data-action=redo]")?.addEventListener("click", () => {
+  scope.querySelector<HTMLButtonElement>("[data-action=redo]")?.addEventListener("click", () => {
     void restoreHistory(root, user, kind, id, editMode, host, "redo");
   });
-  form?.querySelector<HTMLButtonElement>("[data-action=revert]")?.addEventListener("click", () => {
+  scope.querySelector<HTMLButtonElement>("[data-action=revert]")?.addEventListener("click", () => {
     if (!window.confirm("Discard unsaved edits and restore the last saved file?")) return;
     contentSession = undefined;
     layoutSession = undefined;
@@ -2191,8 +2199,8 @@ async function bindEdit(
   });
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const button = form.querySelector("button[type=submit]");
-    if (button) (button as HTMLButtonElement).disabled = true;
+    const button = scope.querySelector<HTMLButtonElement>("#record-save");
+    if (button) button.disabled = true;
     try {
       let saved;
       if (kind === "layouts" && layoutSession && form && (editMode === "arrange" || editMode === "fields" || editMode === "raw")) {
@@ -2247,7 +2255,7 @@ async function bindEdit(
       if (button) (button as HTMLButtonElement).disabled = false;
     }
   });
-  if (session && form) syncUndoButtons(form, session.undo);
+  if (session && form) syncUndoButtons(scope, session.undo);
 }
 
 function showSaveError(root: HTMLElement, message: string): void {
@@ -2312,10 +2320,12 @@ function historyHtml(payload: RecordPayload): string {
         .join("")}</ul>`
     : `<p class="w3-text-grey">No earlier copy yet. The next save appends this file.</p>`;
   return `<section class="editor-history">
-    <h2 class="w3-medium">History</h2>
-    <p class="w3-text-grey">One file, <code>${escapeHtml(payload.historyFile)}</code>. Each save appends the previous raw YAML. The published snapshot keeps only the current page.</p>
-    ${list}
-    <pre id="history-view" class="w3-code editor-history-raw" hidden></pre>
+    <details>
+      <summary class="w3-medium">History (${rows.length})</summary>
+      <p class="w3-text-grey">One file, <code>${escapeHtml(payload.historyFile)}</code>. Each save appends the previous raw YAML. The published snapshot keeps only the current page.</p>
+      ${list}
+      <pre id="history-view" class="w3-code editor-history-raw" hidden></pre>
+    </details>
   </section>`;
 }
 

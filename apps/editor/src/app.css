@@ -40,6 +40,50 @@ body {
   flex-wrap: wrap;
 }
 
+.editor-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 11;
+  margin-bottom: 1rem;
+  padding: 0.5rem 0;
+  background: #fff;
+  border-bottom: 1px solid #ddd;
+}
+
+.editor-toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  flex-wrap: wrap;
+}
+
+.editor-back {
+  flex: 0 0 auto;
+  margin-left: 0.35rem;
+  padding-left: 0.85rem;
+  padding-right: 0.85rem;
+  line-height: 1.15;
+}
+
+.editor-toolbar h1 {
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 8rem;
+}
+
+.editor-toolbar .editor-actions {
+  margin: 0 0 0 auto;
+}
+
+.editor-toolbar #save-status {
+  margin: 0.5rem 0 0;
+}
+
+.editor-main:has(.editor-toolbar) .editor-palette,
+.editor-main:has(.editor-toolbar) .editor-arrange-inspector {
+  top: 4rem;
+}
+
 .editor-result {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -694,6 +738,11 @@ textarea.w3-input.editor-html {
 
 .editor-history {
   margin-top: 2rem;
+}
+
+.editor-history summary {
+  cursor: pointer;
+  font-weight: 600;
 }
 
 .editor-history-raw {
