@@ -109,6 +109,31 @@ describe("emitDist", () => {
     expect(await readFile(join(fixture.root, "publish", "old", "index.html"), "utf8")).toContain("old");
   });
 
+  it("prefixes canonicals and the sitemap with an origin folder", async () => {
+    const fixture = await target("pages");
+    const doc = parseSiteDocument({
+      ...fixture.document,
+      site: { ...fixture.document.site, origin: "https://hall.example/willow" },
+    });
+    await emitDist(doc, fixture.target);
+    const home = await readFile(join(fixture.root, "publish", "index.html"), "utf8");
+    const about = await readFile(join(fixture.root, "publish", "about", "index.html"), "utf8");
+    const sitemap = await readFile(join(fixture.root, "publish", "sitemap.xml"), "utf8");
+    expect(home).toContain('href="https://hall.example/willow/"');
+    expect(about).toContain('href="https://hall.example/willow/about/"');
+    expect(sitemap).toContain("https://hall.example/willow/");
+    expect(sitemap).toContain("https://hall.example/willow/about/");
+  });
+
+  it("refuses a pages dist whose origin has a query or hash and leaves publish untouched", async () => {
+    for (const origin of ["https://hall.example/willow?x=1", "https://hall.example/willow#top"]) {
+      const fixture = await target("pages");
+      const doc = parseSiteDocument({ ...fixture.document, site: { ...fixture.document.site, origin } });
+      await expect(emitDist(doc, fixture.target)).rejects.toThrow(/query or hash/);
+      expect(await readFile(join(fixture.root, "publish", "old", "index.html"), "utf8")).toContain("old");
+    }
+  });
+
   it("keeps publish untouched until publish() is asked", async () => {
     const fixture = await target("pages");
     const records = join(fixture.root, "records");

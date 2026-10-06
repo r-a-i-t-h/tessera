@@ -308,7 +308,7 @@ export const SiteMetaSchema = z.object({
    * The editing preview is always the snapshot and ignores this.
    */
   delivery: SiteDeliverySchema.optional(),
-  /** Absolute origin with no path, used for canonical URLs in a pages dist. */
+  /** Public URL of the published folder, used for canonical URLs in a pages dist. A path is that folder. */
   origin: z.string().optional(),
   /** Chrome tokens. Missing fields use the defaults in `style.ts`. */
   style: SiteStyleSchema.optional(),

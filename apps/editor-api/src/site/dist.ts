@@ -126,10 +126,23 @@ function requireOrigin(value: string | undefined): string {
   if (url.protocol !== "http:" && url.protocol !== "https:") {
     throw new DistError("Origin must start with http:// or https://.");
   }
-  if (url.pathname !== "/" || url.search || url.hash) {
-    throw new DistError("Origin must not include a path, query, or hash.");
+  if (url.search || url.hash) {
+    throw new DistError("Origin must not include a query or hash.");
   }
-  return url.origin;
+  if (typedPath(raw).split("/").some((segment) => segment === "." || segment === "..")) {
+    throw new DistError("Origin must not include . or .. path segments.");
+  }
+  const path = url.pathname.replace(/\/+$/, "");
+  return `${url.origin}${path}`;
+}
+
+/** Path as typed, before the URL parser resolves `.` and `..`. */
+function typedPath(raw: string): string {
+  const scheme = raw.indexOf("//");
+  const slash = scheme === -1 ? raw.indexOf("/") : raw.indexOf("/", scheme + 2);
+  if (slash === -1) return "";
+  const end = raw.search(/[?#]/);
+  return raw.slice(slash, end === -1 ? undefined : end);
 }
 
 function stylesheetsFromShell(html: string | undefined): string[] {

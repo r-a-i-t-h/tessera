@@ -12,7 +12,7 @@ import { escapeHtml, renderPage, type Skin } from "./render.js";
 import type { MicroAppMount } from "./types.js";
 
 export type PublishPagesOptions = {
-  /** Absolute origin with no path, such as `https://willow.example`. */
+  /** Public URL of the published folder, such as `https://willow.example` or `https://example.com/willow`. */
   origin: string;
   /** `<html lang>`. Defaults to `en`. */
   lang?: string;
