@@ -80,6 +80,42 @@ export function htmlByZone(record: Record<string, unknown>, layout?: PageLayoutH
   return html;
 }
 
+/** Current page document, including when it still matches the saved file. */
+export function readContentDocument(
+  form: HTMLFormElement,
+  mode: ContentMode,
+  current: Record<string, unknown>,
+  baselineRaw: string,
+  baselineData: unknown,
+  kind = "content",
+):
+  | { ok: true; draft: Record<string, unknown>; fromEditor: boolean }
+  | { ok: false; error: string } {
+  try {
+    if (mode === "raw") {
+      const text = form.querySelector<HTMLTextAreaElement>("#raw-file")?.value ?? "";
+      if (text.trimEnd() === baselineRaw.trimEnd()) {
+        if (!baselineData || typeof baselineData !== "object" || Array.isArray(baselineData)) {
+          return { ok: false, error: "The saved page could not be restored." };
+        }
+        return { ok: true, draft: structuredClone(baselineData) as Record<string, unknown>, fromEditor: false };
+      }
+      const parsed = parsePageYaml(text);
+      if (!parsed.ok) return parsed;
+      return { ok: true, draft: parsed.data, fromEditor: true };
+    }
+    const read = readFormValues(form, schemaFor(kind, current), current);
+    if (!read || typeof read !== "object" || Array.isArray(read)) {
+      return { ok: false, error: "Could not read this page." };
+    }
+    const draft =
+      mode === "compose" ? withZoneHtml(read as Record<string, unknown>, readComposeHtml(form)) : (read as Record<string, unknown>);
+    return { ok: true, draft, fromEditor: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Could not read this page." };
+  }
+}
+
 export function readContentDraft(
   form: HTMLFormElement,
   mode: ContentMode,
@@ -92,30 +128,9 @@ export function readContentDraft(
   | { ok: true; unchanged: false; draft: Record<string, unknown>; fromEditor: boolean }
   | { ok: false; error: string } {
   if (form.dataset.dirty !== "true") return { ok: true, unchanged: true };
-  if (mode === "raw") {
-    const text = form.querySelector<HTMLTextAreaElement>("#raw-file")?.value ?? "";
-    if (text.trimEnd() === baselineRaw.trimEnd()) {
-      if (!baselineData || typeof baselineData !== "object" || Array.isArray(baselineData)) {
-        return { ok: false, error: "The saved page could not be restored." };
-      }
-      return {
-        ok: true,
-        unchanged: false,
-        draft: structuredClone(baselineData) as Record<string, unknown>,
-        fromEditor: false,
-      };
-    }
-    const parsed = parsePageYaml(text);
-    if (!parsed.ok) return parsed;
-    return { ok: true, unchanged: false, draft: parsed.data, fromEditor: true };
-  }
-  const read = readFormValues(form, schemaFor(kind, current), current);
-  if (!read || typeof read !== "object" || Array.isArray(read)) {
-    return { ok: false, error: "Could not read this page." };
-  }
-  const draft =
-    mode === "compose" ? withZoneHtml(read as Record<string, unknown>, readComposeHtml(form)) : (read as Record<string, unknown>);
-  return { ok: true, unchanged: false, draft, fromEditor: true };
+  const read = readContentDocument(form, mode, current, baselineRaw, baselineData, kind);
+  if (!read.ok) return read;
+  return { ok: true, unchanged: false, draft: read.draft, fromEditor: read.fromEditor };
 }
 
 export function rawText(fromEditor: boolean, draft: Record<string, unknown>, baselineRaw: string): string {

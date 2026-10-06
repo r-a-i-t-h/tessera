@@ -39,6 +39,7 @@ type Mounted = {
   folders: FolderChoice[];
   active: string;
   locked: boolean;
+  onEdit?: (burstId?: string) => void;
 };
 
 const mounted = new WeakMap<HTMLElement, Mounted>();
@@ -52,7 +53,13 @@ function nextId(): string {
 
 export function mountComposeCanvases(
   form: HTMLFormElement,
-  options: { bindings: BindingChoice[]; folders?: FolderChoice[]; htmlByZone: Record<string, string>; locked?: boolean },
+  options: {
+    bindings: BindingChoice[];
+    folders?: FolderChoice[];
+    htmlByZone: Record<string, string>;
+    locked?: boolean;
+    onEdit?: (burstId?: string) => void;
+  },
 ): void {
   const zones: ZoneState[] = [];
   for (const host of form.querySelectorAll<HTMLElement>("[data-canvas]")) {
@@ -69,6 +76,7 @@ export function mountComposeCanvases(
     folders: options.folders ?? [],
     active: zones.find((zone) => zone.name === "main")?.name ?? zones[0]?.name ?? "",
     locked: options.locked === true,
+    onEdit: options.onEdit,
   };
   mounted.set(form, state);
   for (const zone of zones) renderZone(form, zone);
@@ -120,6 +128,22 @@ export function readComposeHtml(form: HTMLElement): Record<string, string> {
 
 function mark(form: HTMLElement): void {
   form.dataset.dirty = "true";
+}
+
+function notifyStructure(form: HTMLFormElement): void {
+  mounted.get(form)?.onEdit?.();
+}
+
+function notifyField(form: HTMLFormElement, target: HTMLElement, fromChange: boolean): void {
+  const field = target.dataset.field;
+  const uid = target.closest<HTMLElement>("[data-item-id]")?.dataset.itemId;
+  const text =
+    target.isContentEditable ||
+    target instanceof HTMLTextAreaElement ||
+    (target instanceof HTMLInputElement && target.type !== "checkbox" && target.type !== "radio");
+  if (!text && !fromChange) return;
+  const burst = text && field && uid ? `${uid}:${field}` : undefined;
+  mounted.get(form)?.onEdit?.(burst);
 }
 
 function toEdit(section: Section): EditNode {
@@ -449,83 +473,87 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
   if (!node || node.kind === "columns") return;
   if (state.locked && isDesignField(node.kind, field)) return;
   mark(form);
-  if (field === "html" && target.isContentEditable && node.kind === "text") {
-    node.html = readTextHtml(target.innerHTML);
-    return;
-  }
-  if (field === "html" && target.isContentEditable && (node.kind === "panel" || node.kind === "card" || node.kind === "pasted")) {
-    node.html = sanitize(target.innerHTML);
-    return;
-  }
-  if (field === "heading" && target.isContentEditable && node.kind === "text") {
-    node.heading = (target.textContent ?? "").replace(/\n+/g, " ");
-    return;
-  }
-  if (field === "text" && target.isContentEditable) {
-    if (node.kind === "heading" || node.kind === "quote") node.text = target.textContent ?? "";
-    return;
-  }
-  if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement)) return;
-  const value = target.value;
-  if ((node.kind === "heading" || node.kind === "text") && field === "level") {
-    node.level = headingLevel(value);
-    if (fromChange && article) retagHeading(article, node.level, node.kind === "text" ? "heading" : "text");
-    return;
-  }
-  if ((node.kind === "panel" || node.kind === "quote") && field === "tone") {
-    node.tone = isTone(value) ? value : "plain";
-    if (fromChange) rerenderArticle(form, node.uid);
-    return;
-  }
-  if (node.kind === "quote" && field === "attribution") {
-    const had = node.attribution;
-    node.attribution = value;
-    if (!had !== !value) rerenderArticle(form, node.uid);
-    else article?.querySelector("[data-quote-by]")?.replaceChildren(document.createTextNode(value));
-    return;
-  }
-  if (node.kind === "imgbox") {
-    if (field === "src") node.src = value;
-    if (field === "alt") node.alt = value;
-    if (field === "caption") node.caption = value;
-    if (fromChange) rerenderArticle(form, node.uid);
-    return;
-  }
-  if (node.kind === "card" && field === "title") {
-    node.title = value;
-    const title = article?.querySelector("[data-card-title]");
-    if (title) title.textContent = value;
-    return;
-  }
-  if (node.kind === "insert" && field === "id") {
-    node.id = value.trim();
-    if (fromChange) rerenderArticle(form, node.uid);
-    return;
-  }
-  if (node.kind === "subpages" && field === "title") {
-    node.title = value;
-    if (fromChange) rerenderArticle(form, node.uid);
-    return;
-  }
-  if (node.kind === "youtube" && field === "video") {
-    const id = youtubeVideoId(value);
-    node.videoId = id || value.trim();
-    if (fromChange && id) rerenderArticle(form, node.uid);
-    return;
-  }
-  if (node.kind === "youtube" && field === "title") {
-    node.title = value;
-    if (fromChange) rerenderArticle(form, node.uid);
-    return;
-  }
-  if (node.kind === "gallery" && field === "folder") {
-    node.folder = value;
-    if (fromChange) rerenderArticle(form, node.uid);
-    return;
-  }
-  if (node.kind === "gallery" && field === "mode") {
-    node.mode = value === "slides" ? "slides" : "grid";
-    if (fromChange) rerenderArticle(form, node.uid);
+  try {
+    if (field === "html" && target.isContentEditable && node.kind === "text") {
+      node.html = readTextHtml(target.innerHTML);
+      return;
+    }
+    if (field === "html" && target.isContentEditable && (node.kind === "panel" || node.kind === "card" || node.kind === "pasted")) {
+      node.html = sanitize(target.innerHTML);
+      return;
+    }
+    if (field === "heading" && target.isContentEditable && node.kind === "text") {
+      node.heading = (target.textContent ?? "").replace(/\n+/g, " ");
+      return;
+    }
+    if (field === "text" && target.isContentEditable) {
+      if (node.kind === "heading" || node.kind === "quote") node.text = target.textContent ?? "";
+      return;
+    }
+    if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement)) return;
+    const value = target.value;
+    if ((node.kind === "heading" || node.kind === "text") && field === "level") {
+      node.level = headingLevel(value);
+      if (fromChange && article) retagHeading(article, node.level, node.kind === "text" ? "heading" : "text");
+      return;
+    }
+    if ((node.kind === "panel" || node.kind === "quote") && field === "tone") {
+      node.tone = isTone(value) ? value : "plain";
+      if (fromChange) rerenderArticle(form, node.uid);
+      return;
+    }
+    if (node.kind === "quote" && field === "attribution") {
+      const had = node.attribution;
+      node.attribution = value;
+      if (!had !== !value) rerenderArticle(form, node.uid);
+      else article?.querySelector("[data-quote-by]")?.replaceChildren(document.createTextNode(value));
+      return;
+    }
+    if (node.kind === "imgbox") {
+      if (field === "src") node.src = value;
+      if (field === "alt") node.alt = value;
+      if (field === "caption") node.caption = value;
+      if (fromChange) rerenderArticle(form, node.uid);
+      return;
+    }
+    if (node.kind === "card" && field === "title") {
+      node.title = value;
+      const title = article?.querySelector("[data-card-title]");
+      if (title) title.textContent = value;
+      return;
+    }
+    if (node.kind === "insert" && field === "id") {
+      node.id = value.trim();
+      if (fromChange) rerenderArticle(form, node.uid);
+      return;
+    }
+    if (node.kind === "subpages" && field === "title") {
+      node.title = value;
+      if (fromChange) rerenderArticle(form, node.uid);
+      return;
+    }
+    if (node.kind === "youtube" && field === "video") {
+      const id = youtubeVideoId(value);
+      node.videoId = id || value.trim();
+      if (fromChange && id) rerenderArticle(form, node.uid);
+      return;
+    }
+    if (node.kind === "youtube" && field === "title") {
+      node.title = value;
+      if (fromChange) rerenderArticle(form, node.uid);
+      return;
+    }
+    if (node.kind === "gallery" && field === "folder") {
+      node.folder = value;
+      if (fromChange) rerenderArticle(form, node.uid);
+      return;
+    }
+    if (node.kind === "gallery" && field === "mode") {
+      node.mode = value === "slides" ? "slides" : "grid";
+      if (fromChange) rerenderArticle(form, node.uid);
+    }
+  } finally {
+    notifyField(form, target, fromChange);
   }
 }
 
@@ -570,6 +598,7 @@ function onClick(form: HTMLFormElement, event: MouseEvent): void {
     for (const zone of state.zones) {
       if (removeNode(zone.items, uid)) renderZone(form, zone);
     }
+    notifyStructure(form);
   }
 }
 
@@ -583,6 +612,7 @@ function appendPalette(form: HTMLFormElement, kind: string): void {
   syncAll(state);
   zone.items.push(toEdit(blankSection(kind)));
   renderZone(form, zone);
+  notifyStructure(form);
 }
 
 const ALIGN_CLASS = ["w3-left-align", "w3-right-align", "w3-center", "w3-text-center", "w3-justify"];
@@ -705,6 +735,7 @@ function setColumns(form: HTMLFormElement, button: HTMLElement): void {
   }
   const zone = zoneOf(state, node.uid);
   if (zone) renderZone(form, zone);
+  notifyStructure(form);
 }
 
 function onPaste(event: ClipboardEvent): void {
@@ -783,6 +814,7 @@ function onDrop(form: HTMLFormElement, event: DragEvent): void {
     list.splice(index, 0, toEdit(blankSection(palette)));
     mark(form);
     renderAll(form, state);
+    notifyStructure(form);
     return;
   }
   const itemData = event.dataTransfer.getData("application/x-tessera-item");
@@ -798,6 +830,7 @@ function onDrop(form: HTMLFormElement, event: DragEvent): void {
   const dest = from.list === list && from.index < index ? index - 1 : index;
   list.splice(Math.max(0, dest), 0, moved);
   renderAll(form, state);
+  notifyStructure(form);
 }
 
 function listFor(state: Mounted, zoneName: string, parent: string, cell: number): EditNode[] | undefined {

@@ -49,8 +49,10 @@ import { arrangeMarkup, mountArrange, readArrangeRoot } from "./arrange/canvas.j
 import { asLayoutNode, cleanNode, isFrame, newFrame, newPageLayout } from "./arrange/tree.js";
 import type { ArrangeInfo } from "./arrange/view.js";
 import { mountComposeCanvases } from "./compose/canvas.js";
-import { readContentDraft, composeFormInner, frameNote, htmlByZone, rawText, templateBodyLayout, type ContentMode } from "./compose/view.js";
+import { draftYaml, parsePageYaml } from "./compose/draft.js";
+import { readContentDocument, readContentDraft, composeFormInner, frameNote, htmlByZone, rawText, templateBodyLayout, type ContentMode } from "./compose/view.js";
 import { readFormValues, renderForm } from "./forms/form.js";
+import { canRedo, canUndo, clearBurst, noteChange, redo, undo, undoHistory, type UndoHistory } from "./undo.js";
 import {
   applyNavAction,
   isNavAction,
@@ -276,6 +278,7 @@ type ContentSession = {
   payload: RecordPayload;
   draft: Record<string, unknown>;
   fromEditor: boolean;
+  undo: UndoHistory;
 };
 
 /** Unsaved content page. Tab changes read and write this instead of the saved file. */
@@ -283,6 +286,11 @@ let contentSession: ContentSession | undefined;
 
 /** Unsaved layout. Tab changes read and write this instead of the saved file. */
 let layoutSession: ContentSession | undefined;
+
+/** True while undo or redo is redrawing the open record. */
+let historyRestore = false;
+
+let undoKeys: AbortController | undefined;
 
 function bindChrome(root: HTMLElement): void {
   root.querySelector("[data-action=logout]")?.addEventListener("click", async () => {
@@ -1776,25 +1784,24 @@ async function loadArrangeInfo(layoutId: string): Promise<ArrangeInfo> {
   }
 }
 
-function readLayoutDraft(
+function readLayoutDocument(
   form: HTMLFormElement,
   mode: EditMode,
   current: Record<string, unknown>,
   baselineRaw: string,
   baselineData: unknown,
 ):
-  | { ok: true; unchanged: true }
-  | { ok: true; unchanged: false; draft: Record<string, unknown>; fromEditor: boolean }
+  | { ok: true; draft: Record<string, unknown>; baseline: boolean }
   | { ok: false; error: string } {
   if (mode === "raw") {
     const text = form.querySelector<HTMLTextAreaElement>("#raw-file")?.value ?? "";
-    if (text === baselineRaw) return { ok: true, unchanged: true };
+    if (text === baselineRaw) return { ok: true, draft: current, baseline: true };
     try {
       const parsed = parseYaml(text) as unknown;
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
         return { ok: false, error: "This layout file must be a YAML mapping." };
       }
-      return { ok: true, unchanged: false, draft: parsed as Record<string, unknown>, fromEditor: false };
+      return { ok: true, draft: parsed as Record<string, unknown>, baseline: false };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : "Could not read this YAML." };
     }
@@ -1805,12 +1812,31 @@ function readLayoutDraft(
     if (!root) return { ok: false, error: "Could not read this layout." };
     draft = { ...current, root };
   } else {
-    const read = readFormValues(form, schemaFor("layouts", current), current);
-    if (!read || typeof read !== "object" || Array.isArray(read)) return { ok: false, error: "Could not read this layout." };
-    draft = read as Record<string, unknown>;
+    try {
+      const read = readFormValues(form, schemaFor("layouts", current), current);
+      if (!read || typeof read !== "object" || Array.isArray(read)) return { ok: false, error: "Could not read this layout." };
+      draft = read as Record<string, unknown>;
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : "Could not read this layout." };
+    }
   }
-  if (!layoutDraftChanged(draft, baselineData)) return { ok: true, unchanged: true };
-  return { ok: true, unchanged: false, draft, fromEditor: true };
+  return { ok: true, draft, baseline: !layoutDraftChanged(draft, baselineData) };
+}
+
+function readLayoutDraft(
+  form: HTMLFormElement,
+  mode: EditMode,
+  current: Record<string, unknown>,
+  baselineRaw: string,
+  baselineData: unknown,
+):
+  | { ok: true; unchanged: true }
+  | { ok: true; unchanged: false; draft: Record<string, unknown>; fromEditor: boolean }
+  | { ok: false; error: string } {
+  const read = readLayoutDocument(form, mode, current, baselineRaw, baselineData);
+  if (!read.ok) return read;
+  if (read.baseline) return { ok: true, unchanged: true };
+  return { ok: true, unchanged: false, draft: read.draft, fromEditor: mode !== "raw" };
 }
 
 function layoutDraftChanged(draft: Record<string, unknown>, baselineData: unknown): boolean {
@@ -1846,6 +1872,117 @@ function recordList(rows: RecordSummary[], entries = false, noteFor?: (row: Reco
   </ul>`;
 }
 
+function snapshotYaml(form: HTMLFormElement, mode: EditMode, session: ContentSession, kind: string): string | undefined {
+  if (editsBody(kind)) {
+    if (mode !== "compose" && mode !== "fields" && mode !== "raw") return undefined;
+    const read = readContentDocument(form, mode, session.draft, session.payload.raw, session.payload.data, kind);
+    if (!read.ok) return undefined;
+    return read.fromEditor ? draftYaml(read.draft) : session.payload.raw;
+  }
+  if (kind !== "layouts") return undefined;
+  const read = readLayoutDocument(form, mode, session.draft, session.payload.raw, session.payload.data);
+  if (!read.ok) return undefined;
+  return read.baseline ? session.payload.raw : draftYaml(read.draft);
+}
+
+function applyPresent(session: ContentSession): boolean {
+  const text = session.undo.present;
+  const baseline = session.payload.raw;
+  if (text === baseline || text.trimEnd() === baseline.trimEnd()) {
+    const data = asRecord(session.payload.data);
+    if (data) {
+      session.draft = structuredClone(data);
+      session.fromEditor = false;
+      return true;
+    }
+  }
+  const parsed = parsePageYaml(text);
+  if (!parsed.ok) return false;
+  session.draft = parsed.data;
+  session.fromEditor = true;
+  return true;
+}
+
+function syncUndoButtons(form: HTMLFormElement, history: UndoHistory): void {
+  const undoButton = form.querySelector<HTMLButtonElement>("[data-action=undo]");
+  const redoButton = form.querySelector<HTMLButtonElement>("[data-action=redo]");
+  if (undoButton) undoButton.disabled = !canUndo(history);
+  if (redoButton) redoButton.disabled = !canRedo(history);
+}
+
+function canvasOwnsEdit(mode: EditMode, target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (mode === "arrange") return target.dataset.field !== undefined;
+  if (mode === "compose") return !!target.closest("[data-canvas], [data-item-id]");
+  return false;
+}
+
+function typingBurst(target: EventTarget | null): string | undefined {
+  if (
+    target instanceof HTMLTextAreaElement ||
+    (target instanceof HTMLInputElement && target.type !== "checkbox" && target.type !== "radio")
+  ) {
+    return target.name || target.id || "text";
+  }
+  return undefined;
+}
+
+function sessionFor(kind: string): ContentSession | undefined {
+  return editsBody(kind) ? contentSession : kind === "layouts" ? layoutSession : undefined;
+}
+
+async function restoreHistory(
+  root: HTMLElement,
+  user: PublicUser,
+  kind: string,
+  id: string,
+  mode: EditMode,
+  host: "page" | "tab",
+  direction: "undo" | "redo",
+): Promise<void> {
+  const session = sessionFor(kind);
+  if (!session || historyRestore) return;
+  const moved = direction === "undo" ? undo(session.undo) : redo(session.undo);
+  if (!moved) return;
+  if (!applyPresent(session)) {
+    if (direction === "undo") redo(session.undo);
+    else undo(session.undo);
+    return;
+  }
+  historyRestore = true;
+  try {
+    await bindEdit(root, user, kind, id, mode, "", true, host);
+  } finally {
+    historyRestore = false;
+  }
+}
+
+function bindUndoKeys(
+  form: HTMLFormElement,
+  root: HTMLElement,
+  user: PublicUser,
+  kind: string,
+  id: string,
+  mode: EditMode,
+  host: "page" | "tab",
+): void {
+  undoKeys?.abort();
+  undoKeys = new AbortController();
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      if (!form.isConnected) return;
+      if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
+      const undoKey = event.code === "KeyZ" && !event.shiftKey;
+      const redoKey = (event.code === "KeyZ" && event.shiftKey) || (event.code === "KeyY" && !event.shiftKey);
+      if (!undoKey && !redoKey) return;
+      event.preventDefault();
+      void restoreHistory(root, user, kind, id, mode, host, undoKey ? "undo" : "redo");
+    },
+    { signal: undoKeys.signal },
+  );
+}
+
 async function bindEdit(
   root: HTMLElement,
   user: PublicUser,
@@ -1866,12 +2003,12 @@ async function bindEdit(
     payload = await getRecord(kind, id);
     const loaded = asRecord(payload.data);
     if (editsBody(kind) && loaded) {
-      contentSession = { key, payload, draft: structuredClone(loaded), fromEditor: false };
+      contentSession = { key, payload, draft: structuredClone(loaded), fromEditor: false, undo: undoHistory(payload.raw) };
     } else if (editsBody(kind)) {
       contentSession = undefined;
     }
     if (kind === "layouts" && loaded) {
-      layoutSession = { key, payload, draft: structuredClone(loaded), fromEditor: false };
+      layoutSession = { key, payload, draft: structuredClone(loaded), fromEditor: false, undo: undoHistory(payload.raw) };
     } else if (kind === "layouts") {
       layoutSession = undefined;
     }
@@ -1937,7 +2074,7 @@ async function bindEdit(
        <p id="save-status" class="w3-text-grey" hidden></p>
        <p class="editor-actions"><button type="submit" class="w3-button w3-theme">Save</button>${
          editsBody(kind) || kind === "layouts"
-           ? `<button type="button" class="w3-button w3-white" data-action="revert">Revert</button>`
+           ? `<button type="button" class="w3-button w3-white" data-action="undo" title="Undo (Ctrl+Z)" disabled>Undo</button><button type="button" class="w3-button w3-white" data-action="redo" title="Redo (Ctrl+Shift+Z)" disabled>Redo</button><button type="button" class="w3-button w3-white" data-action="revert">Revert</button>`
            : ""
        }</p>
      </form>
@@ -1961,8 +2098,20 @@ async function bindEdit(
   }
   if (editMode === "compose" || editMode === "arrange") root.querySelector(".editor-main")?.classList.add("editor-compose");
   const form = scope.querySelector<HTMLFormElement>("#record-form");
-  if (form && editMode === "compose" && record) await mountPageCanvas(form, record, bodyLayout);
-  if (form && editMode === "arrange" && layoutRoot && arrangeInfo) mountArrange(form, layoutRoot, arrangeInfo);
+  const checkpoint = (burstId?: string): void => {
+    if (!session || !form) return;
+    const yaml = snapshotYaml(form, editMode, session, kind);
+    if (yaml === undefined) return;
+    noteChange(session.undo, yaml, burstId);
+    syncUndoButtons(form, session.undo);
+  };
+  if (session && form) bindUndoKeys(form, root, user, kind, id, editMode, host);
+  else {
+    undoKeys?.abort();
+    undoKeys = undefined;
+  }
+  if (form && editMode === "compose" && record) await mountPageCanvas(form, record, bodyLayout, checkpoint);
+  if (form && editMode === "arrange" && layoutRoot && arrangeInfo) mountArrange(form, layoutRoot, arrangeInfo, checkpoint);
   for (const button of scope.querySelectorAll<HTMLButtonElement>("[data-mode]")) {
     button.addEventListener("click", () => {
       const next = button.dataset.mode;
@@ -2007,11 +2156,32 @@ async function bindEdit(
   if (form && typeEditor) bindTypeEditor(form, id, typeLayouts);
   if (form && assisted) bindBindingForm(form);
   if (form) bindPickers(form);
-  form?.addEventListener("input", () => {
+  form?.addEventListener("input", (event) => {
     form.dataset.dirty = "true";
+    if (!session || canvasOwnsEdit(editMode, event.target)) return;
+    const burst = typingBurst(event.target);
+    if (burst) checkpoint(burst);
   });
-  form?.addEventListener("change", () => {
+  form?.addEventListener("change", (event) => {
     form.dataset.dirty = "true";
+    if (!session || canvasOwnsEdit(editMode, event.target)) return;
+    checkpoint(typingBurst(event.target));
+  });
+  form?.addEventListener("focusout", (event) => {
+    if (!session) return;
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const text =
+      target.isContentEditable ||
+      target instanceof HTMLTextAreaElement ||
+      (target instanceof HTMLInputElement && target.type !== "checkbox" && target.type !== "radio");
+    if (text) clearBurst(session.undo);
+  });
+  form?.querySelector<HTMLButtonElement>("[data-action=undo]")?.addEventListener("click", () => {
+    void restoreHistory(root, user, kind, id, editMode, host, "undo");
+  });
+  form?.querySelector<HTMLButtonElement>("[data-action=redo]")?.addEventListener("click", () => {
+    void restoreHistory(root, user, kind, id, editMode, host, "redo");
   });
   form?.querySelector<HTMLButtonElement>("[data-action=revert]")?.addEventListener("click", () => {
     if (!window.confirm("Discard unsaved edits and restore the last saved file?")) return;
@@ -2077,6 +2247,7 @@ async function bindEdit(
       if (button) (button as HTMLButtonElement).disabled = false;
     }
   });
+  if (session && form) syncUndoButtons(form, session.undo);
 }
 
 function showSaveError(root: HTMLElement, message: string): void {
@@ -2091,6 +2262,7 @@ async function mountPageCanvas(
   form: HTMLFormElement,
   record: Record<string, unknown>,
   layout: PageLayoutHint | undefined,
+  onEdit?: (burstId?: string) => void,
 ): Promise<void> {
   let bindings: { id: string; title?: string }[] = [];
   let folders: { id: string; title?: string }[] = [];
@@ -2112,6 +2284,7 @@ async function mountPageCanvas(
     folders,
     htmlByZone: htmlByZone(record, layout),
     locked: record.locked === true,
+    onEdit,
   });
 }
 

@@ -41,7 +41,12 @@ export function arrangeMarkup(root: LayoutNode, info: ArrangeInfo): string {
   return arrangeShell(info, isFrame(root));
 }
 
-export function mountArrange(form: HTMLFormElement, root: LayoutNode, info: ArrangeInfo): void {
+export function mountArrange(
+  form: HTMLFormElement,
+  root: LayoutNode,
+  info: ArrangeInfo,
+  onEdit?: (burstId?: string) => void,
+): void {
   const state: State = {
     root: structuredClone(root),
     selected: [],
@@ -51,7 +56,7 @@ export function mountArrange(form: HTMLFormElement, root: LayoutNode, info: Arra
   };
   mounted.set(form, state);
   paint(form, state, true, false);
-  bind(form, state);
+  bind(form, state, onEdit);
 }
 
 export function readArrangeRoot(form: HTMLFormElement): LayoutNode | undefined {
@@ -59,7 +64,7 @@ export function readArrangeRoot(form: HTMLFormElement): LayoutNode | undefined {
   return state ? cleanNode(state.root) : undefined;
 }
 
-function bind(form: HTMLFormElement, state: State): void {
+function bind(form: HTMLFormElement, state: State, onEdit?: (burstId?: string) => void): void {
   let drag: Drag | undefined;
 
   form.addEventListener("click", (event) => {
@@ -68,6 +73,7 @@ function bind(form: HTMLFormElement, state: State): void {
     if (palette?.dataset.palette) {
       event.preventDefault();
       addPalette(form, state, palette.dataset.palette as PaletteId, destination(state).parent, destination(state).index);
+      onEdit?.();
       return;
     }
     const remove = target.closest<HTMLElement>("[data-remove]");
@@ -82,6 +88,7 @@ function bind(form: HTMLFormElement, state: State): void {
       if (!getNode(state.root, state.selected)) state.selected = state.selected.slice(0, -1);
       showMessage(form, "");
       paint(form, state, true, true);
+      onEdit?.();
       return;
     }
     const move = target.closest<HTMLElement>("[data-move]");
@@ -96,6 +103,7 @@ function bind(form: HTMLFormElement, state: State): void {
       state.selected = getNode(state.root, landed) ? landed : path;
       showMessage(form, "");
       paint(form, state, true, true);
+      onEdit?.();
       return;
     }
     const width = target.closest<HTMLButtonElement>("button[data-width]");
@@ -116,19 +124,23 @@ function bind(form: HTMLFormElement, state: State): void {
     if (!field || field === "extraProps") return;
     writeField(form, state, field, controlValue(event.target));
     paint(form, state, false, true);
+    if (isTypingControl(event.target)) onEdit?.(`${pathKey(state.selected)}:${field}`);
   });
 
   form.addEventListener("change", (event) => {
     const field = fieldOf(event.target);
     if (!field) return;
     if (field === "extraProps") {
-      writeExtra(form, state, controlValue(event.target));
+      const wrote = writeExtra(form, state, controlValue(event.target));
       paint(form, state, true, true);
+      if (wrote) onEdit?.(`${pathKey(state.selected)}:extraProps`);
       return;
     }
     writeField(form, state, field, controlValue(event.target));
     const rebuild = field === "componentName" || field === "className" || field === "tag" || field === "stayOpen" || field === "columnWidth";
     paint(form, state, rebuild, true);
+    if (isTypingControl(event.target)) onEdit?.(`${pathKey(state.selected)}:${field}`);
+    else onEdit?.();
   });
 
   form.addEventListener("dragstart", (event) => {
@@ -179,6 +191,7 @@ function bind(form: HTMLFormElement, state: State): void {
       showMessage(form, "");
       paint(form, state, true, true);
     }
+    onEdit?.();
     drag = undefined;
   });
 }
@@ -219,24 +232,25 @@ function writeField(form: HTMLFormElement, state: State, field: string, value: s
   showMessage(form, "");
 }
 
-function writeExtra(form: HTMLFormElement, state: State, value: string): void {
+function writeExtra(form: HTMLFormElement, state: State, value: string): boolean {
   const node = getNode(state.root, state.selected);
-  if (!node) return;
+  if (!node) return false;
   let parsed: unknown = {};
   if (value.trim()) {
     try {
       parsed = parseYaml(value);
     } catch {
       showMessage(form, "Other props are not valid YAML.");
-      return;
+      return false;
     }
   }
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     showMessage(form, "Other props should be a YAML mapping.");
-    return;
+    return false;
   }
   state.root = updateNode(state.root, state.selected, setExtraProps(node, parsed as Record<string, unknown>));
   showMessage(form, "");
+  return true;
 }
 
 function paint(form: HTMLFormElement, state: State, inspector: boolean, dirty: boolean): void {
@@ -286,6 +300,13 @@ function showMessage(form: HTMLFormElement, text: string): void {
 function fieldOf(target: EventTarget | null): string | undefined {
   if (!(target instanceof HTMLElement)) return undefined;
   return target.dataset.field;
+}
+
+function isTypingControl(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLTextAreaElement ||
+    (target instanceof HTMLInputElement && target.type !== "checkbox" && target.type !== "radio")
+  );
 }
 
 function controlValue(target: EventTarget | null): string {
