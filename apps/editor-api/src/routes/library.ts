@@ -31,9 +31,8 @@ libraryRoutes.post("/library/folders", async (c) => {
   if (!id) return apiError(c, 400, "A folder needs an id.");
   const parentId = typeof body?.parentId === "string" && body.parentId ? body.parentId : undefined;
   try {
-    const folder = await libraryFor(site, c.get("siteRoot")).createFolder(id, parentId);
-    const rebuilt = await site.rebuild();
-    return c.json({ ok: true, folder, ...(rebuilt.snapshot ? { snapshot: rebuilt.snapshot } : {}) });
+    const created = await libraryFor(site, c.get("siteRoot")).createFolder(id, parentId);
+    return c.json({ ok: true, ...created });
   } catch (err) {
     return apiError(c, 400, err instanceof Error ? err.message : "Could not create the folder.");
   }
@@ -49,12 +48,11 @@ libraryRoutes.patch("/library/folders/:id", async (c) => {
     sort?: unknown;
   } | null;
   try {
-    await libraryFor(site, c.get("siteRoot")).patchFolder(c.req.param("id"), {
+    const updated = await libraryFor(site, c.get("siteRoot")).patchFolder(c.req.param("id"), {
       ...(body && "parentId" in body ? { parentId: typeof body.parentId === "string" ? body.parentId : null } : {}),
       ...(typeof body?.sort === "number" ? { sort: body.sort } : {}),
     });
-    const rebuilt = await site.rebuild();
-    return c.json({ ok: true, ...(rebuilt.snapshot ? { snapshot: rebuilt.snapshot } : {}) });
+    return c.json({ ok: true, ...updated });
   } catch (err) {
     return apiError(c, 400, err instanceof Error ? err.message : "Could not update the folder.");
   }
@@ -66,8 +64,8 @@ libraryRoutes.delete("/library/folders/:id", async (c) => {
   const site = c.get("site");
   if (!site) return apiError(c, 404, "No site data directory configured.");
   try {
-    await libraryFor(site, c.get("siteRoot")).deleteFolder(c.req.param("id"));
-    return c.json({ ok: true });
+    const deleted = await libraryFor(site, c.get("siteRoot")).deleteFolder(c.req.param("id"));
+    return c.json({ ok: true, ...deleted });
   } catch (err) {
     return apiError(c, 400, err instanceof Error ? err.message : "Could not delete the folder.");
   }
@@ -91,8 +89,7 @@ libraryRoutes.post("/library/upload", async (c) => {
       ...(folderTitle ? { folderTitle } : {}),
       ...(parentId ? { parentId } : {}),
     });
-    const rebuilt = await site.rebuild();
-    return c.json({ ok: true, ...result, ...(rebuilt.snapshot ? { snapshot: rebuilt.snapshot } : {}) });
+    return c.json({ ok: true, ...result });
   } catch (err) {
     return apiError(c, 400, err instanceof Error ? err.message : "Could not add those files.");
   }
@@ -105,7 +102,7 @@ libraryRoutes.patch("/library/assets/:id", async (c) => {
   if (!site) return apiError(c, 404, "No site data directory configured.");
   const body = (await c.req.json().catch(() => null)) as Record<string, unknown> | null;
   try {
-    await libraryFor(site, c.get("siteRoot")).patchAsset(c.req.param("id"), {
+    const updated = await libraryFor(site, c.get("siteRoot")).patchAsset(c.req.param("id"), {
       ...(typeof body?.name === "string" ? { name: body.name } : {}),
       ...(typeof body?.title === "string" ? { title: body.title } : {}),
       ...(typeof body?.alt === "string" ? { alt: body.alt } : {}),
@@ -113,7 +110,7 @@ libraryRoutes.patch("/library/assets/:id", async (c) => {
       ...(body && "folderId" in body ? { folderId: typeof body.folderId === "string" ? body.folderId : null } : {}),
       ...(typeof body?.sort === "number" ? { sort: body.sort } : {}),
     });
-    return c.json({ ok: true });
+    return c.json({ ok: true, ...updated });
   } catch (err) {
     return apiError(c, 400, err instanceof Error ? err.message : "Could not update the file.");
   }
@@ -125,8 +122,8 @@ libraryRoutes.delete("/library/assets/:id", async (c) => {
   const site = c.get("site");
   if (!site) return apiError(c, 404, "No site data directory configured.");
   try {
-    await libraryFor(site, c.get("siteRoot")).deleteAsset(c.req.param("id"));
-    return c.json({ ok: true });
+    const deleted = await libraryFor(site, c.get("siteRoot")).deleteAsset(c.req.param("id"));
+    return c.json({ ok: true, ...deleted });
   } catch (err) {
     return apiError(c, 400, err instanceof Error ? err.message : "Could not delete the file.");
   }

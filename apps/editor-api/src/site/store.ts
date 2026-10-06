@@ -1,4 +1,5 @@
-import { mkdir, readdir, unlink } from "node:fs/promises";
+import { randomBytes } from "node:crypto";
+import { mkdir, readdir, rename, unlink } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { SiteDocument } from "@r-a-i-t-h/tessera-model";
 import {
@@ -39,6 +40,10 @@ export type SaveResult = {
   historyAppended: boolean;
   historyCount: number;
   snapshot?: SnapshotRef;
+};
+
+type CommitOptions = {
+  rebuild?: boolean;
 };
 
 export type RecordFileRef = {
@@ -208,6 +213,54 @@ export class SiteStore {
     return this.commitRecord(kind, id, recordToYaml(kind, record));
   }
 
+  async writeLibraryRecord(
+    kind: "media" | "folders",
+    id: string,
+    data: Record<string, unknown>,
+    options: CommitOptions = {},
+  ): Promise<SaveResult> {
+    this.assertId(id);
+    return this.commitRecord(kind, id, recordToYaml(kind, { ...data, id }), options);
+  }
+
+  async deleteLibraryRecord(
+    kind: "media" | "folders",
+    id: string,
+    sidecars: string[] = [],
+    options: CommitOptions = {},
+  ): Promise<SaveResult> {
+    this.assertId(id);
+    const path = this.recordFile(kind, id);
+    const previous = await readText(path);
+    const staged: { original: string; aside: string }[] = [];
+    try {
+      for (const original of sidecars) {
+        const aside = `${original}.${process.pid}.${randomBytes(8).toString("hex")}.rollback`;
+        try {
+          await rename(original, aside);
+          staged.push({ original, aside });
+        } catch (err) {
+          if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+        }
+      }
+      await unlink(path);
+      let snapshot: SnapshotRef | undefined;
+      if (options.rebuild !== false) snapshot = (await this.rebuild()).snapshot;
+      await Promise.all(staged.map(({ aside }) => unlink(aside).catch(() => undefined)));
+      return {
+        historyAppended: false,
+        historyCount: 0,
+        ...(snapshot ? { snapshot } : {}),
+      };
+    } catch (err) {
+      await writeTextAtomic(path, previous).catch(() => undefined);
+      for (const { original, aside } of staged.reverse()) {
+        await rename(aside, original).catch(() => undefined);
+      }
+      throw err;
+    }
+  }
+
   async writeRaw(kind: RecordKind | "site" | "nav", id: string, raw: string): Promise<SaveResult> {
     const text = normalizeRaw(raw);
     if (kind === "site") {
@@ -347,8 +400,13 @@ export class SiteStore {
     await this.flatten();
   }
 
-  private async commitRecord(kind: RecordKind, id: string, nextText: string): Promise<SaveResult> {
-    const saved = await this.commitText(this.recordFile(kind, id), nextText);
+  private async commitRecord(
+    kind: RecordKind,
+    id: string,
+    nextText: string,
+    options: CommitOptions = {},
+  ): Promise<SaveResult> {
+    const saved = await this.commitText(this.recordFile(kind, id), nextText, options);
     await this.ensureOrdered(kind, id);
     const historyAppended = await this.maybeAppendHistory(kind, id, saved.previous, nextText);
     const historyCount = kind === "content" ? (await this.pageHistory(id)).length : 0;
@@ -363,6 +421,7 @@ export class SiteStore {
   private async commitText(
     path: string,
     nextText: string,
+    options: CommitOptions = {},
   ): Promise<{ snapshot?: SnapshotRef; previous?: string }> {
     let previous: string | undefined;
     try {
@@ -371,11 +430,10 @@ export class SiteStore {
       if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
     }
     await writeTextAtomic(path, nextText);
+    if (options.rebuild === false) return { previous };
     try {
-      const doc = await this.loadReadyDocument();
-      if (!doc) return { previous };
-      const outputs = await this.writeOutputs(doc);
-      return { ...outputs, previous };
+      const rebuilt = await this.rebuild();
+      return { ...(rebuilt.snapshot ? { snapshot: rebuilt.snapshot } : {}), previous };
     } catch (err) {
       if (previous === undefined) await unlink(path).catch(() => undefined);
       else await writeTextAtomic(path, previous);

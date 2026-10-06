@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -138,7 +138,7 @@ describe("asset library", () => {
     expect(rebuild).toHaveBeenCalledTimes(1);
   });
 
-  it.fails("restores media metadata when rebuilding a library update fails", async () => {
+  it("restores media metadata when rebuilding a library update fails", async () => {
     const { site, library } = await setup();
     const uploaded = await library.upload({
       files: [
@@ -159,7 +159,7 @@ describe("asset library", () => {
     expect(await readFile(recordPath, "utf8")).toBe(before);
   });
 
-  it.fails("restores media files when rebuilding a library deletion fails", async () => {
+  it("restores media files when rebuilding a library deletion fails", async () => {
     const { site, library } = await setup();
     const uploaded = await library.upload({
       files: [
@@ -183,7 +183,7 @@ describe("asset library", () => {
     expect(await readFile(blobPath)).toEqual(beforeBlob);
   });
 
-  it.fails("rebuilds at most once for an HTTP library mutation", async () => {
+  it("rebuilds at most once for an HTTP library mutation", async () => {
     const { site } = await setup();
     const { app, token } = await authenticatedApp(site);
     const rebuild = vi.spyOn(site, "rebuild");
@@ -199,5 +199,42 @@ describe("asset library", () => {
 
     expect(response.status).toBe(200);
     expect(rebuild).toHaveBeenCalledTimes(1);
+  });
+
+  it("restores a folder record when rebuilding its deletion fails", async () => {
+    const { site, library } = await setup();
+    await library.createFolder("documents");
+    const recordPath = join(root, "records", "folders", "documents.yaml");
+    const before = await readFile(recordPath, "utf8");
+    vi.spyOn(site, "rebuild").mockRejectedValueOnce(new Error("rebuild blocked"));
+
+    await expect(library.deleteFolder("documents")).rejects.toThrow("rebuild blocked");
+
+    expect(await readFile(recordPath, "utf8")).toBe(before);
+  });
+
+  it("removes every new record and blob when the final upload rebuild fails", async () => {
+    const { site, library } = await setup();
+    vi.spyOn(site, "rebuild").mockRejectedValueOnce(new Error("rebuild blocked"));
+
+    await expect(
+      library.upload({
+        files: [
+          {
+            filename: "notes.pdf",
+            relativePath: "documents/notes.pdf",
+            bytes: new TextEncoder().encode("%PDF-1.1"),
+          },
+          {
+            filename: "agenda.pdf",
+            relativePath: "documents/agenda.pdf",
+            bytes: new TextEncoder().encode("%PDF-1.1"),
+          },
+        ],
+      }),
+    ).rejects.toThrow("rebuild blocked");
+
+    expect((await site.list()).filter((row) => row.kind === "media" || row.kind === "folders")).toEqual([]);
+    expect(await readdir(join(root, "files"))).toEqual([]);
   });
 });

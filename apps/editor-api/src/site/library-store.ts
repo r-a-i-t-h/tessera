@@ -1,7 +1,6 @@
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import sharp from "sharp";
-import { toYaml } from "./document.js";
 import { isRecordId } from "./kinds.js";
 import {
   kindForExt,
@@ -14,8 +13,7 @@ import {
   UPLOADS_ID,
   type AssetKind,
 } from "./library.js";
-import type { SiteStore } from "./store.js";
-import { writeTextAtomic } from "../store/fs.js";
+import type { SiteStore, SnapshotRef } from "./store.js";
 
 export type FolderView = {
   id: string;
@@ -57,7 +55,10 @@ export type UploadRequest = {
 export type UploadResult = {
   created: { id: string; name: string; folderId: string }[];
   skipped: { name: string; reason: string }[];
+  snapshot?: SnapshotRef;
 };
+
+type MutationResult = { snapshot?: SnapshotRef };
 
 const THUMB_SUFFIX = ".thumb.webp";
 
@@ -131,7 +132,11 @@ export class AssetLibrary {
     return { folders, assets };
   }
 
-  async createFolder(id: string, parentId?: string, refresh = true): Promise<FolderView> {
+  async createFolder(
+    id: string,
+    parentId?: string,
+    rebuild = true,
+  ): Promise<{ folder: FolderView; snapshot?: SnapshotRef }> {
     const folderId = id.trim();
     if (!isRecordId(folderId)) throw new Error(`Invalid record id "${id}".`);
     const listing = await this.list();
@@ -139,14 +144,17 @@ export class AssetLibrary {
     if (this.takenIds(listing).has(folderId)) throw new Error(`Folder "${folderId}" already exists.`);
     const record: Record<string, unknown> = { id: folderId };
     if (parentId) record.parentId = parentId;
-    await this.writeRecord("folders", folderId, record, refresh);
-    return { id: folderId, parentId: parentId ?? null };
+    const saved = await this.site.writeLibraryRecord("folders", folderId, record, { rebuild });
+    return {
+      folder: { id: folderId, parentId: parentId ?? null },
+      ...(saved.snapshot ? { snapshot: saved.snapshot } : {}),
+    };
   }
 
   async patchFolder(
     id: string,
     patch: { parentId?: string | null; sort?: number },
-  ): Promise<void> {
+  ): Promise<MutationResult> {
     if (id === UPLOADS_ID && patch.parentId) {
       throw new Error("Uploads stays at the library root.");
     }
@@ -163,28 +171,34 @@ export class AssetLibrary {
     if (patch.parentId === null) delete record.parentId;
     else if (patch.parentId) record.parentId = patch.parentId;
     if (patch.sort !== undefined) record.sort = patch.sort;
-    await this.writeRecord("folders", id, record);
+    const saved = await this.site.writeLibraryRecord("folders", id, record);
+    return saved.snapshot ? { snapshot: saved.snapshot } : {};
   }
 
-  async deleteFolder(id: string): Promise<void> {
+  async deleteFolder(id: string): Promise<MutationResult> {
     if (id === UPLOADS_ID) throw new Error("The Uploads folder cannot be deleted.");
     const listing = await this.list();
     if (!listing.folders.some((folder) => folder.id === id)) throw new Error(`Unknown folder "${id}".`);
     if (listing.folders.some((folder) => folder.parentId === id) || listing.assets.some((asset) => asset.folderId === id)) {
       throw new Error("Move or delete everything inside this folder first.");
     }
-    await unlink(this.recordPath("folders", id));
-    await this.site.rebuild();
+    const saved = await this.site.deleteLibraryRecord("folders", id);
+    return saved.snapshot ? { snapshot: saved.snapshot } : {};
   }
 
   async upload(request: UploadRequest): Promise<UploadResult> {
     const listing = await this.list();
+    const createdFolders: string[] = [];
+    const createdFiles: { id: string; ext: string }[] = [];
     let destination = request.folderId;
     if (request.folderTitle?.trim()) {
       const created = await this.createFolder(request.folderTitle.trim(), request.parentId ?? request.folderId, false);
-      destination = created.id;
+      destination = created.folder.id;
+      createdFolders.push(created.folder.id);
     } else if (!destination || destination === UPLOADS_ID) {
-      destination = await this.ensureUploads();
+      const uploads = await this.ensureUploads();
+      destination = uploads.id;
+      if (uploads.created) createdFolders.push(uploads.id);
     } else {
       this.assertFolder(await this.list(), destination);
     }
@@ -235,9 +249,10 @@ export class AssetLibrary {
         const folderId = ids.has(slug) ? uniqueId(slug, ids) : slug;
         try {
           const made = await this.createFolder(folderId, parent, false);
-          folderIndex.set(key, made.id);
-          ids.add(made.id);
-          parent = made.id;
+          folderIndex.set(key, made.folder.id);
+          ids.add(made.folder.id);
+          createdFolders.push(made.folder.id);
+          parent = made.folder.id;
         } catch (err) {
           skipped.push({ name: split.file, reason: err instanceof Error ? err.message : "Could not create a folder." });
           placed = false;
@@ -258,23 +273,45 @@ export class AssetLibrary {
       if (kind === "image") await writeThumbnail(file.bytes, thumb);
       const sort = created.length + current.assets.filter((asset) => asset.folderId === parent).length;
       try {
-        await this.writeRecord("media", id, { id, name, kind, ext, folderId: parent, sort }, false);
+        await this.site.writeLibraryRecord(
+          "media",
+          id,
+          { id, name, kind, ext, folderId: parent, sort },
+          { rebuild: false },
+        );
       } catch (err) {
         await unlink(blob).catch(() => undefined);
         await unlink(thumb).catch(() => undefined);
         skipped.push({ name: split.file, reason: err instanceof Error ? err.message : "Could not save the file." });
         continue;
       }
+      createdFiles.push({ id, ext });
       created.push({ id, name, folderId: parent });
     }
-    await this.site.rebuild();
-    return { created, skipped };
+    try {
+      const rebuilt = await this.site.rebuild();
+      return {
+        created,
+        skipped,
+        ...(rebuilt.snapshot ? { snapshot: rebuilt.snapshot } : {}),
+      };
+    } catch (err) {
+      for (const file of createdFiles.reverse()) {
+        await this.site.deleteLibraryRecord("media", file.id, [], { rebuild: false }).catch(() => undefined);
+        await unlink(join(this.filesDir, `${file.id}.${file.ext}`)).catch(() => undefined);
+        await unlink(join(this.filesDir, `${file.id}${THUMB_SUFFIX}`)).catch(() => undefined);
+      }
+      for (const folderId of createdFolders.reverse()) {
+        await this.site.deleteLibraryRecord("folders", folderId, [], { rebuild: false }).catch(() => undefined);
+      }
+      throw err;
+    }
   }
 
   async patchAsset(
     id: string,
     patch: { name?: string; title?: string; alt?: string; caption?: string; folderId?: string | null; sort?: number },
-  ): Promise<void> {
+  ): Promise<MutationResult> {
     const listing = await this.list();
     const asset = listing.assets.find((item) => item.id === id);
     if (!asset) throw new Error(`Unknown file "${id}".`);
@@ -307,17 +344,19 @@ export class AssetLibrary {
     if (patch.folderId === null) delete record.folderId;
     else if (patch.folderId) record.folderId = patch.folderId;
     if (patch.sort !== undefined) record.sort = patch.sort;
-    await this.writeRecord("media", id, record);
+    const saved = await this.site.writeLibraryRecord("media", id, record);
+    return saved.snapshot ? { snapshot: saved.snapshot } : {};
   }
 
-  async deleteAsset(id: string): Promise<void> {
+  async deleteAsset(id: string): Promise<MutationResult> {
     const listing = await this.list();
     const asset = listing.assets.find((item) => item.id === id);
     if (!asset) throw new Error(`Unknown file "${id}".`);
-    await unlink(this.recordPath("media", id));
-    await unlink(join(this.filesDir, `${id}.${asset.ext}`)).catch(() => undefined);
-    await unlink(join(this.filesDir, `${id}${THUMB_SUFFIX}`)).catch(() => undefined);
-    await this.site.rebuild();
+    const saved = await this.site.deleteLibraryRecord("media", id, [
+      join(this.filesDir, `${id}.${asset.ext}`),
+      join(this.filesDir, `${id}${THUMB_SUFFIX}`),
+    ]);
+    return saved.snapshot ? { snapshot: saved.snapshot } : {};
   }
 
   async readOriginal(id: string): Promise<{ bytes: Buffer; type: string; filename: string } | undefined> {
@@ -343,11 +382,13 @@ export class AssetLibrary {
     }
   }
 
-  private async ensureUploads(): Promise<string> {
+  private async ensureUploads(): Promise<{ id: string; created: boolean }> {
     const listing = await this.list();
-    if (listing.folders.some((folder) => folder.id === UPLOADS_ID)) return UPLOADS_ID;
-    await this.writeRecord("folders", UPLOADS_ID, { id: UPLOADS_ID }, false);
-    return UPLOADS_ID;
+    if (listing.folders.some((folder) => folder.id === UPLOADS_ID)) {
+      return { id: UPLOADS_ID, created: false };
+    }
+    await this.site.writeLibraryRecord("folders", UPLOADS_ID, { id: UPLOADS_ID }, { rebuild: false });
+    return { id: UPLOADS_ID, created: true };
   }
 
   private assertFolder(listing: LibraryListing, id: string): void {
@@ -374,19 +415,6 @@ export class AssetLibrary {
     return summaries.filter((row) => row.kind === kind).map((row) => row.id);
   }
 
-  private recordPath(kind: "media" | "folders", id: string): string {
-    return join(this.site.siteDir, this.site.fileRef(kind, id).file);
-  }
-
-  private async writeRecord(
-    kind: "media" | "folders",
-    id: string,
-    record: Record<string, unknown>,
-    refresh = true,
-  ): Promise<void> {
-    await writeTextAtomic(this.recordPath(kind, id), toYaml({ ...record, id }));
-    if (refresh) await this.site.rebuild();
-  }
 }
 
 function contentType(ext: string): string {
