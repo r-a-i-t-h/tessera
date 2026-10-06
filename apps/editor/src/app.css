@@ -497,6 +497,22 @@ textarea.w3-input.editor-html {
   background: #f7f7f7;
 }
 
+.editor-drag-ghost {
+  position: fixed;
+  top: -1000px;
+  left: 0;
+  margin: 0;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  color: #333;
+  font: 500 0.85rem/1.2 ui-sans-serif, system-ui, sans-serif;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 .editor-prop {
   display: inline-flex;
   gap: 0.35rem;

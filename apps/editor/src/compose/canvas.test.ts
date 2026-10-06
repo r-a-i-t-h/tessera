@@ -156,3 +156,51 @@ describe("compose palette", () => {
     expect(html).not.toContain("Animal name");
   });
 });
+
+describe("compose drag ghost", () => {
+  it("shows the palette label while a section is dragged on", () => {
+    const form = mount(`<button type="button" data-palette="pasted">Pasted note</button><div data-canvas data-zone="main"></div>`);
+    const button = form.querySelector("[data-palette=pasted]");
+    if (!button) throw new Error("palette");
+    expect(dragGhost(button).textContent).toBe("Pasted note");
+  });
+
+  it("shows the section kind while an existing section is moved", () => {
+    dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;
+    const form = dom.document.querySelector("form");
+    if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
+    mountComposeCanvases(form, {
+      bindings: [],
+      htmlByZone: { main: `<h2>Market</h2><p>Opens at nine.</p>` },
+    });
+    const handle = form.querySelector("[data-drag]");
+    if (!handle) throw new Error("handle");
+    expect(dragGhost(handle).textContent).toBe("Text");
+  });
+});
+
+function mount(inner: string): HTMLFormElement {
+  dom.document.body.innerHTML = `<form>${inner}</form>`;
+  const form = dom.document.querySelector("form");
+  if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
+  mountComposeCanvases(form, { bindings: [], htmlByZone: { main: "" } });
+  return form;
+}
+
+function dragGhost(target: Element): Element {
+  const images: Element[] = [];
+  const transfer = {
+    effectAllowed: "",
+    setData() {},
+    setDragImage(image: Element) {
+      images.push(image);
+    },
+  };
+  const event = new dom.Event("dragstart", { bubbles: true });
+  Object.defineProperty(event, "dataTransfer", { value: transfer });
+  target.dispatchEvent(event);
+  const ghost = images[0];
+  if (!ghost) throw new Error("drag image");
+  target.dispatchEvent(new dom.Event("dragend", { bubbles: true }));
+  return ghost;
+}

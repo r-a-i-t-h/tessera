@@ -11,6 +11,7 @@ import {
   type Section,
   type ToneId,
 } from "@r-a-i-t-h/tessera-sections";
+import { setDragGhost } from "../drag-ghost.js";
 
 export type BindingChoice = { id: string; title?: string };
 export type FolderChoice = { id: string };
@@ -737,6 +738,7 @@ function onDragStart(form: HTMLFormElement, event: DragEvent): void {
     event.dataTransfer.setData("application/x-tessera-palette", palette.dataset.palette);
     event.dataTransfer.setData("text/plain", palette.dataset.palette);
     event.dataTransfer.effectAllowed = "copy";
+    setDragGhost(event.dataTransfer, palette.textContent ?? "");
     return;
   }
   const handle = target.closest<HTMLElement>("[data-drag]");
@@ -746,6 +748,7 @@ function onDragStart(form: HTMLFormElement, event: DragEvent): void {
   event.dataTransfer.setData("application/x-tessera-item", `${zone}\t${article.dataset.itemId}`);
   event.dataTransfer.setData("text/plain", article.dataset.itemId);
   event.dataTransfer.effectAllowed = "move";
+  setDragGhost(event.dataTransfer, article.querySelector(".editor-section-kind")?.textContent ?? "");
   event.stopPropagation();
 }
 

@@ -20,6 +20,7 @@ import {
   updateNode,
   type PaletteId,
 } from "./tree.js";
+import { setDragGhost } from "../drag-ghost.js";
 import { arrangeShell, closedDrawer, inspectorHtml, paletteHtml, treeHtml, type ArrangeInfo } from "./view.js";
 
 type Drag =
@@ -134,14 +135,22 @@ function bind(form: HTMLFormElement, state: State): void {
     const target = event.target as HTMLElement;
     const palette = target.closest<HTMLElement>("[data-palette]");
     const grip = target.closest<HTMLElement>("[data-drag-path]");
-    if (palette?.dataset.palette) drag = { kind: "palette", id: palette.dataset.palette as PaletteId };
-    else if (grip?.dataset.dragPath !== undefined) drag = { kind: "node", path: parsePath(grip.dataset.dragPath) };
-    else {
+    let label = "";
+    if (palette?.dataset.palette) {
+      drag = { kind: "palette", id: palette.dataset.palette as PaletteId };
+      label = palette.textContent ?? "";
+    } else if (grip?.dataset.dragPath !== undefined) {
+      drag = { kind: "node", path: parsePath(grip.dataset.dragPath) };
+      label = grip.textContent ?? "";
+    } else {
       drag = undefined;
       return;
     }
     event.dataTransfer?.setData("text/plain", "arrange");
-    if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = "move";
+      setDragGhost(event.dataTransfer, label);
+    }
   });
 
   form.addEventListener("dragover", (event) => {
