@@ -22,6 +22,11 @@
   --tessera-link: #00796b;
 }
 
+/* Keep the vertical bar present so short and tall pages share one width. */
+html {
+  overflow-y: scroll;
+}
+
 body {
   margin: 0;
   background: var(--tessera-page);
