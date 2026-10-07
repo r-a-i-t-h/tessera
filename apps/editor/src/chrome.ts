@@ -43,10 +43,7 @@ export function editorChrome(
 
 export function announceRoute(root: ParentNode): void {
   const heading = root.querySelector<HTMLElement>("main h1");
-  if (!heading) return;
-  const label = heading.textContent?.trim() || "Tessera editor";
-  heading.tabIndex = -1;
-  heading.focus();
+  const label = heading?.textContent?.trim() || "Tessera editor";
   document.title = `${label} · Tessera editor`;
   const status = root.querySelector<HTMLElement>("#route-status");
   if (status) status.textContent = label;

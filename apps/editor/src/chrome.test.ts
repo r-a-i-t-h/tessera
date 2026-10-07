@@ -20,15 +20,15 @@ describe("editor chrome", () => {
     expect(html).toContain('aria-live="polite"');
   });
 
-  it("focuses and announces the main heading after navigation", () => {
+  it("announces the main heading after navigation without focusing it", () => {
     document.body.innerHTML = editorChrome(
       { username: "alice", createdAt: "2026-01-01" },
       "<h1>Library</h1>",
     );
     announceRoute(document);
     const heading = document.querySelector("h1");
-    expect(document.activeElement).toBe(heading);
-    expect(heading?.getAttribute("tabindex")).toBe("-1");
+    expect(document.activeElement).not.toBe(heading);
+    expect(heading?.hasAttribute("tabindex")).toBe(false);
     expect(document.querySelector("#route-status")?.textContent).toBe("Library");
     expect(document.title).toBe("Library · Tessera editor");
   });
