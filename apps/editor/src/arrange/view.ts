@@ -11,7 +11,6 @@ import {
   nodeDetail,
   nodeLabel,
   paletteFor,
-  paragraphText,
   pathKey,
   stayOpenNote,
   tagOptions,
@@ -23,6 +22,8 @@ export type ArrangeInfo = {
   fallback: boolean;
   typeIds: string[];
 };
+
+const ID_NOTE = "The list names this box from its id.";
 
 const WIDTHS: [string, string][] = [
   ["m6", "Half"],
@@ -39,12 +40,7 @@ export function arrangeShell(info: ArrangeInfo, frame: boolean): string {
     <div class="editor-arrange-layout">
       <div class="editor-palette" data-arrange-palette>${paletteHtml(frame)}</div>
       <div class="editor-arrange-stage">
-        <p class="editor-arrange-width">
-          <button type="button" class="w3-button w3-small w3-white" data-width="narrow">Narrow</button>
-          <button type="button" class="w3-button w3-small w3-theme" data-width="wide">Wide</button>
-        </p>
-        <p class="w3-text-grey" data-arrange-closed hidden>The side menu stays closed on a wide window until Stay open is ticked.</p>
-        <div class="editor-arrange-tree" data-arrange-tree data-width="wide"></div>
+        <div class="editor-arrange-tree" data-arrange-tree></div>
       </div>
       <aside class="editor-arrange-inspector" data-arrange-inspector></aside>
     </div>
@@ -56,20 +52,20 @@ export function paletteHtml(frame: boolean): string {
     ? "Drag onto a box, or click to add. A class here is shared by every page."
     : "Drag onto a region, or click to add. Zones become Compose canvases. A class here is shared by every page of this layout.";
   const buttons = paletteFor(frame)
-    .map(
-      (item) =>
-        `<button type="button" class="w3-button w3-white w3-border" draggable="true" data-palette="${item.id}">${escapeHtml(item.label)}</button>`,
+    .map((group) =>
+      group
+        .map(
+          (item) =>
+            `<button type="button" class="w3-button w3-white w3-border" draggable="true" data-palette="${item.id}">${escapeHtml(item.label)}</button>`,
+        )
+        .join(""),
     )
-    .join("");
+    .join(`<hr class="editor-palette-rule">`);
   return `<p class="w3-small w3-text-grey">${hint}</p>${buttons}`;
 }
 
 export function treeHtml(root: LayoutNode, selected: string): string {
   return nodeHtml(root, [], selected);
-}
-
-export function closedDrawer(root: LayoutNode): boolean {
-  return walkSome(root, (node) => drawerState(node) === "closed");
 }
 
 export function inspectorHtml(node: LayoutNode | undefined, info: ArrangeInfo, frame: boolean, names = new Set<string>()): string {
@@ -96,6 +92,7 @@ function regionFields(node: Extract<LayoutNode, { type: "region" }>): string {
   return `<p><label>Tag <select class="w3-select w3-border" data-field="tag">${tags}</select></label></p>
     <p class="w3-small w3-text-grey">header, nav, main, and aside are plain blocks until a class places them. h1 is a heading.</p>
     <p><label>Id <input class="w3-input w3-border" data-field="id" value="${escapeHtml(node.id ?? "")}" /></label></p>
+    <p class="w3-small w3-text-grey">${ID_NOTE}</p>
     ${node.id === "mySidebar" ? `<p class="w3-small w3-text-grey">The Menu button opens the element with this id.</p>` : ""}
     <p><label>Role <input class="w3-input w3-border" data-field="role" value="${escapeHtml(node.role ?? "")}" /></label></p>
     <p class="w3-small w3-text-grey">A role can add skin classes. Row adds w3-row.</p>
@@ -122,18 +119,15 @@ function zoneFields(node: Extract<LayoutNode, { type: "zone" }>, info: ArrangeIn
       ? `${info.typeIds.join(", ")} pages fill this in Compose.`
       : "Pages that use this layout fill this in Compose.";
   return `<p><label>Name <input class="w3-input w3-border" data-field="zoneId" value="${escapeHtml(node.id)}" /></label></p>
+    <p class="w3-small w3-text-grey">${ID_NOTE}</p>
     <p class="w3-small w3-text-grey">${escapeHtml(who)}</p>
     <p><label>Classes <input class="w3-input w3-border" data-field="className" value="${escapeHtml(node.className ?? "")}" /></label></p>
     <p class="w3-small w3-text-grey">Set when this zone should be wrapped in a div. Empty leaves the page HTML bare.</p>`;
 }
 
 function staticFields(html: string): string {
-  const text = paragraphText(html);
-  if (text !== undefined) {
-    return `<p><label>Text <input class="w3-input w3-border" data-field="paragraph" value="${escapeHtml(text)}" /></label></p>
-      <p class="w3-small w3-text-grey">Stored as a paragraph. The same text is on every page.</p>`;
-  }
   return `<p><label>HTML <textarea class="w3-input w3-border editor-html" data-field="html" rows="14" spellcheck="false">${escapeHtml(html)}</textarea></label></p>
+    <p class="w3-small w3-text-grey">${ID_NOTE}</p>
     <p class="w3-small w3-text-grey">This fragment is the same on every page.</p>`;
 }
 
@@ -265,14 +259,6 @@ function banner(info: ArrangeInfo, frame: boolean): string {
     ? " Each page is drawn in the page slot. Menus read the Nav record. Widths and colours of the default chrome are on Styles."
     : " Zones you add here are what Compose fills. A class on a region is shared by every page that uses this layout.";
   return `<p class="w3-text-grey">${escapeHtml(use)}${escapeHtml(rest)} <a href="#/guide">Guide</a>.</p>`;
-}
-
-function walkSome(node: LayoutNode, pred: (node: LayoutNode) => boolean): boolean {
-  if (pred(node)) return true;
-  for (const child of childList(node) ?? []) {
-    if (walkSome(child, pred)) return true;
-  }
-  return false;
 }
 
 function yamlish(value: Record<string, unknown>): string {

@@ -21,7 +21,7 @@ import {
   type PaletteId,
 } from "./tree.js";
 import { setDragGhost } from "../drag-ghost.js";
-import { arrangeShell, closedDrawer, inspectorHtml, paletteHtml, treeHtml, type ArrangeInfo } from "./view.js";
+import { arrangeShell, inspectorHtml, paletteHtml, treeHtml, type ArrangeInfo } from "./view.js";
 
 type Drag =
   | { kind: "palette"; id: PaletteId }
@@ -30,7 +30,6 @@ type Drag =
 type State = {
   root: LayoutNode;
   selected: number[];
-  width: "narrow" | "wide";
   info: ArrangeInfo;
   frame: boolean;
 };
@@ -50,7 +49,6 @@ export function mountArrange(
   const state: State = {
     root: structuredClone(root),
     selected: [],
-    width: "wide",
     info,
     frame: isFrame(root),
   };
@@ -104,12 +102,6 @@ function bind(form: HTMLFormElement, state: State, onEdit?: (burstId?: string) =
       showMessage(form, "");
       paint(form, state, true, true);
       onEdit?.();
-      return;
-    }
-    const width = target.closest<HTMLButtonElement>("button[data-width]");
-    if (width?.dataset.width === "narrow" || width?.dataset.width === "wide") {
-      state.width = width.dataset.width;
-      paint(form, state, false, false);
       return;
     }
     const node = target.closest<HTMLElement>(".arrange-node");
@@ -261,17 +253,7 @@ function paint(form: HTMLFormElement, state: State, inspector: boolean, dirty: b
     if (palette) palette.innerHTML = paletteHtml(frame);
   }
   const tree = form.querySelector("[data-arrange-tree]");
-  if (tree) {
-    tree.innerHTML = treeHtml(state.root, pathKey(state.selected));
-    tree.setAttribute("data-width", state.width);
-  }
-  const closed = form.querySelector<HTMLElement>("[data-arrange-closed]");
-  if (closed) closed.hidden = !(state.width === "wide" && closedDrawer(state.root));
-  for (const button of form.querySelectorAll<HTMLButtonElement>("button[data-width]")) {
-    const on = button.dataset.width === state.width;
-    button.classList.toggle("w3-theme", on);
-    button.classList.toggle("w3-white", !on);
-  }
+  if (tree) tree.innerHTML = treeHtml(state.root, pathKey(state.selected));
   if (inspector) {
     const active = document.activeElement;
     const field = active instanceof HTMLElement ? active.dataset.field : undefined;

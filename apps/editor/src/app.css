@@ -1010,9 +1010,10 @@ button.editor-library-row:hover,
   align-items: start;
 }
 
-.editor-arrange-width {
-  display: flex;
-  gap: 0.4rem;
+.editor-palette-rule {
+  border: 0;
+  border-top: 1px solid #ccc;
+  margin: 0.15rem 0 0.55rem;
 }
 
 .editor-arrange-tree {
@@ -1079,36 +1080,6 @@ button.editor-library-row:hover,
 
 .arrange-node[data-kind="page"] .arrange-body {
   background: repeating-linear-gradient(-45deg, #fafafa, #fafafa 6px, #f0f0f0 6px, #f0f0f0 12px);
-}
-
-.editor-arrange-tree[data-width="wide"] .arrange-node[data-path=""] > .arrange-children {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 0.35rem;
-}
-
-.editor-arrange-tree[data-width="wide"] .arrange-node[data-path=""] > .arrange-children > .arrange-node {
-  width: 100%;
-}
-
-.editor-arrange-tree[data-width="wide"] .arrange-node[data-path=""] > .arrange-children > .arrange-gap {
-  display: none;
-}
-
-.editor-arrange-tree[data-width="wide"] .arrange-node[data-path=""] > .arrange-children > .arrange-node[data-drawer="open"] {
-  width: 14rem;
-}
-
-.editor-arrange-tree[data-width="wide"] .arrange-node[data-path=""] > .arrange-children > .arrange-node[data-tag="main"],
-.editor-arrange-tree[data-width="wide"] .arrange-node[data-path=""] > .arrange-children > .arrange-node[data-role="main"] {
-  flex: 1;
-  width: auto;
-  min-width: 12rem;
-}
-
-.editor-arrange-tree[data-width="wide"] .arrange-node[data-path=""] > .arrange-children > .arrange-node[data-drawer="closed"] {
-  display: none;
 }
 
 .w3-button.w3-tiny {

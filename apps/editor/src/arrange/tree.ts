@@ -55,28 +55,36 @@ export function isFrame(root: LayoutNode): boolean {
   return countKind(root, "page") > 0;
 }
 
-export function paletteFor(frame: boolean): PaletteItem[] {
+export function paletteFor(frame: boolean): PaletteItem[][] {
   if (frame) {
     return [
-      { id: "region", label: "Region" },
-      { id: "topbar", label: "Top bar" },
-      { id: "fonts", label: "Font buttons" },
-      { id: "sidemenu", label: "Side menu" },
-      { id: "menu", label: "Menu" },
-      { id: "breadcrumbs", label: "Breadcrumbs" },
-      { id: "page", label: "Page" },
-      { id: "footer", label: "Footer" },
-      { id: "html", label: "Custom HTML" },
+      [
+        { id: "topbar", label: "Header" },
+        { id: "region", label: "Region" },
+        { id: "footer", label: "Footer" },
+      ],
+      [{ id: "page", label: "Page" }],
+      [
+        { id: "sidemenu", label: "Side menu" },
+        { id: "menu", label: "Menu" },
+        { id: "breadcrumbs", label: "Breadcrumbs" },
+      ],
+      [
+        { id: "html", label: "Custom HTML" },
+        { id: "fonts", label: "Font switch" },
+      ],
     ];
   }
   return [
-    { id: "region", label: "Region" },
-    { id: "zone", label: "Zone" },
-    { id: "columns2", label: "Two columns" },
-    { id: "columns3", label: "Three columns" },
-    { id: "heading", label: "Heading" },
-    { id: "component", label: "Component" },
-    { id: "html", label: "Custom HTML" },
+    [
+      { id: "region", label: "Region" },
+      { id: "zone", label: "Zone" },
+      { id: "columns2", label: "Two columns" },
+      { id: "columns3", label: "Three columns" },
+      { id: "heading", label: "Heading" },
+      { id: "component", label: "Component" },
+      { id: "html", label: "Custom HTML" },
+    ],
   ];
 }
 
@@ -244,17 +252,14 @@ export function columnWidth(className: string | undefined): string | undefined {
 
 export function nodeLabel(node: LayoutNode): string {
   switch (node.type) {
-    case "region": {
-      const tag = node.tag && node.tag !== "div" ? node.tag : "";
-      const name = tag || node.role || "Region";
-      return node.id ? `${name} · ${node.id}` : name;
-    }
+    case "region":
+      return titled("Region", node.id);
     case "zone":
-      return `${node.id} · zone`;
+      return titled("Zone", node.id);
     case "page":
       return "Page";
     case "static":
-      return staticLabel(node.html);
+      return titled("HTML", fragmentId(node.html));
     case "component":
       return componentLabel(node);
     default: {
@@ -271,8 +276,6 @@ export function nodeDetail(node: LayoutNode): string {
     case "zone":
       return "Filled on each page in Compose.";
     case "static": {
-      const text = paragraphText(node.html);
-      if (text) return text;
       const trimmed = node.html.replace(/\s+/g, " ").trim();
       return trimmed.length > 80 ? `${trimmed.slice(0, 80)}…` : trimmed;
     }
@@ -285,12 +288,6 @@ export function nodeDetail(node: LayoutNode): string {
       return _exhaustive;
     }
   }
-}
-
-export function paragraphText(html: string): string | undefined {
-  const match = html.match(/^<p>([\s\S]*)<\/p>$/);
-  if (!match || match[1]?.includes("<")) return undefined;
-  return decodeText(match[1] ?? "");
 }
 
 export function scopeForParent(parent: LayoutNode | undefined): "sidebar" | "topbar" | "footer" | undefined {
@@ -417,7 +414,7 @@ function presetNodes(id: PaletteId, root: LayoutNode): LayoutNode[] {
         },
       ];
     case "html":
-      return [{ type: "static", html: "<p></p>" }];
+      return [{ type: "static", html: "" }];
     case "zone":
       return [{ type: "zone", id: freshZoneId(root) }];
     case "columns2":
@@ -483,7 +480,6 @@ function applyZoneField(node: LayoutNode & { type: "zone" }, field: string, valu
 
 function applyStaticField(node: LayoutNode & { type: "static" }, field: string, value: string): LayoutNode {
   if (field === "html") return { type: "static", html: value };
-  if (field === "paragraph") return { type: "static", html: `<p>${encodeText(value)}</p>` };
   return node;
 }
 
@@ -571,15 +567,14 @@ function walk(node: LayoutNode, visit: (node: LayoutNode) => void): void {
   for (const child of childList(node) ?? []) walk(child, visit);
 }
 
-function staticLabel(html: string): string {
-  if (html.includes("myOverlay")) return "Overlay";
-  if (html.includes("<img") || html.includes("wh-brand")) return "Custom HTML";
-  if (html.includes("w3_open()")) return "Menu button";
-  if (html.includes("w3_close()")) return "Close";
-  if (html.includes("tessera-font-btn") || html.includes("body_switch")) return "Font buttons";
-  const text = paragraphText(html);
-  if (text) return text || "Text";
-  return "Custom HTML";
+function titled(kind: string, id: string | undefined): string {
+  const name = id?.trim();
+  return name ? `${kind} : ${name}` : kind;
+}
+
+function fragmentId(html: string): string | undefined {
+  const match = /\bid\s*=\s*(?:"([^"]*)"|'([^']*)')/.exec(html);
+  return match?.[1] ?? match?.[2];
 }
 
 function componentLabel(node: LayoutComponentNode): string {
@@ -621,10 +616,3 @@ function adjustPath(path: number[], removed: number[]): number[] {
   return out;
 }
 
-function encodeText(value: string): string {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-function decodeText(value: string): string {
-  return value.replace(/&gt;/g, ">").replace(/&lt;/g, "<").replace(/&amp;/g, "&");
-}

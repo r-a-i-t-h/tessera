@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { LayoutNodeSchema, type LayoutNode } from "@r-a-i-t-h/tessera-model";
 import { parse } from "yaml";
 import { describe, expect, it } from "vitest";
-import { treeHtml } from "./view.js";
+import { inspectorHtml, paletteHtml, treeHtml } from "./view.js";
 import {
   applyField,
   asLayoutNode,
@@ -17,6 +17,7 @@ import {
   newPageLayout,
   nodeLabel,
   nodesFor,
+  paletteFor,
   relocate,
   removeNode,
   scopeForParent,
@@ -47,11 +48,16 @@ describe("layout arrange tree", () => {
     expect(cleanNode(cleanNode(root))).toEqual(cleanNode(root));
     expect(LayoutNodeSchema.safeParse(cleanNode(root)).success).toBe(true);
     const names = labels(root);
-    expect(names).toContain("header");
+    expect(names).toContain("Region : topnav");
+    expect(names).toContain("Region : mySidebar");
+    expect(names).toContain("HTML : myOverlay");
+    expect(names).not.toContain("header");
+    expect(names).not.toContain("Overlay");
+    expect(names).not.toContain("Close");
+    expect(names).not.toContain("Custom HTML");
     expect(names).toContain("Menu · Flat list · Top bar");
     expect(names).toContain("Menu · Flat list · Sidebar");
     expect(names).toContain("Page");
-    expect(names).toContain("Custom HTML");
     const html = treeHtml(root, "");
     expect(html).toContain("data-tag=\"header\"");
     expect(html).toContain("data-drawer=\"closed\"");
@@ -64,10 +70,10 @@ describe("layout arrange tree", () => {
   it("reads a page layout as zones inside regions", () => {
     const root = load("meeting.yaml");
     expect(isFrame(root)).toBe(false);
-    expect(labels(root)).toContain("minutes · zone");
+    expect(labels(root)).toContain("Zone : minutes");
     expect(labels(root)).toContain("agendaList");
     const standard = load("standard.yaml");
-    expect(labels(standard)).toContain("aside · zone");
+    expect(labels(standard)).toContain("Zone : aside");
     expect(getNode(standard, [1, 3, 1])?.type).toBe("region");
   });
 
@@ -127,6 +133,49 @@ describe("layout arrange tree", () => {
     expect(scopeForParent(header)).toBe("topbar");
     expect(tagOptions("raith")).toContain("raith");
     expect(tagOptions(undefined)).not.toContain("raith");
+  });
+
+  it("names a box from its kind and id", () => {
+    expect(nodeLabel({ type: "region", children: [] })).toBe("Region");
+    expect(nodeLabel({ type: "region", id: "mySidebar", children: [] })).toBe("Region : mySidebar");
+    expect(nodeLabel({ type: "zone", id: "footer" })).toBe("Zone : footer");
+    expect(nodeLabel({ type: "static", html: '<div id="myOverlay"></div>' })).toBe("HTML : myOverlay");
+    expect(nodeLabel({ type: "static", html: "<p>Footer</p>" })).toBe("HTML");
+  });
+
+  it("starts custom HTML as an empty fragment edited as HTML", () => {
+    const page = newPageLayout("sample").root;
+    const made = nodesFor("html", page);
+    expect(made.ok && made.nodes).toEqual([{ type: "static", html: "" }]);
+    if (!made.ok) return;
+    const html = inspectorHtml(made.nodes[0], { layoutId: "sample", master: false, fallback: false, typeIds: [] }, false);
+    expect(html).toContain('data-field="html"');
+    expect(html).not.toContain('data-field="paragraph"');
+    expect(html).toContain("The list names this box from its id.");
+  });
+
+  it("groups the frame palette", () => {
+    expect(paletteFor(true).flat().map((item) => item.label)).toEqual([
+      "Header",
+      "Region",
+      "Footer",
+      "Page",
+      "Side menu",
+      "Menu",
+      "Breadcrumbs",
+      "Custom HTML",
+      "Font switch",
+    ]);
+    expect(paletteHtml(true).match(/editor-palette-rule/g)).toHaveLength(3);
+    expect(paletteFor(false).flat().map((item) => item.label)).toEqual([
+      "Region",
+      "Zone",
+      "Two columns",
+      "Three columns",
+      "Heading",
+      "Component",
+      "Custom HTML",
+    ]);
   });
 
   it("sets a column width without dropping w3-col", () => {

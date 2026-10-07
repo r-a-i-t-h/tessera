@@ -31,7 +31,7 @@ describe("arrange drag ghost", () => {
     const grip = form.querySelector('[data-drag-path="1"]');
     if (!palette || !grip) throw new Error("drag sources");
     expect(dragGhost(palette).textContent).toBe("Zone");
-    expect(dragGhost(grip).textContent).toBe("main · zone");
+    expect(dragGhost(grip).textContent).toBe("Zone : main");
   });
 });
 
