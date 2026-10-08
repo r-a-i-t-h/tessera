@@ -209,6 +209,31 @@ describe("renderPage", () => {
     expect(about).toContain("<header>Site frame</header>");
     expect(about).not.toContain("Events frame");
   });
+
+  it("paints a master include into a frame zone when the page does not list the item", () => {
+    const doc = makeFixtureDoc();
+    doc.items.push({
+      id: "site-header",
+      zones: { header: [{ type: "text", html: "<p>Site header</p>" }] },
+    });
+    doc.site.masterLayoutId = "master";
+    doc.layouts.push({
+      id: "master",
+      includes: ["site-header"],
+      root: {
+        type: "region",
+        children: [{ type: "zone", id: "header" }, { type: "page" }],
+      },
+    });
+    const html = renderPage({
+      document: doc,
+      pageId: "about",
+      registry: registryWithDefaults(),
+    });
+    expect(html).toContain("<p>Site header</p>");
+    expect(html.indexOf("Site header")).toBeLessThan(html.indexOf("About body"));
+    expect(doc.pages.find((page) => page.id === "about")?.includes).not.toContain("site-header");
+  });
 });
 
 describe("authored zone HTML", () => {

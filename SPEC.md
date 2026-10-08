@@ -50,7 +50,7 @@ The whole text/data payload for a site is one **`SiteDocument`**: site meta, lay
 - **Only layouts declare zones** and where they appear on the page.
 - `site.masterLayoutId` names the outer page (the frame: header, nav, drawer). Its `page` node is replaced by the page's own layout. A page may set `masterLayoutId`. Descendants use the nearest ancestor's frame until one of them sets its own. The home page's `parentId` is ignored, so it does not inherit a frame. Content cannot fill that node. Nav is a component placed in the frame. The shell is the document head, one mount, and CSS.
 - A **page** uses the layout of its site-defined **type**, or `site.defaultLayoutId` when it has no type.
-- A page may pull in shared **items** and contribute blocks into zones.
+- A page or a layout may pull in shared **items**, and a page may contribute blocks into zones.
 - Contributions to zones the layout does not declare are not painted, but may remain available as data for components (e.g. JSON for a list).
 
 ### Types

@@ -15,6 +15,7 @@ describe("SiteDocument schema", () => {
       layouts: [
         {
           id: "L",
+          includes: ["footer"],
           root: {
             type: "region",
             children: [{ type: "zone", id: "main" }],
@@ -31,6 +32,7 @@ describe("SiteDocument schema", () => {
       ],
     });
     expect(doc.pages[0]!.id).toBe("p1");
+    expect(doc.layouts[0]!.includes).toEqual(["footer"]);
   });
 
   it("rejects invalid version", () => {

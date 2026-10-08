@@ -114,4 +114,19 @@ describe("schema forms", () => {
     expect(schema?.fields.some((field) => field.name === "meta" && field.type === "yaml")).toBe(true);
     expect(schema?.fields.some((field) => field.name === "zones")).toBe(false);
   });
+
+  it("offers Includes on a layout and omits it when blank", () => {
+    const record = { id: "master", root: { type: "page" } };
+    const schema = schemaFor("layouts", record);
+    const includes = schema?.fields.find((field) => field.name === "includes");
+    expect(includes).toMatchObject({ type: "string", list: true });
+    expect(schema?.fields.some((field) => field.name === "root")).toBe(true);
+    const html = renderForm({ fields: schema?.fields ?? [] }, record);
+    expect(html).toContain('name="includes"');
+    const cleared = applySubmitted(schema!, record, { includes: "  " });
+    expect(cleared).not.toHaveProperty("includes");
+    const set = applySubmitted(schema!, record, { includes: "site-header, common-footer" });
+    expect(set.includes).toEqual(["site-header", "common-footer"]);
+    expect(set.root).toEqual({ type: "page" });
+  });
 });

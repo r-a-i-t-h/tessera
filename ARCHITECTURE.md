@@ -55,7 +55,7 @@ Dated site archives live in the sibling `backup/` directory (`TESSERA_BACKUP` ov
 - **Page** — `id`, `title`, optional `description`, optional `slug`, optional `parentId` (published tree; ignored on the home page), optional `masterLayoutId` (frame for this page and its descendants), optional `showInNav` (`false` keeps the URL and drops the nav link), optional `type`, optional `fields`, optional subject `tags`, optional `includes` (shared items), and `zones` contributions. There is no draft flag: every content page is in the flattened document. `locked` and `templateId` may sit on the YAML file and are omitted when the page is assembled. History is not a field on the page.
 - **Style** — optional `site.style` tokens (sidebar width, bar, colours, fonts, nav side). Missing fields use the defaults in `style.ts`. The editor’s Styles page writes this object. A pages build turns it into a style element after the stylesheet links, which overrides `:root` in `skin/tessera.css`. The same page can edit the linked stylesheets. Saving W3, Tessera, micro-apps, or a theme file stores a copy in `shell/css/` for this site. `site.css` stays in the shell.
 - **Type** — site-defined `{ id, layoutId?, fields[] }`. `resolvePageProfile` uses that layout, otherwise `site.defaultLayoutId`. A type does not invent zones. Subject tags do not select it.
-- **Item** — reusable zone contributions (footer, promo, …), pulled in via `page.includes`.
+- **Item** — reusable zone contributions (footer, promo, …), pulled in via `page.includes` or a layout's `includes`.
 - **Blocks** inside a zone: `text` | `json` | `media` | `component`.
 - **Nav / media / site meta** — also in the flattened document.
 
@@ -204,7 +204,7 @@ Web components follow the same idea: implement with `WCBase`, `customElements.de
 
 1. Load + validate the hashed site file named by `<meta name="tessera-site">`; persist to `localStorage` under the absolute URL of that file (one cache per published site on a shared origin); fall back to cache on failure (see SPEC §3). While open, poll `rev.json` on a 5-minute TTL.
 2. Resolve page from hash (unknown ids fall back to home — no error UI). Snapshot sites only.
-3. Resolve the page’s **profile** (`resolvePageProfile`: the type's layout, otherwise the site default), then merge `page.zones` then each included item’s zones (stable order).
+3. Resolve the page’s **profile** (`resolvePageProfile`: the type's layout, otherwise the site default), then merge `page.zones`, the page's includes, the page layout's includes, and the master frame's includes when that layout is a different one. The same item id is merged once.
 4. Walk the frame from `resolveMasterLayout` (this page's `masterLayoutId`, otherwise the nearest ancestor's, otherwise `site.masterLayoutId`). Its `page` node is the resolved page layout. Zone nodes render their blocks; unknown component names become HTML comments. Nav components in the frame read `document.nav`.
 5. Optional `onAfterRender` / `onStatusChange` for chrome outside the document (demo sidebar, stale banner).
 6. While open, re-fetch on a 5-minute TTL when `documentUrl` is set.

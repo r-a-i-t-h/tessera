@@ -133,6 +133,8 @@ export const LayoutNodeSchema: z.ZodType<LayoutNode> = z.lazy(() =>
 export const LayoutSchema = z.object({
   id: z.string().min(1),
   root: LayoutNodeSchema,
+  /** Shared items merged into zones after the page and its own includes. */
+  includes: z.array(z.string()).optional(),
 });
 
 export const PageSchema = z.object({

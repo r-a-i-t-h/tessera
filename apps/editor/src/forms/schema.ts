@@ -68,11 +68,16 @@ export const TEMPLATE_FORM: FormSchema = {
   ],
 };
 
+export const LAYOUT_FORM: FormSchema = {
+  fields: [{ name: "includes", label: "Includes", type: "string", list: true }],
+};
+
 /** Authored schema for a record kind. Other kinds build a temporary list from the file. */
 export function authoredSchema(kind: string): FormSchema | undefined {
   if (kind === "site") return SITE_FORM;
   if (kind === "content") return CONTENT_FORM;
   if (kind === "templates") return TEMPLATE_FORM;
+  if (kind === "layouts") return LAYOUT_FORM;
   return undefined;
 }
 
