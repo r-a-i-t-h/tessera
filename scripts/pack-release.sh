@@ -143,7 +143,7 @@ for CPU in arm64 x64; do
   rm -rf "$SIDE"
 done
 
-chmod 755 "$DEST/deploy/post-update.sh" "$DEST/deploy/migrate.sh"
+chmod 755 "$DEST/deploy/post-update.sh" "$DEST/deploy/migrate.sh" "$DEST/deploy/nginx-upload-limit.sh"
 if [ -d "$DEST/deploy/migrations" ]; then
   find "$DEST/deploy/migrations" -name '*.sh' -exec chmod 755 {} +
 fi
