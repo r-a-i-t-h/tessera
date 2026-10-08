@@ -31,6 +31,7 @@ import {
   updateLibraryAsset,
   updateUser,
   uploadLibrary,
+  rescanLibrary,
   createLibraryFolder,
   type BackupList,
   type ManagedUser,
@@ -2690,6 +2691,24 @@ async function bindLibrary(root: HTMLElement, user: PublicUser, openId: string |
     incoming = Promise.resolve([]);
     void read.then((files) => submitLibraryUpload(root, user, form, openId, files));
   });
+  root.querySelector("[data-action=rescan]")?.addEventListener("click", () => {
+    if (!window.confirm("Rescan the files on disk? Missing files will be removed from the library. New files will be added to scanned.")) {
+      return;
+    }
+    void rescanLibrary()
+      .then((result) => {
+        const folderId = result.added[0]?.folderId;
+        if (folderId) {
+          const next = `#/library/${encodeURIComponent(folderId)}`;
+          if (window.location.hash !== next) {
+            history.replaceState(null, "", next);
+            lastAnnouncedHash = next;
+          }
+        }
+        return bindLibrary(root, user, folderId ?? openId, rescanNotice(result));
+      })
+      .catch((err) => bindLibrary(root, user, openId, err instanceof Error ? err.message : "Could not rescan the library."));
+  });
   root.querySelector("[data-action=new-folder]")?.addEventListener("click", () => {
     const id = window.prompt("Folder id");
     if (!id?.trim()) return;
@@ -2739,6 +2758,27 @@ async function bindLibrary(root: HTMLElement, user: PublicUser, openId: string |
       if (fallback && image.src !== new URL(fallback, window.location.origin).href) image.src = fallback;
     });
   }
+}
+
+function rescanNotice(result: {
+  removed: { id: string }[];
+  added: { id: string }[];
+  skipped: { name: string }[];
+}): string {
+  if (!result.removed.length && !result.added.length && !result.skipped.length) {
+    return "Library matches the files on disk.";
+  }
+  const parts: string[] = [];
+  if (result.removed.length) {
+    parts.push(`Removed ${result.removed.length} file${result.removed.length === 1 ? "" : "s"}.`);
+  }
+  if (result.added.length) {
+    parts.push(`Added ${result.added.length} file${result.added.length === 1 ? "" : "s"} to scanned.`);
+  }
+  if (result.skipped.length) {
+    parts.push(`Skipped ${result.skipped.map((item) => item.name).join(", ")}.`);
+  }
+  return parts.join(" ");
 }
 
 async function submitLibraryUpload(

@@ -111,7 +111,10 @@ export function renderLibrary(listing: LibraryListing, openId: string | null, no
     <div class="editor-library-split">
       <section class="editor-library-browse" aria-label="Folders and files">
         <p class="editor-crumbs">${crumbs}</p>
-        <p><button type="button" class="w3-button w3-white" data-action="new-folder">New folder here</button></p>
+        <p>
+          <button type="button" class="w3-button w3-white" data-action="new-folder">New folder here</button>
+          <button type="button" class="w3-button w3-white" data-action="rescan">Rescan</button>
+        </p>
         ${browse}
       </section>
       <div class="editor-library-panels">

@@ -37,7 +37,7 @@ Hono app (Node ≥20). JSON routes first; if `spa/index.html` (a release), `apps
 | Sessions | In-memory tokens; httpOnly `tessera_session` cookie (`Path=/`) or `Authorization: Bearer`. The editor is served at the hostname root. SIGTERM dumps hashed tokens to `$TESSERA_DATA/.sessions.json` once. |
 | Permission | `requireEditor`: authenticated ⇒ full access; anonymous ⇒ 401. Every mutation must call it. |
 | Records | YAML files in `$TESSERA_DATA/records`. Filename = Tessera `id`. `GET/PUT /api/records` accepts structured `data` or raw YAML. A changed content page appends the previous file to `$TESSERA_DATA/history/content/<id>.history`, then writes the SPA snapshot to `$TESSERA_DATA/preview/data/`. **Publish** writes the copyable `$TESSERA_DATA/publish/` dist. Templates live in `records/templates/` and are omitted from that document. |
-| Library | `GET/POST/PATCH/DELETE` under `/api/library`. Blobs stay in `files/<id>.<ext>`. A folder move does not rename the blob. |
+| Library | `GET/POST/PATCH/DELETE` under `/api/library`, plus `POST /api/library/rescan`. Blobs stay in `files/<id>.<ext>`. A folder move does not rename the blob. |
 | Site actions | `POST /api/site/init` writes a starter site when `site.yaml` is absent. `POST /api/site/reseed` replaces the open site with that same starter after a safety backup, and keeps editors. `POST /api/render` refreshes `preview/`. `POST /api/publish` writes `publish/`. When `publishTo` is set, it then replaces the files in that directory. |
 | Public | `GET /health`, `POST /auth/login`. Protected: `GET /auth/me`, `POST /auth/password`, `POST /auth/username`, `POST /api/ping`, `/api/users`, record CRUD, library, render, publish, backups. Logout is idempotent. |
 
@@ -158,6 +158,8 @@ Images and PDFs are a **library**: a flat blob store plus virtual folders. The b
 Flatten derives `url: ./media/<id>.<ext>` onto each `media[]` entry. That string is relative to the site folder. A gallery folder is still a gallery source: flatten lists the image assets directly inside it, each with that stable `url` and `file` set to the display name. `slidesFromFolders` uses `url` when it is present. A virtual move changes `folderId` only.
 
 A media record may skip the library and store `url` itself, with no `kind`. A folder may store `path` and an `images` list. Flatten copies those records into the document unchanged. They are a hand-edited escape hatch for a file the library does not own. The library listing leaves them alone.
+
+A Library **Rescan** button compares `files/` with the library records: a missing blob drops its media record, and a new image or PDF is imported into a `scanned` folder.
 
 The editor resizes each image to `files/<id>.thumb.webp` on upload. Thumbnails are not published. **Publish** copies each blob to `publish/media/<id>.<ext>`. Preview reads `./media/<id>.<ext>` from `files/` first. A pages dist rewrites those URLs with `assetHref` so a nested page reaches `media/` at the site root (`../../media/…`). The snapshot and the preview leave the URL as `./media/…`, which stays valid when the site folder is hosted under a subpath.
 

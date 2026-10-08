@@ -4,6 +4,9 @@ import { isRecordId } from "./kinds.js";
 /** Reserved inbox. Created on first upload that asks for it. Cannot be deleted. */
 export const UPLOADS_ID = "uploads";
 
+/** Inbox for files rescan finds on disk. Created only when a scan imports something. */
+export const SCANNED_ID = "scanned";
+
 export const ALLOWED_EXT = new Set(["jpg", "jpeg", "png", "gif", "webp", "svg", "pdf"]);
 
 export type AssetKind = "image" | "document";

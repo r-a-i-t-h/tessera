@@ -48,6 +48,7 @@ describe("requireEditor gate", () => {
     ["PATCH", "/api/library/folders/photos"],
     ["DELETE", "/api/library/folders/photos"],
     ["POST", "/api/library/upload"],
+    ["POST", "/api/library/rescan"],
     ["PATCH", "/api/library/assets/photo"],
     ["DELETE", "/api/library/assets/photo"],
     ["PUT", "/api/stylesheets/site"],

@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -303,5 +303,89 @@ describe("asset library", () => {
 
     expect((await site.list()).filter((row) => row.kind === "media" || row.kind === "folders")).toEqual([]);
     expect(await readdir(join(root, "files"))).toEqual([]);
+  });
+
+  it("drops missing blobs, keeps hand-authored media, and imports new files into scanned", async () => {
+    const { site, library } = await setup();
+    const png = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+      "base64",
+    );
+    const pdf = new TextEncoder().encode("%PDF-1.1");
+    const uploaded = await library.upload({
+      files: [
+        { filename: "porch.png", relativePath: "porch.png", bytes: png },
+        { filename: "notes.pdf", relativePath: "notes.pdf", bytes: pdf },
+      ],
+    });
+    const porch = uploaded.created.find((file) => file.name === "porch.png")!;
+    const notes = uploaded.created.find((file) => file.name === "notes.pdf")!;
+    await unlink(join(root, "files", `${porch.id}.png`));
+    await site.write("media", "logo", { id: "logo", url: "./media/logo.svg", type: "image" });
+    await writeFile(join(root, "files", "extra.png"), png);
+    await writeFile(join(root, "files", "brief.pdf"), pdf);
+    await writeFile(join(root, "files", "readme.txt"), "hello");
+    await mkdir(join(root, "files", "nested"), { recursive: true });
+    await writeFile(join(root, "files", "nested", "ignore.png"), png);
+    const rebuild = vi.spyOn(site, "rebuild");
+
+    const result = await library.rescan();
+
+    expect(rebuild).toHaveBeenCalledTimes(1);
+    expect(result.removed).toEqual([{ id: porch.id, name: "porch.png" }]);
+    expect(result.added.map((file) => file.name).sort()).toEqual(["brief.pdf", "extra.png"]);
+    expect(result.added.every((file) => file.folderId === "scanned")).toBe(true);
+    expect(result.skipped).toEqual([{ name: "readme.txt", reason: "Only images and PDF files can be added." }]);
+    const listing = await library.list();
+    expect(listing.assets.find((asset) => asset.id === porch.id)).toBeUndefined();
+    expect(listing.assets.find((asset) => asset.id === notes.id)?.folderId).toBe("uploads");
+    expect(listing.folders.find((folder) => folder.id === "scanned")?.parentId).toBeNull();
+    const extra = listing.assets.find((asset) => asset.name === "extra.png");
+    const brief = listing.assets.find((asset) => asset.name === "brief.pdf");
+    expect(extra?.folderId).toBe("scanned");
+    expect(extra?.kind).toBe("image");
+    expect(brief).toMatchObject({ folderId: "scanned", kind: "document", ext: "pdf" });
+    expect(await readFile(join(root, "files", `${extra!.id}.thumb.webp`))).toBeTruthy();
+    await expect(readFile(join(root, "files", `${porch.id}.thumb.webp`))).rejects.toThrow();
+    expect(await site.read("media", "logo")).toMatchObject({ url: "./media/logo.svg" });
+    expect(listing.assets.find((asset) => asset.name === "ignore.png")).toBeUndefined();
+    expect(await readFile(join(root, "files", "readme.txt"), "utf8")).toBe("hello");
+  });
+
+  it("restores library records and renames when a rescan rebuild fails", async () => {
+    const { site, library } = await setup();
+    const uploaded = await library.upload({
+      files: [
+        {
+          filename: "notes.pdf",
+          relativePath: "notes.pdf",
+          bytes: new TextEncoder().encode("%PDF-1.1"),
+        },
+      ],
+    });
+    const notes = uploaded.created[0]!;
+    await library.patchAsset(notes.id, { title: "Keep me" });
+    await unlink(join(root, "files", `${notes.id}.pdf`));
+    const png = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+      "base64",
+    );
+    await writeFile(join(root, "files", "Fresh.PNG"), png);
+    const rebuild = vi.spyOn(site, "rebuild").mockRejectedValueOnce(new Error("rebuild blocked"));
+
+    await expect(library.rescan()).rejects.toThrow("rebuild blocked");
+
+    expect(rebuild).toHaveBeenCalledTimes(1);
+    const listing = await library.list();
+    expect(listing.assets.find((asset) => asset.id === notes.id)).toMatchObject({
+      name: "notes.pdf",
+      title: "Keep me",
+    });
+    expect(listing.assets.find((asset) => asset.name === "Fresh.PNG")).toBeUndefined();
+    expect(listing.folders.find((folder) => folder.id === "scanned")).toBeUndefined();
+    expect(await readdir(join(root, "files"))).toContain("Fresh.PNG");
+    expect(await readdir(join(root, "files"))).not.toContain("fresh.png");
+    await expect(readFile(join(root, "records", "media", "fresh.yaml"))).rejects.toThrow();
+    await expect(readFile(join(root, "records", "folders", "scanned.yaml"))).rejects.toThrow();
   });
 });

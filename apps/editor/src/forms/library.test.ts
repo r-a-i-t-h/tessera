@@ -48,6 +48,8 @@ describe("library browser", () => {
     expect(html).toContain("Add files");
     expect(html).toContain('value="uploads"');
     expect(html).toContain("New folder");
+    expect(html).toContain('data-action="rescan"');
+    expect(html).toContain(">Rescan<");
     expect(html).toContain("/api/library/assets/porch/thumb");
     expect(html).toContain("porch.svg");
     expect(html).toContain('data-edit-asset="porch"');

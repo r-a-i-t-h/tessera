@@ -20,6 +20,16 @@ libraryRoutes.get("/library", async (c) => {
   return c.json({ ok: true, ...listing });
 });
 
+libraryRoutes.post("/library/rescan", async (c) => {
+  const site = c.get("requiredSite");
+  try {
+    const result = await libraryFor(site, c.get("requiredSiteRoot")).rescan();
+    return c.json({ ok: true, ...result });
+  } catch (err) {
+    return apiError(c, 400, err instanceof Error ? err.message : "Could not rescan the library.");
+  }
+});
+
 libraryRoutes.post("/library/folders", async (c) => {
   const site = c.get("requiredSite");
   const body = (await c.req.json().catch(() => null)) as { id?: unknown; parentId?: unknown } | null;

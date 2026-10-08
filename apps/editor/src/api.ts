@@ -355,6 +355,15 @@ export function uploadLibrary(body: FormData): Promise<{ ok: true; created: { id
   return request("/api/library/upload", { method: "POST", body });
 }
 
+export function rescanLibrary(): Promise<{
+  ok: true;
+  removed: { id: string; name: string }[];
+  added: { id: string; name: string; folderId: string }[];
+  skipped: { name: string; reason: string }[];
+}> {
+  return request("/api/library/rescan", { method: "POST" });
+}
+
 export function updateLibraryAsset(
   id: string,
   patch: { name?: string; title?: string; alt?: string; caption?: string; folderId?: string | null },

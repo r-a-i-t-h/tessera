@@ -1,4 +1,5 @@
-import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { randomBytes } from "node:crypto";
+import { mkdir, readFile, readdir, rename, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import sharp from "sharp";
 import { isRecordId } from "./kinds.js";
@@ -7,6 +8,7 @@ import {
   normalizeExt,
   parseLibraryAsset,
   publicAssetUrl,
+  SCANNED_ID,
   slugFromFilename,
   splitRelativePath,
   uniqueId,
@@ -55,6 +57,13 @@ export type UploadRequest = {
 
 export type UploadResult = {
   created: { id: string; name: string; folderId: string }[];
+  skipped: { name: string; reason: string }[];
+  snapshot?: SnapshotRef;
+};
+
+export type RescanResult = {
+  removed: { id: string; name: string }[];
+  added: { id: string; name: string; folderId: string }[];
   skipped: { name: string; reason: string }[];
   snapshot?: SnapshotRef;
 };
@@ -350,6 +359,184 @@ export class AssetLibrary {
     return saved.snapshot ? { snapshot: saved.snapshot } : {};
   }
 
+  async rescan(): Promise<RescanResult> {
+    const fileNames = await this.diskFileNames();
+    const listing = await this.list();
+    const present = new Set<string>();
+    const missing: AssetView[] = [];
+    for (const asset of listing.assets) {
+      const blobName = `${asset.id}.${asset.ext}`;
+      if (fileNames.has(blobName)) {
+        present.add(blobName);
+        present.add(`${asset.id}${THUMB_SUFFIX}`);
+      } else missing.push(asset);
+    }
+
+    const imports: string[] = [];
+    const skipped: RescanResult["skipped"] = [];
+    const orphanThumbs: string[] = [];
+    for (const name of [...fileNames].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))) {
+      if (present.has(name)) continue;
+      if (name.endsWith(THUMB_SUFFIX)) {
+        orphanThumbs.push(name);
+        continue;
+      }
+      if (!kindForExt(normalizeExt(name))) {
+        skipped.push({ name, reason: "Only images and PDF files can be added." });
+        continue;
+      }
+      imports.push(name);
+    }
+
+    if (imports.length && !listing.folders.some((folder) => folder.id === SCANNED_ID)) {
+      const removing = new Set(missing.map((asset) => asset.id));
+      const mediaIds = await this.ids("media");
+      if (mediaIds.includes(SCANNED_ID) && !removing.has(SCANNED_ID)) {
+        throw new Error('A file already uses the id "scanned".');
+      }
+    }
+
+    if (!missing.length && !imports.length) {
+      await Promise.all(orphanThumbs.map((name) => unlink(join(this.filesDir, name)).catch(() => undefined)));
+      return { removed: [], added: [], skipped };
+    }
+
+    const removals: { id: string; name: string; record: Record<string, unknown> }[] = [];
+    for (const asset of missing) {
+      removals.push({ id: asset.id, name: asset.name, record: await this.site.read("media", asset.id) });
+    }
+
+    const removed: RescanResult["removed"] = [];
+    const added: RescanResult["added"] = [];
+    const createdFolders: string[] = [];
+    const createdFiles: { id: string; ext: string; renamedFrom?: string; thumb: boolean }[] = [];
+    const stagedThumbs: { original: string; aside: string }[] = [];
+    const deleted: typeof removals = [];
+
+    try {
+      for (const asset of removals) {
+        await this.site.deleteLibraryRecord("media", asset.id, [], { rebuild: false });
+        deleted.push(asset);
+        removed.push({ id: asset.id, name: asset.name });
+      }
+      for (const name of orphanThumbs) {
+        const original = join(this.filesDir, name);
+        const aside = `${original}.${process.pid}.${randomBytes(8).toString("hex")}.rollback`;
+        try {
+          await rename(original, aside);
+          stagedThumbs.push({ original, aside });
+        } catch (err) {
+          if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+        }
+      }
+
+      if (imports.length) {
+        const folder = await this.ensureScanned();
+        if (folder.created) createdFolders.push(folder.id);
+        const current = await this.list();
+        const names = new Set(
+          current.assets.filter((asset) => asset.folderId === SCANNED_ID).map((asset) => asset.name.toLowerCase()),
+        );
+        const taken = new Set([
+          ...current.folders.map((item) => item.id),
+          ...current.assets.map((asset) => asset.id),
+          ...(await this.ids("media")),
+        ]);
+        let sort = current.assets.filter((asset) => asset.folderId === SCANNED_ID).length;
+        for (const filename of imports) {
+          const ext = normalizeExt(filename);
+          const kind = kindForExt(ext);
+          if (!kind) continue;
+          const name = uniqueName(filename, names);
+          names.add(name.toLowerCase());
+          const id = this.freeBlobId(slugFromFilename(name), ext, filename, taken, fileNames);
+          taken.add(id);
+          const canonical = `${id}.${ext}`;
+          const source = join(this.filesDir, filename);
+          const dest = join(this.filesDir, canonical);
+          let renamedFrom: string | undefined;
+          let thumb = false;
+          try {
+            if (filename !== canonical) {
+              await rename(source, dest);
+              fileNames.delete(filename);
+              fileNames.add(canonical);
+              renamedFrom = filename;
+            }
+            if (kind === "image") {
+              thumb = await writeThumbnail(await readFile(dest), join(this.filesDir, `${id}${THUMB_SUFFIX}`));
+            }
+            await this.site.writeLibraryRecord(
+              "media",
+              id,
+              { id, name, kind, ext, folderId: SCANNED_ID, sort },
+              { rebuild: false },
+            );
+          } catch (err) {
+            if (renamedFrom) {
+              await rename(dest, source).catch(() => undefined);
+              fileNames.delete(canonical);
+              fileNames.add(filename);
+            }
+            if (thumb) await unlink(join(this.filesDir, `${id}${THUMB_SUFFIX}`)).catch(() => undefined);
+            taken.delete(id);
+            names.delete(name.toLowerCase());
+            skipped.push({
+              name: filename,
+              reason: err instanceof Error ? err.message : "Could not save the file.",
+            });
+            continue;
+          }
+          sort += 1;
+          createdFiles.push({ id, ext, ...(renamedFrom ? { renamedFrom } : {}), thumb });
+          added.push({ id, name, folderId: SCANNED_ID });
+        }
+      }
+
+      if (!added.length) {
+        for (const folderId of [...createdFolders].reverse()) {
+          await this.site.deleteLibraryRecord("folders", folderId, [], { rebuild: false });
+        }
+        createdFolders.length = 0;
+      }
+
+      if (!deleted.length && !added.length) {
+        await Promise.all(stagedThumbs.map(({ aside }) => unlink(aside).catch(() => undefined)));
+        return { removed, added, skipped };
+      }
+
+      const rebuilt = await this.site.rebuild();
+      await Promise.all(stagedThumbs.map(({ aside }) => unlink(aside).catch(() => undefined)));
+      return {
+        removed,
+        added,
+        skipped,
+        ...(rebuilt.snapshot ? { snapshot: rebuilt.snapshot } : {}),
+      };
+    } catch (err) {
+      for (const file of createdFiles.reverse()) {
+        await this.site.deleteLibraryRecord("media", file.id, [], { rebuild: false }).catch(() => undefined);
+        if (file.thumb) await unlink(join(this.filesDir, `${file.id}${THUMB_SUFFIX}`)).catch(() => undefined);
+        if (file.renamedFrom) {
+          await rename(
+            join(this.filesDir, `${file.id}.${file.ext}`),
+            join(this.filesDir, file.renamedFrom),
+          ).catch(() => undefined);
+        }
+      }
+      for (const folderId of createdFolders.reverse()) {
+        await this.site.deleteLibraryRecord("folders", folderId, [], { rebuild: false }).catch(() => undefined);
+      }
+      for (const asset of deleted.reverse()) {
+        await this.site.writeLibraryRecord("media", asset.id, asset.record, { rebuild: false }).catch(() => undefined);
+      }
+      for (const staged of stagedThumbs.reverse()) {
+        await rename(staged.aside, staged.original).catch(() => undefined);
+      }
+      throw err;
+    }
+  }
+
   async readOriginal(id: string): Promise<{ bytes: Buffer; type: string; filename: string } | undefined> {
     const listing = await this.list();
     const asset = listing.assets.find((item) => item.id === id);
@@ -371,6 +558,45 @@ export class AssetLibrary {
     } catch {
       return undefined;
     }
+  }
+
+  private async ensureScanned(): Promise<{ id: string; created: boolean }> {
+    const listing = await this.list();
+    if (listing.folders.some((folder) => folder.id === SCANNED_ID)) {
+      return { id: SCANNED_ID, created: false };
+    }
+    await this.createFolder(SCANNED_ID, undefined, false);
+    return { id: SCANNED_ID, created: true };
+  }
+
+  private async diskFileNames(): Promise<Set<string>> {
+    try {
+      const entries = await readdir(this.filesDir, { withFileTypes: true });
+      const names = new Set<string>();
+      for (const entry of entries) {
+        if (entry.isFile()) names.add(entry.name);
+      }
+      return names;
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") return new Set();
+      throw err;
+    }
+  }
+
+  private freeBlobId(
+    base: string,
+    ext: string,
+    currentName: string,
+    takenIds: Set<string>,
+    fileNames: Set<string>,
+  ): string {
+    const reserved = new Set(takenIds);
+    let id = uniqueId(base, reserved);
+    while (`${id}.${ext}` !== currentName && fileNames.has(`${id}.${ext}`)) {
+      reserved.add(id);
+      id = uniqueId(base, reserved);
+    }
+    return id;
   }
 
   private async ensureUploads(): Promise<{ id: string; created: boolean }> {
