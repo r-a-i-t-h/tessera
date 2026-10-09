@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ARTICLE_LAYOUT_ID,
   assertBlogTenants,
+  blogHeroStyle,
   injectBlogLayouts,
   markBlogLinks,
   placeArticles,
@@ -69,6 +70,18 @@ describe("placeArticles", () => {
   it("refuses a tenant that is not a tenant record", () => {
     expect(() => assertBlogTenants(placeArticles([news, fair]), [])).toThrow(/not a tenant record/);
     expect(() => assertBlogTenants(placeArticles([news, fair]), ["hall"])).not.toThrow();
+  });
+
+  it("accepts a blog hero of full, banner, or side", () => {
+    expect(blogHeroStyle(undefined)).toBe("banner");
+    expect(blogHeroStyle({ heroStyle: "side" })).toBe("side");
+    expect(blogHeroStyle({ heroStyle: "nope" })).toBe("banner");
+    expect(() =>
+      placeArticles([page({ id: "news", title: "News", type: "blog", fields: { heroStyle: "wide" } }), fair]),
+    ).toThrow(/hero must be full, banner, or side/);
+    expect(() =>
+      placeArticles([page({ id: "news", title: "News", type: "blog", fields: { heroStyle: "full" } }), fair]),
+    ).not.toThrow();
   });
 
   it("replaces a site layout that reuses a built-in id", () => {

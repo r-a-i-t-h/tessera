@@ -58,10 +58,28 @@ export function blogMeta(record: Record<string, unknown>, tenants: readonly stri
   return `<fieldset class="editor-fieldset"><legend>Blog</legend>
     <p><label for="fields.pageSize">Page size</label>
       <input id="fields.pageSize" name="fields.pageSize" inputmode="numeric" class="w3-input w3-border w3-margin-top" value="${escapeHtml(pageSize)}" /></p>
+    ${heroStyleSelect(fieldValue(record, "heroStyle"))}
     ${select("fields.tenant", "Tenant", tenant, tenants, false)}
     <p class="w3-text-grey">Leave the tenant empty for the one unscoped blog. Its menu lists each tenant. An article whose tenant has no blog uses that blog as its parent.</p>
     <p>Index: <a href="#/content/${encodeURIComponent(indexId)}">${escapeHtml(indexId)}</a></p>
   </fieldset>`;
+}
+
+function heroStyleSelect(current: string): string {
+  const choices = [
+    ["full", "Full"],
+    ["banner", "Banner"],
+    ["side", "Side"],
+  ] as const;
+  const known = choices.some(([value]) => value === current);
+  const selected = known || !current ? current || "banner" : current;
+  const extra = current && !known ? [[current, current] as const] : [];
+  const items = [...extra, ...choices]
+    .map(([value, label]) => `<option value="${escapeHtml(value)}"${value === selected ? " selected" : ""}>${escapeHtml(label)}</option>`)
+    .join("");
+  return `<p><label for="fields.heroStyle">Hero</label>
+    <select id="fields.heroStyle" name="fields.heroStyle" class="w3-select w3-border w3-margin-top">${items}</select></p>
+    <p class="w3-text-grey">How an article shows its picture. Full uses the picture’s own size. Banner limits the height. Side places it to the right of the title.</p>`;
 }
 
 export function indexNote(record: Record<string, unknown>): string {

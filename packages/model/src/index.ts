@@ -36,6 +36,7 @@ export {
 } from "./schema.js";
 export {
   assertBlogTenants,
+  blogHeroStyle,
   blogLayouts,
   injectBlogLayouts,
   markBlogLinks,

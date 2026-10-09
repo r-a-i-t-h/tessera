@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { draftYaml, parsePageYaml, withZoneHtml } from "./draft.js";
+import { draftYaml, dropArticleTitleZone, parsePageYaml, withZoneHtml } from "./draft.js";
 
 describe("parsePageYaml", () => {
   it("reads a page mapping and rejects a broken file", () => {
@@ -28,6 +28,27 @@ describe("withZoneHtml", () => {
       main: { html: "<h2>New</h2>" },
       meta: { json: { role: "host" } },
       aside: { html: "<p>Aside</p>" },
+    });
+  });
+});
+
+describe("dropArticleTitleZone", () => {
+  it("drops a copied title zone and leaves other records alone", () => {
+    expect(
+      dropArticleTitleZone({
+        type: "article",
+        title: "Fair",
+        zones: { title: { html: "Fair" }, main: { html: "<p>Body</p>" } },
+      }).zones,
+    ).toEqual({ main: { html: "<p>Body</p>" } });
+    expect(
+      dropArticleTitleZone({
+        type: "article",
+        zones: { title: { json: { kicker: "Fair" } }, main: { html: "" } },
+      }).zones,
+    ).toEqual({ title: { json: { kicker: "Fair" } }, main: { html: "" } });
+    expect(dropArticleTitleZone({ type: "page", zones: { title: { html: "Home" } } }).zones).toEqual({
+      title: { html: "Home" },
     });
   });
 });

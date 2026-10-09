@@ -70,6 +70,21 @@ function tenantOf(page: Page): string {
   return page.fields?.tenant?.trim() ?? "";
 }
 
+export type BlogHeroStyle = "full" | "banner" | "side";
+
+/** Missing or unknown values use the banner. A set value must be one of the three. */
+export function blogHeroStyle(fields: { heroStyle?: string } | undefined): BlogHeroStyle {
+  const raw = fields?.heroStyle?.trim() ?? "";
+  if (raw === "full" || raw === "banner" || raw === "side") return raw;
+  return "banner";
+}
+
+function assertHeroStyle(blog: Page): void {
+  const hero = blog.fields?.heroStyle?.trim() ?? "";
+  if (!hero || hero === "full" || hero === "banner" || hero === "side") return;
+  throw new Error(`Blog ${blog.id} hero must be full, banner, or side.`);
+}
+
 /**
  * Articles take their parent from the blog that names their tenant, or the one
  * unscoped blog. An article with no such blog is refused. Includes and a page
@@ -89,6 +104,7 @@ export function placeArticles(pages: readonly Page[]): Page[] {
     if (size && !/^[1-9]\d*$/.test(size)) {
       throw new Error(`Blog ${blog.id} page size must be a positive integer.`);
     }
+    assertHeroStyle(blog);
     if (byTenant.has(tenant)) throw new Error(`Two blogs name tenant ${tenant}.`);
     byTenant.set(tenant, blog);
   }
@@ -97,6 +113,7 @@ export function placeArticles(pages: readonly Page[]): Page[] {
     if (size && !/^[1-9]\d*$/.test(size)) {
       throw new Error(`Blog ${blog.id} page size must be a positive integer.`);
     }
+    assertHeroStyle(blog);
   }
 
   const indexParents = new Set<string>();

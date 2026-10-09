@@ -106,6 +106,10 @@ describe("editor route orchestration", () => {
       expect(root.querySelector("[data-mode=compose]")?.getAttribute("aria-pressed")).toBe("true");
       expect(root.querySelector('[role="toolbar"][aria-label="Editing mode"]')).toBeTruthy();
     });
+    expect(root.querySelector('a[href="#/pages"]')?.getAttribute("aria-current")).toBe("page");
+    expect(root.querySelector('a[href="#/records"]')?.hasAttribute("aria-current")).toBe(false);
+    expect(root.querySelector(".editor-back")?.getAttribute("href")).toBe("#/pages");
+    expect(root.querySelector("h1")?.textContent).toBe("Home");
 
     root
       .querySelector<HTMLButtonElement>("[data-mode=fields]")

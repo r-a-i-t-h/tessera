@@ -380,6 +380,13 @@ textarea.w3-input.editor-html {
   color: #666;
 }
 
+img[data-hero-preview] {
+  display: block;
+  max-width: 16rem;
+  max-height: 9rem;
+  object-fit: cover;
+}
+
 .editor-fieldset {
   border: 1px solid #ddd;
   margin: 0.75rem 0;

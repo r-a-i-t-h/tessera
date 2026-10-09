@@ -644,6 +644,9 @@ export class SiteStore {
       const pageSize = fields.pageSize?.trim() ?? "";
       if (pageSize) fields.pageSize = pageSize;
       else delete fields.pageSize;
+      const heroStyle = fields.heroStyle?.trim() ?? "";
+      if (heroStyle) fields.heroStyle = heroStyle;
+      else delete fields.heroStyle;
       next.fields = fields;
     }
     if (type === "blog-index") {

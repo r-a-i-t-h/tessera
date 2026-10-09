@@ -12,6 +12,7 @@ import {
   type ToneId,
 } from "@r-a-i-t-h/tessera-sections";
 import { setDragGhost } from "../drag-ghost.js";
+import { editorMediaHtml, editorMediaSrc } from "../forms/media-url.js";
 
 export type BindingChoice = { id: string; title?: string };
 export type FolderChoice = { id: string };
@@ -403,7 +404,7 @@ function bodyFor(node: EditNode, choices: Choices, zone: string, locked: boolean
     case "pasted":
       return `<div class="tessera-pasted"><div class="tessera-pasted-sheet"><div contenteditable="true" data-field="html" data-placeholder="Write on the paper…">${node.html}</div></div></div>`;
     case "html":
-      return `<div class="editor-html-preview">${node.html}</div>`;
+      return `<div class="editor-html-preview">${editorMediaHtml(node.html)}</div>`;
   }
 }
 
@@ -424,7 +425,7 @@ function imgboxBody(node: Extract<EditLeaf, { kind: "imgbox" }>): string {
   const caption = node.caption
     ? `<div class="w3-display-middle w3-container w3-padding-16 w3-round-large w3-white" data-caption>${escapeText(node.caption)}</div>`
     : `<div class="w3-display-middle w3-hide" data-caption></div>`;
-  const src = node.src || "";
+  const src = node.src ? editorMediaSrc(node.src) : "";
   return `<div class="tessera-imgbox w3-display-container w3-container w3-padding-16 w3-card w3-center">${src ? `<img src="${escapeAttr(src)}" class="w3-image" alt="${escapeAttr(node.alt)}">` : `<p class="w3-text-grey">Add an image address.</p>`}${caption}</div>`;
 }
 

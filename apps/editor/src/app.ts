@@ -52,9 +52,10 @@ import { arrangeMarkup, mountArrange, readArrangeRoot } from "./arrange/canvas.j
 import { asLayoutNode, cleanNode, isFrame, newFrame, newPageLayout } from "./arrange/tree.js";
 import type { ArrangeInfo } from "./arrange/view.js";
 import { mountComposeCanvases } from "./compose/canvas.js";
-import { draftYaml, parsePageYaml } from "./compose/draft.js";
+import { draftYaml, dropArticleTitleZone, parsePageYaml } from "./compose/draft.js";
 import { readContentDocument, readContentDraft, composeFormInner, frameNote, htmlByZone, rawText, templateBodyLayout, type ContentMode } from "./compose/view.js";
 import { announceRoute, editorChrome as chrome, loginView } from "./chrome.js";
+import { editPlace } from "./edit-place.js";
 import { createRecord, type CreateRecordDestination } from "./create-record.js";
 import { activateDialog, type DialogController } from "./dialog.js";
 import { readFormValues, renderForm } from "./forms/form.js";
@@ -120,6 +121,7 @@ import {
   type PickerMode,
   type PickedAsset,
 } from "./forms/picker.js";
+import { editorMediaSrc } from "./forms/media-url.js";
 import { guideHtml } from "./guide.js";
 import { escapeHtml, fieldId, formErrorPanel, noticePanel, statusPanels } from "./dom.js";
 import { parseRoute } from "./router.js";
@@ -1131,7 +1133,8 @@ async function heroPreviewUrl(id: string): Promise<string | undefined> {
   if (!id) return undefined;
   try {
     const listing = await getLibrary();
-    return listing.assets.find((asset) => asset.id === id)?.url;
+    const url = listing.assets.find((asset) => asset.id === id)?.url;
+    return url ? editorMediaSrc(url) : undefined;
   } catch {
     return undefined;
   }
@@ -1160,7 +1163,7 @@ function setHero(form: HTMLFormElement, id: string, url?: string): void {
 async function pickHero(form: HTMLFormElement): Promise<void> {
   const picked = await openLibraryPicker("image");
   if (!picked || !("url" in picked)) return;
-  setHero(form, picked.id, picked.url);
+  setHero(form, picked.id, editorMediaSrc(picked.url));
 }
 
 async function uploadHero(form: HTMLFormElement): Promise<void> {
@@ -1729,7 +1732,7 @@ async function createArticle(root: HTMLElement, listing: RecordList, tenant: str
         title: pageTitle,
         type: "article",
         fields: { tenant, date },
-        zones: { title: { html: pageTitle }, main: { html: "" } },
+        zones: { main: { html: "" } },
       };
     },
     save: saveRecord,
@@ -2328,6 +2331,7 @@ async function bindEdit(
           : assisted && record && bindingChoices
             ? renderBindingForm(id, record, bindingChoices)
             : `${navNote}${fieldsHtml(kind, record ?? payload.data, payload.layout, typeIds, contentExtras)}`;
+  const place = editPlace(kind, id, record);
   const pageHost = host === "page";
   const sessionActions =
     editsBody(kind) || kind === "layouts"
@@ -2368,15 +2372,15 @@ async function bindEdit(
       user,
       `<div class="editor-toolbar">
          <div class="editor-toolbar-row">
-           <a class="w3-button w3-white editor-back" href="#/records/${encodeURIComponent(kind)}" aria-label="Back" title="Back">←</a>
-           <h1 class="w3-large">${escapeHtml(kind)} / ${escapeHtml(id)}</h1>
+           <a class="w3-button w3-white editor-back" href="${place.back}" aria-label="Back" title="Back">←</a>
+           <h1 class="w3-large">${escapeHtml(place.heading)}</h1>
            ${actionRow}
          </div>
          ${saveStatus}
        </div>
        ${editor}`,
       true,
-      "records",
+      place.section,
     );
     bindChrome(root);
   }
@@ -2808,7 +2812,7 @@ function labelize(key: string): string {
 
 function pruneEmptyHtmlZones(data: unknown): unknown {
   if (!data || typeof data !== "object" || Array.isArray(data)) return data;
-  const record = data as Record<string, unknown>;
+  const record = dropArticleTitleZone(data as Record<string, unknown>);
   const zones = record.zones;
   if (!zones || typeof zones !== "object" || Array.isArray(zones)) return data;
   const next: Record<string, unknown> = {};
@@ -2981,6 +2985,7 @@ async function fillImageBox(button: HTMLButtonElement): Promise<void> {
     alt.value = picked.alt || picked.title || picked.name;
     alt.dispatchEvent(new Event("input", { bubbles: true }));
   }
+  src?.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
 function insertAtCursor(el: HTMLTextAreaElement, text: string): void {

@@ -179,6 +179,28 @@ describe("compose drag ghost", () => {
   });
 });
 
+describe("image preview", () => {
+  it("shows a library image from the preview and keeps the published address", () => {
+    dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;
+    const form = dom.document.querySelector("form");
+    if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
+    mountComposeCanvases(form, {
+      bindings: [],
+      htmlByZone: {
+        main: `<div class="tessera-imgbox w3-display-container w3-container w3-padding-16 w3-card w3-center"><img src="./media/porch.svg" class="w3-image" alt="Porch"></div>`,
+      },
+    });
+    expect(form.querySelector(".tessera-imgbox img")?.getAttribute("src")).toBe("/preview/media/porch.svg");
+    const src = form.querySelector<HTMLInputElement>("[data-field=src]");
+    if (!src) throw new Error("src");
+    expect(src.value).toBe("./media/porch.svg");
+    src.value = "./media/gate.png";
+    src.dispatchEvent(new dom.Event("change", { bubbles: true }));
+    expect(form.querySelector(".tessera-imgbox img")?.getAttribute("src")).toBe("/preview/media/gate.png");
+    expect(readComposeHtml(form).main).toContain('src="./media/gate.png"');
+  });
+});
+
 function mount(inner: string): HTMLFormElement {
   dom.document.body.innerHTML = `<form>${inner}</form>`;
   const form = dom.document.querySelector("form");

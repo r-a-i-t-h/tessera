@@ -169,7 +169,9 @@ function zoneViews(record: Record<string, unknown>, layout?: PageLayoutHint): Zo
   const declared = layout?.declaredZones ?? [];
   const declaredSet = new Set(declared);
   const onNames = declared.length ? declared : Object.keys(zones);
-  const offNames = declared.length ? Object.keys(zones).filter((name) => !declaredSet.has(name)) : [];
+  const offNames = (declared.length ? Object.keys(zones).filter((name) => !declaredSet.has(name)) : []).filter(
+    (name) => record.type !== "article" || name !== "title",
+  );
   return [
     ...onNames.map((name) => zoneView(name, zones[name], false)),
     ...offNames.map((name) => zoneView(name, zones[name], true)),

@@ -1,4 +1,4 @@
-import type { Page, SiteDocument } from "@r-a-i-t-h/tessera-model";
+import { blogHeroStyle, type Page, type SiteDocument } from "@r-a-i-t-h/tessera-model";
 import { hrefForPage, type ComponentFn } from "@r-a-i-t-h/tessera-renderer";
 import type { BlogCard } from "./blog-runtime.js";
 import { formatDate } from "./willow.js";
@@ -84,7 +84,8 @@ export const blogArticle: ComponentFn = (ctx) => {
     .join(" ");
   const title = ctx.escapeHtml(page.title);
   const body = ctx.renderBlocks(ctx.zones.get("main") ?? []);
-  return `<article data-tessera-blog="article">
+  const style = blogHeroStyle(blog?.fields);
+  return `<article data-tessera-blog="article" data-hero="${style}">
     <script type="application/json" class="tessera-blog-data">${embed(payload)}</script>
     <div class="tessera-blog-live">
       ${heroHtml}

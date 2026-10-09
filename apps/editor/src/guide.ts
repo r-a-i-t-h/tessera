@@ -42,7 +42,7 @@ export function guideHtml(): string {
   </ul>
 
     <h2>Articles</h2>
-    <p><a href="#/pages">Pages</a> are ordinary pages. <a href="#/articles">Articles</a> opens on the tenant records, then that tenant’s articles. A blog is the reading list: path, frame, page size, lead, and an optional tenant. Blogs and tenants are edited together under <a href="#/records/blogs">Records → Blogs</a>. Creating a blog also creates its index. Place the blog on the Nav record. The menu adds the index, and one link per tenant when the blog names none. Articles are not menu items.</p>
+    <p><a href="#/pages">Pages</a> are ordinary pages. <a href="#/articles">Articles</a> opens on the tenant records, then that tenant’s articles. A blog is the reading list: path, frame, page size, hero, lead, and an optional tenant. Hero is full, banner, or side. Blogs and tenants are edited together under <a href="#/records/blogs">Records → Blogs</a>. Creating a blog also creates its index. Place the blog on the Nav record. The menu adds the index, and one link per tenant when the blog names none. Articles are not menu items.</p>
 
     <h2>Bindings</h2>
   <p>A binding is a named piece you can drop on any page. The choices live once, under <a href="#/records/bindings">Records → Bindings</a> (<code>records/bindings/&lt;id&gt;.yaml</code>). Compose → Insert writes <code>{{id}}</code> into the page.</p>

@@ -34,6 +34,18 @@ export function withZoneHtml(
   return { ...record, zones: current };
 }
 
+/** An article title is the record title. A copied title zone is not on the article layout. */
+export function dropArticleTitleZone(record: Record<string, unknown>): Record<string, unknown> {
+  if (record.type !== "article") return record;
+  const zones = record.zones;
+  if (!zones || typeof zones !== "object" || Array.isArray(zones) || !("title" in zones)) return record;
+  const title = (zones as Record<string, unknown>).title;
+  if (isDataZone(title)) return record;
+  const next = { ...(zones as Record<string, unknown>) };
+  delete next.title;
+  return { ...record, zones: next };
+}
+
 function isDataZone(zone: unknown): boolean {
   if (!zone || typeof zone !== "object" || Array.isArray(zone)) return false;
   return "json" in zone || "blocks" in zone || "component" in zone;
