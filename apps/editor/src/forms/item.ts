@@ -1,11 +1,17 @@
 /** A zone id safe to use as a form path (`zones.<id>.html` splits on dots). */
 const ZONE_ID = /^[A-Za-z][A-Za-z0-9_-]*$/;
 
-export type ItemContent = "html" | "json";
+export type ItemContent = "html" | "json" | "component" | "blocks";
+
+export type ItemZone =
+  | { html: string }
+  | { json: null }
+  | { component: string }
+  | { blocks: unknown[] };
 
 export type NewItemBody = {
   id: string;
-  zones: Record<string, { html: string } | { json: null }>;
+  zones: Record<string, ItemZone>;
 };
 
 export function itemZoneError(zone: string): string | undefined {
@@ -17,13 +23,47 @@ export function itemZoneError(zone: string): string | undefined {
   return undefined;
 }
 
-/** A shared item that fills one layout zone with HTML or an empty JSON value. */
-export function newItemBody(id: string, zone: string, content: ItemContent = "html"): NewItemBody {
+export function itemContent(value: string): ItemContent {
+  if (value === "json" || value === "component" || value === "blocks") return value;
+  return "html";
+}
+
+/** A shared item that fills one layout zone. JSON starts empty. Blocks start as an empty array. */
+export function newItemBody(id: string, zone: string, content: ItemContent = "html", componentName = ""): NewItemBody {
   const name = zone.trim();
   return {
     id: id.trim(),
-    zones: { [name]: content === "json" ? { json: null } : { html: "" } },
+    zones: { [name]: zoneFor(content, componentName) },
   };
+}
+
+function zoneFor(content: ItemContent, componentName: string): ItemZone {
+  if (content === "json") return { json: null };
+  if (content === "blocks") return { blocks: [] };
+  if (content === "component") return { component: componentName.trim() };
+  return { html: "" };
+}
+
+/**
+ * Blank component props are omitted. A blank block list stays an empty array.
+ * Both keep the zone in the shape the editor opened.
+ */
+export function tidyItemRecord(data: unknown): unknown {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return data;
+  const record = data as Record<string, unknown>;
+  const zones = record.zones;
+  if (!zones || typeof zones !== "object" || Array.isArray(zones)) return data;
+  const next: Record<string, unknown> = {};
+  for (const [id, zone] of Object.entries(zones)) next[id] = tidyZone(zone);
+  return { ...record, zones: next };
+}
+
+function tidyZone(zone: unknown): unknown {
+  if (!zone || typeof zone !== "object" || Array.isArray(zone)) return zone;
+  const row = { ...(zone as Record<string, unknown>) };
+  if ("component" in row && row.props === null) delete row.props;
+  if ("blocks" in row && row.blocks === null) row.blocks = [];
+  return row;
 }
 
 /** Text for the JSON box. An empty value stays blank so the first paste has somewhere to land. */

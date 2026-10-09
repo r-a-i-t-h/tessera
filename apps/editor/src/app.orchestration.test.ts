@@ -203,7 +203,8 @@ describe("editor route orchestration", () => {
     const form = root.querySelector<HTMLFormElement>("#new-item-form");
     expect(form?.hidden).toBe(false);
     expect(form?.querySelector("#new-item-zone")).toBeTruthy();
-    expect(form?.querySelector("#new-item-content")).toBeTruthy();
+    expect(form?.querySelector("#new-item-content")?.textContent).toContain("Component");
+    expect(form?.querySelector("#new-item-content")?.textContent).toContain("Blocks");
 
     navigate("#/items/common-footer");
     await vi.waitFor(() => {

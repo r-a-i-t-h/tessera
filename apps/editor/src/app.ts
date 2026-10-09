@@ -71,7 +71,7 @@ import {
   type PageChoice,
 } from "./forms/nav.js";
 import { articleMeta, blogMeta, heroField, indexNote } from "./forms/article.js";
-import { formatJsonText, itemZoneError, jsonText, newItemBody, type ItemContent } from "./forms/item.js";
+import { formatJsonText, itemContent, itemZoneError, jsonText, newItemBody, tidyItemRecord } from "./forms/item.js";
 import { newPageBody, newTemplateBody, pageFromTemplate, pageIdError, withSidebarLink } from "./forms/page.js";
 import {
   applyTypeAction,
@@ -827,13 +827,17 @@ async function bindList(
     event.preventDefault();
     void createType(root, listing);
   });
-  root.querySelector("[data-action=new-item]")?.addEventListener("click", () => {
-    const form = root.querySelector<HTMLFormElement>("#new-item-form");
-    if (!form) return;
-    form.hidden = false;
-    form.querySelector<HTMLInputElement>("#new-item-id")?.focus();
+  const newItem = root.querySelector<HTMLFormElement>("#new-item-form");
+  newItem?.querySelector("#new-item-content")?.addEventListener("change", () => {
+    if (newItem) syncNewItemContent(newItem);
   });
-  root.querySelector<HTMLFormElement>("#new-item-form")?.addEventListener("submit", (event) => {
+  root.querySelector("[data-action=new-item]")?.addEventListener("click", () => {
+    if (!newItem) return;
+    newItem.hidden = false;
+    syncNewItemContent(newItem);
+    newItem.querySelector<HTMLInputElement>("#new-item-id")?.focus();
+  });
+  newItem?.addEventListener("submit", (event) => {
     event.preventDefault();
     void createItem(root, listing);
   });
@@ -942,7 +946,12 @@ async function createItem(root: HTMLElement, listing: RecordList): Promise<void>
     showFormError(form, zoneProblem);
     return;
   }
-  const content: ItemContent = form.querySelector<HTMLSelectElement>("#new-item-content")?.value === "json" ? "json" : "html";
+  const content = itemContent(form.querySelector<HTMLSelectElement>("#new-item-content")?.value ?? "");
+  const componentName = form.querySelector<HTMLInputElement>("#new-item-component")?.value ?? "";
+  if (content === "component" && !componentName.trim()) {
+    showFormError(form, "Enter a component name.");
+    return;
+  }
   const existing = listing.records.filter((row) => row.kind === "items").map((row) => row.id);
   await createRecord({
     kind: "items",
@@ -950,7 +959,7 @@ async function createItem(root: HTMLElement, listing: RecordList): Promise<void>
     idField: "#new-item-id",
     existingIds: existing,
     validateId: (id, ids) => pageIdError(id, ids)?.replace("A page with id", "An item with id"),
-    buildBody: (id) => newItemBody(id, zone, content),
+    buildBody: (id) => newItemBody(id, zone, content, componentName),
     save: saveRecord,
     destinationMode: "fields",
     destinationHash: (id) => `#/items/${encodeURIComponent(id)}`,
@@ -2034,9 +2043,15 @@ function itemSection(rows: RecordSummary[], siteReady: boolean): string {
         <select id="new-item-content" name="content" class="w3-select w3-border w3-margin-top">
           <option value="html">HTML</option>
           <option value="json">JSON</option>
+          <option value="component">Component</option>
+          <option value="blocks">Blocks</option>
         </select>
       </p>
-      <p class="w3-text-grey">The layout zone this item fills, such as <code>footer</code>. HTML opens a markup box. JSON opens an empty JSON box.</p>
+      <p data-item-component hidden><label for="new-item-component">Component</label>
+        <input id="new-item-component" name="component" class="w3-input w3-border w3-margin-top" autocomplete="off" spellcheck="false" placeholder="eventList" />
+      </p>
+      <p data-item-component hidden class="w3-text-grey">The catalogue name, such as <code>eventList</code>.</p>
+      <p class="w3-text-grey">The layout zone this item fills, such as <code>footer</code>. HTML opens a markup box. JSON opens an empty JSON box. A component asks for its catalogue name. Blocks opens an empty JSON array.</p>
       ${formErrorPanel()}
       <p><button type="submit" class="w3-button w3-theme">Create item</button></p>
     </form>
@@ -2829,9 +2844,20 @@ function zoneEditor(name: string, zone: unknown, offLayout: boolean, item = fals
     return `${insertButtons(`zones.${name}.html`, "html")}${textareaField(`zones.${name}.html`, htmlZoneLabel(name, offLayout, item), "", htmlRows(name, item, false))}`;
   }
   if (zone && typeof zone === "object" && !Array.isArray(zone) && "blocks" in zone) {
+    if (item) return blocksItemField(name, (zone as { blocks: unknown }).blocks);
     return `${insertButtons(`zones.${name}`, "blocks")}${yamlField(`zones.${name}`, label, zone, 8)}`;
   }
+  if (item && zone && typeof zone === "object" && !Array.isArray(zone) && "component" in zone) {
+    return componentItemField(name, zone as { component?: unknown; props?: unknown });
+  }
   return yamlField(`zones.${name}`, label, zone, 8);
+}
+
+function syncNewItemContent(form: HTMLFormElement): void {
+  const content = form.querySelector<HTMLSelectElement>("#new-item-content")?.value;
+  for (const row of form.querySelectorAll<HTMLElement>("[data-item-component]")) {
+    row.hidden = content !== "component";
+  }
 }
 
 function zoneLabel(name: string, offLayout: boolean): string {
@@ -2852,13 +2878,26 @@ function htmlRows(name: string, item: boolean, present: boolean): number {
 }
 
 function jsonItemField(name: string, json: unknown): string {
-  const field = `zones.${name}.json`;
+  return jsonBox(`zones.${name}.json`, `${labelize(name)} JSON`, json, "Raw JSON. Pretty-print formats this box.");
+}
+
+function blocksItemField(name: string, blocks: unknown): string {
+  return jsonBox(`zones.${name}.blocks`, `${labelize(name)} blocks`, Array.isArray(blocks) ? blocks : [], "A JSON array of blocks. Pretty-print formats this box.");
+}
+
+function componentItemField(name: string, zone: { component?: unknown; props?: unknown }): string {
+  const componentName = typeof zone.component === "string" ? zone.component : "";
+  return `${textField(`zones.${name}.component`, `${labelize(name)} component`, componentName)}
+    ${jsonBox(`zones.${name}.props`, "Props", zone.props ?? null, "A JSON object. Leave blank when there are no props. Pretty-print formats this box.")}`;
+}
+
+function jsonBox(field: string, label: string, value: unknown, hint: string): string {
   const id = fieldId(field);
-  return `<p class="editor-prop-wide"><label for="${id}">${escapeHtml(labelize(name))} JSON</label>
-    <textarea id="${id}" name="${escapeHtml(field)}" data-kind="json" rows="18" spellcheck="false" class="w3-input w3-border w3-margin-top editor-body">${escapeHtml(jsonText(json))}</textarea>
+  return `<p class="editor-prop-wide"><label for="${id}">${escapeHtml(label)}</label>
+    <textarea id="${id}" name="${escapeHtml(field)}" data-kind="json" rows="18" spellcheck="false" class="w3-input w3-border w3-margin-top editor-body">${escapeHtml(jsonText(value))}</textarea>
     <button type="button" class="w3-button w3-small w3-white w3-margin-top" data-json-format="${escapeHtml(field)}">Pretty-print</button>
     <span data-json-error class="w3-text-red"></span>
-    <span class="w3-text-grey">Raw JSON. Pretty-print formats this box.</span></p>`;
+    <span class="w3-text-grey">${escapeHtml(hint)}</span></p>`;
 }
 
 function jsonZoneFields(name: string, json: unknown, offLayout = false): string {
@@ -3000,7 +3039,7 @@ function syncLinkSource(form: HTMLFormElement): void {
 function saveRecordBody(kind: string, form: HTMLFormElement, original: unknown): unknown {
   const read = readFormValues(form, schemaFor(kind, original), original);
   // An item has no layout to re-declare an empty zone, so a cleared HTML box stays.
-  if (kind === "items") return read;
+  if (kind === "items") return tidyItemRecord(read);
   return pruneEmptyHtmlZones(read);
 }
 
