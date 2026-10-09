@@ -1,5 +1,7 @@
 export type Route =
   | { page: "home" }
+  | { page: "pages" }
+  | { page: "articles"; tenant?: string }
   | { page: "records"; kind?: string }
   | { page: "library"; id: string | null }
   | { page: "backups" }
@@ -17,6 +19,11 @@ export function parseRoute(hash: string): Route {
   const slash = path.indexOf("/");
   const head = decodeURIComponent(slash === -1 ? path : path.slice(0, slash));
   const rest = slash === -1 ? "" : decodeURIComponent(path.slice(slash + 1));
+  if (head === "pages") return rest ? { page: "missing" } : { page: "pages" };
+  if (head === "articles") {
+    if (rest.includes("/")) return { page: "missing" };
+    return { page: "articles", tenant: rest || undefined };
+  }
   if (head === "records") {
     if (rest.includes("/")) return { page: "missing" };
     return { page: "records", kind: rest || undefined };

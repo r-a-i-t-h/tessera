@@ -138,6 +138,8 @@ export type RecordSummary = {
   title?: string;
   type?: string;
   tags?: string[];
+  date?: string;
+  tenant?: string;
 };
 
 export type RecordList = {
@@ -250,6 +252,21 @@ export function saveRecord(kind: string, id: string, data: unknown): Promise<Sav
   return request(`/api/records/${encodeURIComponent(kind)}/${encodeURIComponent(id)}`, {
     method: "PUT",
     body: JSON.stringify({ data }),
+  });
+}
+
+export function deleteTenant(id: string): Promise<{ ok: true }> {
+  return request(`/api/records/tenants/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export function cascadeTenant(id: string): Promise<{ ok: true }> {
+  return request(`/api/records/tenants/${encodeURIComponent(id)}/cascade`, { method: "POST" });
+}
+
+export function renameTenant(id: string, nextId: string): Promise<{ ok: true; id: string }> {
+  return request(`/api/records/tenants/${encodeURIComponent(id)}/rename`, {
+    method: "POST",
+    body: JSON.stringify({ id: nextId }),
   });
 }
 

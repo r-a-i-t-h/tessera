@@ -1,5 +1,11 @@
 export {
   SITE_DOCUMENT_SCHEMA_VERSION,
+  ARTICLE_TYPE,
+  BLOG_TYPE,
+  BLOG_INDEX_TYPE,
+  ARTICLE_LAYOUT_ID,
+  BLOG_LAYOUT_ID,
+  BLOG_INDEX_LAYOUT_ID,
   BlockSchema,
   TextBlockSchema,
   JsonBlockSchema,
@@ -28,6 +34,14 @@ export {
   resolvePageProfile,
   resolveMasterLayout,
 } from "./schema.js";
+export {
+  assertBlogTenants,
+  blogLayouts,
+  injectBlogLayouts,
+  markBlogLinks,
+  placeArticles,
+  usesBlog,
+} from "./blog.js";
 export {
   pagePathSegment,
   publishedPageTree,

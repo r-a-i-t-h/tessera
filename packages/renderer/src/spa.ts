@@ -198,7 +198,7 @@ export class SiteRenderer {
 
   render(pageId?: string): string {
     // Unknown hashes fall back silently via resolvePageId (home / first page).
-    const id = resolvePageId(this._document, pageId ?? location.hash.slice(1));
+    const id = resolvePageId(this._document, pageId ?? pageIdFromHash(location.hash));
     const html = renderPage({
       document: this._document,
       pageId: id,
@@ -210,4 +210,11 @@ export class SiteRenderer {
     this.onAfterRender?.(id, this._document);
     return html;
   }
+}
+
+/** `#news/tenant/hall` is page `news`. A plain `#about` stays `about`. */
+function pageIdFromHash(hash: string): string {
+  const raw = hash.replace(/^#/, "");
+  const cut = raw.search(/[/?]/);
+  return cut === -1 ? raw : raw.slice(0, cut);
 }

@@ -11,6 +11,11 @@ export type ResolvedNavNode = {
   footer?: boolean;
   /** True when this node was generated from a `source` (not hand-authored). */
   dynamic?: boolean;
+  /**
+   * Hash suffix. Snapshot links append it to `#pageId`.
+   * Pages links append it as `#suffix` on the page href.
+   */
+  hash?: string;
   children: ResolvedNavNode[];
 };
 
@@ -24,7 +29,7 @@ function linksFromSource(
   if (source.pageType) {
     const typeId = source.pageType;
     for (const page of document.pages) {
-      if (page.type !== typeId) continue;
+      if (page.type !== typeId || page.type === "article" || page.type === "blog-index") continue;
       out.push({
         id: page.id,
         title: page.title,
@@ -42,7 +47,7 @@ function linksFromSource(
     for (const item of document.items) {
       if (!item.tags?.includes(tag)) continue;
       const page = document.pages.find((p) => p.id === item.id);
-      if (!page) continue;
+      if (!page || page.type === "article") continue;
       out.push({
         id: page.id,
         title: page.title,
@@ -58,6 +63,37 @@ function linksFromSource(
   return out;
 }
 
+function blogChildren(
+  document: SiteDocument,
+  pageId: string,
+  inherit: Pick<NavEntry, "sidebar" | "topbar" | "footer">,
+): ResolvedNavNode[] {
+  const blog = document.pages.find((page) => page.id === pageId && page.type === "blog");
+  if (!blog) return [];
+  const flags = {
+    sidebar: inherit.sidebar,
+    topbar: inherit.topbar,
+    footer: inherit.footer,
+    dynamic: true as const,
+    children: [] as ResolvedNavNode[],
+  };
+  const index = document.pages.find((page) => page.type === "blog-index" && page.parentId === blog.id);
+  const out: ResolvedNavNode[] = [];
+  if (index) out.push({ ...flags, id: index.id, title: index.title });
+  const pinned = blog.fields?.tenant?.trim() ?? "";
+  if (!pinned) {
+    for (const tenant of document.tenants ?? []) {
+      out.push({
+        ...flags,
+        id: blog.id,
+        title: tenant.id,
+        hash: `tenant/${encodeURIComponent(tenant.id)}`,
+      });
+    }
+  }
+  return out;
+}
+
 function resolveEntry(document: SiteDocument, entry: NavEntry): ResolvedNavNode {
   const children: ResolvedNavNode[] = [];
 
@@ -68,6 +104,16 @@ function resolveEntry(document: SiteDocument, entry: NavEntry): ResolvedNavNode 
   if (entry.source) {
     children.push(
       ...linksFromSource(document, entry.source, {
+        sidebar: entry.sidebar,
+        topbar: entry.topbar,
+        footer: entry.footer,
+      }),
+    );
+  }
+
+  if (entry.id) {
+    children.push(
+      ...blogChildren(document, entry.id, {
         sidebar: entry.sidebar,
         topbar: entry.topbar,
         footer: entry.footer,

@@ -4,6 +4,8 @@ import { escapeHtml } from "./dom.js";
 
 export type EditorSection =
   | "home"
+  | "pages"
+  | "articles"
   | "records"
   | "library"
   | "backups"
@@ -24,6 +26,8 @@ export function editorChrome(
   };
   return `<header class="w3-bar w3-theme">
       ${link("#/", "Tessera editor", "home")}
+      ${link("#/pages", "Pages", "pages")}
+      ${link("#/articles", "Articles", "articles")}
       ${link("#/records", "Records", "records")}
       ${link("#/library", "Library", "library")}
       ${link("#/styles", "Styles", "styles")}

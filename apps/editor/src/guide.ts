@@ -34,14 +34,17 @@ export function guideHtml(): string {
       <li><code>navFlat</code> prints a flat list. Headings become small titles. This is what Willow uses.</li>
       <li><code>navTree</code> prints a nested list.</li>
       <li><code>navCollapse</code> prints disclosure sections.</li>
-      <li><code>navTags</code> groups pages by their tags. It ignores the Nav record. Optional prop <code>tag</code> keeps one tag.</li>
+      <li><code>navTags</code> groups pages by their tags. It ignores the Nav record and article tags. Optional prop <code>tag</code> keeps one tag.</li>
       <li><code>breadcrumbs</code> prints Home, then parent pages, then the current page.</li>
       <li><code>subpageList</code> prints the current page’s children. Optional prop <code>title</code>.</li>
       <li><code>linkCluster</code> prints a group of links in the page body. <code>source</code> is <code>children</code> (the default), <code>type</code> (also set <code>type</code> to a type id), or <code>nav</code> (also set <code>heading</code> to a Nav heading). <code>variant</code> is <code>list</code>, <code>pills</code>, or <code>cards</code>.</li>
     <li><code>pageNav</code> lists every page that has no type. It ignores the Nav record.</li>
   </ul>
 
-  <h2>Bindings</h2>
+    <h2>Articles</h2>
+    <p><a href="#/pages">Pages</a> are ordinary pages. <a href="#/articles">Articles</a> opens on the tenant records, then that tenant’s articles. A blog is the reading list: path, frame, page size, lead, and an optional tenant. Blogs and tenants are edited together under <a href="#/records/blogs">Records → Blogs</a>. Creating a blog also creates its index. Place the blog on the Nav record. The menu adds the index, and one link per tenant when the blog names none. Articles are not menu items.</p>
+
+    <h2>Bindings</h2>
   <p>A binding is a named piece you can drop on any page. The choices live once, under <a href="#/records/bindings">Records → Bindings</a> (<code>records/bindings/&lt;id&gt;.yaml</code>). Compose → Insert writes <code>{{id}}</code> into the page.</p>
   <p>A Gallery section in Compose is a different thing. That paints one folder into that page only. A gallery binding can combine folders, keep filenames that match a pattern, and play as slides.</p>
   <ul>

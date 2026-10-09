@@ -1,8 +1,10 @@
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import {
   ApiError,
+  cascadeTenant,
   createBackup,
   deleteBackup,
+  deleteTenant,
   deleteLibraryAsset,
   deleteLibraryFolder,
   getHistoryEntry,
@@ -21,6 +23,7 @@ import {
   restoreBackup,
   initSite,
   publishSite,
+  renameTenant,
   renderSite,
   restoreExample,
   reseedSite,
@@ -66,6 +69,7 @@ import {
   type ControlValue,
   type PageChoice,
 } from "./forms/nav.js";
+import { articleMeta, blogMeta, heroField, indexNote } from "./forms/article.js";
 import { newPageBody, newTemplateBody, pageFromTemplate, pageIdError, withSidebarLink } from "./forms/page.js";
 import {
   applyTypeAction,
@@ -155,6 +159,8 @@ async function render(root: HTMLElement): Promise<void> {
       bindChrome(root);
     }
     else if (route.page === "library") await bindLibrary(root, user, route.id);
+    else if (route.page === "pages") await bindPages(root, user);
+    else if (route.page === "articles") await bindArticles(root, user, route.tenant);
     else if (route.page === "records") await bindList(root, user, route.kind);
     else if (route.page === "edit") {
       const mode = initialEditMode(route.kind, pending);
@@ -752,6 +758,14 @@ async function bindList(
     window.location.hash = "#/library";
     return;
   }
+  if (kind === "content") {
+    window.location.hash = "#/pages";
+    return;
+  }
+  if (kind === "tenants") {
+    window.location.hash = "#/records/blogs";
+    return;
+  }
   const listing = await listRecords();
   const active = activeRecordKind(listing, kind);
   const layoutNotes = active === "layouts" ? await loadLayoutListNotes(listing) : new Map<string, string>();
@@ -760,6 +774,7 @@ async function bindList(
   root.innerHTML = chrome(user, listHtml(listing, kind, notice, error, listNotes), true, "records");
   bindChrome(root);
   bindInitSite(root, (nextNotice, nextError) => bindList(root, user, kind, nextNotice, nextError));
+  if (active === "blogs") bindBlogs(root, user, listing);
   if (active === "site" || active === "nav") {
     const row = listing.records.find((item) => item.kind === active);
     if (row) await bindEdit(root, user, active, row.id, "fields", "", false, "tab");
@@ -1103,10 +1118,69 @@ function showFormError(form: HTMLFormElement, message: string): void {
   error.textContent = message;
 }
 
+async function tenantChoices(): Promise<string[]> {
+  const listing = await listRecords();
+  return listing.records.filter((row) => row.kind === "tenants").map((row) => row.id);
+}
+
+async function heroPreviewUrl(id: string): Promise<string | undefined> {
+  if (!id) return undefined;
+  try {
+    const listing = await getLibrary();
+    return listing.assets.find((asset) => asset.id === id)?.url;
+  } catch {
+    return undefined;
+  }
+}
+
+function setHero(form: HTMLFormElement, id: string, url?: string): void {
+  const input = form.querySelector<HTMLInputElement>('[name="fields.hero"]');
+  if (input) input.value = id;
+  const name = form.querySelector<HTMLElement>("[data-hero-name]");
+  if (name) name.textContent = id || "No image.";
+  const preview = form.querySelector("[data-hero-preview]");
+  if (preview instanceof HTMLImageElement) {
+    if (url) {
+      preview.src = url;
+      preview.hidden = false;
+    } else {
+      preview.removeAttribute("src");
+      preview.hidden = true;
+    }
+  } else if (preview instanceof HTMLElement && url) {
+    preview.outerHTML = `<img data-hero-preview src="${escapeHtml(url)}" alt="" />`;
+  }
+  form.dataset.dirty = "true";
+}
+
+async function pickHero(form: HTMLFormElement): Promise<void> {
+  const picked = await openLibraryPicker("image");
+  if (!picked || !("url" in picked)) return;
+  setHero(form, picked.id, picked.url);
+}
+
+async function uploadHero(form: HTMLFormElement): Promise<void> {
+  const file = form.querySelector<HTMLInputElement>("[data-hero-file]")?.files?.[0];
+  if (!file) return;
+  const body = new FormData();
+  body.append("file", file);
+  body.append("path", file.name);
+  body.append("folderId", "articles");
+  const result = await uploadLibrary(body);
+  const created = result.created[0];
+  if (!created) {
+    const reason = result.skipped[0]?.reason ?? "Upload failed.";
+    showFormError(form, reason);
+    return;
+  }
+  const url = await heroPreviewUrl(created.id);
+  setHero(form, created.id, url);
+}
+
 async function contentPages(): Promise<PageChoice[]> {
   const listing = await listRecords();
   return listing.records
-    .filter((row) => row.kind === "content")
+    .filter((row) => row.kind === "content" && row.type !== "article" && row.type !== "blog-index")
     .map((row) => ({ id: row.id, title: row.title }));
 }
 
@@ -1363,7 +1437,7 @@ const LIBRARY_RECORD_KINDS = new Set(["media", "folders"]);
 const RECORD_TAB_ORDER = [
   "site",
   "nav",
-  "content",
+  "blogs",
   "templates",
   "bindings",
   "items",
@@ -1373,12 +1447,16 @@ const RECORD_TAB_ORDER = [
 
 function recordTabs(listing: RecordList): { kind: string; label: string }[] {
   const rank = new Map(RECORD_TAB_ORDER.map((kind, index) => [kind, index]));
-  return listing.kinds
-    .filter((item) => !LIBRARY_RECORD_KINDS.has(item.kind))
+  const tabs = listing.kinds
+    .filter((item) => !LIBRARY_RECORD_KINDS.has(item.kind) && item.kind !== "content" && item.kind !== "tenants")
     .sort((a, b) => (rank.get(a.kind) ?? RECORD_TAB_ORDER.length) - (rank.get(b.kind) ?? RECORD_TAB_ORDER.length));
+  const nav = tabs.findIndex((item) => item.kind === "nav");
+  tabs.splice(nav + 1, 0, { kind: "blogs", label: "Blogs" });
+  return tabs;
 }
 
 function activeRecordKind(listing: RecordList, selected?: string): string | undefined {
+  if (selected === "blogs") return "blogs";
   const kinds = recordTabs(listing);
   if (selected && kinds.some((item) => item.kind === selected)) return selected;
   if (selected) return undefined;
@@ -1421,6 +1499,9 @@ function recordTab(
   siteReady: boolean,
   layoutNotes: Map<string, string> = new Map(),
 ): string {
+  if (active === "blogs") {
+    return `<section class="editor-kind" aria-label="Blogs">${blogsSection(listing)}</section>`;
+  }
   const kind = listing.kinds.find((item) => item.kind === active);
   if (!kind) return `<p class="w3-text-grey">That record type is not in this editor.</p>`;
   const rows = byKind.get(kind.kind) ?? [];
@@ -1526,6 +1607,292 @@ function layoutListNote(
 
 function kindPanel(rows: RecordSummary[]): string {
   return rows.length ? recordList(rows) : `<p class="w3-text-grey">No records yet.</p>`;
+}
+
+async function bindPages(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {
+  const listing = await listRecords();
+  const rows = listing.records.filter(
+    (row) => row.kind === "content" && row.type !== "article" && row.type !== "blog" && row.type !== "blog-index",
+  );
+  const templates = listing.records.filter((row) => row.kind === "templates");
+  const siteReady = listing.records.some((row) => row.kind === "site");
+  root.innerHTML = chrome(
+    user,
+    `<h1 class="w3-large">Pages</h1>${statusPanels(notice, error)}${contentSection(rows, templates, siteReady)}`,
+    true,
+    "pages",
+  );
+  bindChrome(root);
+  bindEntryFilter(root);
+  root.querySelector("[data-action=new-page]")?.addEventListener("click", () => {
+    const form = root.querySelector<HTMLFormElement>("#new-page-form");
+    if (!form) return;
+    form.hidden = false;
+    form.querySelector<HTMLInputElement>("#new-page-id")?.focus();
+  });
+  root.querySelector<HTMLFormElement>("#new-page-form")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void createPage(root, listing);
+  });
+}
+
+async function bindArticles(root: HTMLElement, user: PublicUser, tenant?: string, notice = "", error = ""): Promise<void> {
+  const listing = await listRecords();
+  root.innerHTML = chrome(user, articlesHtml(listing, tenant, notice, error), true, "articles");
+  bindChrome(root);
+  const filter = root.querySelector<HTMLInputElement>("#article-tag");
+  const list = root.querySelector<HTMLUListElement>("#article-list");
+  filter?.addEventListener("input", () => {
+    const needle = filter.value.trim().toLowerCase();
+    let shown = 0;
+    list?.querySelectorAll("li").forEach((item) => {
+      const tags = (item.getAttribute("data-tags") ?? "").toLowerCase();
+      const hide = Boolean(needle) && !tags.split("\u001f").some((tag) => tag.includes(needle));
+      (item as HTMLElement).hidden = hide;
+      if (!hide) shown += 1;
+    });
+    const empty = root.querySelector<HTMLElement>("#article-filter-empty");
+    if (empty) empty.hidden = shown !== 0;
+  });
+  root.querySelector("[data-action=new-article]")?.addEventListener("click", () => {
+    const form = root.querySelector<HTMLFormElement>("#new-article-form");
+    if (!form) return;
+    form.hidden = false;
+    form.querySelector<HTMLInputElement>("#new-article-id")?.focus();
+  });
+  root.querySelector<HTMLFormElement>("#new-article-form")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (tenant) void createArticle(root, listing, tenant);
+  });
+}
+
+function articlesHtml(listing: RecordList, tenant: string | undefined, notice: string, error: string): string {
+  const tenants = listing.records.filter((row) => row.kind === "tenants");
+  if (!tenant) {
+    const items = tenants.length
+      ? `<ul class="w3-ul">${tenants
+          .map((row) => `<li><a href="#/articles/${encodeURIComponent(row.id)}">${escapeHtml(row.id)}</a></li>`)
+          .join("")}</ul>`
+      : `<p class="w3-text-grey">No tenants yet. Add one under Records → Blogs.</p>`;
+    return `<h1 class="w3-large">Articles</h1>${statusPanels(notice, error)}<p class="w3-text-grey">Choose a tenant.</p>${items}`;
+  }
+  if (!tenants.some((row) => row.id === tenant)) {
+    return `<h1 class="w3-large">Articles</h1><p>That tenant is not a record. <a href="#/articles">Back</a></p>`;
+  }
+  const articles = listing.records
+    .filter((row) => row.kind === "content" && row.type === "article" && row.tenant === tenant)
+    .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? "") || a.id.localeCompare(b.id));
+  const items = articles
+    .map((row) => {
+      const when = row.date ? ` <span class="w3-text-grey w3-small">${escapeHtml(row.date)}</span>` : "";
+      return `<li data-tags="${escapeHtml((row.tags ?? []).join("\u001f"))}"><a href="#/content/${encodeURIComponent(row.id)}">${escapeHtml(row.title ?? row.id)}</a>${when}</li>`;
+    })
+    .join("");
+  return `<h1 class="w3-large">Articles</h1>
+    ${statusPanels(notice, error)}
+    <p><a href="#/articles">Tenants</a> · ${escapeHtml(tenant)}</p>
+    <p><button type="button" class="w3-button w3-theme" data-action="new-article">New article</button></p>
+    <form id="new-article-form" class="editor-new-page" hidden>
+      <p><label for="new-article-id">Id</label>
+        <input id="new-article-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" /></p>
+      <p><label for="new-article-title">Title</label>
+        <input id="new-article-title" name="title" class="w3-input w3-border w3-margin-top" required /></p>
+      ${formErrorPanel()}
+      <p><button type="submit" class="w3-button w3-theme">Create article</button></p>
+    </form>
+    <p><label for="article-tag">Tag</label>
+      <input id="article-tag" class="w3-input w3-border w3-margin-top" autocomplete="off" /></p>
+    ${items ? `<ul class="w3-ul" id="article-list">${items}</ul><p id="article-filter-empty" class="w3-text-grey" hidden>No articles with that tag.</p>` : `<p class="w3-text-grey">No articles for this tenant yet.</p>`}`;
+}
+
+async function createArticle(root: HTMLElement, listing: RecordList, tenant: string): Promise<void> {
+  const form = root.querySelector<HTMLFormElement>("#new-article-form");
+  if (!form) return;
+  const title = form.querySelector<HTMLInputElement>("#new-article-title")?.value ?? "";
+  const existing = listing.records.filter((row) => row.kind === "content").map((row) => row.id);
+  await createRecord({
+    kind: "content",
+    form,
+    idField: "#new-article-id",
+    existingIds: existing,
+    validateId: pageIdError,
+    buildBody: (pageId) => {
+      const pageTitle = title.trim() || pageId;
+      const today = new Date();
+      const date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+      return {
+        id: pageId,
+        title: pageTitle,
+        type: "article",
+        fields: { tenant, date },
+        zones: { title: { html: pageTitle }, main: { html: "" } },
+      };
+    },
+    save: saveRecord,
+    destinationMode: "compose",
+    destinationHash: (pageId) => `#/content/${encodeURIComponent(pageId)}`,
+    successMessage: (pageId) => `Created ${pageId}.`,
+    failureMessage: "Could not create that article.",
+    showError: showFormError,
+    navigate: (destination) => {
+      pendingEdit = { mode: destination.mode, notice: destination.notice };
+      window.location.hash = destination.hash;
+    },
+  });
+}
+
+function blogsSection(listing: RecordList): string {
+  const tenants = listing.records.filter((row) => row.kind === "tenants");
+  const blogs = listing.records.filter((row) => row.kind === "content" && row.type === "blog");
+  const unscoped = blogs.filter((row) => !row.tenant);
+  const rows = tenants
+    .map((tenant) => {
+      const blog = blogs.find((row) => row.tenant === tenant.id);
+      const blogCell = blog
+        ? `<a href="#/content/${encodeURIComponent(blog.id)}">${escapeHtml(blog.title ?? blog.id)}</a>`
+        : `<span class="w3-text-grey">No blog</span>`;
+      return `<li>
+        <strong>${escapeHtml(tenant.id)}</strong> ${blogCell}
+        <form data-rename-tenant="${escapeHtml(tenant.id)}" class="editor-inline">
+          <input name="next" class="w3-input w3-border" aria-label="New id for ${escapeHtml(tenant.id)}" placeholder="New id" />
+          <button type="submit" class="w3-button w3-white">Rename</button>
+        </form>
+        <button type="button" class="w3-button w3-white" data-delete-tenant="${escapeHtml(tenant.id)}">Delete</button>
+        <button type="button" class="w3-button w3-white" data-cascade-tenant="${escapeHtml(tenant.id)}">Cascade delete</button>
+      </li>`;
+    })
+    .join("");
+  const open = unscoped
+    .map(
+      (blog) =>
+        `<li>Unscoped <a href="#/content/${encodeURIComponent(blog.id)}">${escapeHtml(blog.title ?? blog.id)}</a></li>`,
+    )
+    .join("");
+  const tenantOptions = tenants
+    .map((tenant) => `<option value="${escapeHtml(tenant.id)}">${escapeHtml(tenant.id)}</option>`)
+    .join("");
+  return `<p class="w3-text-grey">A tenant is a record. A blog selects one, or none. Only one blog may select none. Deleting a tenant is refused while an article or a blog still selects it. Cascade delete removes those records too. Renaming rewrites every reference.</p>
+    <h2 class="w3-medium">Tenants</h2>
+    <form id="new-tenant-form">
+      <p><label for="new-tenant-id">New tenant</label>
+        <input id="new-tenant-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" /></p>
+      ${formErrorPanel()}
+      <p><button type="submit" class="w3-button w3-theme">Add tenant</button></p>
+    </form>
+    ${rows ? `<ul class="w3-ul">${rows}</ul>` : `<p class="w3-text-grey">No tenants yet.</p>`}
+    ${open ? `<ul class="w3-ul">${open}</ul>` : ""}
+    <h2 class="w3-medium">New blog</h2>
+    <form id="new-blog-form">
+      <p><label for="new-blog-id">Id</label>
+        <input id="new-blog-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" /></p>
+      <p><label for="new-blog-title">Title</label>
+        <input id="new-blog-title" name="title" class="w3-input w3-border w3-margin-top" required /></p>
+      <p><label for="new-blog-tenant">Tenant</label>
+        <select id="new-blog-tenant" name="tenant" class="w3-select w3-border w3-margin-top">
+          <option value="">None</option>
+          ${tenantOptions}
+        </select></p>
+      ${formErrorPanel()}
+      <p><button type="submit" class="w3-button w3-theme">Create blog</button></p>
+    </form>`;
+}
+
+function bindBlogs(root: HTMLElement, user: PublicUser, listing: RecordList): void {
+  root.querySelector<HTMLFormElement>("#new-tenant-form")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void createTenant(root, user, listing);
+  });
+  root.querySelector<HTMLFormElement>("#new-blog-form")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void createBlog(root, listing);
+  });
+  root.querySelectorAll<HTMLFormElement>("[data-rename-tenant]").forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const id = form.dataset.renameTenant ?? "";
+      const next = form.querySelector<HTMLInputElement>("[name=next]")?.value.trim() ?? "";
+      void renameTenant(id, next)
+        .then(() => bindList(root, user, "blogs", `Renamed ${id} to ${next}.`))
+        .catch((err: unknown) => bindList(root, user, "blogs", "", err instanceof Error ? err.message : "Could not rename that tenant."));
+    });
+  });
+  root.querySelectorAll<HTMLButtonElement>("[data-delete-tenant]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const id = button.dataset.deleteTenant ?? "";
+      void deleteTenant(id)
+        .then(() => bindList(root, user, "blogs", `Deleted ${id}.`))
+        .catch((err: unknown) => bindList(root, user, "blogs", "", err instanceof Error ? err.message : "Could not delete that tenant."));
+    });
+  });
+  root.querySelectorAll<HTMLButtonElement>("[data-cascade-tenant]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const id = button.dataset.cascadeTenant ?? "";
+      if (!id) return;
+      if (!window.confirm(`Delete tenant ${id} and every article and blog that selects it?`)) return;
+      void cascadeTenant(id)
+        .then(() => bindList(root, user, "blogs", `Cascade-deleted ${id}.`))
+        .catch((err: unknown) => bindList(root, user, "blogs", "", err instanceof Error ? err.message : "Could not delete that tenant."));
+    });
+  });
+}
+
+async function createTenant(root: HTMLElement, user: PublicUser, listing: RecordList): Promise<void> {
+  const form = root.querySelector<HTMLFormElement>("#new-tenant-form");
+  if (!form) return;
+  const existing = listing.records.filter((row) => row.kind === "tenants").map((row) => row.id);
+  await createRecord({
+    kind: "tenants",
+    form,
+    idField: "#new-tenant-id",
+    existingIds: existing,
+    validateId: pageIdError,
+    buildBody: (id) => ({ id }),
+    save: saveRecord,
+    destinationMode: "fields",
+    destinationHash: () => "#/records/blogs",
+    successMessage: (id) => `Added tenant ${id}.`,
+    failureMessage: "Could not add that tenant.",
+    showError: showFormError,
+    navigate: async (destination) => {
+      await bindList(root, user, "blogs", destination.notice);
+    },
+  });
+}
+
+async function createBlog(root: HTMLElement, listing: RecordList): Promise<void> {
+  const form = root.querySelector<HTMLFormElement>("#new-blog-form");
+  if (!form) return;
+  const title = form.querySelector<HTMLInputElement>("#new-blog-title")?.value ?? "";
+  const tenant = form.querySelector<HTMLSelectElement>("#new-blog-tenant")?.value ?? "";
+  const existing = listing.records.filter((row) => row.kind === "content").map((row) => row.id);
+  await createRecord({
+    kind: "content",
+    form,
+    idField: "#new-blog-id",
+    existingIds: existing,
+    validateId: pageIdError,
+    buildBody: (id) => {
+      const pageTitle = title.trim() || id;
+      return {
+        id,
+        title: pageTitle,
+        slug: id,
+        type: "blog",
+        fields: tenant ? { tenant, pageSize: "10" } : { pageSize: "10" },
+        zones: { title: { html: pageTitle }, lead: { html: "" } },
+      };
+    },
+    save: saveRecord,
+    destinationMode: "fields",
+    destinationHash: (id) => `#/content/${encodeURIComponent(id)}`,
+    successMessage: (id) => `Created ${id} and its index.`,
+    failureMessage: "Could not create that blog.",
+    showError: showFormError,
+    navigate: (destination) => {
+      pendingEdit = { mode: destination.mode, notice: destination.notice };
+      window.location.hash = destination.hash;
+    },
+  });
 }
 
 function contentSection(rows: RecordSummary[], templates: RecordSummary[], siteReady: boolean): string {
@@ -1915,8 +2282,9 @@ async function bindEdit(
   const session = editsBody(kind) ? contentSession : kind === "layouts" ? layoutSession : undefined;
   const record = session?.draft ?? asRecord(payload.data);
   const rawShown = session ? rawText(session.fromEditor, session.draft, payload.raw) : payload.raw;
-  const editMode: EditMode =
+  let editMode: EditMode =
     mode === "compose" && !editsBody(kind) ? "fields" : mode === "arrange" && kind !== "layouts" ? "fields" : mode;
+  if (record?.type === "blog-index" && editMode === "compose") editMode = "fields";
   const bodyLayout = kind === "templates" ? templateBodyLayout() : payload.layout;
   const navList = kind === "nav" && editMode === "fields" && Array.isArray(payload.data);
   const pages: PageChoice[] = navList ? await contentPages() : [];
@@ -1932,6 +2300,11 @@ async function bindEdit(
   const typeLayouts = typeEditor ? await typeLayoutChoices(typeof record.layoutId === "string" ? record.layoutId : "") : [];
   const typeIds =
     editsBody(kind) && (editMode === "compose" || editMode === "fields") ? await loadTypeIds() : undefined;
+  const blogForm = record?.type === "article" || record?.type === "blog";
+  const tenantIds = blogForm ? await tenantChoices() : [];
+  const heroUrl =
+    record?.type === "article" ? await heroPreviewUrl(stringField(record, "hero")) : undefined;
+  const contentExtras = { tenants: tenantIds, ...(heroUrl ? { heroUrl } : {}) };
   const formInner =
     editMode === "arrange"
       ? layoutRoot && arrangeInfo
@@ -1942,7 +2315,7 @@ async function bindEdit(
          <textarea id="raw-file" name="raw" rows="24" spellcheck="false" class="w3-input w3-border w3-margin-top editor-raw">${escapeHtml(rawShown)}</textarea></p>
          <p class="w3-text-grey">Indent with spaces. Two spaces per level is what Fields → Save writes. Keys at one level share a column. <a href="#/guide">Guide</a>.</p>`
       : editMode === "compose" && record
-        ? composeFormInner(kind, record, bodyLayout, typeIds)
+        ? composeFormInner(kind, record, bodyLayout, typeIds, contentExtras)
       : navList
         ? `<p class="w3-text-grey">Sidebar, Top bar, and Footer choose which menu component can show the row. A heading’s Type lists every page of that type. <strong>Show in nav</strong> on a page does not add a link. <a href="#/guide">Guide</a>.</p>
            <div id="nav-editor">${renderNavList(navRows(payload.data), pages)}</div>`
@@ -1950,7 +2323,7 @@ async function bindEdit(
           ? `<div id="type-editor">${renderTypeForm(typeDraft(record), typeLayouts)}</div>`
           : assisted && record && bindingChoices
             ? renderBindingForm(id, record, bindingChoices)
-            : `${navNote}${fieldsHtml(kind, record ?? payload.data, payload.layout, typeIds)}`;
+            : `${navNote}${fieldsHtml(kind, record ?? payload.data, payload.layout, typeIds, contentExtras)}`;
   const pageHost = host === "page";
   const sessionActions =
     editsBody(kind) || kind === "layouts"
@@ -1967,7 +2340,7 @@ async function bindEdit(
            : ""
        }
        ${
-         editsBody(kind)
+         editsBody(kind) && record?.type !== "blog-index"
            ? `<button type="button" class="w3-button ${editMode === "compose" ? "w3-theme" : "w3-white"}" data-mode="compose" aria-pressed="${editMode === "compose"}">Compose</button>`
            : ""
        }
@@ -2258,6 +2631,7 @@ function fieldsHtml(
   data: unknown,
   layout?: PageLayoutHint,
   types?: readonly string[],
+  options?: { tenants?: readonly string[]; heroUrl?: string },
 ): string {
   if (Array.isArray(data) || !data || typeof data !== "object") {
     return renderForm(
@@ -2266,6 +2640,13 @@ function fieldsHtml(
     );
   }
   const record = data as Record<string, unknown>;
+  if (kind === "content" && record.type === "blog-index") return indexNote(record);
+  if (kind === "content" && record.type === "article") {
+    return `${articleMeta(record, options?.tenants ?? [])}${renderForm(schemaFor(kind, record) ?? { fields: [] }, record)}${heroField(stringField(record, "hero"), options?.heroUrl)}${frameNote(layout)}`;
+  }
+  if (kind === "content" && record.type === "blog") {
+    return `${blogMeta(record, options?.tenants ?? [])}${renderForm(recordSchema(kind, record, layout, types) ?? { fields: [] }, record)}${frameNote(layout)}${zoneFields(zonesOf(record), layout)}`;
+  }
   if (kind === "bindings") return bindingFields(record);
   const schema = recordSchema(kind, record, layout, types);
   if (!schema) {
@@ -2315,6 +2696,13 @@ function layoutBanner(layout?: PageLayoutHint): string {
   if (!layout) return "";
   const via = layout.layoutSource === "type" ? `type ${layout.typeId ?? ""}`.trim() : "site default";
   return `<p class="w3-text-grey">Zones from layout <strong>${escapeHtml(layout.layoutId)}</strong> (${escapeHtml(via)}).</p>`;
+}
+
+function stringField(record: Record<string, unknown>, id: string): string {
+  const fields = record.fields;
+  if (!fields || typeof fields !== "object" || Array.isArray(fields)) return "";
+  const value = (fields as Record<string, unknown>)[id];
+  return typeof value === "string" ? value : "";
 }
 
 function typeFieldInputs(record: Record<string, unknown>, layout?: PageLayoutHint): string {
@@ -2533,6 +2921,18 @@ function bindPickers(form: HTMLFormElement): void {
     if (button.dataset.library === "image") {
       event.preventDefault();
       void fillImageBox(button);
+    }
+    if (button.hasAttribute("data-hero-pick")) {
+      event.preventDefault();
+      void pickHero(form);
+    }
+    if (button.hasAttribute("data-hero-clear")) {
+      event.preventDefault();
+      setHero(form, "");
+    }
+    if (button.hasAttribute("data-hero-upload")) {
+      event.preventDefault();
+      void uploadHero(form);
     }
   });
 }

@@ -48,11 +48,15 @@ Put one of these in the master layout as a component. `scope` is `sidebar` (the 
 | `navFlat` | A flat list. Headings become small titles. This is what Willow uses. |
 | `navTree` | A nested list. |
 | `navCollapse` | Disclosure sections. |
-| `navTags` | Pages grouped by tag. Ignores the Nav record. Optional prop `tag` keeps one tag. |
+| `navTags` | Pages grouped by tag. Ignores the Nav record and article tags. Optional prop `tag` keeps one tag. |
 | `breadcrumbs` | Home, then parent pages, then the current page. |
 | `subpageList` | The current page’s children. Optional prop `title`. |
 | `linkCluster` | A group of links in the page body. `source` is `children` (the default), `type` (also set `type` to a type id), or `nav` (also set `heading` to a Nav heading). `variant` is `list`, `pills`, or `cards`. |
 | `pageNav` | Every page that has no type. Ignores the Nav record. |
+
+## Articles
+
+Pages are ordinary pages. Articles opens on the tenant records, then that tenant’s articles. A blog is the reading list: path, frame, page size, lead, and an optional tenant. Blogs and tenants are edited together under Records → Blogs. Creating a blog also creates its index. Place the blog on the Nav record. The menu adds the index, and one link per tenant when the blog names none. Articles are not menu items.
 
 ## Bindings
 

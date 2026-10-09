@@ -46,6 +46,27 @@ export const SITE_FORM: FormSchema = {
   ],
 };
 
+export const ARTICLE_FORM: FormSchema = {
+  fields: [
+    { name: "id", label: "Id", type: "string", readOnly: true, required: true },
+    { name: "title", label: "Title", type: "string", required: true },
+    { name: "description", label: "Description", type: "string" },
+    { name: "slug", label: "Slug", type: "string" },
+    { name: "tags", label: "Tags", type: "string", list: true },
+  ],
+};
+
+export const BLOG_FORM: FormSchema = {
+  fields: [
+    { name: "id", label: "Id", type: "string", readOnly: true, required: true },
+    { name: "title", label: "Title", type: "string", required: true },
+    { name: "description", label: "Description", type: "string" },
+    { name: "slug", label: "Slug", type: "string" },
+    { name: "parentId", label: "Parent", type: "string" },
+    { name: "masterLayoutId", label: "Frame", type: "string" },
+  ],
+};
+
 export const CONTENT_FORM: FormSchema = {
   fields: [
     { name: "id", label: "Id", type: "string", readOnly: true, required: true },
@@ -136,6 +157,11 @@ export function fieldsFromRecord(record: Record<string, unknown>, skip = new Set
 export function schemaFor(kind: string, data: unknown): FormSchema | undefined {
   if (!data || typeof data !== "object" || Array.isArray(data)) return undefined;
   const record = data as Record<string, unknown>;
+  if (kind === "content" && record.type === "article") return ARTICLE_FORM;
+  if (kind === "content" && record.type === "blog") return BLOG_FORM;
+  if (kind === "content" && record.type === "blog-index") {
+    return { fields: [{ name: "id", label: "Id", type: "string", readOnly: true, required: true }] };
+  }
   const authored = authoredSchema(kind);
   if (!authored) return { fields: fieldsFromRecord(record) };
   const skip = new Set(authored.fields.map((field) => field.name));

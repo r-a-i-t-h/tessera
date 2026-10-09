@@ -115,6 +115,20 @@ describe("asset library", () => {
     const moved = await library.list();
     expect(moved.assets.find((asset) => asset.id === porch?.id)?.url).toBe(porch?.url);
     await expect(library.deleteFolder("uploads")).rejects.toThrow(/cannot be deleted/i);
+    const hero = await library.upload({
+      folderId: "articles",
+      files: [
+        {
+          filename: "hero.png",
+          relativePath: "hero.png",
+          bytes: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64"),
+        },
+      ],
+    });
+    expect(hero.created).toHaveLength(1);
+    const withArticles = await library.list();
+    expect(withArticles.folders.some((folder) => folder.id === "articles")).toBe(true);
+    expect(withArticles.assets.find((asset) => asset.name === "hero.png")?.folderId).toBe("articles");
     await expect(library.deleteFolder(hall!.id)).rejects.toThrow(/inside/i);
   });
 

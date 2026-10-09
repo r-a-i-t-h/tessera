@@ -8,6 +8,7 @@ import {
   normalizeExt,
   parseLibraryAsset,
   publicAssetUrl,
+  ARTICLES_ID,
   SCANNED_ID,
   slugFromFilename,
   splitRelativePath,
@@ -195,6 +196,10 @@ export class AssetLibrary {
       const created = await this.createFolder(request.folderTitle.trim(), request.parentId ?? request.folderId, false);
       destination = created.folder.id;
       createdFolders.push(created.folder.id);
+    } else if (destination === ARTICLES_ID) {
+      const articles = await this.ensureArticles();
+      destination = articles.id;
+      if (articles.created) createdFolders.push(articles.id);
     } else if (!destination || destination === UPLOADS_ID) {
       const uploads = await this.ensureUploads();
       destination = uploads.id;
@@ -597,6 +602,15 @@ export class AssetLibrary {
       id = uniqueId(base, reserved);
     }
     return id;
+  }
+
+  private async ensureArticles(): Promise<{ id: string; created: boolean }> {
+    const listing = await this.list();
+    if (listing.folders.some((folder) => folder.id === ARTICLES_ID)) {
+      return { id: ARTICLES_ID, created: false };
+    }
+    await this.site.writeLibraryRecord("folders", ARTICLES_ID, { id: ARTICLES_ID }, { rebuild: false });
+    return { id: ARTICLES_ID, created: true };
   }
 
   private async ensureUploads(): Promise<{ id: string; created: boolean }> {

@@ -17,8 +17,9 @@ function filterScope(nodes: ResolvedNavNode[], scope: string | undefined): Resol
 
 function linkHtml(ctx: Parameters<ComponentFn>[0], node: ResolvedNavNode): string {
   const id = node.id ?? "";
-  const href = hrefForPage(ctx, id);
-  const active = id && ctx.page.id === id ? " is-active w3-theme-l3" : "";
+  const base = hrefForPage(ctx, id);
+  const href = node.hash ? (base.startsWith("#") ? `${base}/${node.hash}` : `${base}#${node.hash}`) : base;
+  const active = !node.hash && id && ctx.page.id === id ? " is-active w3-theme-l3" : "";
   const label = ctx.escapeHtml(node.title ?? id);
   return `<a class="w3-bar-item w3-button${active}" href="${href}">${label}</a>`;
 }
@@ -84,6 +85,7 @@ export const navTags: ComponentFn = (ctx, props = {}) => {
   const byTag = new Map<string, { id: string; title: string }[]>();
 
   for (const page of ctx.document.pages) {
+    if (page.type === "article") continue;
     for (const tag of page.tags ?? []) {
       if (onlyTag && tag !== onlyTag) continue;
       const list = byTag.get(tag) ?? [];

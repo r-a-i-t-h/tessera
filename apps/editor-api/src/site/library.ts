@@ -7,6 +7,9 @@ export const UPLOADS_ID = "uploads";
 /** Inbox for files rescan finds on disk. Created only when a scan imports something. */
 export const SCANNED_ID = "scanned";
 
+/** Hero images uploaded from an article. Created on the first of those uploads. */
+export const ARTICLES_ID = "articles";
+
 export const ALLOWED_EXT = new Set(["jpg", "jpeg", "png", "gif", "webp", "svg", "pdf"]);
 
 export type AssetKind = "image" | "document";

@@ -7,7 +7,7 @@ import {
   type RenderContext,
 } from "@r-a-i-t-h/tessera-renderer";
 import { installChromeGlobals } from "@r-a-i-t-h/tessera-demo-kit";
-import { registerExtras } from "@r-a-i-t-h/tessera-extras";
+import { bootBlog, registerExtras } from "@r-a-i-t-h/tessera-extras";
 
 installChromeGlobals();
 
@@ -48,24 +48,25 @@ function hydrate(): void {
   const registry = createDefaultRegistry(registerExtras);
 
   const script = document.getElementById("tessera-microapps");
-  if (!script?.textContent) return;
-  let mounts: MicroAppMount[] = [];
-  try {
-    const parsed = JSON.parse(script.textContent) as unknown;
-    if (!Array.isArray(parsed)) return;
-    mounts = parsed as MicroAppMount[];
-  } catch {
-    return;
+  if (script?.textContent) {
+    let mounts: MicroAppMount[] = [];
+    try {
+      const parsed = JSON.parse(script.textContent) as unknown;
+      if (Array.isArray(parsed)) mounts = parsed as MicroAppMount[];
+    } catch {
+      mounts = [];
+    }
+    for (const mount of mounts) {
+      if (!mount || typeof mount.id !== "string") continue;
+      const selector = `[data-tessera-microapp="${cssEscape(mount.id)}"]`;
+      const host = document.querySelector(selector);
+      if (!host) continue;
+      const html = renderMount(registry, mount);
+      if (!html || html.startsWith("<!--")) continue;
+      host.innerHTML = html;
+    }
   }
-  for (const mount of mounts) {
-    if (!mount || typeof mount.id !== "string") continue;
-    const selector = `[data-tessera-microapp="${cssEscape(mount.id)}"]`;
-    const host = document.querySelector(selector);
-    if (!host) continue;
-    const html = renderMount(registry, mount);
-    if (!html || html.startsWith("<!--")) continue;
-    host.innerHTML = html;
-  }
+  bootBlog(document);
 }
 
 function cssEscape(value: string): string {
@@ -74,3 +75,4 @@ function cssEscape(value: string): string {
 }
 
 hydrate();
+window.addEventListener("hashchange", () => bootBlog(document));

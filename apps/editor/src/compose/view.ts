@@ -4,6 +4,7 @@ import { escapeHtml } from "../dom.js";
 import { draftYaml, parsePageYaml, withZoneHtml } from "./draft.js";
 import { readComposeHtml } from "./canvas.js";
 import { readFormValues, renderForm } from "../forms/form.js";
+import { articleMeta, blogMeta, heroField } from "../forms/article.js";
 import { authoredSchema, frameWhere, schemaFor, withFrameChoices, withTypeChoices } from "../forms/schema.js";
 
 export type ContentMode = "compose" | "fields" | "raw";
@@ -39,14 +40,19 @@ export function composeFormInner(
   record: Record<string, unknown>,
   layout?: PageLayoutHint,
   types?: readonly string[],
+  options?: { tenants?: readonly string[]; heroUrl?: string },
 ): string {
-  const schema = contentSchema(kind, record, layout, types);
+  const zoneLayout =
+    kind === "content" && record.type === "article" && layout
+      ? { ...layout, declaredZones: ["main"], offLayoutZones: [] }
+      : layout;
+  const schema = contentSchema(kind, record, zoneLayout, types);
   const authoredNames = new Set((authoredSchema(kind)?.fields ?? []).map((field) => field.name));
   const base = schema?.fields.filter((field) => authoredNames.has(field.name)) ?? [];
   const extras =
     schema?.fields.filter((field) => !authoredNames.has(field.name) && field.name !== "locked" && field.name !== "templateId") ??
     [];
-  const zones = zoneViews(record, layout);
+  const zones = zoneViews(record, zoneLayout);
   const onLayout = zones.filter((zone) => !zone.off);
   const offLayout = zones.filter((zone) => zone.off);
   const locked = record.locked === true;
@@ -56,9 +62,22 @@ export function composeFormInner(
         <p class="w3-small w3-text-grey">Drag onto the page, or click to add.</p>
         ${PALETTE.map((item) => `<button type="button" class="w3-button w3-white w3-border" draggable="true" data-palette="${item.kind}">${item.label}</button>`).join("")}
       </div>`;
-  return `${renderForm({ fields: base }, record)}
-    ${layoutBanner(layout)}
-    ${frameNote(layout)}
+  const tenants = options?.tenants ?? [];
+  const prefix =
+    kind === "content" && record.type === "article"
+      ? articleMeta(record, tenants)
+      : kind === "content" && record.type === "blog"
+        ? blogMeta(record, tenants)
+        : "";
+  const hero =
+    kind === "content" && record.type === "article"
+      ? heroField(stringField(record, "hero"), options?.heroUrl)
+      : "";
+  return `${prefix}
+    ${renderForm({ fields: base }, record)}
+    ${hero}
+    ${layoutBanner(record, zoneLayout)}
+    ${frameNote(zoneLayout)}
     <div class="editor-compose-layout">
       ${palette}
       <div class="editor-zones">
@@ -190,7 +209,17 @@ function contentSchema(
   return withFrameChoices(withTypes, layout.frames, current);
 }
 
-function layoutBanner(layout?: PageLayoutHint): string {
+function stringField(record: Record<string, unknown>, id: string): string {
+  const fields = record.fields;
+  if (!fields || typeof fields !== "object" || Array.isArray(fields)) return "";
+  const value = (fields as Record<string, unknown>)[id];
+  return typeof value === "string" ? value : "";
+}
+
+function layoutBanner(record: Record<string, unknown>, layout?: PageLayoutHint): string {
+  if (record.type === "article" || record.type === "blog" || record.type === "blog-index") {
+    return `<p class="w3-text-grey">This layout is built in.</p>`;
+  }
   if (!layout?.layoutId) return "";
   const via = layout.layoutSource === "type" ? `type ${layout.typeId ?? ""}`.trim() : "site default";
   return `<p class="w3-text-grey">Zones from layout <strong>${escapeHtml(layout.layoutId)}</strong> (${escapeHtml(via)}).</p>`;

@@ -3,11 +3,15 @@ import { mkdir, readdir, rename, unlink } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { SiteDocument } from "@r-a-i-t-h/tessera-model";
 import {
+  assertBlogTenants,
   collectDeclaredZones,
   layoutHasPageSlot,
+  markBlogLinks,
+  placeArticles,
   resolveMasterLayout,
   resolvePageProfile,
   SITE_REVISION_FILE,
+  type NavEntry,
 } from "@r-a-i-t-h/tessera-model";
 import { readText, writeTextAtomic } from "../store/fs.js";
 import {
@@ -24,11 +28,11 @@ import { installPublish } from "./install-publish.js";
 import {
   assembleDocument,
   authoredPageToPage,
+  type AuthoredPage,
   fromYaml,
   recordToYaml,
   splitDocument,
   toYaml,
-  type AuthoredPage,
   type LoadedSite,
   yamlToRecord,
 } from "./document.js";
@@ -60,6 +64,8 @@ export type RecordSummary = {
   /** Content entries only. */
   type?: string;
   tags?: string[];
+  date?: string;
+  tenant?: string;
 };
 
 export type PageLayoutHint = {
@@ -80,7 +86,7 @@ export type PageLayoutHint = {
 };
 
 /** These records are named by id. A title on them is not public content. */
-const ID_NAMED_KINDS = new Set<RecordKind>(["templates", "items", "layouts", "types", "folders"]);
+const ID_NAMED_KINDS = new Set<RecordKind>(["templates", "items", "layouts", "types", "folders", "tenants"]);
 
 function dropPrivateTitle(kind: RecordKind, data: Record<string, unknown>): Record<string, unknown> {
   if (!ID_NAMED_KINDS.has(kind) || !Object.prototype.hasOwnProperty.call(data, "title")) return data;
@@ -139,12 +145,20 @@ export class SiteStore {
         const tags = Array.isArray(data.tags)
           ? data.tags.filter((tag): tag is string => typeof tag === "string" && tag.trim() !== "")
           : [];
+        const fields =
+          data.fields && typeof data.fields === "object" && !Array.isArray(data.fields)
+            ? (data.fields as Record<string, unknown>)
+            : {};
+        const date = typeof fields.date === "string" ? fields.date : "";
+        const tenant = typeof fields.tenant === "string" ? fields.tenant : "";
         out.push({
           kind,
           id,
           title: typeof data.title === "string" ? data.title : id,
           ...(kind === "content" && typeof data.type === "string" && data.type ? { type: data.type } : {}),
           ...(kind === "content" && tags.length ? { tags } : {}),
+          ...(kind === "content" && date ? { date } : {}),
+          ...(kind === "content" && tenant ? { tenant } : {}),
         });
       }
     }
@@ -210,9 +224,16 @@ export class SiteStore {
 
   async write(kind: RecordKind, id: string, data: Record<string, unknown>): Promise<SaveResult> {
     this.assertId(id);
-    const record = dropPrivateTitle(kind, { ...data, id });
+    let record = dropPrivateTitle(kind, { ...data, id });
+    if (kind === "content") record = await this.finalizeContent(id, record);
     validateAuthoredRecord(kind, id, record);
-    return this.commitRecord(kind, id, recordToYaml(kind, record));
+    const createdIndex = kind === "content" ? await this.ensureBlogIndex(record) : undefined;
+    try {
+      return await this.commitRecord(kind, id, recordToYaml(kind, record));
+    } catch (err) {
+      if (createdIndex) await this.removeRecord("content", createdIndex);
+      throw err;
+    }
   }
 
   async writeLibraryRecord(
@@ -277,9 +298,9 @@ export class SiteStore {
       return { historyAppended: false, historyCount: 0, ...(snapshot ? { snapshot } : {}) };
     }
     if (kind === "nav") {
-      const data = fromYaml(text);
+      const data = await this.navWithBlogSources(fromYaml(text));
       validateAuthoredRecord("nav", id, data);
-      const { snapshot } = await this.commitText(this.navFile(), text);
+      const { snapshot } = await this.commitText(this.navFile(), toYaml(data));
       return { historyAppended: false, historyCount: 0, ...(snapshot ? { snapshot } : {}) };
     }
     this.assertId(id);
@@ -288,6 +309,17 @@ export class SiteStore {
       throw new Error(`Raw file must include id: ${id}.`);
     }
     const data = dropPrivateTitle(kind, parsed);
+    if (kind === "content") {
+      const record = await this.finalizeContent(id, { ...data, id });
+      validateAuthoredRecord(kind, id, record);
+      const createdIndex = await this.ensureBlogIndex(record);
+      try {
+        return await this.commitRecord(kind, id, recordToYaml(kind, record));
+      } catch (err) {
+        if (createdIndex) await this.removeRecord("content", createdIndex);
+        throw err;
+      }
+    }
     validateAuthoredRecord(kind, id, { ...data, id });
     const body = Object.prototype.hasOwnProperty.call(parsed, "title") && !Object.prototype.hasOwnProperty.call(data, "title")
       ? recordToYaml(kind, { ...data, id })
@@ -335,8 +367,9 @@ export class SiteStore {
   }
 
   async writeNav(data: unknown): Promise<SaveResult> {
-    validateAuthoredRecord("nav", "nav", data);
-    const saved = await this.commitText(this.navFile(), toYaml(data));
+    const stamped = await this.navWithBlogSources(data);
+    validateAuthoredRecord("nav", "nav", stamped);
+    const saved = await this.commitText(this.navFile(), toYaml(stamped));
     return { historyAppended: false, historyCount: 0, ...outputFields(saved) };
   }
 
@@ -551,6 +584,7 @@ export class SiteStore {
       types: await this.loadKind("types"),
       media: await this.loadKind("media"),
       folders: await this.loadKind("folders"),
+      tenants: await this.loadKind("tenants"),
     };
   }
 
@@ -566,6 +600,203 @@ export class SiteStore {
   private assertId(id: string): void {
     if (!isRecordId(id)) throw new Error(`Invalid record id "${id}".`);
   }
+
+  /**
+   * Articles take a tenant and a parent blog. A blog gains its index.
+   * The check runs against the site as it would be after this save.
+   */
+  private async finalizeContent(id: string, record: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const type = record.type;
+    if (type !== "article" && type !== "blog" && type !== "blog-index") return record;
+    const next: Record<string, unknown> = { ...record, id };
+    if (type === "article") {
+      delete next.includes;
+      delete next.masterLayoutId;
+      delete next.templateId;
+      delete next.locked;
+      const fields = stringFields(next.fields);
+      const tenant = fields.tenant?.trim() ?? "";
+      if (!tenant) throw new Error("An article must name a tenant.");
+      fields.tenant = tenant;
+      const date = fields.date?.trim() ?? "";
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        throw new Error("An article date must be a calendar day, YYYY-MM-DD.");
+      }
+      fields.date = date;
+      for (const key of ["author", "precis", "hero"]) {
+        const value = fields[key]?.trim() ?? "";
+        if (value) fields[key] = value;
+        else delete fields[key];
+      }
+      next.fields = fields;
+      const zones =
+        next.zones && typeof next.zones === "object" && !Array.isArray(next.zones)
+          ? { ...(next.zones as Record<string, unknown>) }
+          : {};
+      zones.title = { html: escapeText(typeof next.title === "string" ? next.title : "") };
+      next.zones = zones;
+    }
+    if (type === "blog") {
+      const fields = stringFields(next.fields);
+      const tenant = fields.tenant?.trim() ?? "";
+      if (tenant) fields.tenant = tenant;
+      else delete fields.tenant;
+      const pageSize = fields.pageSize?.trim() ?? "";
+      if (pageSize) fields.pageSize = pageSize;
+      else delete fields.pageSize;
+      next.fields = fields;
+    }
+    if (type === "blog-index") {
+      delete next.includes;
+      delete next.masterLayoutId;
+      next.slug = "index";
+    }
+    const others = (await this.contentRecords()).filter((page) => page.id !== id);
+    const projected = [...others, next as AuthoredPage];
+    const pages = placeArticles(projected.map((page) => authoredPageToPage(page)));
+    assertBlogTenants(
+      pages,
+      await this.listIds("tenants"),
+    );
+    if (type === "article") {
+      next.parentId = pages.find((page) => page.id === id)?.parentId;
+    }
+    return next;
+  }
+
+  private async contentRecords(): Promise<AuthoredPage[]> {
+    const rows: AuthoredPage[] = [];
+    for (const id of await this.listIds("content")) {
+      rows.push((await this.read("content", id)) as AuthoredPage);
+    }
+    return rows;
+  }
+
+  /** Create the index page when a blog is saved and it does not have one yet. */
+  private async ensureBlogIndex(record: Record<string, unknown>): Promise<string | undefined> {
+    if (record.type !== "blog" || typeof record.id !== "string") return undefined;
+    const pages = await this.contentRecords();
+    if (pages.some((page) => page.type === "blog-index" && page.parentId === record.id)) return undefined;
+    const indexId = `${record.id}-index`;
+    if (!isRecordId(indexId)) throw new Error("This blog id cannot have an index filename.");
+    if (pages.some((page) => page.id === indexId)) {
+      throw new Error(`Cannot create index ${indexId}: that page already exists.`);
+    }
+    const index = {
+      id: indexId,
+      title: "Index",
+      slug: "index",
+      parentId: record.id,
+      type: "blog-index",
+    };
+    await this.commitRecord("content", indexId, recordToYaml("content", index), { rebuild: false });
+    return indexId;
+  }
+
+  private async removeRecord(kind: RecordKind, id: string): Promise<void> {
+    await unlink(this.recordFile(kind, id)).catch(() => undefined);
+    if (kind === "content") {
+      await unlink(pageHistoryPath(dirname(this.historyDir), id)).catch(() => undefined);
+    }
+    const order = (await this.readOrder(kind)).filter((item) => item !== id);
+    await writeTextAtomic(this.orderFile(kind), toYaml(order));
+  }
+
+  private async navWithBlogSources(data: unknown): Promise<unknown> {
+    if (!Array.isArray(data)) return data;
+    const blogIds = new Set<string>();
+    for (const page of await this.contentRecords()) {
+      if (page.type === "blog") blogIds.add(page.id);
+    }
+    return markBlogLinks(data as NavEntry[], blogIds);
+  }
+
+  /** Refused while an article or a blog still selects this tenant. */
+  async deleteTenant(id: string): Promise<void> {
+    this.assertId(id);
+    await this.read("tenants", id);
+    const users = (await this.contentRecords()).filter((page) => page.fields?.tenant === id);
+    if (users.length) {
+      throw new Error(`Tenant ${id} is still selected by ${users.map((page) => page.id).join(", ")}.`);
+    }
+    await this.removeRecord("tenants", id);
+    await this.rebuild();
+  }
+
+  /**
+   * Remove the tenant, every article and blog that selects it, that blog's index,
+   * their history, and the nav row for that blog. Library files stay.
+   */
+  async cascadeTenant(id: string): Promise<void> {
+    this.assertId(id);
+    await this.read("tenants", id);
+    const pages = await this.contentRecords();
+    const articles = pages.filter((page) => page.type === "article" && page.fields?.tenant === id);
+    const blog = pages.find((page) => page.type === "blog" && page.fields?.tenant === id);
+    const index = blog
+      ? pages.find((page) => page.type === "blog-index" && page.parentId === blog.id)
+      : undefined;
+    for (const page of [...articles, ...(blog ? [blog] : []), ...(index ? [index] : [])]) {
+      await this.removeRecord("content", page.id);
+    }
+    await this.removeRecord("tenants", id);
+    if (blog) {
+      const nav = await this.readNav();
+      if (Array.isArray(nav)) {
+        await this.commitText(this.navFile(), toYaml(stripNavId(nav, blog.id)), { rebuild: false });
+      }
+    }
+    await this.rebuild();
+  }
+
+  /** Rename a tenant id and rewrite every article and blog that selects it. */
+  async renameTenant(id: string, nextId: string): Promise<void> {
+    this.assertId(id);
+    if (!isRecordId(nextId)) throw new Error(`Invalid record id "${nextId}".`);
+    if (nextId === id) return;
+    await this.read("tenants", id);
+    const existing = await this.listIds("tenants");
+    if (existing.includes(nextId)) throw new Error(`Tenant ${nextId} already exists.`);
+    const pages = await this.contentRecords();
+    for (const page of pages) {
+      if (page.fields?.tenant !== id) continue;
+      const fields = { ...page.fields, tenant: nextId };
+      await this.commitRecord("content", page.id, recordToYaml("content", { ...page, fields }), { rebuild: false });
+    }
+    await this.commitRecord("tenants", nextId, recordToYaml("tenants", { id: nextId }), { rebuild: false });
+    await this.removeRecord("tenants", id);
+    await this.rebuild();
+  }
+}
+
+function stringFields(value: unknown): Record<string, string> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const out: Record<string, string> = {};
+  for (const [key, item] of Object.entries(value)) {
+    if (typeof item === "string") out[key] = item;
+    else if (typeof item === "number" && Number.isFinite(item)) out[key] = String(item);
+  }
+  return out;
+}
+
+function escapeText(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function stripNavId(entries: unknown[], id: string): unknown[] {
+  const out: unknown[] = [];
+  for (const entry of entries) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      out.push(entry);
+      continue;
+    }
+    const row = entry as Record<string, unknown>;
+    if (row.id === id) continue;
+    const next = { ...row };
+    if (Array.isArray(row.children)) next.children = stripNavId(row.children, id);
+    out.push(next);
+  }
+  return out;
 }
 
 function documentBody(doc: SiteDocument): string {

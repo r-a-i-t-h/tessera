@@ -1,4 +1,6 @@
 import type { ComponentFn } from "@r-a-i-t-h/tessera-renderer";
+import { blogArticle, blogFeed, blogIndex } from "./blog.js";
+import { bootBlog } from "./blog-runtime.js";
 import { openDaysTable } from "./open-days.js";
 import { aboutRenderer, eventList, infoCard, now, pageNav } from "./pure.js";
 import { randomCells } from "./random-cells.js";
@@ -18,6 +20,8 @@ import {
  * Shared component catalogue. Every site may name these. A site does not
  * ship its own implementations.
  */
+export { bootBlog };
+
 export function registerExtras(define: (name: string, fn: ComponentFn) => unknown): void {
   registerCardElement();
   define("now", now);
@@ -35,4 +39,7 @@ export function registerExtras(define: (name: string, fn: ComponentFn) => unknow
   define("profileFacts", profileFacts);
   define("agendaList", agendaList);
   define("attendeeList", attendeeList);
+  define("blogArticle", blogArticle);
+  define("blogFeed", blogFeed);
+  define("blogIndex", blogIndex);
 }

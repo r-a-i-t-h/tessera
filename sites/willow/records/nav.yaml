@@ -6,6 +6,8 @@
   title: News
   topbar: true
   sidebar: true
+  source:
+    blog: true
 - id: events
   title: Events
   topbar: true

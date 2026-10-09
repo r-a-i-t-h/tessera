@@ -4,6 +4,22 @@ import { SiteStyleSchema } from "./style.js";
 /** Schema version expected by this package — must match `SiteDocument.version`. */
 export const SITE_DOCUMENT_SCHEMA_VERSION = 2 as const;
 
+/** Reserved content types. Other types stay site-defined. */
+export const ARTICLE_TYPE = "article";
+export const BLOG_TYPE = "blog";
+export const BLOG_INDEX_TYPE = "blog-index";
+
+/** Built-in layouts. A site layout with one of these ids does not win. */
+export const ARTICLE_LAYOUT_ID = "tessera-article";
+export const BLOG_LAYOUT_ID = "tessera-blog";
+export const BLOG_INDEX_LAYOUT_ID = "tessera-blog-index";
+
+const RESERVED_LAYOUTS: Record<string, string> = {
+  [ARTICLE_TYPE]: ARTICLE_LAYOUT_ID,
+  [BLOG_TYPE]: BLOG_LAYOUT_ID,
+  [BLOG_INDEX_TYPE]: BLOG_INDEX_LAYOUT_ID,
+};
+
 /** Content blocks that fill zones. */
 export const TextBlockSchema = z.object({
   type: z.literal("text"),
@@ -265,6 +281,8 @@ export const NavSourceSchema = z.object({
   /** Entries of this type become links. Subject tags are not a group. */
   pageType: z.string().min(1).optional(),
   itemsTag: z.string().min(1).optional(),
+  /** The linked page is a blog. The menu adds the index, and tenant names when the blog names none. */
+  blog: z.boolean().optional(),
 });
 
 export type NavSource = z.infer<typeof NavSourceSchema>;
@@ -337,6 +355,11 @@ export const SiteDocumentSchema = z.object({
   bindings: z.array(BindingSchema).default([]),
   /** Site-defined types. An entry's `type` picks one. Layout comes from that record. */
   types: z.array(TypeSchema).default([]),
+  /**
+   * Tenant records. Articles and blogs select one of these ids.
+   * Omitted when the site has none, so older documents still parse.
+   */
+  tenants: z.array(z.object({ id: z.string().min(1) })).optional(),
 });
 
 export type Layout = z.infer<typeof LayoutSchema>;
@@ -363,6 +386,10 @@ export type PageProfile = {
  * Layouts remain first-class; a type never invents zones.
  */
 export function resolvePageProfile(document: SiteDocument, page: Page): PageProfile {
+  const reserved = page.type ? RESERVED_LAYOUTS[page.type] : undefined;
+  if (reserved && page.type) {
+    return { layoutId: reserved, layoutSource: "type", typeId: page.type };
+  }
   const type = page.type ? document.types?.find((item) => item.id === page.type) : undefined;
   let layoutId = type?.layoutId ?? document.site.defaultLayoutId;
   let layoutSource: PageProfile["layoutSource"] = type?.layoutId ? "type" : "site";

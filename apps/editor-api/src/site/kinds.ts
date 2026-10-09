@@ -8,6 +8,7 @@ export const RECORD_KINDS = [
   "types",
   "media",
   "folders",
+  "tenants",
 ] as const;
 
 export type RecordKind = (typeof RECORD_KINDS)[number];
@@ -24,6 +25,7 @@ export const DOCUMENT_KINDS = [
   "types",
   "media",
   "folders",
+  "tenants",
 ] as const;
 
 export type DocumentKind = (typeof DOCUMENT_KINDS)[number];
@@ -37,6 +39,7 @@ export const KIND_LABELS: Record<RecordKind, string> = {
   types: "Types",
   media: "Media",
   folders: "Folders",
+  tenants: "Tenants",
 };
 
 export const KIND_DIRS: Record<RecordKind, string> = {
@@ -48,6 +51,7 @@ export const KIND_DIRS: Record<RecordKind, string> = {
   types: "types",
   media: "media",
   folders: "folders",
+  tenants: "tenants",
 };
 
 /** Filename = Tessera `id`. Restrict to a single path segment. */

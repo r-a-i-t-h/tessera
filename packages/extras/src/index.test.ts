@@ -21,6 +21,9 @@ describe("shared component catalogue", () => {
       "profileFacts",
       "agendaList",
       "attendeeList",
+      "blogArticle",
+      "blogFeed",
+      "blogIndex",
     ]);
   });
 });

@@ -1,16 +1,16 @@
 id: blog-roof-appeal
 title: "Roof appeal: the quiet halfway mark"
-templateId: news
-locked: true
-includes:
-  - common-footer
+parentId: news
 zones:
   title:
     html: "Roof appeal: the quiet halfway mark"
   main:
-    html: <p>Slates, gutters, and the small miracle of people putting envelopes through the porch.</p><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere, nisl at aliquet dictum, nisi nisl aliquam lectus, vitae gravida erat sapien sit amet arcu.</p><p>Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec vel mauris lectus. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.</p><p>Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Curabitur non nulla sit amet nisl tempus convallis quis ac lectus. Pellentesque in ipsum id orci porta dapibus.</p><p>Proin eget tortor risus. Vivamus magna justo, lacinia eget consectetur sed, convallis at tellus. Nulla quis lorem ut libero malesuada feugiat. Donec sollicitudin molestie malesuada.</p><p><a href="#news">Back to news</a></p>
-type: news
+    html: <p>Slates, gutters, and the small miracle of people putting envelopes through the porch.</p><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere, nisl at aliquet dictum, nisi nisl aliquam lectus, vitae gravida erat sapien sit amet arcu.</p><p>Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec vel mauris lectus. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.</p><p>Mauris blandit aliquet elit, eget tincidunt nibh pulvinar a. Curabitur non nulla sit amet nisl tempus convallis quis ac lectus. Pellentesque in ipsum id orci porta dapibus.</p><p>Proin eget tortor risus. Vivamus magna justo, lacinia eget consectetur sed, convallis at tellus. Nulla quis lorem ut libero malesuada feugiat. Donec sollicitudin molestie malesuada.</p>
+type: article
+tags:
+  - roof
 fields:
+  tenant: hall
   date: 2026-08-22
   author: Sam Okonkwo
   precis: Slates, gutters, and the small miracle of people putting envelopes through the porch.

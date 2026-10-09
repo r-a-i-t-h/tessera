@@ -5,7 +5,7 @@ import {
 } from "@r-a-i-t-h/tessera-renderer";
 import { w3Skin } from "@r-a-i-t-h/tessera-skin-w3";
 import { applySiteChrome, insertHeadingsMenu, installChromeGlobals, renderStaleBanner } from "@r-a-i-t-h/tessera-demo-kit";
-import { registerExtras } from "@r-a-i-t-h/tessera-extras";
+import { bootBlog, registerExtras } from "@r-a-i-t-h/tessera-extras";
 
 installChromeGlobals();
 
@@ -24,6 +24,7 @@ const renderer = await SiteRenderer.create({
     const page = doc.pages.find((p) => p.id === pageId);
     document.title = page ? `${page.title} · ${doc.site.title}` : doc.site.title;
     insertHeadingsMenu(document.getElementById("app") ?? document);
+    bootBlog(document);
   },
 });
 

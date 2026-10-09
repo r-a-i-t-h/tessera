@@ -296,3 +296,56 @@ body.rightnav .tessera-sidebar {
   margin: 0;
   line-height: var(--tessera-rule);
 }
+
+.tessera-blog-hero img,
+.tessera-blog-card img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.tessera-blog-card {
+  margin: 0 0 1.75rem;
+}
+
+.tessera-blog-card h2,
+.tessera-blog-byline,
+.tessera-blog-meta,
+.tessera-blog-lead,
+.tessera-blog-prompt,
+.tessera-blog-empty {
+  margin: 0.35rem 0;
+}
+
+.tessera-blog-byline,
+.tessera-blog-meta,
+.tessera-blog-tenant {
+  color: #5c6570;
+}
+
+.tessera-blog-tags,
+.tessera-blog-tenants,
+.tessera-blog-pager,
+.tessera-blog-neighbors,
+.tessera-blog-index-link {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  margin: 1rem 0;
+}
+
+.tessera-blog-tools {
+  margin: 1rem 0 1.5rem;
+}
+
+.tessera-blog-query {
+  max-width: 24rem;
+}
+
+.tessera-blog-index-row {
+  margin: 0.4rem 0;
+}
+
+.tessera-blog-pending {
+  font-style: italic;
+}

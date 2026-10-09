@@ -30,6 +30,7 @@ That is a small-site CMS for prose pages, media, and a designed menu. It is one 
 | Page templates | `records/templates/<id>.yaml`, left out of the published document. A new page copies tags, includes, and every zone except the title. `isLocked` sets `locked` on that page so the arrangement stays fixed while words and pictures stay editable. Flatten omits `locked` and `templateId`. |
 | Media library | Images and PDFs in `files/` plus virtual folders. The published URL is `./media/<id>.<ext>`. A move changes `folderId` only. |
 | Gallery | `<tessera-gallery>` grid or slides, plus a dialog. A Compose gallery section names a library folder. Flatten lists that folder’s images. |
+| Blog | Reserved `blog`, `article`, and `blog-index`. Tenants are records. The author places a blog in the nav for its path and frame. The menu adds the index, and tenant names when the blog names none. Articles are pages with a fixed layout, a date, and tags. A future date hides an article until that local day. |
 
 ## Upcoming (ordered)
 
@@ -38,7 +39,7 @@ That is a small-site CMS for prose pages, media, and a designed menu. It is one 
    → [SPEC §9](./SPEC.md#9-editor-boundary)
 
 2. **Items listing patterns**  
-   First-class list-on-page / as-pages beyond ad-hoc bindings. Subpages already lists child pages. People, events, and news are a type plus a binding.  
+   First-class list-on-page / as-pages beyond ad-hoc bindings. Subpages already lists child pages. People and events are a type plus a binding. The blog is reserved and is not this work.  
    → [SPEC §2](./SPEC.md#pages-and-items), [acceptance](./SPEC.md#inclusion-and-items)
 
 3. **Editor chrome**  

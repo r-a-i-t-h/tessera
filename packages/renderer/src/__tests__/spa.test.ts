@@ -69,6 +69,10 @@ describe("SiteRenderer navigation", () => {
 
     expect(mount.innerHTML).toContain("About body");
     expect(mount.innerHTML).not.toContain("Home title");
+
+    window.location.hash = "#about/tenant/hall";
+    window.dispatchEvent(new Event("hashchange"));
+    expect(mount.innerHTML).toContain("About body");
     renderer.stop();
   });
 

@@ -72,4 +72,27 @@ describe("resolveNavTree", () => {
     const tree = resolveNavTree(doc);
     expect(tree[0]!.children[0]!.id).toBe("home");
   });
+
+  it("adds an index and tenant links under an unscoped blog, and only the index when a tenant is named", () => {
+    const doc = makeFixtureDoc();
+    doc.tenants = [{ id: "hall" }, { id: "admin" }];
+    doc.pages.push(
+      { id: "news", title: "News", type: "blog", zones: {} },
+      { id: "news-index", title: "Index", type: "blog-index", parentId: "news", zones: {} },
+      { id: "fair", title: "Fair", type: "article", tags: ["fair"], fields: { tenant: "hall", date: "2026-07-14" }, zones: {} },
+      { id: "hall-news", title: "Hall news", type: "blog", fields: { tenant: "hall" }, zones: {} },
+      { id: "hall-index", title: "Index", type: "blog-index", parentId: "hall-news", zones: {} },
+    );
+    doc.nav = [
+      { id: "news", title: "News", sidebar: true, source: { blog: true } },
+      { id: "hall-news", title: "Hall", sidebar: true },
+      { heading: "Stories", sidebar: true, source: { pageType: "article" } },
+    ];
+    const tree = resolveNavTree(doc);
+    expect(tree[0]!.children.map((child) => child.title)).toEqual(["Index", "hall", "admin"]);
+    expect(tree[0]!.children[1]).toMatchObject({ id: "news", hash: "tenant/hall" });
+    expect(tree[0]!.children.some((child) => child.id === "fair")).toBe(false);
+    expect(tree[1]!.children.map((child) => child.id)).toEqual(["hall-index"]);
+    expect(tree[2]!.children).toEqual([]);
+  });
 });

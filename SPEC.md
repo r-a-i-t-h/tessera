@@ -59,7 +59,17 @@ A **type** is site configuration, not a built-in class. `{ id, layoutId?, fields
 
 Fields are scalar values on the entry (`date`, `precis`, and whatever else the type names). `title` and the body zone are always available. A layout zone with no authored HTML shows the field of the same id. Subject `tags` filter. They do not choose the type or the layout.
 
-A listing behavior names the types it reads and, for dates, a window (`past`, `upcoming`, or all). It shows `title`, `date`, and `precis`. There is no built-in blog or event type. Willow's `event` and `news` types are examples that satisfy that behavior.
+A listing behavior names the types it reads and, for dates, a window (`past`, `upcoming`, or all). It shows `title`, `date`, and `precis`. `blog`, `article`, and `blog-index` are reserved. Every other type stays site-defined. Willow's `event` type is an example that satisfies the listing behavior.
+
+### Blog
+
+A blog is reserved, not assembled from a type and a binding. One site hosts every blog. A **tenant** is a record (`records/tenants/<id>.yaml`). An article selects one and cannot clear it. A blog selects one, or none. Two blogs cannot select the same tenant, and only one blog may select none.
+
+The author places the blog in the nav. That sets the path and the frame. Articles are not menu items. The generated children are the index, then one link per tenant when the blog names none. A tenant link opens that blog with the tenant selected.
+
+An article is a page: its own HTML file, Compose body, title, slug, and description. It has no includes, no layout control, and no frame of its own. The frame is the blog's frame. `date` orders the blog, the index, and previous/next. Tags filter those pages. `navTags`, a nav `itemsTag`, and the Pages tag filter ignore article tags.
+
+A date still in the future is hidden on the blog, the index, previous/next, and the article page until that calendar day in the visitor's local timezone. The HTML file stays on disk. The blog shows a page of the filtered list (default 10) with Older and Newer. The index lists the whole blog by date, title, and tags, and can be narrowed by tag or text. Both filters run in the browser.
 
 ### Pages and items
 
@@ -224,7 +234,7 @@ Without being limiting, Tessera should ship enough shared pieces to build a full
 | Area | Intent |
 |------|--------|
 | Listings / items | First-class story for iterating structured items (not only one-off site `ComponentFn`s) |
-| Blog | Items expanded as pages + list-on-page views |
+| Blog | Reserved `blog`, `article`, and `blog-index`. Tenants, a paged reading list, and a date index. A menu branch exists only under a blog added to nav |
 | Gallery | `<tessera-gallery>` grid, slides, and dialog. A library folder is the image set |
 | Document browser | Browse structured document-like content |
 | Layout primitives | imgbox, quote, row/column helpers — preferably as WCs and/or skin helpers |
@@ -234,7 +244,7 @@ Without being limiting, Tessera should ship enough shared pieces to build a full
 
 Components ship in the shared catalogue. A site names them from its records. A site does not ship its own scripts.
 
-Gallery, layout primitives, nav, and bindings are in the product. Listings, a blog, and a document browser are the open rows. Sequencing is in [ROADMAP.md](./ROADMAP.md).
+Gallery, layout primitives, nav, bindings, and the blog are in the product. Listings and a document browser are the open rows. Sequencing is in [ROADMAP.md](./ROADMAP.md).
 
 ---
 
