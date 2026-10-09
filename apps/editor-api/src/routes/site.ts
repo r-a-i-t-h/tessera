@@ -7,7 +7,7 @@ import { writeBlankSite } from "../site/blank.js";
 export const siteRoutes = new Hono();
 siteRoutes.use("/site/*", authenticatedSiteRoot);
 
-/** Create a shell, master layout, and first page in an empty instance. */
+/** Create a shell, master layout, home page, and a blog for tenant blogger in an empty instance. */
 siteRoutes.post("/site/init", async (c) => {
   const site = c.get("requiredSite");
   const siteRoot = c.get("requiredSiteRoot");

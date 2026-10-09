@@ -733,7 +733,10 @@ function bindInitSite(
       if (button) button.disabled = true;
       try {
         await initSite();
-        await again("Started a site with a master layout, a standard page, and a Hello world home page.", "");
+        await again(
+          "Started a site with a master layout, a standard page, a Hello world home page, and a blog for tenant blogger.",
+          "",
+        );
       } catch (err) {
         await again("", err instanceof Error ? err.message : "Could not start a site.");
       }
@@ -1334,7 +1337,7 @@ async function bindBackups(root: HTMLElement, user: PublicUser, notice = "", err
   root.querySelector("[data-action=reseed]")?.addEventListener("click", () => {
     if (
       !window.confirm(
-        "Replace this site with a fresh Hello world starter? Your editors stay. The current site is saved as a new backup first.",
+        "Replace this site with a fresh starter? It has a Hello world home page and a blog for tenant blogger. Your editors stay. The current site is saved as a new backup first.",
       )
     ) {
       return;
@@ -1398,7 +1401,7 @@ function backupsHtml(listing: BackupList, notice: string, error: string): string
     <p class="w3-text-grey">Willow is a <code>.tar.gz</code> in that same backup folder. Restoring it fills this site with the community example. Your editors stay.</p>
     ${examples}
     <h2 class="w3-medium">Re-seed</h2>
-    <p class="w3-text-grey">Replace this site with a fresh starter: a master layout, a standard type and page layout, a Hello world home page, a header, a left-hand menu, and a common-footer item. The menu stays open on the left from tablet landscape width up. On a narrower screen a Menu button on the right of the bar opens a flyout from the right, so the site title stays put. Editors stay. The current site is saved as a new backup first. Restore Willow when a fuller example is needed.</p>
+    <p class="w3-text-grey">Replace this site with a fresh starter: a master layout, a standard type and page layout, a Hello world home page, a header, a left-hand menu, a common-footer item, and a blog for tenant blogger with one article dated 9 October 2026. The menu stays open on the left from tablet landscape width up. On a narrower screen a Menu button on the right of the bar opens a flyout from the right, so the site title stays put. Editors stay. The current site is saved as a new backup first. Restore Willow when a fuller example is needed.</p>
     <p><button type="button" class="w3-button w3-white" data-action="reseed">Re-seed this site</button></p>`;
 }
 
@@ -1423,7 +1426,7 @@ function homeHtml(listing: RecordList, notice = "", error = ""): string {
 
 function startSiteHtml(): string {
   return `<p><button type="button" class="w3-button w3-theme" data-action="init-site">Start an empty site</button></p>
-    <p class="w3-text-grey">This writes a shell, a master layout, a standard type and page layout, a Hello world home page, and a common-footer item. It does not replace a site that already has records. To replace one, use Re-seed on Backups.</p>`;
+    <p class="w3-text-grey">This writes a shell, a master layout, a standard type and page layout, a Hello world home page, a common-footer item, and a blog for tenant blogger with one article. It does not replace a site that already has records. To replace one, use Re-seed on Backups.</p>`;
 }
 
 /** Media and folders are edited in the Library, not as record lists. */

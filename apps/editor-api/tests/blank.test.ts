@@ -43,7 +43,7 @@ describe("blank site", () => {
     });
     expect(res.status).toBe(200);
     const body = (await res.json()) as { pages: number };
-    expect(body.pages).toBe(1);
+    expect(body.pages).toBe(4);
     const siteYaml = await readFile(join(root, "records", "site.yaml"), "utf8");
     expect(siteYaml).toContain("masterLayoutId: master");
     const shell = await readFile(join(root, "shell", "index.html"), "utf8");
@@ -61,6 +61,10 @@ describe("blank site", () => {
     expect(snapshot).toContain('"type": "page"');
     expect(snapshot).toContain("Hello world");
     expect(snapshot).toContain("common-footer");
+    expect(snapshot).toContain('"id": "blogger"');
+    expect(snapshot).toContain("The blog begins");
+    expect(snapshot).toContain("2026-10-09");
+    expect(snapshot).toContain("tessera-blog");
     expect(snapshot).toContain('"navSide": "left"');
     expect(snapshot).toContain("mySidebar");
     expect(snapshot).toContain("w3-collapse");
@@ -114,7 +118,7 @@ describe("blank site", () => {
     });
     expect(res.status).toBe(200);
     const body = (await res.json()) as { pages: number; safetyBackup: string };
-    expect(body.pages).toBe(1);
+    expect(body.pages).toBe(4);
     expect(body.safetyBackup).toMatch(/\.tar\.gz$/);
     await expect(readFile(join(root, "records", "content", "extra.yaml"), "utf8")).rejects.toThrow();
     await expect(readFile(join(root, "publish", "keep.txt"), "utf8")).rejects.toThrow();
