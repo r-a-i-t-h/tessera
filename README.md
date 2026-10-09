@@ -50,7 +50,7 @@ A site is a directory, not a package. Tessera’s version is the editor and the 
 
 | Directory | Notes |
 |-----------|--------|
-| `sites/willow` | Community showcase (templates, types, bindings, gallery). Archived into `backup/willow.tar.gz` on first boot; not the running site |
+| `sites/willow` | Community showcase (templates, types, bindings, gallery). Copied to `backup/willow.tar.gz` on boot when the release archive differs; not the running site |
 
 Willow’s committed `publish/data`, `publish/img`, and `publish/media` files are reference fixtures for the showcase and its tests. Runtime JavaScript, CSS, and generated HTML under `publish/` are build artifacts and remain ignored.
 
@@ -62,7 +62,7 @@ Library uploads default to at most 25 MiB per file, 100 files, and 100 MiB for t
 
 The copyable site is `publish/` inside that same directory. Copy that folder to the live host, or set `publishTo` in `site.yaml` to an existing directory the app user can write. Publish then replaces the files inside that directory and leaves the directory itself in place. It does not create a missing path and does not run as root. On Ubuntu, `/var/www` stays root-owned; `chown` the live folder to the app user once. That folder should contain only the published site. Nginx can serve the copy with the editor stopped. The editor process does not serve it, and the SPA preview does not write into it. `npm run build -w @r-a-i-t-h/tessera-site` builds `tessera.js` and `tessera-pages.js` and stamps `tessera.js`, plus skin CSS, into each reference site’s `publish/` tree. Adding a component is a Tessera release: it is then available to every site. A checkout builds that runtime before a pages or snapshot dist can be written. The packed release already includes it.
 
-The editor’s Backups page writes a dated `tar.gz` of `data/` into the sibling `backup/` folder (`TESSERA_BACKUP` overrides it). A file of the form `2026-09-28T191500Z.tar.gz` dropped there over SFTP can be downloaded or restored. Restore writes a safety archive first. The first boot also places `willow.tar.gz` in that folder when it is missing, and leaves it alone after that. Restoring it fills `data/` and keeps the site’s editors. The Backups page can also re-seed the open site onto that same starter (safety archive first, editors kept). A starter site can also be written when the directory has no records yet.
+The editor’s Backups page writes a dated `tar.gz` of `data/` into the sibling `backup/` folder (`TESSERA_BACKUP` overrides it). A file of the form `2026-09-28T191500Z.tar.gz` dropped there over SFTP can be downloaded or restored. Restore writes a safety archive first. Each boot copies `seed/examples/willow.tar.gz` into that folder when the file is missing or the release copy has changed. A checkout with no packed seed archives `sites/willow/` the first time only. Dated backups are left as they are. Restoring that archive fills `data/` and keeps the site’s editors. The Backups page can also re-seed the open site onto that same starter (safety archive first, editors kept). A starter site can also be written when the directory has no records yet.
 
 ## Release
 

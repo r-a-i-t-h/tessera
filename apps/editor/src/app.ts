@@ -1398,7 +1398,7 @@ function backupsHtml(listing: BackupList, notice: string, error: string): string
     <p><button type="button" class="w3-button w3-theme" data-action="backup">Back up now</button></p>
     ${rows}
     <h2 class="w3-medium">Examples</h2>
-    <p class="w3-text-grey">Willow is a <code>.tar.gz</code> in that same backup folder. Restoring it fills this site with the community example. Your editors stay.</p>
+    <p class="w3-text-grey">Willow is a <code>.tar.gz</code> in that same backup folder. Starting the editor copies the release archive over it when that file has changed. Restoring it fills this site with the community example. Your editors stay.</p>
     ${examples}
     <h2 class="w3-medium">Re-seed</h2>
     <p class="w3-text-grey">Replace this site with a fresh starter: a master layout, a standard type and page layout, a Hello world home page, a header, a left-hand menu, a common-footer item, and a blog for tenant blogger with one article dated 9 October 2026. The menu stays open on the left from tablet landscape width up. On a narrower screen a Menu button on the right of the bar opens a flyout from the right, so the site title stays put. Editors stay. The current site is saved as a new backup first. Restore Willow when a fuller example is needed.</p>

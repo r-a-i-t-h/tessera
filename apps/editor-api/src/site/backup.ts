@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { cp, mkdir, mkdtemp, readdir, rename, rm, stat } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, readdir, rename, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { SESSION_HANDOFF_FILE } from "../auth/sessions.js";
@@ -74,7 +74,11 @@ export function exampleArchiveName(name: SiteName): string {
   return `${name}.tar.gz`;
 }
 
-/** Place each demo archive in `backup/` when it is missing. Never replaces one that is already there. */
+/**
+ * Place each demo archive in `backup/`.
+ * A packed seed replaces the copy when its bytes differ, so an update refreshes Willow.
+ * A checkout archive of `sites/<name>/` is written only when that file is absent.
+ */
 export async function ensureExampleArchives(
   backupDir: string,
   sources: { seedDir?: string; sitesDir?: string },
@@ -82,14 +86,14 @@ export async function ensureExampleArchives(
   await mkdir(backupDir, { recursive: true });
   for (const name of SITE_NAMES) {
     const dest = join(backupDir, exampleArchiveName(name));
-    if (await isFile(dest)) continue;
     const packed = sources.seedDir
       ? join(sources.seedDir, "examples", exampleArchiveName(name))
       : undefined;
     if (packed && (await isFile(packed))) {
-      await cp(packed, dest);
+      await installPackedExample(packed, dest);
       continue;
     }
+    if (await isFile(dest)) continue;
     const site = sources.sitesDir ? join(sources.sitesDir, name) : undefined;
     if (!site || !(await isFile(join(site, "meta.json")))) continue;
     const partial = `${dest}.partial`;
@@ -314,6 +318,31 @@ async function clearExcept(dataDir: string, keep: Set<string>): Promise<void> {
       .filter((entry) => !keep.has(entry))
       .map((entry) => rm(join(dataDir, entry), { recursive: true, force: true })),
   );
+}
+
+/** Copy the release archive over `dest` when the bytes differ. Dated backups are not this file. */
+async function installPackedExample(packed: string, dest: string): Promise<void> {
+  if (await sameFileBytes(packed, dest)) return;
+  const partial = `${dest}.partial`;
+  try {
+    await cp(packed, partial);
+    await rename(partial, dest);
+  } catch (err) {
+    await rm(partial, { force: true });
+    throw err;
+  }
+}
+
+async function sameFileBytes(left: string, right: string): Promise<boolean> {
+  let rightBytes: Buffer;
+  try {
+    rightBytes = await readFile(right);
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code === "ENOENT") return false;
+    throw err;
+  }
+  return (await readFile(left)).equals(rightBytes);
 }
 
 async function isFile(path: string): Promise<boolean> {
