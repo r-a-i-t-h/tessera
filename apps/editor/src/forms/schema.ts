@@ -93,12 +93,20 @@ export const LAYOUT_FORM: FormSchema = {
   fields: [{ name: "includes", label: "Includes", type: "string", list: true }],
 };
 
+export const ITEM_FORM: FormSchema = {
+  fields: [
+    { name: "id", label: "Id", type: "string", readOnly: true, required: true },
+    { name: "tags", label: "Tags", type: "string", list: true },
+  ],
+};
+
 /** Authored schema for a record kind. Other kinds build a temporary list from the file. */
 export function authoredSchema(kind: string): FormSchema | undefined {
   if (kind === "site") return SITE_FORM;
   if (kind === "content") return CONTENT_FORM;
   if (kind === "templates") return TEMPLATE_FORM;
   if (kind === "layouts") return LAYOUT_FORM;
+  if (kind === "items") return ITEM_FORM;
   return undefined;
 }
 
@@ -169,6 +177,7 @@ export function schemaFor(kind: string, data: unknown): FormSchema | undefined {
     skip.add("zones");
     skip.add("fields");
   }
+  if (kind === "items") skip.add("zones");
   return { fields: [...authored.fields, ...fieldsFromRecord(record, skip)] };
 }
 

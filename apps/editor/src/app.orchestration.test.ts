@@ -153,4 +153,73 @@ describe("editor route orchestration", () => {
     expect(root.querySelector(".editor-back")).toBeNull();
     expect(root.querySelector<HTMLInputElement>("#record-editor #f-title")?.value).toBe("Demo");
   });
+
+  it("opens an HTML zone in an editor and offers a new item", async () => {
+    const itemListing: RecordList = {
+      ...listing,
+      records: [
+        { kind: "site", id: "demo", title: "Demo" },
+        { kind: "items", id: "common-footer" },
+      ],
+    };
+    const footer: RecordPayload = {
+      ok: true,
+      kind: "items",
+      id: "common-footer",
+      data: {
+        id: "common-footer",
+        zones: {
+          footer: { html: "<p>New site</p>" },
+          events: { json: [{ title: "Fair" }] },
+        },
+      },
+      raw: "id: common-footer\n",
+      file: "items/common-footer.yaml",
+      schemaVersion: 2,
+      history: [],
+    };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path === "/auth/me") {
+        return json({ ok: true, username: "alice", createdAt: "2026-01-01T00:00:00.000Z" });
+      }
+      if (path === "/api/records") return json(itemListing);
+      if (path === "/api/records/items/common-footer") return json(footer);
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    document.body.innerHTML = `<div id="app"></div>`;
+    const root = document.querySelector<HTMLElement>("#app");
+    if (!root) throw new Error("app");
+    navigate("#/records/items");
+
+    await mount(root);
+    await vi.waitFor(() => {
+      expect(root.querySelector("[data-action=new-item]")?.textContent).toBe("New item");
+    });
+    expect(root.textContent).toContain("HTML, JSON, a component, or a block list");
+
+    root.querySelector<HTMLButtonElement>("[data-action=new-item]")?.click();
+    const form = root.querySelector<HTMLFormElement>("#new-item-form");
+    expect(form?.hidden).toBe(false);
+    expect(form?.querySelector("#new-item-zone")).toBeTruthy();
+    expect(form?.querySelector("#new-item-content")).toBeTruthy();
+
+    navigate("#/items/common-footer");
+    await vi.waitFor(() => {
+      expect(root.querySelector<HTMLTextAreaElement>('[name="zones.footer.html"]')?.value).toBe("<p>New site</p>");
+    });
+    const htmlBox = root.querySelector<HTMLTextAreaElement>('[name="zones.footer.html"]');
+    expect(htmlBox?.getAttribute("data-kind")).toBeNull();
+    expect(htmlBox?.closest("p")?.textContent).toContain("Footer HTML");
+    expect(root.querySelector('[name="zones"]')).toBeNull();
+    const jsonBox = root.querySelector<HTMLTextAreaElement>('[name="zones.events.json"]');
+    expect(jsonBox?.getAttribute("data-kind")).toBe("json");
+    expect(jsonBox?.value).toBe(`[
+  {
+    "title": "Fair"
+  }
+]`);
+    expect(root.querySelector("[data-json-format]")?.textContent).toBe("Pretty-print");
+  });
 });

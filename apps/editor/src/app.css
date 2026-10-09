@@ -105,6 +105,7 @@ textarea.w3-input.editor-body,
 textarea.w3-input.editor-yaml,
 textarea.w3-input.editor-raw,
 textarea.w3-input[data-kind="yaml"],
+textarea.w3-input[data-kind="json"],
 .editor-history-raw {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
   font-size: 0.9rem;
@@ -115,7 +116,8 @@ textarea.w3-input[data-kind="yaml"],
 
 textarea.w3-input.editor-yaml,
 textarea.w3-input.editor-raw,
-textarea.w3-input[data-kind="yaml"] {
+textarea.w3-input[data-kind="yaml"],
+textarea.w3-input[data-kind="json"] {
   white-space: pre;
   overflow-x: auto;
   background: #f6f6f4;

@@ -129,4 +129,16 @@ describe("schema forms", () => {
     expect(set.includes).toEqual(["site-header", "common-footer"]);
     expect(set.root).toEqual({ type: "page" });
   });
+
+  it("keeps an item’s zones out of the field list", () => {
+    const schema = schemaFor("items", {
+      id: "common-footer",
+      zones: { footer: { html: "<p>New site</p>" } },
+    });
+    expect(schema?.fields.map((field) => field.name)).toEqual(["id", "tags"]);
+    const html = renderForm(schema ?? { fields: [] }, { id: "common-footer" });
+    expect(html).toContain('name="tags"');
+    expect(html).not.toContain("zones");
+    expect(html).not.toContain("editor-yaml");
+  });
 });

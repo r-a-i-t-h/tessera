@@ -71,6 +71,7 @@ import {
   type PageChoice,
 } from "./forms/nav.js";
 import { articleMeta, blogMeta, heroField, indexNote } from "./forms/article.js";
+import { formatJsonText, itemZoneError, jsonText, newItemBody, type ItemContent } from "./forms/item.js";
 import { newPageBody, newTemplateBody, pageFromTemplate, pageIdError, withSidebarLink } from "./forms/page.js";
 import {
   applyTypeAction,
@@ -826,6 +827,16 @@ async function bindList(
     event.preventDefault();
     void createType(root, listing);
   });
+  root.querySelector("[data-action=new-item]")?.addEventListener("click", () => {
+    const form = root.querySelector<HTMLFormElement>("#new-item-form");
+    if (!form) return;
+    form.hidden = false;
+    form.querySelector<HTMLInputElement>("#new-item-id")?.focus();
+  });
+  root.querySelector<HTMLFormElement>("#new-item-form")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void createItem(root, listing);
+  });
   if (bindingInfo) bindNewBinding(root, listing, bindingInfo.choices);
 }
 
@@ -917,6 +928,34 @@ async function createLayout(root: HTMLElement, listing: RecordList): Promise<voi
     destinationHash: (id) => `#/layouts/${encodeURIComponent(id)}`,
     successMessage: (id) => `Created ${id}.`,
     failureMessage: "Could not create the layout.",
+    showError: showFormError,
+    navigate: (destination) => navigateToCreatedRecord(root, destination),
+  });
+}
+
+async function createItem(root: HTMLElement, listing: RecordList): Promise<void> {
+  const form = root.querySelector<HTMLFormElement>("#new-item-form");
+  if (!form) return;
+  const zone = form.querySelector<HTMLInputElement>("#new-item-zone")?.value ?? "";
+  const zoneProblem = itemZoneError(zone);
+  if (zoneProblem) {
+    showFormError(form, zoneProblem);
+    return;
+  }
+  const content: ItemContent = form.querySelector<HTMLSelectElement>("#new-item-content")?.value === "json" ? "json" : "html";
+  const existing = listing.records.filter((row) => row.kind === "items").map((row) => row.id);
+  await createRecord({
+    kind: "items",
+    form,
+    idField: "#new-item-id",
+    existingIds: existing,
+    validateId: (id, ids) => pageIdError(id, ids)?.replace("A page with id", "An item with id"),
+    buildBody: (id) => newItemBody(id, zone, content),
+    save: saveRecord,
+    destinationMode: "fields",
+    destinationHash: (id) => `#/items/${encodeURIComponent(id)}`,
+    successMessage: (id) => `Created ${id}.`,
+    failureMessage: "Could not create the item.",
     showError: showFormError,
     navigate: (destination) => navigateToCreatedRecord(root, destination),
   });
@@ -1523,7 +1562,9 @@ function recordTab(
             ? typeSection(rows, siteReady)
             : kind.kind === "bindings"
               ? bindingSection(rows, siteReady, layoutNotes)
-              : kind.kind === "site" || kind.kind === "nav"
+              : kind.kind === "items"
+                ? itemSection(rows, siteReady)
+                : kind.kind === "site" || kind.kind === "nav"
           ? singletonEditorMount(kind.kind, rows[0])
           : kindPanel(rows);
   return `<section class="editor-kind" aria-label="${escapeHtml(kind.label)}">${body}</section>`;
@@ -1976,6 +2017,31 @@ function bindEntryFilter(root: HTMLElement): void {
     for (const input of bar.querySelectorAll("input")) input.value = "";
     apply();
   });
+}
+
+function itemSection(rows: RecordSummary[], siteReady: boolean): string {
+  if (!siteReady) return `<p class="w3-text-grey">No records yet.</p>`;
+  return `<p><button type="button" class="w3-button w3-theme" data-action="new-item">New item</button></p>
+    <form id="new-item-form" class="editor-new-page" hidden>
+      <p><label for="new-item-id">Id</label>
+        <input id="new-item-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
+      </p>
+      <p class="w3-text-grey">One file, <code>records/items/&lt;id&gt;.yaml</code>. Start with a letter or number, then letters, numbers, dots, hyphens, or underscores.</p>
+      <p><label for="new-item-zone">Zone</label>
+        <input id="new-item-zone" name="zone" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" placeholder="footer" />
+      </p>
+      <p><label for="new-item-content">Content</label>
+        <select id="new-item-content" name="content" class="w3-select w3-border w3-margin-top">
+          <option value="html">HTML</option>
+          <option value="json">JSON</option>
+        </select>
+      </p>
+      <p class="w3-text-grey">The layout zone this item fills, such as <code>footer</code>. HTML opens a markup box. JSON opens an empty JSON box.</p>
+      ${formErrorPanel()}
+      <p><button type="submit" class="w3-button w3-theme">Create item</button></p>
+    </form>
+    <p class="w3-text-grey">An item is shared content. A layout or a page includes it, and it fills the zones it names. A zone holds HTML, JSON, a component, or a block list.</p>
+    ${rows.length ? recordList(rows) : `<p class="w3-text-grey">No items yet.</p>`}`;
 }
 
 function typeSection(rows: RecordSummary[], siteReady: boolean): string {
@@ -2443,7 +2509,10 @@ async function bindEdit(
   if (form && navList) bindNavEditor(form, pages);
   if (form && typeEditor) bindTypeEditor(form, id, typeLayouts);
   if (form && assisted) bindBindingForm(form);
-  if (form) bindPickers(form);
+  if (form) {
+    bindPickers(form);
+    bindJsonFormat(form);
+  }
   form?.addEventListener("input", (event) => {
     form.dataset.dirty = "true";
     if (!session || canvasOwnsEdit(editMode, event.target)) return;
@@ -2666,7 +2735,9 @@ function fieldsHtml(
   const zones =
     kind === "content"
       ? `${layoutBanner(layout)}${frameNote(layout)}${typeFieldInputs(record, layout)}${zoneFields(zonesOf(record), layout)}`
-      : "";
+      : kind === "items"
+        ? zoneFields(zonesOf(record), undefined, true)
+        : "";
   const navHint =
     kind === "content"
       ? `<p class="w3-text-grey"><strong>Show in nav</strong> stores a flag on this page. Links are chosen on <a href="#/records/nav">Nav</a>, then drawn by a component in the master layout. <a href="#/guide">Guide</a>.</p>`
@@ -2727,13 +2798,13 @@ function typeFieldInputs(record: Record<string, unknown>, layout?: PageLayoutHin
   return `<fieldset class="editor-fieldset"><legend>Fields</legend><div class="editor-props">${inputs.join("")}</div></fieldset>`;
 }
 
-function zoneFields(zones: Record<string, unknown>, layout?: PageLayoutHint): string {
+function zoneFields(zones: Record<string, unknown>, layout?: PageLayoutHint, item = false): string {
   const declared = layout?.declaredZones ?? [];
   const declaredSet = new Set(declared);
   const onNames = declared.length ? declared : Object.keys(zones);
   const off = declared.length ? Object.keys(zones).filter((name) => !declaredSet.has(name)) : [];
-  const onLayout = onNames.map((name) => zoneEditor(name, zones[name], false));
-  const offLayout = off.map((name) => zoneEditor(name, zones[name], true));
+  const onLayout = onNames.map((name) => zoneEditor(name, zones[name], false, item));
+  const offLayout = off.map((name) => zoneEditor(name, zones[name], true, item));
   return `${onLayout.join("")}${
     offLayout.length
       ? `<section class="editor-off-layout">
@@ -2745,26 +2816,49 @@ function zoneFields(zones: Record<string, unknown>, layout?: PageLayoutHint): st
   }`;
 }
 
-function zoneEditor(name: string, zone: unknown, offLayout: boolean): string {
-  const label = offLayout
-    ? `Off layout: ${name}`
-    : name === "main"
-      ? "Body"
-      : `Zone: ${name}`;
+function zoneEditor(name: string, zone: unknown, offLayout: boolean, item = false): string {
+  const label = zoneLabel(name, offLayout);
   if (zone && typeof zone === "object" && !Array.isArray(zone) && "html" in zone) {
-    const large = name === "main" || name === "minutes" || name === "hero";
-    return `${insertButtons(`zones.${name}.html`, "html")}${textareaField(`zones.${name}.html`, label, String((zone as { html: unknown }).html ?? ""), large ? 18 : 6)}`;
+    return `${insertButtons(`zones.${name}.html`, "html")}${textareaField(`zones.${name}.html`, htmlZoneLabel(name, offLayout, item), String((zone as { html: unknown }).html ?? ""), htmlRows(name, item, true))}`;
   }
   if (zone && typeof zone === "object" && !Array.isArray(zone) && "json" in zone) {
+    if (item) return jsonItemField(name, (zone as { json: unknown }).json);
     return jsonZoneFields(name, (zone as { json: unknown }).json, offLayout);
   }
   if (zone === undefined) {
-    return `${insertButtons(`zones.${name}.html`, "html")}${textareaField(`zones.${name}.html`, label, "", name === "main" || name === "hero" ? 18 : 6)}`;
+    return `${insertButtons(`zones.${name}.html`, "html")}${textareaField(`zones.${name}.html`, htmlZoneLabel(name, offLayout, item), "", htmlRows(name, item, false))}`;
   }
   if (zone && typeof zone === "object" && !Array.isArray(zone) && "blocks" in zone) {
     return `${insertButtons(`zones.${name}`, "blocks")}${yamlField(`zones.${name}`, label, zone, 8)}`;
   }
   return yamlField(`zones.${name}`, label, zone, 8);
+}
+
+function zoneLabel(name: string, offLayout: boolean): string {
+  if (offLayout) return `Off layout: ${name}`;
+  if (name === "main") return "Body";
+  return `Zone: ${name}`;
+}
+
+function htmlZoneLabel(name: string, offLayout: boolean, item: boolean): string {
+  if (item && !offLayout) return `${labelize(name)} HTML`;
+  return zoneLabel(name, offLayout);
+}
+
+function htmlRows(name: string, item: boolean, present: boolean): number {
+  if (item) return 18;
+  if (name === "main" || name === "hero" || (present && name === "minutes")) return 18;
+  return 6;
+}
+
+function jsonItemField(name: string, json: unknown): string {
+  const field = `zones.${name}.json`;
+  const id = fieldId(field);
+  return `<p class="editor-prop-wide"><label for="${id}">${escapeHtml(labelize(name))} JSON</label>
+    <textarea id="${id}" name="${escapeHtml(field)}" data-kind="json" rows="18" spellcheck="false" class="w3-input w3-border w3-margin-top editor-body">${escapeHtml(jsonText(json))}</textarea>
+    <button type="button" class="w3-button w3-small w3-white w3-margin-top" data-json-format="${escapeHtml(field)}">Pretty-print</button>
+    <span data-json-error class="w3-text-red"></span>
+    <span class="w3-text-grey">Raw JSON. Pretty-print formats this box.</span></p>`;
 }
 
 function jsonZoneFields(name: string, json: unknown, offLayout = false): string {
@@ -2904,7 +2998,10 @@ function syncLinkSource(form: HTMLFormElement): void {
 }
 
 function saveRecordBody(kind: string, form: HTMLFormElement, original: unknown): unknown {
-  return pruneEmptyHtmlZones(readFormValues(form, schemaFor(kind, original), original));
+  const read = readFormValues(form, schemaFor(kind, original), original);
+  // An item has no layout to re-declare an empty zone, so a cleared HTML box stays.
+  if (kind === "items") return read;
+  return pruneEmptyHtmlZones(read);
 }
 
 function insertButtons(target: string, kind: "html" | "blocks"): string {
@@ -2916,6 +3013,27 @@ function insertButtons(target: string, kind: "html" | "blocks"): string {
   return `<p><button type="button" class="w3-button w3-small w3-white" data-insert="media-image" data-target="${name}">Image</button>
     <button type="button" class="w3-button w3-small w3-white" data-insert="media-document" data-target="${name}">Document</button>
     <button type="button" class="w3-button w3-small w3-white" data-insert="slide" data-target="${name}">Image slide</button></p>`;
+}
+
+function bindJsonFormat(form: HTMLFormElement): void {
+  form.addEventListener("click", (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-json-format]");
+    if (!button) return;
+    event.preventDefault();
+    const box = form.querySelector<HTMLTextAreaElement>(`[name="${CSS.escape(button.dataset.jsonFormat ?? "")}"]`);
+    const note = button.parentElement?.querySelector<HTMLElement>("[data-json-error]");
+    if (!box) return;
+    const formatted = formatJsonText(box.value);
+    if (!formatted.ok) {
+      if (note) note.textContent = formatted.error;
+      return;
+    }
+    if (note) note.textContent = "";
+    if (box.value === formatted.text) return;
+    box.value = formatted.text;
+    box.dispatchEvent(new Event("input", { bubbles: true }));
+    form.dataset.dirty = "true";
+  });
 }
 
 function bindPickers(form: HTMLFormElement): void {

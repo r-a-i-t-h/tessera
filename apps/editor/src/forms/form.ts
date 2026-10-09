@@ -1,5 +1,6 @@
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { escapeHtml, fieldId } from "../dom.js";
+import { parseJsonText } from "./item.js";
 import { type FieldSchema, type FormSchema } from "./schema.js";
 
 export type SubmittedValue = string | boolean;
@@ -166,6 +167,7 @@ function parseControl(el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectEle
       .filter(Boolean);
   }
   if (kind === "yaml") return parseYaml(value);
+  if (kind === "json") return parseJsonText(value);
   if (kind === "number") {
     if (!value.trim()) return "";
     const parsed = Number(value);
