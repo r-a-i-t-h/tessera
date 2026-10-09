@@ -115,6 +115,7 @@ import {
   imageSlideSnippet,
   imageTag,
   mediaBlockSnippet,
+  pickerUpload,
   renderPicker,
   type PickerMode,
   type PickedAsset,
@@ -2995,6 +2996,8 @@ function openLibraryPicker(initial: PickerMode): Promise<PickedAsset | { id: str
         host.className = "editor-picker-host";
         let mode = initial;
         let openId: string | null = null;
+        let notice = "";
+        let busy = false;
         let done = false;
         let dialog: DialogController | undefined;
         const finish = (value: PickedAsset | { id: string; kind: "folder" } | undefined) => {
@@ -3009,9 +3012,78 @@ function openLibraryPicker(initial: PickerMode): Promise<PickedAsset | { id: str
             <h2 id="library-picker-title" class="w3-large">Choose from the library</h2>
             <p><button type="button" class="w3-button w3-white" data-picker-close>Close</button>
             ${openId ? `<button type="button" class="w3-button w3-white" data-picker-up>Up</button>` : ""}</p>
+            ${pickerUpload(notice)}
             ${renderPicker(listing, mode, openId)}
           </div></div>`;
         };
+        const fail = (message: string) => {
+          if (done) return;
+          notice = message;
+          busy = false;
+          paint();
+          dialog?.focus();
+        };
+        const uploadFile = async (file: File) => {
+          if (busy || done) return;
+          busy = true;
+          notice = "Adding…";
+          paint();
+          const body = new FormData();
+          body.append("file", file);
+          body.append("path", file.name);
+          body.append("folderId", "uploads");
+          try {
+            const result = await uploadLibrary(body);
+            if (done) return;
+            const created = result.created[0];
+            if (!created || result.skipped.length) {
+              fail(result.skipped[0]?.reason ?? "Could not add that file.");
+              return;
+            }
+            const fresh = await getLibrary();
+            if (done) return;
+            const asset = fresh.assets.find((item) => item.id === created.id);
+            if (!asset) {
+              fail("Could not add that file.");
+              return;
+            }
+            finish(asset);
+          } catch (err) {
+            fail(err instanceof Error ? err.message : "Could not add that file.");
+          }
+        };
+        host.addEventListener("submit", (event) => {
+          const form = event.target;
+          if (form instanceof HTMLFormElement && form.hasAttribute("data-picker-upload")) event.preventDefault();
+        });
+        host.addEventListener("dragover", (event) => {
+          const target = event.target;
+          if (!(target instanceof Element) || !target.closest("[data-picker-upload]")) return;
+          event.preventDefault();
+        });
+        host.addEventListener("drop", (event) => {
+          const target = event.target;
+          if (!(target instanceof Element) || !target.closest("[data-picker-upload]")) return;
+          event.preventDefault();
+          if (busy || done) return;
+          const files = event.dataTransfer?.files;
+          if (!files || files.length !== 1) {
+            fail("Only one file can be added.");
+            return;
+          }
+          void uploadFile(files[0]);
+        });
+        host.addEventListener("change", (event) => {
+          const input = event.target;
+          if (!(input instanceof HTMLInputElement) || !input.hasAttribute("data-picker-file")) return;
+          if (busy || done) return;
+          const files = input.files;
+          if (!files || files.length !== 1) {
+            if (files && files.length > 1) fail("Only one file can be added.");
+            return;
+          }
+          void uploadFile(files[0]);
+        });
         host.addEventListener("click", (event) => {
           const button = (event.target as HTMLElement).closest("button");
           if (!button) return;

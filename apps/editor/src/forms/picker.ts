@@ -35,6 +35,19 @@ export function imageSlideSnippet(asset: PickedAsset): string {
   return `${lines.join("\n")}\n`;
 }
 
+const PICKER_ACCEPT = ".jpg,.jpeg,.png,.gif,.webp,.svg,.pdf";
+
+export function pickerUpload(status = ""): string {
+  const note = status
+    ? `<p data-picker-upload-status class="w3-text-grey">${escapeHtml(status)}</p>`
+    : `<p data-picker-upload-status class="w3-text-grey" hidden></p>`;
+  return `<form class="editor-drop w3-padding" data-picker-upload>
+    <p class="w3-text-grey">Choose or drop one file. It goes into Uploads.</p>
+    <p><input data-picker-file type="file" accept="${PICKER_ACCEPT}" /></p>
+    ${note}
+  </form>`;
+}
+
 export function renderPicker(listing: LibraryListing, mode: PickerMode, openId: string | null): string {
   const folders = listing.folders.filter((folder) => folder.parentId === openId);
   const assets = listing.assets.filter((asset) => asset.folderId === openId && (mode === "folder" || asset.kind === mode));

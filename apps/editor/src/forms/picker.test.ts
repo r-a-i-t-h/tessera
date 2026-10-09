@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkedFolderIds, documentLink, foldersValue, imageSlideSnippet, imageTag, mediaBlockSnippet, renderPicker } from "./picker.js";
+import { checkedFolderIds, documentLink, foldersValue, imageSlideSnippet, imageTag, mediaBlockSnippet, pickerUpload, renderPicker } from "./picker.js";
 import type { LibraryListing } from "./library.js";
 
 const listing: LibraryListing = {
@@ -11,6 +11,20 @@ const listing: LibraryListing = {
 };
 
 describe("library picker", () => {
+  it("offers one file, chosen or dropped, into Uploads", () => {
+    const html = pickerUpload();
+    expect(html).toContain('type="file"');
+    expect(html).toContain('accept=".jpg,.jpeg,.png,.gif,.webp,.svg,.pdf"');
+    expect(html).toContain("editor-drop");
+    expect(html).toContain("Choose or drop one file. It goes into Uploads.");
+    expect(html).not.toContain("multiple");
+    expect(html).not.toContain("webkitdirectory");
+    expect(html).toContain("hidden");
+    const shown = pickerUpload("Only one file can be added.");
+    expect(shown).toContain("Only one file can be added.");
+    expect(shown).not.toContain("hidden");
+  });
+
   it("shows image thumbnails and document names", () => {
     const images = renderPicker(listing, "image", null);
     expect(images).toContain("/api/library/assets/porch/thumb");
