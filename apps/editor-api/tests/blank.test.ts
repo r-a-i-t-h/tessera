@@ -71,9 +71,12 @@ describe("blank site", () => {
     expect(snapshot).toContain("tessera-menu-btn w3-hide-large");
     expect(snapshot).toContain("w3-right tessera-menu-btn");
     expect(snapshot).toContain("breadcrumbs");
+    const master = await readFile(join(root, "records", "layouts", "master.yaml"), "utf8");
+    expect(master).toContain("includes:");
+    expect(master).toContain("- common-footer");
     const home = await readFile(join(root, "records", "content", "home.yaml"), "utf8");
     expect(home).toContain("type: standard");
-    expect(home).toContain("common-footer");
+    expect(home).not.toContain("common-footer");
     const type = await readFile(join(root, "records", "types", "standard.yaml"), "utf8");
     expect(type).toContain("layoutId: standard");
   });

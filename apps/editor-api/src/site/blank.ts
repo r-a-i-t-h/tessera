@@ -47,6 +47,8 @@ style:
 `;
 
 const MASTER_YAML = `id: master
+includes:
+  - common-footer
 root:
   type: region
   children:
@@ -110,8 +112,6 @@ layoutId: standard
 const HOME_YAML = `id: home
 title: Hello world
 type: standard
-includes:
-  - common-footer
 zones:
   title:
     html: Hello world
@@ -198,8 +198,8 @@ const ITEM_ORDER = `- common-footer
 `;
 
 /**
- * Shell, master layout, standard type and layout, Hello world home page,
- * a common-footer item, and a blog for tenant blogger with one article.
+ * Shell, master layout (includes the common-footer item), standard type and
+ * layout, Hello world home page, and a blog for tenant blogger with one article.
  * Overwrites those files when they already exist.
  */
 export async function writeSeedFiles(siteRoot: string): Promise<void> {
