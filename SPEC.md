@@ -114,7 +114,7 @@ Where authoring syntax benefits, prefer custom elements (e.g. `<imgbox>`, `<quot
 
 ### Delivery flavours
 
-A site’s copyable dist is either **pages** (one HTML file per page) or **snapshot** (one JSON document). `delivery` on the site record chooses it and defaults to `pages`. **Publish** writes that dist into `publish/` and replaces the previous flavour’s generated files, so the folder is never a mix. Editing does not write `publish/`. The preview is always the snapshot, in `preview/`, and ignores `delivery`. Copy `publish/` to the live host, or set `publishTo` to an existing directory the app user can write. Publish then replaces the files in that directory. It does not create a missing path and does not run as root.
+A site’s copyable dist is either **pages** (one HTML file per page) or **snapshot** (one JSON document). `delivery` on the site record chooses it and defaults to `pages`. **Publish** writes that dist into `publish/` and replaces the previous flavour’s generated files, so the folder is never a mix. Editing does not write `publish/`. The preview is always the snapshot, in `preview/`, and ignores `delivery`. Copy `publish/` to the live host, or set `publishTo` to an existing directory the process can write. On a node-vps-kit host that user is `tessera` (`deploy/grant-publish.sh` grants the directory). Publish then replaces the files in that directory. A missing path stays missing, and the process does not run as root.
 
 “Static” means the published files are prepared ahead of time. The browser talks to a static file host (nginx or equivalent). Node is the build, not the request path.
 

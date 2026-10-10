@@ -83,6 +83,7 @@ if [ ! -f "apps/editor-api/seed/examples/willow.tar.gz" ] && [ -f "sites/willow/
     -C "sites/willow" .
 fi
 cp -R deploy "$DEST/deploy"
+find "$DEST/deploy" -name '*.test.sh' -delete
 printf '%s\n' "$TAG" >"$DEST/VERSION"
 
 node - "$DEST/package.json" <<'EOF'
@@ -143,7 +144,7 @@ for CPU in arm64 x64; do
   rm -rf "$SIDE"
 done
 
-chmod 755 "$DEST/deploy/post-update.sh" "$DEST/deploy/migrate.sh" "$DEST/deploy/nginx-upload-limit.sh" "$DEST/deploy/nginx-upload-limit.ps1"
+chmod 755 "$DEST/deploy/post-update.sh" "$DEST/deploy/migrate.sh" "$DEST/deploy/nginx-upload-limit.sh" "$DEST/deploy/nginx-upload-limit.ps1" "$DEST/deploy/grant-publish.sh"
 if [ -d "$DEST/deploy/migrations" ]; then
   find "$DEST/deploy/migrations" -name '*.sh' -exec chmod 755 {} +
 fi

@@ -1,5 +1,5 @@
 import { chmod, lstat, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { tmpdir, userInfo } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { installPublish } from "../src/site/install-publish.js";
@@ -68,6 +68,7 @@ describe("installPublish", () => {
     const { publish, instance, root } = await layout();
     const missing = join(root, "missing");
     await expect(installPublish(publish, missing, instance)).rejects.toThrow(/does not exist/);
+    await expect(installPublish(publish, missing, instance)).rejects.toThrow(userInfo().username);
     await expect(lstat(missing)).rejects.toThrow();
   });
 
@@ -105,6 +106,7 @@ describe("installPublish", () => {
     await chmod(live, 0o555);
     try {
       await expect(installPublish(publish, live, instance)).rejects.toThrow(/cannot write/);
+      await expect(installPublish(publish, live, instance)).rejects.toThrow(userInfo().username);
       expect(await readFile(join(live, "index.html"), "utf8")).toContain("stay");
       await expect(lstat(join(live, ".tessera-incoming"))).rejects.toThrow();
     } finally {

@@ -1,5 +1,6 @@
 import { access, cp, lstat, readdir, rename, rm } from "node:fs/promises";
 import { constants } from "node:fs";
+import { userInfo } from "node:os";
 import { isAbsolute, resolve, sep } from "node:path";
 import { DistError } from "./dist.js";
 
@@ -65,7 +66,7 @@ async function assertLiveDirReady(live: string): Promise<void> {
     info = await lstat(live);
   } catch {
     throw new DistError(
-      "Publish to directory does not exist. Create it and give this process ownership of it before publishing.",
+      `Publish to directory does not exist. Create it and give ${runningUser()} ownership of it before publishing.`,
     );
   }
   if (info.isSymbolicLink()) throw new DistError("Publish to must be a real directory, not a symlink.");
@@ -73,7 +74,7 @@ async function assertLiveDirReady(live: string): Promise<void> {
   try {
     await access(live, constants.W_OK | constants.X_OK);
   } catch {
-    throw new DistError("This process cannot write the publish to directory.");
+    throw new DistError(`${runningUser()} cannot write the publish to directory.`);
   }
 }
 
@@ -81,6 +82,16 @@ function sameOrInside(root: string, target: string): boolean {
   if (target === root) return true;
   const prefix = root.endsWith(sep) ? root : `${root}${sep}`;
   return target.startsWith(prefix);
+}
+
+function runningUser(): string {
+  try {
+    const name = userInfo().username.trim();
+    if (name) return name;
+  } catch {
+    // A container without a passwd entry has a uid and no name.
+  }
+  return "this process";
 }
 
 function errorText(err: unknown): string {

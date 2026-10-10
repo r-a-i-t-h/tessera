@@ -60,7 +60,13 @@ Editor: run `npm run dev:api` and `npm run dev:editor`, then open the SPA (port 
 
 Library uploads default to at most 25 MiB per file, 100 files, and 100 MiB for the complete multipart request. Set byte counts with `TESSERA_UPLOAD_MAX_FILE_BYTES` and `TESSERA_UPLOAD_MAX_TOTAL_BYTES`, and set the file count with `TESSERA_UPLOAD_MAX_FILES`. Multipart parsing still holds an allowed request in memory, so keep the total limit bounded. Configure the reverse proxy too—for nginx, set `client_max_body_size` to the same total limit or slightly higher to allow multipart overhead.
 
-The copyable site is `publish/` inside that same directory. Copy that folder to the live host, or set `publishTo` in `site.yaml` to an existing directory the app user can write. Publish then replaces the files inside that directory and leaves the directory itself in place. It does not create a missing path and does not run as root. On Ubuntu, `/var/www` stays root-owned; `chown` the live folder to the app user once. That folder should contain only the published site. Nginx can serve the copy with the editor stopped. The editor process does not serve it, and the SPA preview does not write into it. `npm run build -w @r-a-i-t-h/tessera-site` builds `tessera.js` and `tessera-pages.js` and stamps `tessera.js`, plus skin CSS, into each reference site’s `publish/` tree. Adding a component is a Tessera release: it is then available to every site. A checkout builds that runtime before a pages or snapshot dist can be written. The packed release already includes it.
+The copyable site is `publish/` inside that same directory. Copy that folder to the live host, or set `publishTo` in `site.yaml` to an existing directory the process can write. Publish then replaces the files inside that directory and leaves the directory itself in place. A missing path stays missing, and the process does not run as root. node-vps-kit runs that process as the system user `tessera` (`User=` in `/etc/systemd/system/tessera-<name>.service`), unless the install passed `-User`. On Ubuntu, `/var/www` stays root-owned. Once per site, as root:
+
+```bash
+sudo /opt/tessera/<name>/current/deploy/grant-publish.sh /var/www/<site>
+```
+
+The script creates the final directory when its parent already exists, gives the tree to the unit's user, and leaves it readable by nginx. The folder should contain only the published site. Nginx can serve the copy with the editor stopped. The editor process does not serve it, and the SPA preview does not write into it. `npm run build -w @r-a-i-t-h/tessera-site` builds `tessera.js` and `tessera-pages.js` and stamps `tessera.js`, plus skin CSS, into each reference site’s `publish/` tree. Adding a component is a Tessera release: it is then available to every site. A checkout builds that runtime before a pages or snapshot dist can be written. The packed release already includes it.
 
 The editor’s Backups page writes a dated `tar.gz` of `data/` into the sibling `backup/` folder (`TESSERA_BACKUP` overrides it). A file of the form `2026-09-28T191500Z.tar.gz` dropped there over SFTP can be downloaded or restored. Restore writes a safety archive first. Each boot copies `seed/examples/willow.tar.gz` into that folder when the file is missing or the release copy has changed. A checkout with no packed seed archives `sites/willow/` the first time only. Dated backups are left as they are. Restoring that archive fills `data/` and keeps the site’s editors. The Backups page can also re-seed the open site onto that same starter (safety archive first, editors kept). A starter site can also be written when the directory has no records yet.
 
@@ -73,7 +79,7 @@ Before making a production editor reachable:
 - terminate HTTPS at the reverse proxy and set `TESSERA_SECURE_COOKIES=1` if Node is not running with `NODE_ENV=production`;
 - sign in with the seed account and change the known `admin` password immediately;
 - restrict editor access to trusted authors; authored HTML is trusted and every signed-in user currently has full editor access;
-- keep `$TESSERA_DATA` and the sibling backup directory writable only by the app user, and test restore separately from the live directory;
+- keep `$TESSERA_DATA` and the sibling backup directory writable only by `tessera` (the process user), and test restore separately from the live directory;
 - keep the API and reverse-proxy upload limits aligned; the API rejects over-limit requests but buffers allowed multipart bodies;
 - use the HTML and immutable-asset cache rules in `ARCHITECTURE.md` for the published site.
 
