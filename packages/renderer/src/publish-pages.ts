@@ -4,7 +4,7 @@ import {
   publishedPageTree,
   resolveSiteStyle,
   siteBodyClass,
-  siteStyleCss,
+  siteStyleOverrideCss,
   type PageTreeNode,
 } from "@r-a-i-t-h/tessera-model";
 import { ComponentRegistry } from "./registry.js";
@@ -134,7 +134,9 @@ function chromeHead(document: SiteDocument): string {
   if (!document.site.style) return "";
   const href = resolveSiteStyle(document.site.style).fontsHref;
   const link = href ? `\n    <link rel="stylesheet" href="${escapeHtml(href)}" />` : "";
-  return `${link}\n    <style id="tessera-style">\n${siteStyleCss(document.site.style)}\n    </style>`;
+  const css = siteStyleOverrideCss(document.site.style);
+  const block = css ? `\n    <style id="tessera-style">\n${css}\n    </style>` : "";
+  return `${link}${block}`;
 }
 
 function hrefForPageId(pathById: Map<string, string>, fromPath: string, pageId: string): string {

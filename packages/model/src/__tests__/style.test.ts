@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseSiteDocument } from "../index.js";
-import { resolveSiteStyle, siteBodyClass, siteStyleCss, styleIssue } from "../style.js";
+import { resolveSiteStyle, siteBodyClass, siteStyleCss, siteStyleOverrideCss, styleIssue } from "../style.js";
 
 const layout = {
   id: "L",
@@ -35,6 +35,13 @@ describe("site style", () => {
     expect(resolved.navSide).toBe("right");
     expect(siteStyleCss(doc.site.style)).toContain("--tessera-sidebar-width: 240px;");
     expect(siteStyleCss(doc.site.style)).toContain("--tessera-bar-height: 42px;");
+    expect(siteStyleOverrideCss(doc.site.style)).toContain("--tessera-sidebar-width: 240px;");
+    expect(siteStyleOverrideCss(doc.site.style)).toContain("--tessera-bar: #112233;");
+    expect(siteStyleOverrideCss(doc.site.style)).not.toContain("--tessera-bar-height");
+    expect(siteStyleOverrideCss({ navSide: "left", bar: "#009688" })).toBe("");
+    expect(siteStyleOverrideCss({ bar: "#009688", fontA: "Source Sans 3" })).toBe(
+      `:root {\n  --tessera-font-a: "Source Sans 3", sans-serif;\n}`,
+    );
     expect(siteBodyClass(doc.site.style)).toBe("rightnav fontA");
     expect(siteBodyClass({ navSide: "left" })).toBe("leftnav fontA");
   });

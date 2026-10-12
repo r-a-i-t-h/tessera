@@ -231,8 +231,23 @@ describe("publishPages style", () => {
     expect(home.contents).toContain('id="tessera-style"');
     expect(home.contents).toContain("--tessera-bar: #112233;");
     expect(home.contents).toContain("--tessera-sidebar-width: 280px;");
+    expect(home.contents).not.toContain("--tessera-bar-height");
     expect(home.contents).toContain('<body class="leftnav fontA">');
     expect(home.contents).toContain("https://fonts.googleapis.com/css?family=Lekton|Roboto|Orbitron|Thasadith");
+  });
+
+  it("leaves default tokens in the stylesheet instead of copying them into the header", () => {
+    const styled = parseSiteDocument({
+      ...document,
+      site: {
+        ...document.site,
+        style: { navSide: "left", bar: "#009688" },
+      },
+    });
+    const home = publishPages(styled, { origin: "https://example.test" }).find((file) => file.path === "index.html")!;
+    expect(home.contents).not.toContain('id="tessera-style"');
+    expect(home.contents).not.toContain("--tessera-bar");
+    expect(home.contents).toContain('<body class="leftnav fontA">');
   });
 });
 

@@ -103,30 +103,51 @@ export function resolveSiteStyle(style: SiteStyle | undefined): Required<SiteSty
   };
 }
 
-/** Custom properties for the resolved tokens. `selector` is `:root` on the site. */
+type TokenKind = "size" | "color" | "font";
+
+const CSS_TOKENS: readonly { key: keyof SiteStyle; prop: string; kind: TokenKind }[] = [
+  { key: "sidebarWidth", prop: "--tessera-sidebar-width", kind: "size" },
+  { key: "barHeight", prop: "--tessera-bar-height", kind: "size" },
+  { key: "contentMaxWidth", prop: "--tessera-content-max", kind: "size" },
+  { key: "baseFontSize", prop: "--tessera-font-size", kind: "size" },
+  { key: "fontA", prop: "--tessera-font-a", kind: "font" },
+  { key: "fontB", prop: "--tessera-font-b", kind: "font" },
+  { key: "fontC", prop: "--tessera-font-c", kind: "font" },
+  { key: "fontD", prop: "--tessera-font-d", kind: "font" },
+  { key: "bar", prop: "--tessera-bar", kind: "color" },
+  { key: "barText", prop: "--tessera-bar-text", kind: "color" },
+  { key: "sidebar", prop: "--tessera-sidebar", kind: "color" },
+  { key: "sidebarText", prop: "--tessera-sidebar-text", kind: "color" },
+  { key: "page", prop: "--tessera-page", kind: "color" },
+  { key: "text", prop: "--tessera-text", kind: "color" },
+  { key: "muted", prop: "--tessera-muted", kind: "color" },
+  { key: "accent", prop: "--tessera-accent", kind: "color" },
+  { key: "link", prop: "--tessera-link", kind: "color" },
+];
+
+/** Every resolved token. The Styles specimen uses this because it does not load `tessera.css`. */
 export function siteStyleCss(style: SiteStyle | undefined, selector = ":root"): string {
-  const sel = SELECTOR.test(selector) ? selector : ":root";
   const resolved = resolveSiteStyle(style);
-  const lines = [
-    `--tessera-sidebar-width: ${resolved.sidebarWidth};`,
-    `--tessera-bar-height: ${resolved.barHeight};`,
-    `--tessera-content-max: ${resolved.contentMaxWidth};`,
-    `--tessera-font-size: ${resolved.baseFontSize};`,
-    `--tessera-font-a: ${fontStack(resolved.fontA)};`,
-    `--tessera-font-b: ${fontStack(resolved.fontB)};`,
-    `--tessera-font-c: ${fontStack(resolved.fontC)};`,
-    `--tessera-font-d: ${fontStack(resolved.fontD)};`,
-    `--tessera-bar: ${resolved.bar};`,
-    `--tessera-bar-text: ${resolved.barText};`,
-    `--tessera-sidebar: ${resolved.sidebar};`,
-    `--tessera-sidebar-text: ${resolved.sidebarText};`,
-    `--tessera-page: ${resolved.page};`,
-    `--tessera-text: ${resolved.text};`,
-    `--tessera-muted: ${resolved.muted};`,
-    `--tessera-accent: ${resolved.accent};`,
-    `--tessera-link: ${resolved.link};`,
-  ];
-  return `${sel} {\n${lines.map((line) => `  ${line}`).join("\n")}\n}`;
+  const lines = CSS_TOKENS.map((token) => `${token.prop}: ${formatToken(token.kind, tokenText(resolved, token.key))};`);
+  return cssBlock(selector, lines);
+}
+
+/**
+ * Custom properties for tokens set on `style` that differ from the Tessera defaults.
+ * Unset and default values stay in `tessera.css`, so editing that file shows in the preview.
+ */
+export function siteStyleOverrideCss(style: SiteStyle | undefined, selector = ":root"): string {
+  const lines: string[] = [];
+  for (const token of CSS_TOKENS) {
+    const raw = style?.[token.key];
+    if (typeof raw !== "string") continue;
+    const value = raw.trim();
+    if (!tokenValid(token.kind, value)) continue;
+    const fallback = STYLE_DEFAULTS[token.key];
+    if (typeof fallback !== "string" || sameToken(token.kind, value, fallback)) continue;
+    lines.push(`${token.prop}: ${formatToken(token.kind, value)};`);
+  }
+  return cssBlock(selector, lines);
 }
 
 /** Body classes for the default font and the menu side. */
@@ -153,6 +174,32 @@ function font(value: string | undefined, fallback: string): string {
 function href(value: string | undefined, fallback: string): string {
   const trimmed = value?.trim();
   return trimmed && HREF.test(trimmed) ? trimmed : fallback;
+}
+
+function cssBlock(selector: string, lines: string[]): string {
+  if (!lines.length) return "";
+  const sel = SELECTOR.test(selector) ? selector : ":root";
+  return `${sel} {\n${lines.map((line) => `  ${line}`).join("\n")}\n}`;
+}
+
+function tokenText(style: Required<SiteStyle>, key: keyof SiteStyle): string {
+  const value = style[key];
+  return typeof value === "string" ? value : "";
+}
+
+function formatToken(kind: TokenKind, value: string): string {
+  return kind === "font" ? fontStack(value) : value;
+}
+
+function tokenValid(kind: TokenKind, value: string): boolean {
+  if (kind === "size") return SIZE.test(value);
+  if (kind === "color") return COLOR.test(value);
+  return FONT.test(value);
+}
+
+function sameToken(kind: TokenKind, value: string, fallback: string): boolean {
+  if (kind === "color") return value.toLowerCase() === fallback.toLowerCase();
+  return value === fallback;
 }
 
 function fontStack(name: string): string {

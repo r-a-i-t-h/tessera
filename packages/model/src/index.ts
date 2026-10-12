@@ -98,6 +98,7 @@ export {
   styleIssue,
   resolveSiteStyle,
   siteStyleCss,
+  siteStyleOverrideCss,
   siteBodyClass,
 } from "./style.js";
 export type { SiteStyle } from "./style.js";

@@ -1,5 +1,5 @@
 
-import { resolveSiteStyle, siteStyleCss, type SiteStyle } from "@r-a-i-t-h/tessera-model";
+import { resolveSiteStyle, siteStyleOverrideCss, type SiteStyle } from "@r-a-i-t-h/tessera-model";
 import { escapeHtml } from "@r-a-i-t-h/tessera-renderer";
 
 const FONT_STORAGE_KEY = "tessera-font";
@@ -72,13 +72,18 @@ export function applySiteChrome(style: SiteStyle | undefined): void {
   if (typeof document === "undefined" || !document.body || !document.head) return;
   if (style) {
     const resolved = resolveSiteStyle(style);
-    let el = document.getElementById("tessera-style");
-    if (!el) {
-      el = document.createElement("style");
-      el.id = "tessera-style";
-      document.head.append(el);
+    const css = siteStyleOverrideCss(style);
+    const styleEl = document.getElementById("tessera-style");
+    if (css) {
+      const el = styleEl ?? document.createElement("style");
+      if (!styleEl) {
+        el.id = "tessera-style";
+        document.head.append(el);
+      }
+      el.textContent = css;
+    } else {
+      styleEl?.remove();
     }
-    el.textContent = siteStyleCss(style);
     if (resolved.fontsHref) {
       const existing = document.getElementById("tessera-fonts");
       const link = existing instanceof HTMLLinkElement ? existing : document.createElement("link");

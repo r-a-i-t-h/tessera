@@ -1,6 +1,6 @@
 /* Shared Tessera styles: the default frame, links, video, pasted notes, and image boxes.
-   Tokens fall back to the measurements below. The Styles page writes site.style, which
-   the published page turns into a later style element on :root. */
+   Tokens fall back to the measurements below. The Styles page writes site.style.
+   Only values that differ from these defaults are copied into a later style element. */
 
 :root {
   --tessera-sidebar-width: 300px;
