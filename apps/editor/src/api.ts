@@ -255,6 +255,21 @@ export function saveRecord(kind: string, id: string, data: unknown): Promise<Sav
   });
 }
 
+export function deleteContent(id: string): Promise<{ ok: true }> {
+  return request(`/api/records/content/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export function deleteItem(id: string): Promise<{ ok: true }> {
+  return request(`/api/records/items/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export function renameItem(id: string, nextId: string): Promise<{ ok: true; id: string }> {
+  return request(`/api/records/items/${encodeURIComponent(id)}/rename`, {
+    method: "POST",
+    body: JSON.stringify({ id: nextId }),
+  });
+}
+
 export function deleteTenant(id: string): Promise<{ ok: true }> {
   return request(`/api/records/tenants/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
@@ -342,6 +357,8 @@ export type LibraryAsset = {
   alt?: string;
   caption?: string;
   sort?: number;
+  width?: number;
+  height?: number;
   url: string;
 };
 export type LibraryListing = { ok: true; folders: LibraryFolder[]; assets: LibraryAsset[] };

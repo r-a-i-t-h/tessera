@@ -72,6 +72,13 @@ function fieldHtml(name: string, label: string, kind: string, value: string): st
         <option value="left"${value === "left" ? " selected" : ""}>Left</option>
       </select></p>`;
   }
+  if (kind === "footer") {
+    return `<p><label for="${id}">${escapeHtml(label)}</label>
+      <select id="${id}" name="${escapeHtml(name)}" class="w3-select w3-border">
+        <option value="floating"${value !== "fixed" ? " selected" : ""}>Floating</option>
+        <option value="fixed"${value === "fixed" ? " selected" : ""}>Fixed</option>
+      </select></p>`;
+  }
   if (kind === "color") {
     return `<p><label for="${id}">${escapeHtml(label)}</label>
       <input id="${id}" name="${escapeHtml(name)}" class="style-color" type="color" value="${escapeHtml(value)}" /></p>`;

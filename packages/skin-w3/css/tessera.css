@@ -128,7 +128,7 @@ body.fontD h6 {
   max-width: var(--tessera-content-max);
   margin-left: auto;
   margin-right: auto;
-  padding: 0 1rem 2rem;
+  padding: 1rem 1rem 2rem;
 }
 
 body.leftnav .tessera-sidebar {
@@ -175,6 +175,34 @@ body.rightnav .tessera-sidebar {
   padding: 1rem 1.5rem;
 }
 
+body.footer-fixed .tessera-footer,
+body.footer-fixed .wh-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+}
+
+body.footer-fixed .tessera-main,
+body.footer-fixed .wh-main {
+  padding-bottom: 4.5rem;
+}
+
+@media (min-width: 993px) {
+  body.footer-fixed.leftnav .tessera-footer,
+  body.footer-fixed.leftnav .wh-footer {
+    left: var(--tessera-sidebar-width);
+    right: 0;
+  }
+
+  body.footer-fixed.rightnav .tessera-footer,
+  body.footer-fixed.rightnav .wh-footer {
+    left: 0;
+    right: var(--tessera-sidebar-width);
+  }
+}
+
 .tessera-footer p {
   margin: 0;
 }
@@ -184,7 +212,8 @@ body.rightnav .tessera-sidebar {
 }
 
 .tessera-breadcrumbs {
-  padding: 1rem 0 0;
+  padding: 0;
+  margin: 0 0 1rem;
   color: var(--tessera-muted);
   font-size: 0.9em;
 }

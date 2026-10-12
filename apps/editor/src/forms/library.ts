@@ -15,6 +15,8 @@ export type AssetRow = {
   alt?: string;
   caption?: string;
   sort?: number;
+  width?: number;
+  height?: number;
   url: string;
 };
 
@@ -96,7 +98,7 @@ export function renderLibrary(listing: LibraryListing, openId: string | null, no
       return `<li class="editor-library-file-row">
         <button type="button" class="editor-library-row" data-edit-asset="${escapeHtml(asset.id)}">
           ${thumb}
-          <span class="editor-library-name">${escapeHtml(asset.name)}</span>
+          <span class="editor-library-name">${escapeHtml(assetLabel(asset))}</span>
           <span class="w3-text-grey w3-small">${asset.kind === "document" ? "Document" : "Image"}</span>
         </button>
       </li>`;
@@ -147,6 +149,16 @@ export function renderLibrary(listing: LibraryListing, openId: string | null, no
     </div>`;
 }
 
+function assetLabel(asset: AssetRow): string {
+  return asset.width && asset.height ? `${asset.name} (${asset.width}x${asset.height})` : asset.name;
+}
+
+function assetSize(asset: AssetRow): string {
+  if (asset.kind !== "image" || !asset.width || !asset.height) return "";
+  return `<p>${asset.width} x ${asset.height}</p>
+    <p><button type="button" class="w3-button w3-white" data-preview-asset="${escapeHtml(asset.id)}">Preview</button></p>`;
+}
+
 function folderOptions(folders: FolderRow[], current: string | null): string {
   const options = folders
     .map((folder) => {
@@ -172,6 +184,7 @@ export function assetDetail(asset: AssetRow, folders: FolderRow[]): string {
     <p><label>Alt <input name="alt" class="w3-input w3-border" value="${escapeHtml(asset.alt ?? "")}" /></label></p>
     <p><label>Caption <input name="caption" class="w3-input w3-border" value="${escapeHtml(asset.caption ?? "")}" /></label></p>
     <p><label>Folder <select name="folderId" class="w3-select w3-border">${options}</select></label></p>
+    ${assetSize(asset)}
     <p class="editor-actions">
       <button type="submit" class="w3-button w3-theme">Save</button>
       <button type="button" class="w3-button w3-white" data-delete-asset="${escapeHtml(asset.id)}">Delete</button>

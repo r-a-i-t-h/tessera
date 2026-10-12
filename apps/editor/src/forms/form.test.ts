@@ -41,6 +41,7 @@ describe("schema forms", () => {
     const html = renderForm(CONTENT_FORM, { id: "home", title: "Home" });
     expect(html).toContain("Show in nav");
     expect(html).toContain('name="showInNav"');
+    expect(html).toContain('name="published"');
     expect(html).toContain("checked");
     const kept = applySubmitted(CONTENT_FORM, { id: "home", title: "Home" }, { title: "Home", showInNav: true, tags: "" });
     expect(kept).not.toHaveProperty("showInNav");
@@ -50,7 +51,10 @@ describe("schema forms", () => {
       { title: "Home", showInNav: false, tags: "news, hall" },
     );
     expect(hidden.showInNav).toBe(false);
+    expect(hidden).not.toHaveProperty("published");
     expect(hidden.tags).toEqual(["news", "hall"]);
+    const draft = applySubmitted(CONTENT_FORM, { id: "home", title: "Home" }, { title: "Home", published: false });
+    expect(draft.published).toBe(false);
   });
 
   it("offers inherit for the page frame and omits it when blank", () => {

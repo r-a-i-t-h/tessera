@@ -24,6 +24,8 @@ export type LibraryAsset = {
   alt?: string;
   caption?: string;
   sort?: number;
+  width?: number;
+  height?: number;
 };
 
 export type LibraryFolder = {
@@ -128,7 +130,13 @@ export function parseLibraryAsset(row: Record<string, unknown>): LibraryAsset | 
     ...(typeof row.alt === "string" ? { alt: row.alt } : {}),
     ...(typeof row.caption === "string" ? { caption: row.caption } : {}),
     ...(typeof row.sort === "number" ? { sort: row.sort } : {}),
+    ...(pixelSize(row.width) !== undefined ? { width: pixelSize(row.width) } : {}),
+    ...(pixelSize(row.height) !== undefined ? { height: pixelSize(row.height) } : {}),
   };
+}
+
+function pixelSize(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : undefined;
 }
 
 function toMedia(asset: LibraryAsset): Media {

@@ -40,6 +40,8 @@ export type AuthoredPage = {
   parentId?: string;
   masterLayoutId?: string;
   showInNav?: boolean;
+  /** Absent means published. `false` keeps the file and leaves the page out of the site. */
+  published?: boolean;
   type?: string;
   fields?: Record<string, string>;
   tags?: string[];
@@ -213,7 +215,7 @@ export function assembleDocument(parts: LoadedSite): SiteDocument {
   const { version: _version, ...meta } = parts.site;
   const version = parts.site.version ?? SITE_DOCUMENT_SCHEMA_VERSION;
   const projected = projectLibrary(parts.media, parts.folders);
-  const pages = placeArticles(parts.content.map(authoredPageToPage));
+  const pages = placeArticles(parts.content.filter((page) => page.published !== false).map(authoredPageToPage));
   assertBlogTenants(pages, parts.tenants.map((tenant) => tenant.id));
   const tenants = parts.tenants.map((tenant) => ({ id: tenant.id }));
   return parseSiteDocument({

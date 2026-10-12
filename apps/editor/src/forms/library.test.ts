@@ -59,5 +59,16 @@ describe("library browser", () => {
     const detail = assetDetail(listing.assets[0]!, listing.folders);
     expect(detail).toContain('data-delete-asset="porch"');
     expect(detail).toContain(">Delete<");
+    const sized = renderLibrary(
+      {
+        ...listing,
+        assets: [{ ...listing.assets[0]!, width: 320, height: 240 }],
+      },
+      "hall",
+    );
+    expect(sized).toContain("porch.svg (320x240)");
+    const sizedDetail = assetDetail({ ...listing.assets[0]!, width: 320, height: 240 }, listing.folders);
+    expect(sizedDetail).toContain("320 x 240");
+    expect(sizedDetail).toContain('data-preview-asset="porch"');
   });
 });

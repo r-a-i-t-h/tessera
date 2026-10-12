@@ -4,6 +4,8 @@ import {
   cascadeTenant,
   createBackup,
   deleteBackup,
+  deleteContent,
+  deleteItem,
   deleteTenant,
   deleteLibraryAsset,
   deleteLibraryFolder,
@@ -23,6 +25,7 @@ import {
   restoreBackup,
   initSite,
   publishSite,
+  renameItem,
   renameTenant,
   renderSite,
   restoreExample,
@@ -131,7 +134,24 @@ import { usernameError } from "./username.js";
 
 export async function mount(root: HTMLElement): Promise<void> {
   window.addEventListener("hashchange", () => void render(root));
+  document.addEventListener("keydown", (event) => {
+    if (event.code !== "KeyS" || event.altKey || event.shiftKey || !(event.metaKey || event.ctrlKey)) return;
+    const active = document.activeElement;
+    const focused = active instanceof HTMLElement ? active.closest("form") : null;
+    const form = editingForm(focused) ?? document.querySelector<HTMLFormElement>("#record-form");
+    if (!form) return;
+    event.preventDefault();
+    form.requestSubmit();
+  });
   await render(root);
+}
+
+function editingForm(form: HTMLFormElement | null): HTMLFormElement | null {
+  if (!form) return null;
+  if (form.id === "record-form" || form.id === "style-form" || form.id === "asset-detail" || form.hasAttribute("data-sheet")) {
+    return form;
+  }
+  return null;
 }
 
 let lastAnnouncedHash = "";
@@ -338,6 +358,7 @@ function renderNotice(result: RenderResult): string {
 }
 
 async function runPublish(root: HTMLElement): Promise<void> {
+  if (!window.confirm("Publish this site? This replaces the published files.")) return;
   const button = root.querySelector<HTMLButtonElement>("[data-action=publish-site]");
   const render = root.querySelector<HTMLButtonElement>("[data-action=render-site]");
   const status = root.querySelector<HTMLElement>("#render-status");
@@ -2413,12 +2434,17 @@ async function bindEdit(
             ? renderBindingForm(id, record, bindingChoices)
             : `${navNote}${fieldsHtml(kind, record ?? payload.data, payload.layout, typeIds, contentExtras)}`;
   const place = editPlace(kind, id, record);
+  const homeId = kind === "content" ? await loadHomePageId() : "";
   const pageHost = host === "page";
   const sessionActions =
     editsBody(kind) || kind === "layouts"
       ? `<button type="button" class="w3-button w3-white" data-action="undo" title="Undo (Ctrl+Z)" disabled>Undo</button><button type="button" class="w3-button w3-white" data-action="redo" title="Redo (Ctrl+Shift+Z)" disabled>Redo</button><button type="button" class="w3-button w3-white" data-action="revert">Revert</button>`
       : "";
-  const actionRow = `<p class="editor-actions"><button type="submit" id="record-save"${pageHost ? ' form="record-form"' : ""} class="w3-button w3-theme">Save</button>${sessionActions}</p>`;
+  const deleteAction =
+    kind === "content" && id !== homeId
+      ? `<button type="button" class="w3-button w3-white" data-action="delete-content">Delete</button>`
+      : "";
+  const actionRow = `<p class="editor-actions"><button type="submit" id="record-save"${pageHost ? ' form="record-form"' : ""} class="w3-button w3-theme">Save</button>${sessionActions}${deleteAction}</p>`;
   const saveStatus = `<p id="save-status" class="w3-text-grey" hidden></p>`;
   const editor = `${lifecycleHtml(payload)}
      ${noticePanel(notice)}
@@ -2441,6 +2467,7 @@ async function bindEdit(
        ${formInner}
        ${pageHost ? "" : `${saveStatus}${actionRow}`}
      </form>
+     ${kind === "items" ? itemToolsHtml(id) : ""}
      ${historyHtml(payload)}`;
   let scope: ParentNode = root;
   if (host === "tab") {
@@ -2561,6 +2588,49 @@ async function bindEdit(
     layoutSession = undefined;
     void bindEdit(root, user, kind, id, editMode, "", false, host);
   });
+  scope.querySelector<HTMLFormElement>("#item-tools")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const input = (event.currentTarget as HTMLFormElement).querySelector<HTMLInputElement>("[name=item-rename-id]");
+    const nextId = input?.value.trim() ?? "";
+    if (!nextId || nextId === id) return;
+    if (!window.confirm(`Rename ${id} to ${nextId}? References will be updated.`)) return;
+    void renameItem(id, nextId)
+      .then(() => {
+        const next = `#/items/${encodeURIComponent(nextId)}`;
+        if (window.location.hash === next) void render(root);
+        else window.location.hash = next;
+      })
+      .catch((err: unknown) => {
+        showSaveError(root, err instanceof Error ? err.message : "Could not rename that item.");
+      });
+  });
+  scope.querySelector<HTMLButtonElement>("[data-action=delete-item]")?.addEventListener("click", () => {
+    if (!window.confirm(`Delete ${id}? This cannot be undone.`)) return;
+    void deleteItem(id)
+      .then(() => {
+        const next = "#/records/items";
+        if (window.location.hash === next) void render(root);
+        else window.location.hash = next;
+      })
+      .catch((err: unknown) => {
+        showSaveError(root, err instanceof Error ? err.message : "Could not delete that item.");
+      });
+  });
+  scope.querySelector<HTMLButtonElement>("[data-action=delete-content]")?.addEventListener("click", () => {
+    const title = typeof record?.title === "string" ? record.title.trim() : "";
+    const label = title || id;
+    if (!window.confirm(`Delete ${label}? This cannot be undone.`)) return;
+    void deleteContent(id)
+      .then(() => {
+        contentSession = undefined;
+        const next = place.back;
+        if (window.location.hash === next) void render(root);
+        else window.location.hash = next;
+      })
+      .catch((err: unknown) => {
+        showSaveError(root, err instanceof Error ? err.message : "Could not delete that page.");
+      });
+  });
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const button = scope.querySelector<HTMLButtonElement>("#record-save");
@@ -2660,9 +2730,33 @@ async function mountPageCanvas(
   });
 }
 
+function itemToolsHtml(id: string): string {
+  return `<form id="item-tools" class="w3-card w3-white w3-padding editor-card">
+    <p><label for="item-rename-id">New id <input id="item-rename-id" name="item-rename-id" class="w3-input w3-border" value="${escapeHtml(id)}" autocomplete="off" spellcheck="false" /></label></p>
+    <p class="editor-actions">
+      <button type="submit" class="w3-button w3-white">Rename</button>
+      <button type="button" class="w3-button w3-white" data-action="delete-item">Delete</button>
+    </p>
+    <p class="w3-text-grey">Rename updates every include and binding that names this item. Delete is refused while anything still uses it.</p>
+  </form>`;
+}
+
 function asRecord(data: unknown): Record<string, unknown> | undefined {
   if (!data || typeof data !== "object" || Array.isArray(data)) return undefined;
   return data as Record<string, unknown>;
+}
+
+async function loadHomePageId(): Promise<string> {
+  try {
+    const listing = await listRecords();
+    const site = listing.records.find((row) => row.kind === "site");
+    if (!site) return "";
+    const payload = await getRecord("site", site.id);
+    const data = asRecord(payload.data);
+    return typeof data?.homePageId === "string" ? data.homePageId : "";
+  } catch {
+    return "";
+  }
 }
 
 function lifecycleHtml(payload: RecordPayload): string {
@@ -3387,6 +3481,9 @@ async function bindLibrary(root: HTMLElement, user: PublicUser, openId: string |
         if (!window.confirm("Delete this file?")) return;
         void deleteLibraryAsset(asset.id).then(() => bindLibrary(root, user, openId, "File deleted."));
       });
+      slot.querySelector<HTMLButtonElement>("[data-preview-asset]")?.addEventListener("click", () => {
+        openAssetPreview(root, asset.id, asset.name);
+      });
     });
   }
   for (const image of root.querySelectorAll<HTMLImageElement>(".editor-thumb[data-fallback]")) {
@@ -3395,6 +3492,27 @@ async function bindLibrary(root: HTMLElement, user: PublicUser, openId: string |
       if (fallback && image.src !== new URL(fallback, window.location.origin).href) image.src = fallback;
     });
   }
+}
+
+function openAssetPreview(root: HTMLElement, id: string, name: string): void {
+  const host = document.createElement("div");
+  host.innerHTML = `<div class="editor-picker-backdrop" data-dialog-backdrop>
+    <div class="editor-picker" role="dialog" aria-modal="true" aria-labelledby="asset-preview-title">
+      <h2 id="asset-preview-title">${escapeHtml(name)}</h2>
+      <p><img src="/api/library/assets/${encodeURIComponent(id)}/file" alt="" /></p>
+      <p><button type="button" class="w3-button w3-white" data-preview-close>Close</button></p>
+    </div>
+  </div>`;
+  root.append(host);
+  const close = () => {
+    dialog?.destroy();
+    host.remove();
+  };
+  host.querySelector("[data-preview-close]")?.addEventListener("click", close);
+  host.querySelector("[data-dialog-backdrop]")?.addEventListener("click", (event) => {
+    if (event.target === event.currentTarget) close();
+  });
+  const dialog = activateDialog(host, { onCancel: close, closeOnBackdrop: true, initialFocus: "[data-preview-close]" });
 }
 
 function rescanNotice(result: {

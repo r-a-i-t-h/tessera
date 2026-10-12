@@ -60,7 +60,8 @@ export function blogMeta(record: Record<string, unknown>, tenants: readonly stri
       <input id="fields.pageSize" name="fields.pageSize" inputmode="numeric" class="w3-input w3-border w3-margin-top" value="${escapeHtml(pageSize)}" /></p>
     ${heroStyleSelect(fieldValue(record, "heroStyle"))}
     ${select("fields.tenant", "Tenant", tenant, tenants, false)}
-    <p class="w3-text-grey">Leave the tenant empty for the one unscoped blog. Its menu lists each tenant. An article whose tenant has no blog uses that blog as its parent.</p>
+    <p class="editor-check"><label><input id="fields.showIndexInNav" name="fields.showIndexInNav" type="checkbox" data-kind="checkbox"${fieldValue(record, "showIndexInNav") === "true" ? " checked" : ""} /> Show index in the menu</label></p>
+    <p class="w3-text-grey">Leave the tenant empty for the one unscoped blog. Its menu lists each tenant. An article whose tenant has no blog uses that blog as its parent. The index is hidden from the menu unless it is shown here.</p>
     <p>Index: <a href="#/content/${encodeURIComponent(indexId)}">${escapeHtml(indexId)}</a></p>
   </fieldset>`;
 }

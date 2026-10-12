@@ -230,6 +230,61 @@ export function serializeChildren(nodes: HtmlNode[]): string {
   return nodes.map((node) => serializeNode(node)).join("");
 }
 
+const MARKDOWN_LINK = /\[([^\]\n]+)\]\(([^)\s]+)\)/g;
+
+/** Turn `[text](url)` in text nodes into anchors. Stored markup is left unchanged until paint. */
+export function renderMarkdownLinks(html: string): string {
+  if (!html.includes("](")) return html;
+  const root = parseFragment(html);
+  rewriteMarkdownLinks(root);
+  return serializeChildren(root.children);
+}
+
+function rewriteMarkdownLinks(node: ElNode): void {
+  const next: HtmlNode[] = [];
+  for (const child of node.children) {
+    if (child.type === "text") {
+      next.push(...splitMarkdownLinks(child.text));
+      continue;
+    }
+    if (child.tag !== "a") rewriteMarkdownLinks(child);
+    next.push(child);
+  }
+  node.children = next;
+}
+
+function splitMarkdownLinks(text: string): HtmlNode[] {
+  const nodes: HtmlNode[] = [];
+  let last = 0;
+  MARKDOWN_LINK.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = MARKDOWN_LINK.exec(text))) {
+    const href = match[2]?.trim() ?? "";
+    if (!markdownHref(href)) continue;
+    if (match.index > last) nodes.push({ type: "text", text: text.slice(last, match.index) });
+    nodes.push({
+      type: "el",
+      tag: "a",
+      attrs: [{ name: "href", value: href }],
+      children: [{ type: "text", text: match[1] ?? "" }],
+      raw: "",
+    });
+    last = match.index + match[0].length;
+  }
+  if (!nodes.length) return [{ type: "text", text }];
+  if (last < text.length) nodes.push({ type: "text", text: text.slice(last) });
+  return nodes;
+}
+
+function markdownHref(href: string): boolean {
+  if (!href || /^\s*javascript:/i.test(href)) return false;
+  if (/^(https?:|mailto:)/i.test(href)) return true;
+  if (href.startsWith("/") || href.startsWith("#") || href.startsWith("./") || href.startsWith("../") || href.startsWith("?")) {
+    return true;
+  }
+  return !/^[a-z][a-z0-9+.-]*:/i.test(href);
+}
+
 function decodeEntities(value: string): string {
   return value.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (entity, body: string) => {
     if (body === "amp") return "&";

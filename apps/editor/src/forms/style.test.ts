@@ -7,6 +7,7 @@ describe("style form", () => {
     expect(values.sidebarWidth).toBe("300px");
     expect(values.fontA).toBe("Lekton");
     expect(values.navSide).toBe("right");
+    expect(values.footerStyle).toBe("floating");
     expect(values.bar).toBe("#009688");
   });
 

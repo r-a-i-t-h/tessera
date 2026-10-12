@@ -149,6 +149,10 @@ export function readFormValues(form: HTMLFormElement, schema: FormSchema | undef
       submitted[el.name] = el instanceof HTMLInputElement && el.type === "checkbox" ? el.checked : el.value;
       continue;
     }
+    if (el.name === "fields.showIndexInNav" && el instanceof HTMLInputElement) {
+      extras.push({ name: el.name, value: el.checked ? "true" : undefined });
+      continue;
+    }
     extras.push({ name: el.name, value: parseControl(el) });
   }
   const next = applySubmitted(schema, record, submitted);
@@ -185,5 +189,7 @@ function setPath(target: Record<string, unknown>, path: string, value: unknown):
     if (!child || typeof child !== "object" || Array.isArray(child)) cursor[key] = {};
     cursor = cursor[key] as Record<string, unknown>;
   }
-  cursor[parts[parts.length - 1]!] = value;
+  const key = parts[parts.length - 1]!;
+  if (value === undefined) delete cursor[key];
+  else cursor[key] = value;
 }

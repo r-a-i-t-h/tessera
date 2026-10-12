@@ -5,7 +5,7 @@ import {
   type SiteStyle,
 } from "@r-a-i-t-h/tessera-model";
 
-export type StyleFieldKind = "size" | "font" | "url" | "color" | "side";
+export type StyleFieldKind = "size" | "font" | "url" | "color" | "side" | "footer";
 
 export type StyleField = {
   name: keyof SiteStyle;
@@ -25,6 +25,7 @@ export const STYLE_FIELDS: StyleField[] = [
   { name: "fontD", label: "Font D", group: "Fonts", kind: "font" },
   { name: "fontsHref", label: "Fonts stylesheet", group: "Fonts", kind: "url" },
   { name: "navSide", label: "Menu side", group: "Menu", kind: "side" },
+  { name: "footerStyle", label: "Footer", group: "Menu", kind: "footer" },
   { name: "bar", label: "Bar", group: "Colours", kind: "color" },
   { name: "barText", label: "Bar text", group: "Colours", kind: "color" },
   { name: "sidebar", label: "Sidebar", group: "Colours", kind: "color" },
@@ -52,6 +53,10 @@ export function styleDraft(values: Record<string, string>): SiteStyle {
       if (value === "left" || value === "right") style.navSide = value;
       continue;
     }
+    if (field.name === "footerStyle") {
+      if (value === "fixed" || value === "floating") style.footerStyle = value;
+      continue;
+    }
     style[field.name] = value;
   }
   return style;
@@ -62,6 +67,8 @@ export function styleFromValues(values: Record<string, string>): { ok: true; sty
   const style = styleDraft(values);
   const side = values.navSide?.trim();
   if (side && side !== "left" && side !== "right") return { ok: false, error: "Menu side must be left or right." };
+  const footer = values.footerStyle?.trim();
+  if (footer && footer !== "fixed" && footer !== "floating") return { ok: false, error: "Footer must be fixed or floating." };
   const error = styleIssue(style);
   if (error) return { ok: false, error };
   return { ok: true, style };

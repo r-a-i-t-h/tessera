@@ -281,7 +281,7 @@ export const NavSourceSchema = z.object({
   /** Entries of this type become links. Subject tags are not a group. */
   pageType: z.string().min(1).optional(),
   itemsTag: z.string().min(1).optional(),
-  /** The linked page is a blog. The menu adds the index, and tenant names when the blog names none. */
+  /** The linked page is a blog. The menu adds tenant names when the blog names none, and the index when the blog asks for it. */
   blog: z.boolean().optional(),
 });
 

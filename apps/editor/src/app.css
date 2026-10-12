@@ -544,6 +544,10 @@ img[data-hero-preview] {
   outline-offset: 2px;
 }
 
+.editor-compose-list .editor-section-body {
+  display: none;
+}
+
 .editor-section-bar {
   display: flex;
   flex-wrap: wrap;

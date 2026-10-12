@@ -8,6 +8,7 @@ import {
   normalizeExt,
   parseLibraryAsset,
   publicAssetUrl,
+  type LibraryAsset,
   ARTICLES_ID,
   SCANNED_ID,
   slugFromFilename,
@@ -35,6 +36,8 @@ export type AssetView = {
   alt?: string;
   caption?: string;
   sort?: number;
+  width?: number;
+  height?: number;
   url: string;
 };
 
@@ -72,6 +75,16 @@ export type RescanResult = {
 type MutationResult = { snapshot?: SnapshotRef };
 
 const THUMB_SUFFIX = ".thumb.webp";
+
+export async function imageSize(bytes: Uint8Array): Promise<{ width: number; height: number } | undefined> {
+  try {
+    const meta = await sharp(bytes).metadata();
+    if (!meta.width || !meta.height) return undefined;
+    return { width: meta.width, height: meta.height };
+  } catch {
+    return undefined;
+  }
+}
 
 export async function writeThumbnail(bytes: Uint8Array, dest: string): Promise<boolean> {
   try {
@@ -122,8 +135,11 @@ export class AssetLibrary {
     for (const id of mediaIds) {
       const row = await this.site.read("media", id);
       // Library assets only. A hand-authored `url` record has no `kind` and is left for flatten.
-      const asset = parseLibraryAsset(row);
+      let asset = parseLibraryAsset(row);
       if (!asset) continue;
+      if (asset.kind === "image" && (asset.width === undefined || asset.height === undefined)) {
+        asset = await this.rememberSize(row, asset);
+      }
       assets.push({
         ...asset,
         folderId: asset.folderId ?? null,
@@ -131,6 +147,18 @@ export class AssetLibrary {
       });
     }
     return { folders, assets };
+  }
+
+  private async rememberSize(row: Record<string, unknown>, asset: LibraryAsset): Promise<LibraryAsset> {
+    try {
+      const bytes = await readFile(join(this.filesDir, `${asset.id}.${asset.ext}`));
+      const size = await imageSize(bytes);
+      if (!size) return asset;
+      await this.site.writeLibraryRecord("media", asset.id, { ...row, width: size.width, height: size.height }, { rebuild: false });
+      return { ...asset, width: size.width, height: size.height };
+    } catch {
+      return asset;
+    }
   }
 
   async createFolder(
@@ -276,12 +304,13 @@ export class AssetLibrary {
       await mkdir(this.filesDir, { recursive: true });
       await writeFile(blob, file.bytes);
       if (kind === "image") await writeThumbnail(file.bytes, thumb);
+      const size = kind === "image" ? await imageSize(file.bytes) : undefined;
       const sort = created.length + current.assets.filter((asset) => asset.folderId === parent).length;
       try {
         await this.site.writeLibraryRecord(
           "media",
           id,
-          { id, name, kind, ext, folderId: parent, sort },
+          { id, name, kind, ext, folderId: parent, sort, ...(size ?? {}) },
           { rebuild: false },
         );
       } catch (err) {
@@ -468,13 +497,15 @@ export class AssetLibrary {
               fileNames.add(canonical);
               renamedFrom = filename;
             }
-            if (kind === "image") {
-              thumb = await writeThumbnail(await readFile(dest), join(this.filesDir, `${id}${THUMB_SUFFIX}`));
+            const bytes = kind === "image" ? await readFile(dest) : undefined;
+            if (kind === "image" && bytes) {
+              thumb = await writeThumbnail(bytes, join(this.filesDir, `${id}${THUMB_SUFFIX}`));
             }
+            const size = bytes ? await imageSize(bytes) : undefined;
             await this.site.writeLibraryRecord(
               "media",
               id,
-              { id, name, kind, ext, folderId: SCANNED_ID, sort },
+              { id, name, kind, ext, folderId: SCANNED_ID, sort, ...(size ?? {}) },
               { rebuild: false },
             );
           } catch (err) {

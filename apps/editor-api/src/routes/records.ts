@@ -150,6 +150,49 @@ recordRoutes.put("/records/:kind/:id", async (c) => {
   }
 });
 
+recordRoutes.delete("/records/items/:id", async (c) => {
+  const site = c.get("requiredSite");
+  const id = c.req.param("id");
+  if (!isRecordId(id)) return apiError(c, 400, "Invalid item id.");
+  try {
+    await site.deleteItem(id);
+    return c.json({ ok: true, id });
+  } catch (err) {
+    return apiError(c, 400, err instanceof Error ? err.message : "Could not delete that item.");
+  }
+});
+
+recordRoutes.post("/records/items/:id/rename", async (c) => {
+  const site = c.get("requiredSite");
+  const id = c.req.param("id");
+  if (!isRecordId(id)) return apiError(c, 400, "Invalid item id.");
+  let body: { id?: unknown };
+  try {
+    body = (await c.req.json()) as { id?: unknown };
+  } catch {
+    return apiError(c, 400, "Send the new id.");
+  }
+  if (typeof body.id !== "string" || !isRecordId(body.id)) return apiError(c, 400, "Invalid item id.");
+  try {
+    await site.renameItem(id, body.id);
+    return c.json({ ok: true, id: body.id });
+  } catch (err) {
+    return apiError(c, 400, err instanceof Error ? err.message : "Could not rename that item.");
+  }
+});
+
+recordRoutes.delete("/records/content/:id", async (c) => {
+  const site = c.get("requiredSite");
+  const id = c.req.param("id");
+  if (!isRecordId(id)) return apiError(c, 400, "Invalid content id.");
+  try {
+    await site.deleteContent(id);
+    return c.json({ ok: true, id });
+  } catch (err) {
+    return apiError(c, 400, err instanceof Error ? err.message : "Could not delete that page.");
+  }
+});
+
 recordRoutes.delete("/records/tenants/:id", async (c) => {
   const site = c.get("requiredSite");
   const id = c.req.param("id");

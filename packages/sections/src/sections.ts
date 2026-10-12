@@ -4,6 +4,7 @@ import {
   escapeText,
   hasClass,
   parseFragment,
+  renderMarkdownLinks,
   serializeChildren,
   serializeNode,
   textContent,
@@ -230,14 +231,14 @@ export function paintSection(section: Section): string {
       return paintText(section);
     case "panel": {
       const cls = joinClass("w3-panel", "w3-padding", toneClass(section.tone));
-      return `<div class="${cls}">${section.html}</div>`;
+      return `<div class="${cls}">${renderMarkdownLinks(section.html)}</div>`;
     }
     case "quote":
       return paintQuote(section);
     case "imgbox":
       return paintImgbox(section);
     case "card":
-      return `<div class="w3-card w3-padding w3-margin-bottom w3-white"><h3 class="w3-text-theme">${escapeText(section.title)}</h3><div class="rt-card-body">${section.html}</div></div>`;
+      return `<div class="w3-card w3-padding w3-margin-bottom w3-white"><h3 class="w3-text-theme">${escapeText(section.title)}</h3><div class="rt-card-body">${renderMarkdownLinks(section.html)}</div></div>`;
     case "columns":
       return paintColumns(section.cells);
     case "insert":
@@ -249,9 +250,9 @@ export function paintSection(section: Section): string {
     case "gallery":
       return `<div class="tessera-page-gallery w3-margin-bottom" data-tessera="gallery" data-folder="${escapeAttr(section.folder)}" data-mode="${section.mode === "slides" ? "slides" : "grid"}"></div>`;
     case "pasted":
-      return `<div class="tessera-pasted w3-margin-bottom"><div class="tessera-pasted-sheet">${section.html}</div></div>`;
+      return `<div class="tessera-pasted w3-margin-bottom"><div class="tessera-pasted-sheet">${renderMarkdownLinks(section.html)}</div></div>`;
     case "html":
-      return section.html;
+      return renderMarkdownLinks(section.html);
   }
 }
 
@@ -263,7 +264,7 @@ export function parseSections(html: string): Section[] {
 function paintText(section: Extract<Section, { kind: "text" }>): string {
   const heading = section.heading.trim();
   const title = heading ? `<h${section.level}>${escapeText(heading)}</h${section.level}>` : "";
-  return `<div class="tessera-text">${title}${section.html}</div>`;
+  return `<div class="tessera-text">${title}${renderMarkdownLinks(section.html)}</div>`;
 }
 
 function paintYoutube(section: Extract<Section, { kind: "youtube" }>): string {

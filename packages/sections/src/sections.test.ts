@@ -100,6 +100,15 @@ describe("parseSections", () => {
 });
 
 describe("paintSections", () => {
+  it("turns a markdown link in HTML into an anchor and leaves javascript as text", () => {
+    const html = paintSections([
+      { kind: "html", html: `<p>See [Hall](https://example.com/hall) and [bad](javascript:alert(1)).</p>` },
+    ]);
+    expect(html).toContain('<a href="https://example.com/hall">Hall</a>');
+    expect(html).toContain("[bad](javascript:alert(1))");
+    expect(html).not.toContain("href=\"javascript:");
+  });
+
   it("rebuilds the same sections from painted HTML", () => {
     const sections: Section[] = [
       { kind: "heading", level: 2, text: "Hello" },

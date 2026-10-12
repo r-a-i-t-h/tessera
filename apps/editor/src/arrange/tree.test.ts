@@ -123,7 +123,8 @@ describe("layout arrange tree", () => {
     expect(side.ok && JSON.stringify(side.nodes)).toContain("mySidebar");
     expect(side.ok && JSON.stringify(side.nodes)).toContain("myOverlay");
     expect(nodesFor("page", frame).ok).toBe(false);
-    expect(nodesFor("zone", frame).ok).toBe(false);
+    const frameZone = nodesFor("zone", frame);
+    expect(frameZone.ok && frameZone.nodes[0]?.type === "zone" && frameZone.nodes[0].id).toBe("main");
     const added = nodesFor("zone", page);
     expect(added.ok && added.nodes[0]?.type === "zone" && added.nodes[0].id).toBe("zone2");
   });
@@ -159,6 +160,7 @@ describe("layout arrange tree", () => {
       "Header",
       "Region",
       "Footer",
+      "Zone",
       "Page",
       "Side menu",
       "Menu",

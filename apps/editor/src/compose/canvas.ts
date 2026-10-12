@@ -4,6 +4,7 @@ import {
   blankSection,
   paintSections,
   parseSections,
+  renderMarkdownLinks,
   toneClass,
   toneLabel,
   youtubeVideoId,
@@ -183,7 +184,7 @@ function renderZone(form: HTMLElement, zone: ZoneState): void {
     : `<p class="editor-canvas-empty w3-text-grey">${state.locked ? "This section is empty." : "Drag a section here, or choose one from the list."}</p>`;
   const body = zone.items.length
     ? state.locked
-      ? zone.items.map((item) => renderItem(item, choicesFor(zone.host), zone.name, true)).join("")
+      ? zone.items.map((item) => renderItem(item, choicesFor(zone.host), zone.name, true, 0, 1)).join("")
       : itemsWithDrops(zone)
     : state.locked
       ? ""
@@ -194,10 +195,16 @@ function renderZone(form: HTMLElement, zone: ZoneState): void {
 function itemsWithDrops(zone: ZoneState): string {
   const parts: string[] = [dropSlot(zone.name, 0)];
   zone.items.forEach((item, index) => {
-    parts.push(renderItem(item, choicesFor(zone.host), zone.name, false));
+    parts.push(renderItem(item, choicesFor(zone.host), zone.name, false, index, zone.items.length));
     parts.push(dropSlot(zone.name, index + 1));
   });
   return parts.join("");
+}
+
+function moveButtons(index: number, count: number): string {
+  const up = index <= 0 ? " disabled" : "";
+  const down = index >= count - 1 ? " disabled" : "";
+  return `<button type="button" class="w3-button w3-small w3-white" data-move="up"${up}>Up</button><button type="button" class="w3-button w3-small w3-white" data-move="down"${down}>Down</button>`;
 }
 
 function choicesFor(host: HTMLElement): Choices {
@@ -206,10 +213,10 @@ function choicesFor(host: HTMLElement): Choices {
   return { bindings: state?.bindings ?? [], folders: state?.folders ?? [] };
 }
 
-function renderItem(node: EditNode, choices: Choices, zone: string, locked: boolean): string {
+function renderItem(node: EditNode, choices: Choices, zone: string, locked: boolean, index = 0, count = 1): string {
   const move = locked
     ? ""
-    : `<span class="editor-handle" draggable="true" data-drag title="Drag to move">Drag</span>`;
+    : `<span class="editor-handle" draggable="true" data-drag title="Drag to move">Drag</span>${moveButtons(index, count)}`;
   const remove = locked ? "" : `<button type="button" class="w3-button w3-small w3-white" data-remove>Remove</button>`;
   return `<article class="editor-section" data-item-id="${node.uid}" data-zone="${escapeAttr(zone)}">
     <div class="editor-section-bar">
@@ -404,7 +411,7 @@ function bodyFor(node: EditNode, choices: Choices, zone: string, locked: boolean
     case "pasted":
       return `<div class="tessera-pasted"><div class="tessera-pasted-sheet"><div contenteditable="true" data-field="html" data-placeholder="Write on the paper…">${node.html}</div></div></div>`;
     case "html":
-      return `<div class="editor-html-preview">${editorMediaHtml(node.html)}</div>`;
+      return `<div class="editor-html-preview">${editorMediaHtml(renderMarkdownLinks(node.html))}</div>`;
   }
 }
 
@@ -436,7 +443,7 @@ function columnsBody(node: EditColumns, choices: Choices, zone: string, locked: 
       const inner = locked
         ? cell.items.map((item) => renderItem(item, choices, zone, true)).join("")
         : cell.items.length
-          ? cell.items.map((item, itemIndex) => `${itemIndex === 0 ? dropSlot(zone, 0, node.uid, index) : ""}${renderItem(item, choices, zone, false)}${dropSlot(zone, itemIndex + 1, node.uid, index)}`).join("")
+          ? cell.items.map((item, itemIndex) => `${itemIndex === 0 ? dropSlot(zone, 0, node.uid, index) : ""}${renderItem(item, choices, zone, false, itemIndex, cell.items.length)}${dropSlot(zone, itemIndex + 1, node.uid, index)}`).join("")
           : dropSlot(zone, 0, node.uid, index);
       return `<div class="${joinClass(layout, cell.className)} editor-cell">${inner}</div>`;
     })
@@ -581,6 +588,21 @@ function onClick(form: HTMLFormElement, event: MouseEvent): void {
     runCommand(form, command.dataset.cmd);
     return;
   }
+  const listToggle = target.closest<HTMLElement>("[data-compose-list]");
+  if (listToggle && form.contains(listToggle)) {
+    event.preventDefault();
+    const on = form.classList.toggle("editor-compose-list");
+    listToggle.setAttribute("aria-pressed", on ? "true" : "false");
+    listToggle.textContent = on ? "Editors" : "List";
+    return;
+  }
+  const move = target.closest<HTMLButtonElement>("[data-move]");
+  if (move?.dataset.move === "up" || move?.dataset.move === "down") {
+    event.preventDefault();
+    if (state.locked || move.disabled) return;
+    moveSection(form, state, move);
+    return;
+  }
   const cols = target.closest<HTMLElement>("[data-cols]");
   if (cols?.dataset.cols) {
     event.preventDefault();
@@ -601,6 +623,23 @@ function onClick(form: HTMLFormElement, event: MouseEvent): void {
     }
     notifyStructure(form);
   }
+}
+
+function moveSection(form: HTMLFormElement, state: Mounted, button: HTMLButtonElement): void {
+  const article = button.closest<HTMLElement>("[data-item-id]");
+  const uid = article?.dataset.itemId;
+  if (!uid) return;
+  const found = locate(state, uid);
+  if (!found) return;
+  const next = button.dataset.move === "up" ? found.index - 1 : found.index + 1;
+  if (next < 0 || next >= found.list.length) return;
+  mark(form);
+  const [item] = found.list.splice(found.index, 1);
+  if (!item) return;
+  found.list.splice(next, 0, item);
+  const zone = zoneOf(state, uid);
+  if (zone) renderZone(form, zone);
+  notifyStructure(form);
 }
 
 function appendPalette(form: HTMLFormElement, kind: string): void {
@@ -625,9 +664,22 @@ function runCommand(form: HTMLFormElement, command: string): void {
     return;
   }
   if (command === "link") {
+    const saved = cloneSelection();
     const href = window.prompt("Link address");
     if (!href || /^\s*javascript:/i.test(href)) return;
-    document.execCommand("createLink", false, href);
+    restoreSelection(saved);
+    const trimmed = href.trim();
+    const existing = selectionAnchor();
+    if (existing) {
+      existing.setAttribute("href", trimmed);
+      touchEditable();
+      return;
+    }
+    const made = document.execCommand("createLink", false, trimmed);
+    if (!made) {
+      const label = document.getSelection()?.toString() || trimmed;
+      document.execCommand("insertHTML", false, `<a href="${escapeAttr(trimmed)}">${escapeText(label)}</a>`);
+    }
     touchEditable();
     return;
   }
@@ -639,7 +691,7 @@ function runCommand(form: HTMLFormElement, command: string): void {
     document.execCommand("removeFormat");
     document.execCommand("unlink");
     clearAlign();
-    unwrapTag("code");
+    clearInlineFormatting();
     touchEditable();
     return;
   }
@@ -698,17 +750,45 @@ function toggleCode(): void {
   touchEditable();
 }
 
-function unwrapTag(tag: string): void {
+function cloneSelection(): Range | null {
+  const sel = document.getSelection();
+  if (!sel || sel.rangeCount === 0) return null;
+  return sel.getRangeAt(0).cloneRange();
+}
+
+function restoreSelection(range: Range | null): void {
+  if (!range) return;
+  const sel = document.getSelection();
+  if (!sel) return;
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+function selectionAnchor(): HTMLAnchorElement | null {
+  const sel = document.getSelection();
+  const node = sel?.anchorNode;
+  const from = node instanceof Element ? node : node?.parentElement;
+  const editable = from?.closest("[contenteditable]");
+  const link = from?.closest("a");
+  return link instanceof HTMLAnchorElement && editable?.contains(link) ? link : null;
+}
+
+function clearInlineFormatting(): void {
   const sel = document.getSelection();
   if (!sel || sel.rangeCount === 0) return;
   const range = sel.getRangeAt(0);
-  const root = range.commonAncestorContainer;
-  const scope = root instanceof Element ? root : root.parentElement;
-  if (!scope) return;
-  const hits = scope.tagName.toLowerCase() === tag ? [scope] : [...scope.querySelectorAll(tag)];
-  for (const el of hits) {
-    if (!range.intersectsNode(el) && !el.contains(range.startContainer)) continue;
-    el.replaceWith(...el.childNodes);
+  const node = range.commonAncestorContainer;
+  const from = node instanceof Element ? node : node.parentElement;
+  const editable = from?.closest<HTMLElement>("[contenteditable]");
+  if (!editable) return;
+  const tags = ["b", "strong", "i", "em", "u", "s", "strike", "code", "span"];
+  for (const tag of tags) {
+    const hits = [...editable.querySelectorAll(tag)];
+    for (const el of hits) {
+      if (tag === "span" && !el.getAttribute("style")) continue;
+      if (!range.intersectsNode(el) && !el.contains(range.startContainer)) continue;
+      el.replaceWith(...el.childNodes);
+    }
   }
 }
 

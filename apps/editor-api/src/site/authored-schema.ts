@@ -73,6 +73,8 @@ const authoredPage = z.object({
   parentId: id.optional(),
   masterLayoutId: id.optional(),
   showInNav: z.boolean().optional(),
+  /** Absent means published. `false` keeps the file and leaves the page out of the site. */
+  published: z.boolean().optional(),
   type: id.optional(),
   fields: z.record(z.string()).optional(),
   tags: stringList.optional(),
@@ -107,6 +109,8 @@ const libraryMedia = z.object({
   alt: z.string().optional(),
   caption: z.string().optional(),
   sort: z.number().optional(),
+  width: z.number().int().positive().optional(),
+  height: z.number().int().positive().optional(),
 }).passthrough();
 
 const handMedia = z.object({

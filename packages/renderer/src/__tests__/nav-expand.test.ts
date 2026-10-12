@@ -77,7 +77,7 @@ describe("resolveNavTree", () => {
     const doc = makeFixtureDoc();
     doc.tenants = [{ id: "hall" }, { id: "admin" }];
     doc.pages.push(
-      { id: "news", title: "News", type: "blog", zones: {} },
+      { id: "news", title: "News", type: "blog", fields: { showIndexInNav: "true" }, zones: {} },
       { id: "news-index", title: "Index", type: "blog-index", parentId: "news", zones: {} },
       { id: "fair", title: "Fair", type: "article", tags: ["fair"], fields: { tenant: "hall", date: "2026-07-14" }, zones: {} },
       { id: "hall-news", title: "Hall news", type: "blog", fields: { tenant: "hall" }, zones: {} },
@@ -92,7 +92,18 @@ describe("resolveNavTree", () => {
     expect(tree[0]!.children.map((child) => child.title)).toEqual(["Index", "hall", "admin"]);
     expect(tree[0]!.children[1]).toMatchObject({ id: "news", hash: "tenant/hall" });
     expect(tree[0]!.children.some((child) => child.id === "fair")).toBe(false);
-    expect(tree[1]!.children.map((child) => child.id)).toEqual(["hall-index"]);
+    expect(tree[1]!.children).toEqual([]);
     expect(tree[2]!.children).toEqual([]);
+  });
+
+  it("skips a row whose page is not in the document", () => {
+    const doc = makeFixtureDoc();
+    doc.nav = [
+      { id: "home", title: "Home", sidebar: true },
+      { id: "missing", title: "Gone", sidebar: true, children: [{ id: "home", title: "Nested" }] },
+      { heading: "Kept", sidebar: true },
+    ];
+    const tree = resolveNavTree(doc);
+    expect(tree.map((node) => node.id ?? node.heading)).toEqual(["home", "Kept"]);
   });
 });

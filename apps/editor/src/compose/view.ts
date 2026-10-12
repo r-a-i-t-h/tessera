@@ -60,6 +60,7 @@ export function composeFormInner(
     ? `<p class="w3-text-grey">This page's layout is fixed. Edit the words and the pictures.</p>`
     : `<div class="editor-palette">
         <p class="w3-small w3-text-grey">Drag onto the page, or click to add.</p>
+        <p><button type="button" class="w3-button w3-white w3-border" data-compose-list aria-pressed="false">List</button></p>
         ${PALETTE.map((item) => `<button type="button" class="w3-button w3-white w3-border" draggable="true" data-palette="${item.kind}">${item.label}</button>`).join("")}
       </div>`;
   const tenants = options?.tenants ?? [];

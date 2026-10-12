@@ -225,7 +225,10 @@ export class SiteStore {
   async write(kind: RecordKind, id: string, data: Record<string, unknown>): Promise<SaveResult> {
     this.assertId(id);
     let record = dropPrivateTitle(kind, { ...data, id });
-    if (kind === "content") record = await this.finalizeContent(id, record);
+    if (kind === "content") {
+      record = await this.finalizeContent(id, record);
+      if (record.published === false) await this.assertRemovable(id, "unpublish");
+    }
     validateAuthoredRecord(kind, id, record);
     const createdIndex = kind === "content" ? await this.ensureBlogIndex(record) : undefined;
     try {
@@ -311,6 +314,7 @@ export class SiteStore {
     const data = dropPrivateTitle(kind, parsed);
     if (kind === "content") {
       const record = await this.finalizeContent(id, { ...data, id });
+      if (record.published === false) await this.assertRemovable(id, "unpublish");
       validateAuthoredRecord(kind, id, record);
       const createdIndex = await this.ensureBlogIndex(record);
       try {
@@ -637,7 +641,14 @@ export class SiteStore {
       next.zones = zones;
     }
     if (type === "blog") {
+      const rawFields = next.fields;
+      const showIndex =
+        rawFields && typeof rawFields === "object" && !Array.isArray(rawFields)
+          ? (rawFields as Record<string, unknown>).showIndexInNav
+          : undefined;
       const fields = stringFields(next.fields);
+      if (showIndex === true || showIndex === "true") fields.showIndexInNav = "true";
+      else delete fields.showIndexInNav;
       const tenant = fields.tenant?.trim() ?? "";
       if (tenant) fields.tenant = tenant;
       else delete fields.tenant;
@@ -712,6 +723,102 @@ export class SiteStore {
       if (page.type === "blog") blogIds.add(page.id);
     }
     return markBlogLinks(data as NavEntry[], blogIds);
+  }
+
+  /**
+   * Home, and any page that is still another page's parent, stays.
+   * `unpublish` is a save that sets `published: false`. `delete` removes the file.
+   */
+  private async assertRemovable(id: string, action: "unpublish" | "delete"): Promise<void> {
+    const site = await this.readSite();
+    const home = typeof site.homePageId === "string" ? site.homePageId : "";
+    if (id === home) {
+      throw new Error(action === "delete" ? "The home page cannot be deleted." : "The home page cannot be unpublished.");
+    }
+    const children = (await this.contentRecords()).filter((page) => page.id !== id && page.parentId === id);
+    if (!children.length) return;
+    const names = children.map((page) => page.id).join(", ");
+    throw new Error(
+      action === "delete" ? `Delete the child pages first: ${names}.` : `Unpublish the child pages first: ${names}.`,
+    );
+  }
+
+  /** Refused while a page, layout, template, or binding still names the item. */
+  async deleteItem(id: string): Promise<void> {
+    this.assertId(id);
+    await this.read("items", id);
+    const users = await this.itemUsers(id);
+    if (users.length) throw new Error(`Item ${id} is still used by ${users.join(", ")}.`);
+    await this.removeRecord("items", id);
+    await this.rebuild();
+  }
+
+  /** Rename an item file and every include or binding that names it. */
+  async renameItem(id: string, nextId: string): Promise<void> {
+    this.assertId(id);
+    if (!isRecordId(nextId)) throw new Error(`Invalid record id "${nextId}".`);
+    if (nextId === id) return;
+    const record = await this.read("items", id);
+    const existing = await this.listIds("items");
+    if (existing.includes(nextId)) throw new Error(`Item ${nextId} already exists.`);
+    await this.commitRecord("items", nextId, recordToYaml("items", { ...record, id: nextId }), { rebuild: false });
+    await this.rewriteItemId(id, nextId);
+    await this.removeRecord("items", id);
+    await this.rebuild();
+  }
+
+  private async itemUsers(id: string): Promise<string[]> {
+    const users: string[] = [];
+    for (const page of await this.contentRecords()) {
+      if (page.includes?.includes(id)) users.push(page.id);
+    }
+    for (const kind of ["layouts", "templates"] as const) {
+      for (const recordId of await this.listIds(kind)) {
+        const record = await this.read(kind, recordId);
+        if (Array.isArray(record.includes) && record.includes.includes(id)) users.push(recordId);
+      }
+    }
+    for (const recordId of await this.listIds("bindings")) {
+      const record = await this.read("bindings", recordId);
+      if (record.itemId === id) users.push(recordId);
+    }
+    return users;
+  }
+
+  private async rewriteItemId(id: string, nextId: string): Promise<void> {
+    for (const page of await this.contentRecords()) {
+      if (!page.includes?.includes(id)) continue;
+      const includes = page.includes.map((item) => (item === id ? nextId : item));
+      await this.commitRecord("content", page.id, recordToYaml("content", { ...page, includes }), { rebuild: false });
+    }
+    for (const kind of ["layouts", "templates"] as const) {
+      for (const recordId of await this.listIds(kind)) {
+        const record = await this.read(kind, recordId);
+        if (!Array.isArray(record.includes) || !record.includes.includes(id)) continue;
+        const includes = record.includes.map((item) => (item === id ? nextId : item));
+        await this.commitRecord(kind, recordId, recordToYaml(kind, { ...record, id: recordId, includes }), { rebuild: false });
+      }
+    }
+    for (const recordId of await this.listIds("bindings")) {
+      const record = await this.read("bindings", recordId);
+      if (record.itemId !== id) continue;
+      await this.commitRecord("bindings", recordId, recordToYaml("bindings", { ...record, id: recordId, itemId: nextId }), {
+        rebuild: false,
+      });
+    }
+  }
+
+  /** Drop a content page, its history, and nav rows that name it. */
+  async deleteContent(id: string): Promise<void> {
+    this.assertId(id);
+    await this.read("content", id);
+    await this.assertRemovable(id, "delete");
+    const nav = await this.readNav();
+    if (Array.isArray(nav)) {
+      await this.commitText(this.navFile(), toYaml(stripNavId(nav, id)), { rebuild: false });
+    }
+    await this.removeRecord("content", id);
+    await this.rebuild();
   }
 
   /** Refused while an article or a blog still selects this tenant. */

@@ -12,6 +12,7 @@ export const SiteStyleSchema = z.object({
   fontD: z.string().optional(),
   fontsHref: z.string().optional(),
   navSide: z.enum(["left", "right"]).optional(),
+  footerStyle: z.enum(["fixed", "floating"]).optional(),
   bar: z.string().optional(),
   barText: z.string().optional(),
   sidebar: z.string().optional(),
@@ -36,6 +37,7 @@ export const STYLE_DEFAULTS: Required<SiteStyle> = {
   fontD: "Thasadith",
   fontsHref: "https://fonts.googleapis.com/css?family=Lekton|Roboto|Orbitron|Thasadith",
   navSide: "right",
+  footerStyle: "floating",
   bar: "#009688",
   barText: "#ffffff",
   sidebar: "#ffffff",
@@ -91,6 +93,7 @@ export function resolveSiteStyle(style: SiteStyle | undefined): Required<SiteSty
     fontD: font(source.fontD, STYLE_DEFAULTS.fontD),
     fontsHref: href(source.fontsHref, STYLE_DEFAULTS.fontsHref),
     navSide: source.navSide === "left" ? "left" : source.navSide === "right" ? "right" : STYLE_DEFAULTS.navSide,
+    footerStyle: source.footerStyle === "fixed" ? "fixed" : source.footerStyle === "floating" ? "floating" : STYLE_DEFAULTS.footerStyle,
     bar: color(source.bar, STYLE_DEFAULTS.bar),
     barText: color(source.barText, STYLE_DEFAULTS.barText),
     sidebar: color(source.sidebar, STYLE_DEFAULTS.sidebar),
@@ -150,10 +153,12 @@ export function siteStyleOverrideCss(style: SiteStyle | undefined, selector = ":
   return cssBlock(selector, lines);
 }
 
-/** Body classes for the default font and the menu side. */
+/** Body classes for the default font, the menu side, and a pinned footer. */
 export function siteBodyClass(style: SiteStyle | undefined): string {
-  const side = resolveSiteStyle(style).navSide === "left" ? "leftnav" : "rightnav";
-  return `${side} fontA`;
+  const resolved = resolveSiteStyle(style);
+  const side = resolved.navSide === "left" ? "leftnav" : "rightnav";
+  const footer = resolved.footerStyle === "fixed" ? " footer-fixed" : "";
+  return `${side}${footer} fontA`;
 }
 
 function size(value: string | undefined, fallback: string): string {

@@ -373,4 +373,51 @@ describe("record routes", () => {
     expect(record.layout.masterSource).toBe("ancestor");
     expect(record.layout.masterFromPageId).toBe("events");
   });
+
+  it("omits an unpublished page and refuses to unpublish or delete a parent or the home page", async () => {
+    await site.write("content", "about", {
+      title: "About",
+      zones: { main: { html: "<p>About</p>" } },
+    });
+    await site.write("content", "note", {
+      title: "Note",
+      parentId: "about",
+      zones: { main: { html: "<p>Note</p>" } },
+    });
+    await expect(
+      site.write("content", "about", {
+        title: "About",
+        published: false,
+        zones: { main: { html: "<p>About</p>" } },
+      }),
+    ).rejects.toThrow(/note/);
+    await expect(
+      site.write("content", "home", {
+        title: "Home",
+        published: false,
+        zones: { main: { html: "<p>Hello</p>" } },
+      }),
+    ).rejects.toThrow(/home page/);
+
+    await site.write("content", "note", {
+      title: "Note",
+      parentId: "about",
+      published: false,
+      zones: { main: { html: "<p>Note</p>" } },
+    });
+    const hidden = await site.flatten();
+    expect(hidden?.pages.map((page) => page.id).sort()).toEqual(["about", "home"]);
+    expect(await site.read("content", "note")).toMatchObject({ published: false });
+
+    await site.writeNav([
+      { id: "home", title: "Home" },
+      { id: "about", title: "About" },
+    ]);
+    await expect(site.deleteContent("home")).rejects.toThrow(/home page/);
+    await expect(site.deleteContent("about")).rejects.toThrow(/note/);
+    await site.deleteContent("note");
+    await site.deleteContent("about");
+    await expect(site.read("content", "about")).rejects.toThrow();
+    expect(await site.readNav()).toEqual([{ id: "home", title: "Home" }]);
+  });
 });

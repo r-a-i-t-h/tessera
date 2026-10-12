@@ -42,8 +42,10 @@ describe("site style", () => {
     expect(siteStyleOverrideCss({ bar: "#009688", fontA: "Source Sans 3" })).toBe(
       `:root {\n  --tessera-font-a: "Source Sans 3", sans-serif;\n}`,
     );
+    expect(resolved.footerStyle).toBe("floating");
     expect(siteBodyClass(doc.site.style)).toBe("rightnav fontA");
     expect(siteBodyClass({ navSide: "left" })).toBe("leftnav fontA");
+    expect(siteBodyClass({ footerStyle: "fixed" })).toBe("rightnav footer-fixed fontA");
   });
 
   it("rejects unsafe tokens and falls back when emitting CSS", () => {

@@ -52,6 +52,7 @@ export const ARTICLE_FORM: FormSchema = {
     { name: "title", label: "Title", type: "string", required: true },
     { name: "description", label: "Description", type: "string" },
     { name: "slug", label: "Slug", type: "string" },
+    { name: "published", label: "Published", type: "Checkbox", defaultChecked: true },
     { name: "tags", label: "Tags", type: "string", list: true },
   ],
 };
@@ -77,6 +78,7 @@ export const CONTENT_FORM: FormSchema = {
     { name: "masterLayoutId", label: "Frame", type: "string" },
     { name: "type", label: "Type", type: "string" },
     { name: "showInNav", label: "Show in nav", type: "Checkbox", defaultChecked: true },
+    { name: "published", label: "Published", type: "Checkbox", defaultChecked: true },
     { name: "tags", label: "Tags", type: "string", list: true },
   ],
 };

@@ -62,6 +62,7 @@ export function paletteFor(frame: boolean): PaletteItem[][] {
         { id: "topbar", label: "Header" },
         { id: "region", label: "Region" },
         { id: "footer", label: "Footer" },
+        { id: "zone", label: "Zone" },
       ],
       [{ id: "page", label: "Page" }],
       [
@@ -91,9 +92,6 @@ export function paletteFor(frame: boolean): PaletteItem[][] {
 export function nodesFor(id: PaletteId, root: LayoutNode): { ok: true; nodes: LayoutNode[] } | { ok: false; error: string } {
   if (id === "page" && countKind(root, "page") > 0) {
     return { ok: false, error: "This frame already has its page slot." };
-  }
-  if (id === "zone" && isFrame(root)) {
-    return { ok: false, error: "A zone on the frame is not a Compose canvas. Add it on the page layout." };
   }
   return { ok: true, nodes: presetNodes(id, root) };
 }

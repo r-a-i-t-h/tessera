@@ -79,7 +79,7 @@ function blogChildren(
   };
   const index = document.pages.find((page) => page.type === "blog-index" && page.parentId === blog.id);
   const out: ResolvedNavNode[] = [];
-  if (index) out.push({ ...flags, id: index.id, title: index.title });
+  if (index && blog.fields?.showIndexInNav === "true") out.push({ ...flags, id: index.id, title: index.title });
   const pinned = blog.fields?.tenant?.trim() ?? "";
   if (!pinned) {
     for (const tenant of document.tenants ?? []) {
@@ -94,11 +94,17 @@ function blogChildren(
   return out;
 }
 
-function resolveEntry(document: SiteDocument, entry: NavEntry): ResolvedNavNode {
+function pageIsPresent(document: SiteDocument, id: string): boolean {
+  return document.pages.some((page) => page.id === id);
+}
+
+function resolveEntry(document: SiteDocument, entry: NavEntry): ResolvedNavNode | undefined {
+  if (entry.id && !pageIsPresent(document, entry.id)) return undefined;
   const children: ResolvedNavNode[] = [];
 
   for (const child of entry.children ?? []) {
-    children.push(resolveEntry(document, child));
+    const resolved = resolveEntry(document, child);
+    if (resolved) children.push(resolved);
   }
 
   if (entry.source) {
@@ -138,7 +144,12 @@ function resolveEntry(document: SiteDocument, entry: NavEntry): ResolvedNavNode 
  * Does not invent entries for pages merely because they exist.
  */
 export function resolveNavTree(document: SiteDocument): ResolvedNavNode[] {
-  return document.nav.map((e) => resolveEntry(document, e));
+  const out: ResolvedNavNode[] = [];
+  for (const entry of document.nav) {
+    const resolved = resolveEntry(document, entry);
+    if (resolved) out.push(resolved);
+  }
+  return out;
 }
 
 /** Depth-first flatten (headings + links) for nav components. */
