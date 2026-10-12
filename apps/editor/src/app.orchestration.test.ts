@@ -202,7 +202,10 @@ describe("editor route orchestration", () => {
     root.querySelector<HTMLButtonElement>("[data-action=new-item]")?.click();
     const form = root.querySelector<HTMLFormElement>("#new-item-form");
     expect(form?.hidden).toBe(false);
-    expect(form?.querySelector("#new-item-zone")).toBeTruthy();
+    const zone = form?.querySelector<HTMLSelectElement>("#new-item-zone");
+    expect(zone?.tagName).toBe("SELECT");
+    expect(zone?.options[0]?.textContent).toBe("-- none --");
+    expect(zone?.value).toBe("");
     expect(form?.querySelector("#new-item-content")?.textContent).toContain("Component");
     expect(form?.querySelector("#new-item-content")?.textContent).toContain("Blocks");
 

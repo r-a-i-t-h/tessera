@@ -1,3 +1,5 @@
+import { collectDeclaredZones, type LayoutNode } from "@r-a-i-t-h/tessera-model";
+
 /** A zone id safe to use as a form path (`zones.<id>.html` splits on dots). */
 const ZONE_ID = /^[A-Za-z][A-Za-z0-9_-]*$/;
 
@@ -14,9 +16,18 @@ export type NewItemBody = {
   zones: Record<string, ItemZone>;
 };
 
+/** Zone ids declared by these layouts, in layout order. A repeated id is kept once. */
+export function zonesDeclaredBy(roots: readonly LayoutNode[]): string[] {
+  const seen = new Set<string>();
+  for (const root of roots) {
+    for (const id of collectDeclaredZones(root)) seen.add(id);
+  }
+  return [...seen];
+}
+
 export function itemZoneError(zone: string): string | undefined {
   const name = zone.trim();
-  if (!name) return "Enter a zone.";
+  if (!name) return undefined;
   if (!ZONE_ID.test(name)) {
     return "Zone must start with a letter, then only letters, numbers, hyphens, or underscores.";
   }
@@ -28,9 +39,10 @@ export function itemContent(value: string): ItemContent {
   return "html";
 }
 
-/** A shared item that fills one layout zone. JSON starts empty. Blocks start as an empty array. */
+/** A shared item that fills one layout zone. A blank zone fills none. JSON starts empty. Blocks start as an empty array. */
 export function newItemBody(id: string, zone: string, content: ItemContent = "html", componentName = ""): NewItemBody {
   const name = zone.trim();
+  if (!name) return { id: id.trim(), zones: {} };
   return {
     id: id.trim(),
     zones: { [name]: zoneFor(content, componentName) },

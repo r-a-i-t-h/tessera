@@ -74,7 +74,7 @@ import {
   type PageChoice,
 } from "./forms/nav.js";
 import { articleMeta, blogMeta, heroField, indexNote } from "./forms/article.js";
-import { formatJsonText, itemContent, itemZoneError, jsonText, newItemBody, tidyItemRecord } from "./forms/item.js";
+import { formatJsonText, itemContent, itemZoneError, jsonText, newItemBody, tidyItemRecord, zonesDeclaredBy } from "./forms/item.js";
 import { newPageBody, newTemplateBody, pageFromTemplate, pageIdError, withSidebarLink } from "./forms/page.js";
 import {
   applyTypeAction,
@@ -798,8 +798,9 @@ async function bindList(
   const active = activeRecordKind(listing, kind);
   const layoutNotes = active === "layouts" ? await loadLayoutListNotes(listing) : new Map<string, string>();
   const bindingInfo = active === "bindings" ? await loadBindingListInfo(listing) : undefined;
+  const itemZones = active === "items" ? await loadItemZones(listing) : [];
   const listNotes = bindingInfo?.notes ?? layoutNotes;
-  root.innerHTML = chrome(user, listHtml(listing, kind, notice, error, listNotes), true, "records");
+  root.innerHTML = chrome(user, listHtml(listing, kind, notice, error, listNotes, itemZones), true, "records");
   bindChrome(root);
   bindInitSite(root, (nextNotice, nextError) => bindList(root, user, kind, nextNotice, nextError));
   if (active === "blogs") bindBlogs(root, user, listing);
@@ -849,6 +850,9 @@ async function bindList(
     void createType(root, listing);
   });
   const newItem = root.querySelector<HTMLFormElement>("#new-item-form");
+  newItem?.querySelector("#new-item-zone")?.addEventListener("change", () => {
+    if (newItem) syncNewItemContent(newItem);
+  });
   newItem?.querySelector("#new-item-content")?.addEventListener("change", () => {
     if (newItem) syncNewItemContent(newItem);
   });
@@ -961,7 +965,7 @@ async function createLayout(root: HTMLElement, listing: RecordList): Promise<voi
 async function createItem(root: HTMLElement, listing: RecordList): Promise<void> {
   const form = root.querySelector<HTMLFormElement>("#new-item-form");
   if (!form) return;
-  const zone = form.querySelector<HTMLInputElement>("#new-item-zone")?.value ?? "";
+  const zone = form.querySelector<HTMLSelectElement>("#new-item-zone")?.value ?? "";
   const zoneProblem = itemZoneError(zone);
   if (zoneProblem) {
     showFormError(form, zoneProblem);
@@ -969,7 +973,7 @@ async function createItem(root: HTMLElement, listing: RecordList): Promise<void>
   }
   const content = itemContent(form.querySelector<HTMLSelectElement>("#new-item-content")?.value ?? "");
   const componentName = form.querySelector<HTMLInputElement>("#new-item-component")?.value ?? "";
-  if (content === "component" && !componentName.trim()) {
+  if (zone && content === "component" && !componentName.trim()) {
     showFormError(form, "Enter a component name.");
     return;
   }
@@ -1545,6 +1549,7 @@ function listHtml(
   notice = "",
   error = "",
   layoutNotes: Map<string, string> = new Map(),
+  itemZones: readonly string[] = [],
 ): string {
   const byKind = new Map<string, RecordSummary[]>();
   for (const rec of listing.records) {
@@ -1565,7 +1570,7 @@ function listHtml(
     ${statusPanels(notice, error)}
     ${siteReady ? "" : startSiteHtml()}
     <nav class="editor-tabs" aria-label="Record types">${tabs}</nav>
-    ${recordTab(listing, active, byKind, siteReady, layoutNotes)}`;
+    ${recordTab(listing, active, byKind, siteReady, layoutNotes, itemZones)}`;
 }
 
 function recordTab(
@@ -1574,6 +1579,7 @@ function recordTab(
   byKind: Map<string, RecordSummary[]>,
   siteReady: boolean,
   layoutNotes: Map<string, string> = new Map(),
+  itemZones: readonly string[] = [],
 ): string {
   if (active === "blogs") {
     return `<section class="editor-kind" aria-label="Blogs">${blogsSection(listing)}</section>`;
@@ -1593,7 +1599,7 @@ function recordTab(
             : kind.kind === "bindings"
               ? bindingSection(rows, siteReady, layoutNotes)
               : kind.kind === "items"
-                ? itemSection(rows, siteReady)
+                ? itemSection(rows, siteReady, itemZones)
                 : kind.kind === "site" || kind.kind === "nav"
           ? singletonEditorMount(kind.kind, rows[0])
           : kindPanel(rows);
@@ -1667,6 +1673,20 @@ async function loadLayoutListNotes(listing: RecordList): Promise<Map<string, str
     return notes;
   }
   return notes;
+}
+
+/** Zone ids declared by the site’s layouts, in list order. A layout that fails to load is skipped. */
+async function loadItemZones(listing: RecordList): Promise<string[]> {
+  const layouts = listing.records.filter((row) => row.kind === "layouts");
+  if (!layouts.length) return [];
+  const settled = await Promise.allSettled(layouts.map((row) => getRecord("layouts", row.id)));
+  const roots = [];
+  for (const result of settled) {
+    if (result.status !== "fulfilled") continue;
+    const root = asLayoutNode(asRecord(result.value.data)?.root);
+    if (root) roots.push(root);
+  }
+  return zonesDeclaredBy(roots);
 }
 
 function layoutListNote(
@@ -2049,8 +2069,11 @@ function bindEntryFilter(root: HTMLElement): void {
   });
 }
 
-function itemSection(rows: RecordSummary[], siteReady: boolean): string {
+function itemSection(rows: RecordSummary[], siteReady: boolean, zones: readonly string[] = []): string {
   if (!siteReady) return `<p class="w3-text-grey">No records yet.</p>`;
+  const zoneOptions = zones
+    .map((id) => `<option value="${escapeHtml(id)}">${escapeHtml(id)}</option>`)
+    .join("");
   return `<p><button type="button" class="w3-button w3-theme" data-action="new-item">New item</button></p>
     <form id="new-item-form" class="editor-new-page" hidden>
       <p><label for="new-item-id">Id</label>
@@ -2058,9 +2081,13 @@ function itemSection(rows: RecordSummary[], siteReady: boolean): string {
       </p>
       <p class="w3-text-grey">One file, <code>records/items/&lt;id&gt;.yaml</code>. Start with a letter or number, then letters, numbers, dots, hyphens, or underscores.</p>
       <p><label for="new-item-zone">Zone</label>
-        <input id="new-item-zone" name="zone" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" placeholder="footer" />
+        <select id="new-item-zone" name="zone" class="w3-select w3-border w3-margin-top">
+          <option value="">-- none --</option>
+          ${zoneOptions}
+        </select>
       </p>
-      <p><label for="new-item-content">Content</label>
+      <p class="w3-text-grey">The layout zone this item fills. <strong>-- none --</strong> leaves it with no zone.</p>
+      <p data-item-fill hidden><label for="new-item-content">Content</label>
         <select id="new-item-content" name="content" class="w3-select w3-border w3-margin-top">
           <option value="html">HTML</option>
           <option value="json">JSON</option>
@@ -2072,7 +2099,7 @@ function itemSection(rows: RecordSummary[], siteReady: boolean): string {
         <input id="new-item-component" name="component" class="w3-input w3-border w3-margin-top" autocomplete="off" spellcheck="false" placeholder="eventList" />
       </p>
       <p data-item-component hidden class="w3-text-grey">The catalogue name, such as <code>eventList</code>.</p>
-      <p class="w3-text-grey">The layout zone this item fills, such as <code>footer</code>. HTML opens a markup box. JSON opens an empty JSON box. A component asks for its catalogue name. Blocks opens an empty JSON array.</p>
+      <p data-item-fill hidden class="w3-text-grey">HTML opens a markup box. JSON opens an empty JSON box. A component asks for its catalogue name. Blocks opens an empty JSON array.</p>
       ${formErrorPanel()}
       <p><button type="submit" class="w3-button w3-theme">Create item</button></p>
     </form>
@@ -2948,9 +2975,13 @@ function zoneEditor(name: string, zone: unknown, offLayout: boolean, item = fals
 }
 
 function syncNewItemContent(form: HTMLFormElement): void {
+  const zone = form.querySelector<HTMLSelectElement>("#new-item-zone")?.value ?? "";
   const content = form.querySelector<HTMLSelectElement>("#new-item-content")?.value;
+  for (const row of form.querySelectorAll<HTMLElement>("[data-item-fill]")) {
+    row.hidden = !zone;
+  }
   for (const row of form.querySelectorAll<HTMLElement>("[data-item-component]")) {
-    row.hidden = content !== "component";
+    row.hidden = !zone || content !== "component";
   }
 }
 

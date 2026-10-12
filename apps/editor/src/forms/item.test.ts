@@ -1,11 +1,33 @@
 import { describe, expect, it } from "vitest";
-import { formatJsonText, itemZoneError, jsonText, newItemBody, parseJsonText, tidyItemRecord } from "./item.js";
+import { formatJsonText, itemZoneError, jsonText, newItemBody, parseJsonText, tidyItemRecord, zonesDeclaredBy } from "./item.js";
 
 describe("new item", () => {
-  it("accepts a zone name and rejects blanks and punctuation", () => {
+  it("unions zones in layout order and drops duplicates", () => {
+    expect(
+      zonesDeclaredBy([
+        {
+          type: "region",
+          children: [
+            { type: "zone", id: "title" },
+            { type: "zone", id: "main" },
+          ],
+        },
+        {
+          type: "region",
+          children: [
+            { type: "page" },
+            { type: "zone", id: "main" },
+            { type: "zone", id: "footer" },
+          ],
+        },
+      ]),
+    ).toEqual(["title", "main", "footer"]);
+  });
+
+  it("accepts a zone name or none, and rejects punctuation", () => {
     expect(itemZoneError(" footer ")).toBeUndefined();
-    expect(itemZoneError("")).toMatch(/zone/i);
-    expect(itemZoneError("  ")).toMatch(/zone/i);
+    expect(itemZoneError("")).toBeUndefined();
+    expect(itemZoneError("  ")).toBeUndefined();
     expect(itemZoneError("footer.note")).toMatch(/letter/);
     expect(itemZoneError("-footer")).toMatch(/letter/);
   });
@@ -15,6 +37,11 @@ describe("new item", () => {
       id: "common-footer",
       zones: { footer: { html: "" } },
     });
+  });
+
+  it("starts with no zone when none is chosen", () => {
+    expect(newItemBody("note", "")).toEqual({ id: "note", zones: {} });
+    expect(newItemBody("note", "  ", "json")).toEqual({ id: "note", zones: {} });
   });
 
   it("starts a JSON item as an empty value in the named zone", () => {
