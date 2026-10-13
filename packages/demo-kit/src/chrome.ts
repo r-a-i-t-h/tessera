@@ -1,5 +1,5 @@
 
-import { resolveSiteStyle, siteStyleOverrideCss, type SiteStyle } from "@r-a-i-t-h/tessera-model";
+import { resolveSiteStyle, siteBodyClass, siteStyleOverrideCss, type SiteStyle } from "@r-a-i-t-h/tessera-model";
 import { escapeHtml } from "@r-a-i-t-h/tessera-renderer";
 
 const FONT_STORAGE_KEY = "tessera-font";
@@ -94,8 +94,8 @@ export function applySiteChrome(style: SiteStyle | undefined): void {
       }
       link.href = resolved.fontsHref;
     }
-    document.body.classList.remove("leftnav", "rightnav", ...bodySwitch.sets.font);
-    document.body.classList.add(resolved.navSide === "left" ? "leftnav" : "rightnav", "fontA");
+    document.body.classList.remove("leftnav", "rightnav", "footer-fixed", ...bodySwitch.sets.font);
+    document.body.classList.add(...siteBodyClass(style).split(/\s+/).filter(Boolean));
   }
   restoreFontChoice();
   wireSidebarToggle();

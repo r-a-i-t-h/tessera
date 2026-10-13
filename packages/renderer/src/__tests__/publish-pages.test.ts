@@ -236,6 +236,18 @@ describe("publishPages style", () => {
     expect(home.contents).toContain("https://fonts.googleapis.com/css?family=Lekton|Roboto|Orbitron|Thasadith");
   });
 
+  it("writes footer-fixed on the body when footerStyle is fixed", () => {
+    const styled = parseSiteDocument({
+      ...document,
+      site: {
+        ...document.site,
+        style: { navSide: "left", footerStyle: "fixed" },
+      },
+    });
+    const home = publishPages(styled, { origin: "https://example.test" }).find((file) => file.path === "index.html")!;
+    expect(home.contents).toContain('<body class="leftnav footer-fixed fontA">');
+  });
+
   it("leaves default tokens in the stylesheet instead of copying them into the header", () => {
     const styled = parseSiteDocument({
       ...document,
