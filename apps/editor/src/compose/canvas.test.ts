@@ -179,6 +179,36 @@ describe("compose drag ghost", () => {
   });
 });
 
+describe("section actions", () => {
+  it("groups up, down, and remove on the right and moves a section from the icon", () => {
+    dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;
+    const form = dom.document.querySelector("form");
+    if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
+    mountComposeCanvases(form, {
+      bindings: [],
+      htmlByZone: { main: `<h2>First</h2><h2>Second</h2>` },
+    });
+
+    const groups = [...form.querySelectorAll(".editor-section-actions")];
+    expect(groups).toHaveLength(2);
+    const labels = [...groups[0]!.querySelectorAll("button")].map((button) => button.getAttribute("aria-label"));
+    expect(labels).toEqual(["Up", "Down", "Remove"]);
+    expect(groups[0]!.querySelector<HTMLButtonElement>("[data-move=up]")?.disabled).toBe(true);
+    expect(groups[1]!.querySelector<HTMLButtonElement>("[data-move=down]")?.disabled).toBe(true);
+    const bar = groups[0]!.parentElement;
+    expect(bar?.lastElementChild).toBe(groups[0]);
+
+    const icon = groups[0]!.querySelector("[data-move=down] svg");
+    if (!icon) throw new Error("down icon");
+    icon.dispatchEvent(new dom.MouseEvent("click", { bubbles: true }));
+
+    const kinds = [...form.querySelectorAll(".editor-section-kind")].map((node) => node.textContent);
+    expect(kinds[0]).toBe("Heading");
+    const headings = [...form.querySelectorAll("[data-field=text]")].map((node) => node.textContent);
+    expect(headings).toEqual(["Second", "First"]);
+  });
+});
+
 describe("image preview", () => {
   it("shows a library image from the preview and keeps the published address", () => {
     dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;

@@ -247,7 +247,8 @@ textarea.w3-input.editor-html {
   gap: 0.05rem;
 }
 
-.editor-nav-icon {
+.editor-nav-icon,
+.editor-section-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -261,14 +262,23 @@ textarea.w3-input.editor-html {
   cursor: pointer;
 }
 
-.editor-nav-icon svg {
+.editor-nav-icon svg,
+.editor-section-icon svg {
   width: 0.95rem;
   height: 0.95rem;
 }
 
-.editor-nav-icon:hover {
+.editor-nav-icon:hover,
+.editor-section-icon:hover {
   color: #111;
   background: #f2f2f2;
+}
+
+.editor-section-icon:disabled,
+.editor-section-icon:disabled:hover {
+  color: #bbb;
+  background: transparent;
+  cursor: default;
 }
 
 .editor-nav-meta {
@@ -556,6 +566,14 @@ img[data-hero-preview] {
   margin-bottom: 0.35rem;
   color: #555;
   font-size: 0.85rem;
+}
+
+.editor-section-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.05rem;
+  margin-left: auto;
 }
 
 .editor-handle {

@@ -13,6 +13,7 @@ import {
   type ToneId,
 } from "@r-a-i-t-h/tessera-sections";
 import { setDragGhost } from "../drag-ghost.js";
+import { REORDER_ICONS } from "../editor-icons.js";
 import { editorMediaHtml, editorMediaSrc } from "../forms/media-url.js";
 
 export type BindingChoice = { id: string; title?: string };
@@ -201,10 +202,14 @@ function itemsWithDrops(zone: ZoneState): string {
   return parts.join("");
 }
 
-function moveButtons(index: number, count: number): string {
+function sectionActions(index: number, count: number): string {
   const up = index <= 0 ? " disabled" : "";
   const down = index >= count - 1 ? " disabled" : "";
-  return `<button type="button" class="w3-button w3-small w3-white" data-move="up"${up}>Up</button><button type="button" class="w3-button w3-small w3-white" data-move="down"${down}>Down</button>`;
+  return `<span class="editor-section-actions">${sectionIcon("Up", REORDER_ICONS.up, `data-move="up"${up}`)}${sectionIcon("Down", REORDER_ICONS.down, `data-move="down"${down}`)}${sectionIcon("Remove", REORDER_ICONS.remove, "data-remove")}</span>`;
+}
+
+function sectionIcon(label: string, icon: string, attributes: string): string {
+  return `<button type="button" class="editor-section-icon" aria-label="${label}" title="${label}" ${attributes}>${icon}</button>`;
 }
 
 function choicesFor(host: HTMLElement): Choices {
@@ -214,16 +219,14 @@ function choicesFor(host: HTMLElement): Choices {
 }
 
 function renderItem(node: EditNode, choices: Choices, zone: string, locked: boolean, index = 0, count = 1): string {
-  const move = locked
-    ? ""
-    : `<span class="editor-handle" draggable="true" data-drag title="Drag to move">Drag</span>${moveButtons(index, count)}`;
-  const remove = locked ? "" : `<button type="button" class="w3-button w3-small w3-white" data-remove>Remove</button>`;
+  const drag = locked ? "" : `<span class="editor-handle" draggable="true" data-drag title="Drag to move">Drag</span>`;
+  const actions = locked ? "" : sectionActions(index, count);
   return `<article class="editor-section" data-item-id="${node.uid}" data-zone="${escapeAttr(zone)}">
     <div class="editor-section-bar">
-      ${move}
+      ${drag}
       <span class="editor-section-kind">${escapeText(labelFor(node))}</span>
       ${propsFor(node, choices, locked)}
-      ${remove}
+      ${actions}
     </div>
     <div class="editor-section-body">${bodyFor(node, choices, zone, locked)}</div>
   </article>`;
@@ -572,7 +575,7 @@ function isDesignField(kind: EditNode["kind"], field: string): boolean {
 
 function onClick(form: HTMLFormElement, event: MouseEvent): void {
   const target = event.target;
-  if (!(target instanceof HTMLElement)) return;
+  if (!(target instanceof Element)) return;
   const state = mounted.get(form);
   if (!state) return;
   const palette = target.closest<HTMLElement>("[data-palette]");
