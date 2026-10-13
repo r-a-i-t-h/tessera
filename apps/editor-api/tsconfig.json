@@ -11,6 +11,8 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
     "types": ["node"]
   },
   "include": ["src/**/*.ts", "scripts/**/*.ts", "tests/**/*.ts", "vitest.config.ts"]

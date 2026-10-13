@@ -52,7 +52,7 @@ function rewriteNavEntryId(entries: unknown[], from: string, to: string): unknow
       continue;
     }
     const row = entry as Record<string, unknown>;
-    const next = { ...row, ...(row.id === from ? { id: to } : {}) };
+    const next: Record<string, unknown> = { ...row, ...(row.id === from ? { id: to } : {}) };
     if (Array.isArray(row.children)) next.children = rewriteNavEntryId(row.children, from, to);
     out.push(next);
   }
