@@ -10,5 +10,5 @@ export {
   toneLabel,
   youtubeVideoId,
 } from "./sections.js";
-export { renderMarkdownLinks } from "./html.js";
+export { renderMarkdownLinks, restoreMarkdownLinks } from "./html.js";
 export type { ColumnCell, GalleryMode, PaletteKind, Section, ToneId } from "./sections.js";

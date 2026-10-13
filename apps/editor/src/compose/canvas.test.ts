@@ -120,6 +120,28 @@ describe("compose palette", () => {
     expect(blank?.getAttribute("data-placeholder")).toBe("Heading");
   });
 
+  it("shows saved anchors as markdown while editing and stores anchors again", () => {
+    dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;
+    const form = dom.document.querySelector("form");
+    if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
+    mountComposeCanvases(form, {
+      bindings: [],
+      htmlByZone: {
+        main: `<div class="tessera-text"><h2>Title</h2><p>See <a href="https://example.com/hall">Hall</a>.</p></div>`,
+      },
+    });
+
+    const body = form.querySelector<HTMLElement>(".editor-text-body");
+    if (!body) throw new Error("body");
+    expect(body.textContent).toContain("[Hall](https://example.com/hall)");
+    expect(body.innerHTML).not.toMatch(/<a\s/i);
+
+    body.innerHTML = "<p>Visit [Hall](https://example.com/hall) today.</p>";
+    body.dispatchEvent(new dom.Event("input", { bubbles: true }));
+    const html = readComposeHtml(form).main ?? "";
+    expect(html).toContain('<a href="https://example.com/hall">Hall</a>');
+  });
+
   it("keeps a locked page's words editable and its structure fixed", () => {
     dom.document.body.innerHTML = `<form>
       <button type="button" data-palette="text">Text</button>

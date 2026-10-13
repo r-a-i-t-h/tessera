@@ -240,6 +240,14 @@ export function renderMarkdownLinks(html: string): string {
   return serializeChildren(root.children);
 }
 
+/** Turn simple anchors into `[text](url)` for editing. Skips links that would not round-trip through {@link renderMarkdownLinks}. */
+export function restoreMarkdownLinks(html: string): string {
+  if (!html.includes("<a")) return html;
+  const root = parseFragment(html);
+  rewriteAnchorsToMarkdown(root);
+  return serializeChildren(root.children);
+}
+
 function rewriteMarkdownLinks(node: ElNode): void {
   const next: HtmlNode[] = [];
   for (const child of node.children) {
@@ -283,6 +291,32 @@ function markdownHref(href: string): boolean {
     return true;
   }
   return !/^[a-z][a-z0-9+.-]*:/i.test(href);
+}
+
+function rewriteAnchorsToMarkdown(node: ElNode): void {
+  const next: HtmlNode[] = [];
+  for (const child of node.children) {
+    if (child.type === "el" && child.tag === "a") {
+      const md = anchorToMarkdown(child);
+      if (md) {
+        next.push({ type: "text", text: md });
+        continue;
+      }
+    }
+    if (child.type === "el") rewriteAnchorsToMarkdown(child);
+    next.push(child);
+  }
+  node.children = next;
+}
+
+function anchorToMarkdown(el: ElNode): string | null {
+  const href = el.attrs.find((attr) => attr.name === "href")?.value ?? "";
+  if (!markdownHref(href) || /[)\s]/.test(href)) return null;
+  if (el.attrs.some((attr) => attr.name !== "href")) return null;
+  if (el.children.length !== 1 || el.children[0]?.type !== "text") return null;
+  const label = el.children[0].text;
+  if (/[\]\n]/.test(label)) return null;
+  return `[${label}](${href})`;
 }
 
 function decodeEntities(value: string): string {

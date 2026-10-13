@@ -5,6 +5,7 @@ import {
   paintSections,
   parseSections,
   renderMarkdownLinks,
+  restoreMarkdownLinks,
   toneClass,
   toneLabel,
   youtubeVideoId,
@@ -387,15 +388,15 @@ function bodyFor(node: EditNode, choices: Choices, zone: string, locked: boolean
     case "heading":
       return `<h${node.level} contenteditable="true" data-field="text" data-plain="true" data-placeholder="Heading">${escapeText(node.text)}</h${node.level}>`;
     case "text":
-      return `<div class="editor-text"><h${node.level} contenteditable="true" data-field="heading" data-plain="true" data-placeholder="Heading">${escapeText(node.heading)}</h${node.level}><div class="editor-text-body" contenteditable="true" data-field="html" data-blocks="true" data-placeholder="Write…">${node.html}</div></div>`;
+      return `<div class="editor-text"><h${node.level} contenteditable="true" data-field="heading" data-plain="true" data-placeholder="Heading">${escapeText(node.heading)}</h${node.level}><div class="editor-text-body" contenteditable="true" data-field="html" data-blocks="true" data-placeholder="Write…">${htmlForEditing(node.html)}</div></div>`;
     case "panel":
-      return `<div class="${joinClass("w3-panel", "w3-padding", toneClass(node.tone))}"><div contenteditable="true" data-field="html" data-placeholder="Panel">${node.html}</div></div>`;
+      return `<div class="${joinClass("w3-panel", "w3-padding", toneClass(node.tone))}"><div contenteditable="true" data-field="html" data-placeholder="Panel">${htmlForEditing(node.html)}</div></div>`;
     case "quote":
       return quoteBody(node);
     case "imgbox":
       return imgboxBody(node);
     case "card":
-      return `<div class="w3-card w3-padding w3-margin-bottom w3-white"><h3 class="w3-text-theme" data-card-title>${escapeText(node.title)}</h3><div class="rt-card-body" contenteditable="true" data-field="html" data-placeholder="Card">${node.html}</div></div>`;
+      return `<div class="w3-card w3-padding w3-margin-bottom w3-white"><h3 class="w3-text-theme" data-card-title>${escapeText(node.title)}</h3><div class="rt-card-body" contenteditable="true" data-field="html" data-placeholder="Card">${htmlForEditing(node.html)}</div></div>`;
     case "columns":
       return columnsBody(node, choices, zone, locked);
     case "insert": {
@@ -412,7 +413,7 @@ function bodyFor(node: EditNode, choices: Choices, zone: string, locked: boolean
       return `<p class="w3-panel w3-pale-yellow">Gallery: ${escapeText(name)} (${node.mode === "slides" ? "slides" : "grid"})</p>`;
     }
     case "pasted":
-      return `<div class="tessera-pasted"><div class="tessera-pasted-sheet"><div contenteditable="true" data-field="html" data-placeholder="Write on the paper…">${node.html}</div></div></div>`;
+      return `<div class="tessera-pasted"><div class="tessera-pasted-sheet"><div contenteditable="true" data-field="html" data-placeholder="Write on the paper…">${htmlForEditing(node.html)}</div></div></div>`;
     case "html":
       return `<div class="editor-html-preview">${editorMediaHtml(renderMarkdownLinks(node.html))}</div>`;
   }
@@ -486,11 +487,11 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
   mark(form);
   try {
     if (field === "html" && target.isContentEditable && node.kind === "text") {
-      node.html = readTextHtml(target.innerHTML);
+      node.html = htmlFromEditing(target.innerHTML, true);
       return;
     }
     if (field === "html" && target.isContentEditable && (node.kind === "panel" || node.kind === "card" || node.kind === "pasted")) {
-      node.html = sanitize(target.innerHTML);
+      node.html = htmlFromEditing(target.innerHTML, false);
       return;
     }
     if (field === "heading" && target.isContentEditable && node.kind === "text") {
@@ -671,19 +672,7 @@ function runCommand(form: HTMLFormElement, command: string): void {
     const href = window.prompt("Link address");
     if (!href || /^\s*javascript:/i.test(href)) return;
     restoreSelection(saved);
-    const trimmed = href.trim();
-    const existing = selectionAnchor();
-    if (existing) {
-      existing.setAttribute("href", trimmed);
-      touchEditable();
-      return;
-    }
-    const made = document.execCommand("createLink", false, trimmed);
-    if (!made) {
-      const label = document.getSelection()?.toString() || trimmed;
-      document.execCommand("insertHTML", false, `<a href="${escapeAttr(trimmed)}">${escapeText(label)}</a>`);
-    }
-    touchEditable();
+    insertMarkdownLink(href);
     return;
   }
   if (command === "code") {
@@ -834,10 +823,14 @@ function onPaste(event: ClipboardEvent): void {
   const text = event.clipboardData?.getData("text/plain") ?? "";
   if (target.dataset.blocks === "true") {
     const pasted = html ? readTextHtml(html) : paragraphsFromPlain(text);
-    if (pasted) document.execCommand("insertHTML", false, pasted);
+    if (pasted) document.execCommand("insertHTML", false, htmlForEditing(pasted));
     return;
   }
-  document.execCommand("insertHTML", false, html ? sanitize(html) : escapeText(text).replace(/\n/g, "<br>"));
+  document.execCommand(
+    "insertHTML",
+    false,
+    html ? htmlForEditing(sanitize(html)) : escapeText(text).replace(/\n/g, "<br>"),
+  );
 }
 
 function onDragStart(form: HTMLFormElement, event: DragEvent): void {
@@ -1006,13 +999,13 @@ function syncAll(state: Mounted): void {
       const node = article ? findNode(zone.items, article.dataset.itemId ?? "") : undefined;
       if (!node || node.kind === "columns") continue;
       if (field.dataset.field === "html" && field.isContentEditable && node.kind === "text") {
-        node.html = readTextHtml(field.innerHTML);
+        node.html = htmlFromEditing(field.innerHTML, true);
       }
       if (field.dataset.field === "heading" && field.isContentEditable && node.kind === "text") {
         node.heading = (field.textContent ?? "").replace(/\n+/g, " ");
       }
       if (field.dataset.field === "html" && field.isContentEditable && (node.kind === "panel" || node.kind === "card" || node.kind === "pasted")) {
-        node.html = sanitize(field.innerHTML);
+        node.html = htmlFromEditing(field.innerHTML, false);
       }
       if (field.dataset.field === "text" && field.isContentEditable && (node.kind === "heading" || node.kind === "quote")) {
         node.text = field.textContent ?? "";
@@ -1100,6 +1093,41 @@ function isTone(value: string): value is ToneId {
 }
 
 const ALLOWED = new Set(["strong", "b", "em", "i", "u", "s", "code", "a", "br", "ul", "ol", "li", "p"]);
+
+const MARKDOWN_LINK_SELECTION = /^\[([^\]\n]+)\]\(([^)\s]+)\)$/;
+
+function htmlForEditing(stored: string): string {
+  return restoreMarkdownLinks(stored);
+}
+
+function htmlFromEditing(innerHTML: string, blocks: boolean): string {
+  const raw = blocks ? readTextHtml(innerHTML) : sanitize(innerHTML);
+  return renderMarkdownLinks(raw);
+}
+
+function insertMarkdownLink(href: string): void {
+  const trimmed = href.trim();
+  const sel = document.getSelection();
+  if (!sel || sel.rangeCount === 0) return;
+  const selected = sel.toString();
+  const mdMatch = selected.match(MARKDOWN_LINK_SELECTION);
+  if (mdMatch) {
+    const label = mdMatch[1] ?? "";
+    document.execCommand("insertText", false, `[${label}](${trimmed})`);
+    touchEditable();
+    return;
+  }
+  const existing = selectionAnchor();
+  if (existing) {
+    const label = (existing.textContent ?? "").trim() || trimmed;
+    existing.replaceWith(document.createTextNode(`[${label}](${trimmed})`));
+    touchEditable();
+    return;
+  }
+  const label = selected || trimmed;
+  document.execCommand("insertText", false, `[${label}](${trimmed})`);
+  touchEditable();
+}
 
 function paragraphsFromPlain(text: string): string {
   return text

@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { blankSection, paintSections, parseSections, youtubeVideoId, type Section } from "./index.js";
+import {
+  blankSection,
+  paintSections,
+  parseSections,
+  renderMarkdownLinks,
+  restoreMarkdownLinks,
+  youtubeVideoId,
+  type Section,
+} from "./index.js";
 
 const ineffable = `
 <p class="w3-large">Tessera stands for zone-based site tiles.</p>
@@ -96,6 +104,22 @@ describe("parseSections", () => {
       { kind: "panel", tone: "pale-blue", html: "<p>Gallery</p>" },
       { kind: "imgbox", src: "photo.jpg", alt: "Sheep", caption: "Open days" },
     ]);
+  });
+});
+
+describe("markdown link round-trip", () => {
+  it("restores a plain anchor to markdown and render turns it back", () => {
+    const stored = `<p>See <a href="https://example.com/hall">Hall</a>.</p>`;
+    const editing = restoreMarkdownLinks(stored);
+    expect(editing).toContain("[Hall](https://example.com/hall)");
+    expect(editing).not.toContain("<a ");
+    expect(renderMarkdownLinks(editing)).toContain('<a href="https://example.com/hall">Hall</a>');
+  });
+
+  it("leaves javascript hrefs, extra attributes, and nested markup as anchors", () => {
+    expect(restoreMarkdownLinks(`<p><a href="javascript:alert(1)">bad</a></p>`)).toContain("<a ");
+    expect(restoreMarkdownLinks(`<p><a href="https://x.com" class="ext">Link</a></p>`)).toContain("<a ");
+    expect(restoreMarkdownLinks(`<p><a href="https://x.com"><strong>Bold</strong></a></p>`)).toContain("<strong>");
   });
 });
 
