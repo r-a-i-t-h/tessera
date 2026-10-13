@@ -5,6 +5,7 @@ import {
   parseSiteRevision,
   siblingDataUrl,
   snapshotFileName,
+  stampShellBody,
   stampSitePointer,
 } from "../snapshot.js";
 
@@ -42,5 +43,14 @@ describe("snapshot file names", () => {
     const replaced = stampSitePointer(stamped, "./data/site.def.json");
     expect(replaced).toContain('content="./data/site.def.json"');
     expect(replaced).not.toContain("site.abc.json");
+  });
+
+  it("writes style classes onto the shell body and keeps other classes", () => {
+    const html = `<body class="wh-body leftnav fontA">\n</body>`;
+    expect(stampShellBody(html, "leftnav footer-fixed fontA")).toBe(
+      `<body class="wh-body leftnav footer-fixed fontA">\n</body>`,
+    );
+    expect(stampShellBody(html, "rightnav fontA")).toBe(`<body class="wh-body rightnav fontA">\n</body>`);
+    expect(stampShellBody("<head></head>", "leftnav fontA")).toBe("<head></head>");
   });
 });

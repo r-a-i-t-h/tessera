@@ -3,8 +3,11 @@ import { basename, dirname, join } from "node:path";
 import {
   SITE_REVISION_FILE,
   hashSnapshotBody,
+  siteBodyClass,
   snapshotFileName,
+  stampShellBody,
   stampSitePointer,
+  type SiteStyle,
 } from "@r-a-i-t-h/tessera-model";
 import { writeTextAtomic } from "../store/fs.js";
 
@@ -45,7 +48,9 @@ export async function writeSnapshotFiles(
   for (const indexPath of [...shellIndexPaths(flattenOut), ...extraIndexPaths]) {
     try {
       const html = await readFile(indexPath, "utf8");
-      const next = stampSitePointer(html, `./data/${file}`);
+      const pointed = stampSitePointer(html, `./data/${file}`);
+      const chrome = shellBodyClass(body);
+      const next = chrome ? stampShellBody(pointed, chrome) : pointed;
       if (next !== html) {
         await writeTextAtomic(indexPath, next.endsWith("\n") ? next : `${next}\n`);
       }
@@ -55,6 +60,18 @@ export async function writeSnapshotFiles(
   }
 
   return { hash, file };
+}
+
+/** Body class from `site.style`, or undefined when the snapshot names no style. */
+function shellBodyClass(body: string): string | undefined {
+  try {
+    const parsed = JSON.parse(body) as { site?: { style?: SiteStyle } };
+    const style = parsed.site?.style;
+    if (!style || typeof style !== "object" || Array.isArray(style)) return undefined;
+    return siteBodyClass(style);
+  } catch {
+    return undefined;
+  }
 }
 
 /**

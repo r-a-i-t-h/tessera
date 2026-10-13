@@ -52,6 +52,9 @@ export function siblingDataUrl(documentUrl: string, fileName: string): string {
   return `${dir}${fileName}`;
 }
 
+/** Classes the site style owns on `<body>`. Anything else on the shell stays. */
+const SHELL_BODY_CLASSES = new Set(["leftnav", "rightnav", "footer-fixed", "fontA", "fontB", "fontC", "fontD"]);
+
 const SITE_POINTER_RE = /<meta\s+name="tessera-site"\s+content="[^"]*"\s*\/?>/;
 
 /** Point `index.html` at the hashed site file. Inserts the meta tag when missing. */
@@ -62,4 +65,25 @@ export function stampSitePointer(html: string, href: string): string {
     throw new Error("index.html has no <head> to stamp with the site file");
   }
   return html.replace(/<head>/i, `<head>\n    ${tag}`);
+}
+
+/**
+ * Set the style-owned classes on the shell `<body>`.
+ * `wh-body` and other site classes stay. No `<body>` leaves the HTML unchanged.
+ */
+export function stampShellBody(html: string, className: string): string {
+  if (!/<body\b/i.test(html)) return html;
+  return html.replace(/<body\b([^>]*)>/i, (_full, attrs: string) => {
+    const match = /\bclass\s*=\s*(["'])([^"']*)\1/i.exec(attrs);
+    const existing = match?.[2] ?? "";
+    const kept = existing.split(/\s+/).filter((token) => token && !SHELL_BODY_CLASSES.has(token));
+    const desired = className.split(/\s+/).filter(Boolean);
+    const next = [...kept, ...desired].join(" ");
+    if (match) {
+      const replaced = next ? attrs.replace(match[0], `class="${next}"`) : attrs.replace(match[0], "");
+      return `<body${replaced}>`;
+    }
+    if (!next) return `<body${attrs}>`;
+    return `<body class="${next}"${attrs}>`;
+  });
 }

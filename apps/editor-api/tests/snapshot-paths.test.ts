@@ -49,4 +49,23 @@ describe("snapshot stamp paths", () => {
     expect(await readFile(publishIndex, "utf8")).toContain(`./data/${rev.file}`);
     expect(await readFile(shell, "utf8")).toBe(html);
   });
+
+  it("writes footer-fixed onto the preview shell when the snapshot style is fixed", async () => {
+    const root = await mkdtemp(join(tmpdir(), "tessera-footer-"));
+    dirs.push(root);
+    const shell = join(root, "shell", "index.html");
+    const { mkdir, writeFile } = await import("node:fs/promises");
+    await mkdir(join(root, "shell"), { recursive: true });
+    await writeFile(
+      shell,
+      `<head>\n    <meta name="tessera-site" content="./data/site.json" />\n  </head>\n  <body class="wh-body leftnav fontA">\n  </body>\n`,
+    );
+    const previewOut = join(root, "preview", "data", "site.json");
+    await writeSnapshotFiles(
+      previewOut,
+      `${JSON.stringify({ site: { style: { navSide: "left", footerStyle: "fixed" } } })}\n`,
+    );
+    const stamped = await readFile(shell, "utf8");
+    expect(stamped).toContain('class="wh-body leftnav footer-fixed fontA"');
+  });
 });

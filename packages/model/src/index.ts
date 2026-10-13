@@ -58,6 +58,7 @@ export {
   hashFromSiteUrl,
   siblingDataUrl,
   stampSitePointer,
+  stampShellBody,
   type SiteRevision,
 } from "./snapshot.js";
 
