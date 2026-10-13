@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -69,6 +69,30 @@ describe("authoring schema migrations", () => {
     const result = await runMigrate(dataDir);
     expect(result.code).not.toBe(0);
     expect(result.stdout).toMatch(/meta\.json missing/);
+  });
+
+  it("runs 003 from a release tree that has no apps source", async () => {
+    const release = await mkdtemp(join(tmpdir(), "tessera-release-"));
+    dataDir = await mkdtemp(join(tmpdir(), "tessera-migrate-"));
+    try {
+      const migrations = join(release, "deploy", "migrations");
+      await mkdir(migrations, { recursive: true });
+      await mkdir(join(release, "node_modules"), { recursive: true });
+      await symlink(join(repoRoot, "node_modules", "yaml"), join(release, "node_modules", "yaml"));
+      await cp(join(repoRoot, "deploy", "migrations", "003-remove-tenants.sh"), join(migrations, "003-remove-tenants.sh"));
+      await execFileAsync(process.execPath, [
+        join(repoRoot, "scripts", "bundle-remove-tenants.mjs"),
+        join(migrations, "003-remove-tenants.mjs"),
+      ]);
+      await writeFile(join(dataDir, "meta.json"), `${JSON.stringify({ schemaVersion: 2 })}\n`);
+
+      const result = await runMigrate(dataDir, join(migrations, "003-remove-tenants.sh"));
+      expect(result.code).toBe(0);
+      expect(result.stdout).toMatch(/migrated records and stamped schema 3/);
+      expect(await readSchemaVersion(join(dataDir, "meta.json"))).toBe(3);
+    } finally {
+      await rm(release, { recursive: true, force: true });
+    }
   });
 
   it("post-update.sh applies the same migrations", async () => {

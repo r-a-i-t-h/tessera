@@ -83,6 +83,12 @@ if [ ! -f "apps/editor-api/seed/examples/willow.tar.gz" ] && [ -f "sites/willow/
     -C "sites/willow" .
 fi
 cp -R deploy "$DEST/deploy"
+echo "pack-release: bundling tenant migration"
+node "$ROOT/scripts/bundle-remove-tenants.mjs" "$DEST/deploy/migrations/003-remove-tenants.mjs"
+if [ ! -f "$DEST/deploy/migrations/003-remove-tenants.mjs" ]; then
+  echo "pack-release: 003-remove-tenants.mjs missing after bundle" >&2
+  exit 1
+fi
 find "$DEST/deploy" -name '*.test.sh' -delete
 printf '%s\n' "$TAG" >"$DEST/VERSION"
 

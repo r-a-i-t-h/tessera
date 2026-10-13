@@ -8,7 +8,11 @@ set -eu
 }
 
 ROOT=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
-REPO=$(CDPATH= cd -- "$ROOT/../.." && pwd)
-SCRIPT="$REPO/apps/editor-api/scripts/migrate-003-remove-tenants.ts"
+# The release tarball has no apps/ tree. pack-release writes this bundle beside the hook.
+BUNDLED="$ROOT/003-remove-tenants.mjs"
+if [ -f "$BUNDLED" ]; then
+  exec node "$BUNDLED" "$TESSERA_DATA"
+fi
 
-node --experimental-strip-types "$SCRIPT" "$TESSERA_DATA"
+REPO=$(CDPATH= cd -- "$ROOT/../.." && pwd)
+exec node --experimental-strip-types "$REPO/apps/editor-api/scripts/migrate-003-remove-tenants.ts" "$TESSERA_DATA"
