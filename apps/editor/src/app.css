@@ -584,6 +584,14 @@ img[data-hero-preview] {
   outline-offset: 2px;
 }
 
+.editor-section-editing-tools {
+  display: none;
+}
+
+.editor-section:focus-within .editor-section-editing-tools {
+  display: contents;
+}
+
 .editor-compose-list .editor-section-body {
   display: none;
 }

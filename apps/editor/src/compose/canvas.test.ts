@@ -201,6 +201,33 @@ describe("compose drag ghost", () => {
   });
 });
 
+describe("editing toolbar visibility", () => {
+  it("hides formatting controls until the section is focused", () => {
+    dom.document.head.innerHTML = `<style>.editor-section-editing-tools { display: none; }</style>`;
+    dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;
+    const form = dom.document.querySelector("form");
+    if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
+    mountComposeCanvases(form, {
+      bindings: [],
+      htmlByZone: { main: `<h2>Title</h2><p>Body copy.</p>` },
+    });
+
+    const section = form.querySelector(".editor-section");
+    if (!(section instanceof dom.HTMLElement)) throw new Error("section");
+    const tools = section.querySelector(".editor-section-editing-tools");
+    if (!(tools instanceof dom.HTMLElement)) throw new Error("editing tools");
+    const bold = section.querySelector<HTMLElement>("[data-cmd=bold]");
+    if (!bold) throw new Error("bold");
+
+    expect(dom.window.getComputedStyle(tools).display).toBe("none");
+    expect(dom.window.getComputedStyle(section.querySelector("[data-drag]")!).display).not.toBe("none");
+    expect(dom.window.getComputedStyle(section.querySelector(".editor-section-actions")!).display).not.toBe("none");
+
+    expect(section.querySelector("[data-field=level]")?.closest(".editor-section-editing-tools")).toBeNull();
+    expect(bold.closest(".editor-section-editing-tools")).toBe(tools);
+  });
+});
+
 describe("section actions", () => {
   it("groups up, down, and remove on the right and moves a section from the icon", () => {
     dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;

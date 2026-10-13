@@ -270,15 +270,15 @@ function propsFor(node: EditNode, choices: Choices, locked: boolean): string {
     case "heading":
       return levelSelect(node.level);
     case "text":
-      return `${levelSelect(node.level)}<span class="editor-prop">${inlineTools()}${listTools()}</span>`;
+      return `${levelSelect(node.level)}${editingToolbar(inlineTools(), listTools())}`;
     case "panel":
-      return `<label class="editor-prop">Tone <select data-field="tone">${toneOptions(node.tone)}</select></label>${inlineTools()}`;
+      return `<label class="editor-prop">Tone <select data-field="tone">${toneOptions(node.tone)}</select></label>${editingToolbar(inlineTools())}`;
     case "quote":
       return `<label class="editor-prop">Tone <select data-field="tone">${toneOptions(node.tone)}</select></label><label class="editor-prop">Attribution <input data-field="attribution" class="w3-input" value="${escapeAttr(node.attribution)}"></label>`;
     case "imgbox":
       return `<label class="editor-prop">Image <input data-field="src" class="w3-input" value="${escapeAttr(node.src)}" placeholder="Image address"></label><button type="button" class="w3-button w3-small w3-white" data-library="image">Library</button><label class="editor-prop">Alt <input data-field="alt" class="w3-input" value="${escapeAttr(node.alt)}"></label><label class="editor-prop">Caption <input data-field="caption" class="w3-input" value="${escapeAttr(node.caption)}"></label>`;
     case "card":
-      return `<label class="editor-prop">Title <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}"></label>${inlineTools()}`;
+      return `<label class="editor-prop">Title <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}"></label>${editingToolbar(inlineTools())}`;
     case "columns":
       return `<span class="editor-prop"><button type="button" class="w3-button w3-small w3-white" data-cols="2">2 columns</button><button type="button" class="w3-button w3-small w3-white" data-cols="3">3 columns</button></span>`;
     case "insert":
@@ -292,7 +292,7 @@ function propsFor(node: EditNode, choices: Choices, locked: boolean): string {
     case "gallery":
       return `<label class="editor-prop">Folder <select data-field="folder">${folderOptions(choices.folders, node.folder)}</select></label><label class="editor-prop">Layout <select data-field="mode"><option value="grid"${node.mode === "grid" ? " selected" : ""}>Grid</option><option value="slides"${node.mode === "slides" ? " selected" : ""}>Slides</option></select></label>`;
     case "pasted":
-      return inlineTools();
+      return editingToolbar(inlineTools());
     case "html":
       return `<span class="editor-prop w3-text-grey">Edit this markup on Fields.</span>`;
   }
@@ -301,15 +301,16 @@ function propsFor(node: EditNode, choices: Choices, locked: boolean): string {
 function lockedProps(node: EditNode, choices: Choices): string {
   switch (node.kind) {
     case "text":
+      return editingToolbar(inlineTools(), listTools());
     case "panel":
     case "pasted":
-      return node.kind === "text" ? `${inlineTools()}${listTools()}` : inlineTools();
+      return editingToolbar(inlineTools());
     case "quote":
       return `<label class="editor-prop">Attribution <input data-field="attribution" class="w3-input" value="${escapeAttr(node.attribution)}"></label>`;
     case "imgbox":
       return `<label class="editor-prop">Image <input data-field="src" class="w3-input" value="${escapeAttr(node.src)}" placeholder="Image address"></label><button type="button" class="w3-button w3-small w3-white" data-library="image">Library</button><label class="editor-prop">Alt <input data-field="alt" class="w3-input" value="${escapeAttr(node.alt)}"></label><label class="editor-prop">Caption <input data-field="caption" class="w3-input" value="${escapeAttr(node.caption)}"></label>`;
     case "card":
-      return `<label class="editor-prop">Title <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}"></label>${inlineTools()}`;
+      return `<label class="editor-prop">Title <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}"></label>${editingToolbar(inlineTools())}`;
     case "gallery":
       return `<label class="editor-prop">Folder <select data-field="folder">${folderOptions(choices.folders, node.folder)}</select></label>`;
     case "youtube":
@@ -339,6 +340,10 @@ function levelSelect(level: 1 | 2 | 3): string {
   return `<label class="editor-prop">Level <select data-field="level">${[1, 2, 3]
     .map((item) => `<option value="${item}"${level === item ? " selected" : ""}>${item}</option>`)
     .join("")}</select></label>`;
+}
+
+function editingToolbar(inline: string, list = ""): string {
+  return `<span class="editor-section-editing-tools"><span class="editor-prop">${inline}${list}</span></span>`;
 }
 
 function inlineTools(): string {
