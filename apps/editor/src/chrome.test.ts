@@ -10,7 +10,7 @@ describe("editor chrome", () => {
 
   it("marks the current section and escapes the account name", () => {
     const html = editorChrome(
-      { username: "<Alice>", createdAt: "2026-01-01" },
+      { ok: true, username: "<Alice>", createdAt: "2026-01-01" },
       "<h1>Records</h1>",
       false,
       "records",
@@ -18,11 +18,13 @@ describe("editor chrome", () => {
     expect(html).toContain('href="#/records" aria-current="page"');
     expect(html).toContain("&lt;Alice&gt;");
     expect(html).toContain('aria-live="polite"');
+    expect(html).toContain('class="editor-bar w3-bar w3-theme"');
+    expect(html).toContain('class="editor-scroll"');
   });
 
   it("announces the main heading after navigation without focusing it", () => {
     document.body.innerHTML = editorChrome(
-      { username: "alice", createdAt: "2026-01-01" },
+      { ok: true, username: "alice", createdAt: "2026-01-01" },
       "<h1>Library</h1>",
     );
     announceRoute(document);

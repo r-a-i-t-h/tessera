@@ -24,7 +24,7 @@ export function editorChrome(
     const current = section === key;
     return `<a class="w3-bar-item w3-button${current ? " w3-white" : ""}" href="${href}"${current ? ' aria-current="page"' : ""}>${label}</a>`;
   };
-  return `<header class="w3-bar w3-theme">
+  return `<header class="editor-bar w3-bar w3-theme">
       ${link("#/", "Tessera editor", "home")}
       ${link("#/pages", "Pages", "pages")}
       ${link("#/articles", "Articles", "articles")}
@@ -41,7 +41,9 @@ export function editorChrome(
     </header>
     <p id="render-status" class="editor-render-status" hidden></p>
     <p id="route-status" class="editor-sr-only" aria-live="polite"></p>
-    <main class="editor-main${wide ? " editor-wide" : ""}">${inner}</main>
+    <div class="editor-scroll">
+      <main class="editor-main${wide ? " editor-wide" : ""}">${inner}</main>
+    </div>
     ${editorFooter()}`;
 }
 
@@ -54,7 +56,8 @@ export function announceRoute(root: ParentNode): void {
 }
 
 export function loginView(error = "", username = ""): string {
-  return `<header class="w3-bar w3-theme w3-large"><span class="w3-bar-item">Tessera editor</span></header>
+  return `<header class="editor-bar w3-bar w3-theme w3-large"><span class="w3-bar-item">Tessera editor</span></header>
+    <div class="editor-scroll">
     <main class="editor-main"><form id="login-form" class="w3-card w3-white w3-padding-large editor-card">
       <h1 class="w3-large">Sign in</h1>
       <p class="w3-text-grey">Session cookie stays on this origin. Seed user: <code>admin</code> / <code>admin</code>.</p>
@@ -69,6 +72,7 @@ export function loginView(error = "", username = ""): string {
       </p>
       <p><button type="submit" class="w3-button w3-theme">Sign in</button></p>
     </form></main>
+    </div>
     ${editorFooter()}`;
 }
 
