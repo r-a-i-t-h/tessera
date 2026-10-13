@@ -1,6 +1,6 @@
 id: blog-office-hours
 title: Office hours move to Thursday
-parentId: news
+parentId: admin
 type: article
 tags:
   - office
@@ -10,7 +10,6 @@ zones:
   main:
     html: <p>The office is closed on Wednesday afternoons from this month. Thursday morning is the new drop-in.</p>
 fields:
-  tenant: admin
   date: 2026-05-12
   author: The office
   precis: Thursday morning is the new drop-in.

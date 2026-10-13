@@ -1,12 +1,12 @@
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import {
   ApiError,
-  cascadeTenant,
+  cascadeBlog,
   createBackup,
   deleteBackup,
   deleteContent,
   deleteItem,
-  deleteTenant,
+  deleteBlog,
   deleteLibraryAsset,
   deleteLibraryFolder,
   getHistoryEntry,
@@ -26,7 +26,7 @@ import {
   initSite,
   publishSite,
   renameItem,
-  renameTenant,
+  renameBlog,
   renderSite,
   restoreExample,
   reseedSite,
@@ -184,7 +184,7 @@ async function render(root: HTMLElement): Promise<void> {
     }
     else if (route.page === "library") await bindLibrary(root, user, route.id);
     else if (route.page === "pages") await bindPages(root, user);
-    else if (route.page === "articles") await bindArticles(root, user, route.tenant);
+    else if (route.page === "articles") await bindArticles(root, user, route.blog);
     else if (route.page === "records") await bindList(root, user, route.kind);
     else if (route.page === "edit") {
       const mode = initialEditMode(route.kind, pending);
@@ -758,7 +758,7 @@ function bindInitSite(
       try {
         await initSite();
         await again(
-          "Started a site with a master layout, a standard page, a Hello world home page, and a blog for tenant blogger.",
+          "Started a site with a master layout, a standard page, a Hello world home page, and a blog with one article.",
           "",
         );
       } catch (err) {
@@ -788,10 +788,6 @@ async function bindList(
   }
   if (kind === "content") {
     window.location.hash = "#/pages";
-    return;
-  }
-  if (kind === "tenants") {
-    window.location.hash = "#/records/blogs";
     return;
   }
   const listing = await listRecords();
@@ -1197,10 +1193,6 @@ function showFormError(form: HTMLFormElement, message: string): void {
   error.textContent = message;
 }
 
-async function tenantChoices(): Promise<string[]> {
-  const listing = await listRecords();
-  return listing.records.filter((row) => row.kind === "tenants").map((row) => row.id);
-}
 
 async function heroPreviewUrl(id: string): Promise<string | undefined> {
   if (!id) return undefined;
@@ -1413,7 +1405,7 @@ async function bindBackups(root: HTMLElement, user: PublicUser, notice = "", err
   root.querySelector("[data-action=reseed]")?.addEventListener("click", () => {
     if (
       !window.confirm(
-        "Replace this site with a fresh starter? It has a Hello world home page and a blog for tenant blogger. Your editors stay. The current site is saved as a new backup first.",
+        "Replace this site with a fresh starter? It has a Hello world home page and a blog with one article. Your editors stay. The current site is saved as a new backup first.",
       )
     ) {
       return;
@@ -1477,7 +1469,7 @@ function backupsHtml(listing: BackupList, notice: string, error: string): string
     <p class="w3-text-grey">Willow is a <code>.tar.gz</code> in that same backup folder. Starting the editor copies the release archive over it when that file has changed. Restoring it fills this site with the community example. Your editors stay.</p>
     ${examples}
     <h2 class="w3-medium">Re-seed</h2>
-    <p class="w3-text-grey">Replace this site with a fresh starter: a master layout, a standard type and page layout, a Hello world home page, a header, a left-hand menu, a common-footer item, and a blog for tenant blogger with one article dated 9 October 2026. The menu stays open on the left from tablet landscape width up. On a narrower screen a Menu button on the right of the bar opens a flyout from the right, so the site title stays put. Editors stay. The current site is saved as a new backup first. Restore Willow when a fuller example is needed.</p>
+    <p class="w3-text-grey">Replace this site with a fresh starter: a master layout, a standard type and page layout, a Hello world home page, a header, a left-hand menu, a common-footer item, and a blog with one article dated 9 October 2026. The menu stays open on the left from tablet landscape width up. On a narrower screen a Menu button on the right of the bar opens a flyout from the right, so the site title stays put. Editors stay. The current site is saved as a new backup first. Restore Willow when a fuller example is needed.</p>
     <p><button type="button" class="w3-button w3-white" data-action="reseed">Re-seed this site</button></p>`;
 }
 
@@ -1502,7 +1494,7 @@ function homeHtml(listing: RecordList, notice = "", error = ""): string {
 
 function startSiteHtml(): string {
   return `<p><button type="button" class="w3-button w3-theme" data-action="init-site">Start an empty site</button></p>
-    <p class="w3-text-grey">This writes a shell, a master layout, a standard type and page layout, a Hello world home page, a common-footer item, and a blog for tenant blogger with one article. It does not replace a site that already has records. To replace one, use Re-seed on Backups.</p>`;
+    <p class="w3-text-grey">This writes a shell, a master layout, a standard type and page layout, a Hello world home page, a common-footer item, and a blog with one article. It does not replace a site that already has records. To replace one, use Re-seed on Backups.</p>`;
 }
 
 /** Media and folders are edited in the Library, not as record lists. */
@@ -1528,7 +1520,7 @@ const RECORD_TAB_ORDER = [
 function recordTabs(listing: RecordList): { kind: string; label: string }[] {
   const rank = new Map(RECORD_TAB_ORDER.map((kind, index) => [kind, index]));
   const tabs = listing.kinds
-    .filter((item) => !LIBRARY_RECORD_KINDS.has(item.kind) && item.kind !== "content" && item.kind !== "tenants")
+    .filter((item) => !LIBRARY_RECORD_KINDS.has(item.kind) && item.kind !== "content")
     .sort((a, b) => (rank.get(a.kind) ?? RECORD_TAB_ORDER.length) - (rank.get(b.kind) ?? RECORD_TAB_ORDER.length));
   const nav = tabs.findIndex((item) => item.kind === "nav");
   tabs.splice(nav + 1, 0, { kind: "blogs", label: "Blogs" });
@@ -1734,9 +1726,9 @@ async function bindPages(root: HTMLElement, user: PublicUser, notice = "", error
   });
 }
 
-async function bindArticles(root: HTMLElement, user: PublicUser, tenant?: string, notice = "", error = ""): Promise<void> {
+async function bindArticles(root: HTMLElement, user: PublicUser, blog?: string, notice = "", error = ""): Promise<void> {
   const listing = await listRecords();
-  root.innerHTML = chrome(user, articlesHtml(listing, tenant, notice, error), true, "articles");
+  root.innerHTML = chrome(user, articlesHtml(listing, blog, notice, error), true, "articles");
   bindChrome(root);
   const filter = root.querySelector<HTMLInputElement>("#article-tag");
   const list = root.querySelector<HTMLUListElement>("#article-list");
@@ -1760,25 +1752,29 @@ async function bindArticles(root: HTMLElement, user: PublicUser, tenant?: string
   });
   root.querySelector<HTMLFormElement>("#new-article-form")?.addEventListener("submit", (event) => {
     event.preventDefault();
-    if (tenant) void createArticle(root, listing, tenant);
+    if (blog) void createArticle(root, listing, blog);
   });
 }
 
-function articlesHtml(listing: RecordList, tenant: string | undefined, notice: string, error: string): string {
-  const tenants = listing.records.filter((row) => row.kind === "tenants");
-  if (!tenant) {
-    const items = tenants.length
-      ? `<ul class="w3-ul">${tenants
-          .map((row) => `<li><a href="#/articles/${encodeURIComponent(row.id)}">${escapeHtml(row.id)}</a></li>`)
+function articlesHtml(listing: RecordList, blog: string | undefined, notice: string, error: string): string {
+  const blogs = listing.records.filter((row) => row.kind === "content" && row.type === "blog");
+  if (!blog) {
+    const items = blogs.length
+      ? `<ul class="w3-ul">${blogs
+          .map(
+            (row) =>
+              `<li><a href="#/articles/${encodeURIComponent(row.id)}">${escapeHtml(row.title ?? row.id)}</a> <span class="w3-text-grey w3-small">${escapeHtml(row.id)}</span></li>`,
+          )
           .join("")}</ul>`
-      : `<p class="w3-text-grey">No tenants yet. Add one under Records → Blogs.</p>`;
-    return `<h1 class="w3-large">Articles</h1>${statusPanels(notice, error)}<p class="w3-text-grey">Choose a tenant.</p>${items}`;
+      : `<p class="w3-text-grey">No blogs yet. Add one under <a href="#/records/blogs">Records → Blogs</a>.</p>`;
+    return `<h1 class="w3-large">Articles</h1>${statusPanels(notice, error)}<p class="w3-text-grey">Choose a blog.</p>${items}`;
   }
-  if (!tenants.some((row) => row.id === tenant)) {
-    return `<h1 class="w3-large">Articles</h1><p>That tenant is not a record. <a href="#/articles">Back</a></p>`;
+  if (!blogs.some((row) => row.id === blog)) {
+    return `<h1 class="w3-large">Articles</h1><p>That blog is not a record. <a href="#/articles">Back</a></p>`;
   }
+  const blogRow = blogs.find((row) => row.id === blog);
   const articles = listing.records
-    .filter((row) => row.kind === "content" && row.type === "article" && row.tenant === tenant)
+    .filter((row) => row.kind === "content" && row.type === "article" && row.parentId === blog)
     .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? "") || a.id.localeCompare(b.id));
   const items = articles
     .map((row) => {
@@ -1788,7 +1784,7 @@ function articlesHtml(listing: RecordList, tenant: string | undefined, notice: s
     .join("");
   return `<h1 class="w3-large">Articles</h1>
     ${statusPanels(notice, error)}
-    <p><a href="#/articles">Tenants</a> · ${escapeHtml(tenant)}</p>
+    <p><a href="#/articles">Blogs</a> · ${escapeHtml(blogRow?.title ?? blog)}</p>
     <p><button type="button" class="w3-button w3-theme" data-action="new-article">New article</button></p>
     <form id="new-article-form" class="editor-new-page" hidden>
       <p><label for="new-article-id">Id</label>
@@ -1800,10 +1796,10 @@ function articlesHtml(listing: RecordList, tenant: string | undefined, notice: s
     </form>
     <p><label for="article-tag">Tag</label>
       <input id="article-tag" class="w3-input w3-border w3-margin-top" autocomplete="off" /></p>
-    ${items ? `<ul class="w3-ul" id="article-list">${items}</ul><p id="article-filter-empty" class="w3-text-grey" hidden>No articles with that tag.</p>` : `<p class="w3-text-grey">No articles for this tenant yet.</p>`}`;
+    ${items ? `<ul class="w3-ul" id="article-list">${items}</ul><p id="article-filter-empty" class="w3-text-grey" hidden>No articles with that tag.</p>` : `<p class="w3-text-grey">No articles for this blog yet.</p>`}`;
 }
 
-async function createArticle(root: HTMLElement, listing: RecordList, tenant: string): Promise<void> {
+async function createArticle(root: HTMLElement, listing: RecordList, blogId: string): Promise<void> {
   const form = root.querySelector<HTMLFormElement>("#new-article-form");
   if (!form) return;
   const title = form.querySelector<HTMLInputElement>("#new-article-title")?.value ?? "";
@@ -1822,7 +1818,8 @@ async function createArticle(root: HTMLElement, listing: RecordList, tenant: str
         id: pageId,
         title: pageTitle,
         type: "article",
-        fields: { tenant, date },
+        parentId: blogId,
+        fields: { date },
         zones: { main: { html: "" } },
       };
     },
@@ -1840,120 +1837,66 @@ async function createArticle(root: HTMLElement, listing: RecordList, tenant: str
 }
 
 function blogsSection(listing: RecordList): string {
-  const tenants = listing.records.filter((row) => row.kind === "tenants");
   const blogs = listing.records.filter((row) => row.kind === "content" && row.type === "blog");
-  const unscoped = blogs.filter((row) => !row.tenant);
-  const rows = tenants
-    .map((tenant) => {
-      const blog = blogs.find((row) => row.tenant === tenant.id);
-      const blogCell = blog
-        ? `<a href="#/content/${encodeURIComponent(blog.id)}">${escapeHtml(blog.title ?? blog.id)}</a>`
-        : `<span class="w3-text-grey">No blog</span>`;
+  const rows = blogs
+    .map((blog) => {
       return `<li>
-        <strong>${escapeHtml(tenant.id)}</strong> ${blogCell}
-        <form data-rename-tenant="${escapeHtml(tenant.id)}" class="editor-inline">
-          <input name="next" class="w3-input w3-border" aria-label="New id for ${escapeHtml(tenant.id)}" placeholder="New id" />
+        <a href="#/content/${encodeURIComponent(blog.id)}"><strong>${escapeHtml(blog.title ?? blog.id)}</strong></a>
+        <span class="w3-text-grey w3-small"> ${escapeHtml(blog.id)}</span>
+        <form data-rename-blog="${escapeHtml(blog.id)}" class="editor-inline">
+          <input name="next" class="w3-input w3-border" aria-label="New id for ${escapeHtml(blog.id)}" placeholder="New id" />
           <button type="submit" class="w3-button w3-white">Rename</button>
         </form>
-        <button type="button" class="w3-button w3-white" data-delete-tenant="${escapeHtml(tenant.id)}">Delete</button>
-        <button type="button" class="w3-button w3-white" data-cascade-tenant="${escapeHtml(tenant.id)}">Cascade delete</button>
+        <button type="button" class="w3-button w3-white" data-delete-blog="${escapeHtml(blog.id)}">Delete</button>
+        <button type="button" class="w3-button w3-white" data-cascade-blog="${escapeHtml(blog.id)}">Cascade delete</button>
       </li>`;
     })
     .join("");
-  const open = unscoped
-    .map(
-      (blog) =>
-        `<li>Unscoped <a href="#/content/${encodeURIComponent(blog.id)}">${escapeHtml(blog.title ?? blog.id)}</a></li>`,
-    )
-    .join("");
-  const tenantOptions = tenants
-    .map((tenant) => `<option value="${escapeHtml(tenant.id)}">${escapeHtml(tenant.id)}</option>`)
-    .join("");
-  return `<p class="w3-text-grey">A tenant is a record. A blog selects one, or none. Only one blog may select none. Deleting a tenant is refused while an article or a blog still selects it. Cascade delete removes those records too. Renaming rewrites every reference.</p>
-    <h2 class="w3-medium">Tenants</h2>
-    <form id="new-tenant-form">
-      <p><label for="new-tenant-id">New tenant</label>
-        <input id="new-tenant-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" /></p>
-      ${formErrorPanel()}
-      <p><button type="submit" class="w3-button w3-theme">Add tenant</button></p>
-    </form>
-    ${rows ? `<ul class="w3-ul">${rows}</ul>` : `<p class="w3-text-grey">No tenants yet.</p>`}
-    ${open ? `<ul class="w3-ul">${open}</ul>` : ""}
+  return `<p class="w3-text-grey">A blog is one dated stream. Deleting a blog is refused while articles still belong to it. Cascade delete removes the blog, its index, and those articles. Renaming rewrites nav, the index, and article parent ids. Place each blog on the Nav record yourself.</p>
+    ${rows ? `<ul class="w3-ul">${rows}</ul>` : `<p class="w3-text-grey">No blogs yet.</p>`}
     <h2 class="w3-medium">New blog</h2>
     <form id="new-blog-form">
       <p><label for="new-blog-id">Id</label>
         <input id="new-blog-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" /></p>
       <p><label for="new-blog-title">Title</label>
         <input id="new-blog-title" name="title" class="w3-input w3-border w3-margin-top" required /></p>
-      <p><label for="new-blog-tenant">Tenant</label>
-        <select id="new-blog-tenant" name="tenant" class="w3-select w3-border w3-margin-top">
-          <option value="">None</option>
-          ${tenantOptions}
-        </select></p>
       ${formErrorPanel()}
       <p><button type="submit" class="w3-button w3-theme">Create blog</button></p>
     </form>`;
 }
 
 function bindBlogs(root: HTMLElement, user: PublicUser, listing: RecordList): void {
-  root.querySelector<HTMLFormElement>("#new-tenant-form")?.addEventListener("submit", (event) => {
-    event.preventDefault();
-    void createTenant(root, user, listing);
-  });
   root.querySelector<HTMLFormElement>("#new-blog-form")?.addEventListener("submit", (event) => {
     event.preventDefault();
     void createBlog(root, listing);
   });
-  root.querySelectorAll<HTMLFormElement>("[data-rename-tenant]").forEach((form) => {
+  root.querySelectorAll<HTMLFormElement>("[data-rename-blog]").forEach((form) => {
     form.addEventListener("submit", (event) => {
       event.preventDefault();
-      const id = form.dataset.renameTenant ?? "";
+      const id = form.dataset.renameBlog ?? "";
       const next = form.querySelector<HTMLInputElement>("[name=next]")?.value.trim() ?? "";
-      void renameTenant(id, next)
+      void renameBlog(id, next)
         .then(() => bindList(root, user, "blogs", `Renamed ${id} to ${next}.`))
-        .catch((err: unknown) => bindList(root, user, "blogs", "", err instanceof Error ? err.message : "Could not rename that tenant."));
+        .catch((err: unknown) => bindList(root, user, "blogs", "", err instanceof Error ? err.message : "Could not rename that blog."));
     });
   });
-  root.querySelectorAll<HTMLButtonElement>("[data-delete-tenant]").forEach((button) => {
+  root.querySelectorAll<HTMLButtonElement>("[data-delete-blog]").forEach((button) => {
     button.addEventListener("click", () => {
-      const id = button.dataset.deleteTenant ?? "";
-      void deleteTenant(id)
+      const id = button.dataset.deleteBlog ?? "";
+      void deleteBlog(id)
         .then(() => bindList(root, user, "blogs", `Deleted ${id}.`))
-        .catch((err: unknown) => bindList(root, user, "blogs", "", err instanceof Error ? err.message : "Could not delete that tenant."));
+        .catch((err: unknown) => bindList(root, user, "blogs", "", err instanceof Error ? err.message : "Could not delete that blog."));
     });
   });
-  root.querySelectorAll<HTMLButtonElement>("[data-cascade-tenant]").forEach((button) => {
+  root.querySelectorAll<HTMLButtonElement>("[data-cascade-blog]").forEach((button) => {
     button.addEventListener("click", () => {
-      const id = button.dataset.cascadeTenant ?? "";
+      const id = button.dataset.cascadeBlog ?? "";
       if (!id) return;
-      if (!window.confirm(`Delete tenant ${id} and every article and blog that selects it?`)) return;
-      void cascadeTenant(id)
+      if (!window.confirm(`Delete blog ${id}, its index, and every article that belongs to it?`)) return;
+      void cascadeBlog(id)
         .then(() => bindList(root, user, "blogs", `Cascade-deleted ${id}.`))
-        .catch((err: unknown) => bindList(root, user, "blogs", "", err instanceof Error ? err.message : "Could not delete that tenant."));
+        .catch((err: unknown) => bindList(root, user, "blogs", "", err instanceof Error ? err.message : "Could not delete that blog."));
     });
-  });
-}
-
-async function createTenant(root: HTMLElement, user: PublicUser, listing: RecordList): Promise<void> {
-  const form = root.querySelector<HTMLFormElement>("#new-tenant-form");
-  if (!form) return;
-  const existing = listing.records.filter((row) => row.kind === "tenants").map((row) => row.id);
-  await createRecord({
-    kind: "tenants",
-    form,
-    idField: "#new-tenant-id",
-    existingIds: existing,
-    validateId: pageIdError,
-    buildBody: (id) => ({ id }),
-    save: saveRecord,
-    destinationMode: "fields",
-    destinationHash: () => "#/records/blogs",
-    successMessage: (id) => `Added tenant ${id}.`,
-    failureMessage: "Could not add that tenant.",
-    showError: showFormError,
-    navigate: async (destination) => {
-      await bindList(root, user, "blogs", destination.notice);
-    },
   });
 }
 
@@ -1961,7 +1904,6 @@ async function createBlog(root: HTMLElement, listing: RecordList): Promise<void>
   const form = root.querySelector<HTMLFormElement>("#new-blog-form");
   if (!form) return;
   const title = form.querySelector<HTMLInputElement>("#new-blog-title")?.value ?? "";
-  const tenant = form.querySelector<HTMLSelectElement>("#new-blog-tenant")?.value ?? "";
   const existing = listing.records.filter((row) => row.kind === "content").map((row) => row.id);
   await createRecord({
     kind: "content",
@@ -1976,7 +1918,7 @@ async function createBlog(root: HTMLElement, listing: RecordList): Promise<void>
         title: pageTitle,
         slug: id,
         type: "blog",
-        fields: tenant ? { tenant, pageSize: "10" } : { pageSize: "10" },
+        fields: { pageSize: "10" },
         zones: { title: { html: pageTitle }, lead: { html: "" } },
       };
     },
@@ -2436,11 +2378,9 @@ async function bindEdit(
   const typeLayouts = typeEditor ? await typeLayoutChoices(typeof record.layoutId === "string" ? record.layoutId : "") : [];
   const typeIds =
     editsBody(kind) && (editMode === "compose" || editMode === "fields") ? await loadTypeIds() : undefined;
-  const blogForm = record?.type === "article" || record?.type === "blog";
-  const tenantIds = blogForm ? await tenantChoices() : [];
   const heroUrl =
     record?.type === "article" ? await heroPreviewUrl(stringField(record, "hero")) : undefined;
-  const contentExtras = { tenants: tenantIds, ...(heroUrl ? { heroUrl } : {}) };
+  const contentExtras = heroUrl ? { heroUrl } : undefined;
   const formInner =
     editMode === "arrange"
       ? layoutRoot && arrangeInfo
@@ -2844,7 +2784,7 @@ function fieldsHtml(
   data: unknown,
   layout?: PageLayoutHint,
   types?: readonly string[],
-  options?: { tenants?: readonly string[]; heroUrl?: string },
+  options?: { heroUrl?: string },
 ): string {
   if (Array.isArray(data) || !data || typeof data !== "object") {
     return renderForm(
@@ -2855,10 +2795,10 @@ function fieldsHtml(
   const record = data as Record<string, unknown>;
   if (kind === "content" && record.type === "blog-index") return indexNote(record);
   if (kind === "content" && record.type === "article") {
-    return `${articleMeta(record, options?.tenants ?? [])}${renderForm(schemaFor(kind, record) ?? { fields: [] }, record)}${heroField(stringField(record, "hero"), options?.heroUrl)}${frameNote(layout)}`;
+    return `${articleMeta(record)}${renderForm(schemaFor(kind, record) ?? { fields: [] }, record)}${heroField(stringField(record, "hero"), options?.heroUrl)}${frameNote(layout)}`;
   }
   if (kind === "content" && record.type === "blog") {
-    return `${blogMeta(record, options?.tenants ?? [])}${renderForm(recordSchema(kind, record, layout, types) ?? { fields: [] }, record)}${frameNote(layout)}${zoneFields(zonesOf(record), layout)}`;
+    return `${blogMeta(record)}${renderForm(recordSchema(kind, record, layout, types) ?? { fields: [] }, record)}${frameNote(layout)}${zoneFields(zonesOf(record), layout)}`;
   }
   if (kind === "bindings") return bindingFields(record);
   const schema = recordSchema(kind, record, layout, types);

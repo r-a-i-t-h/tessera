@@ -1,6 +1,6 @@
 id: blog-new-trustees
 title: Two new trustees, same kettle
-parentId: news
+parentId: hall
 zones:
   title:
     html: Two new trustees, same kettle
@@ -10,7 +10,6 @@ type: article
 tags:
   - trustees
 fields:
-  tenant: hall
   date: 2026-06-02
   author: Amira Chen
   precis: Welcome notes from the chair, plus a reminder that the AGM minutes live under Meetings.

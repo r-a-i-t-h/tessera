@@ -7,25 +7,17 @@ function fieldValue(record: Record<string, unknown>, id: string): string {
   return typeof value === "string" ? value : "";
 }
 
-function select(name: string, label: string, current: string, options: readonly string[], required: boolean): string {
-  const known = !current || options.includes(current);
-  const choices = known ? options : [current, ...options];
-  const blank = required ? "" : `<option value=""${!current ? " selected" : ""}>None</option>`;
-  const items = choices
-    .map((id) => `<option value="${escapeHtml(id)}"${id === current ? " selected" : ""}>${escapeHtml(id)}</option>`)
-    .join("");
-  return `<p><label for="${name}">${escapeHtml(label)}</label>
-    <select id="${name}" name="${name}" class="w3-select w3-border w3-margin-top"${required ? " required" : ""}>${blank}${items}</select></p>`;
-}
-
-/** Date first, then the tenant, precis, and author. Tags stay on the shared form. */
-export function articleMeta(record: Record<string, unknown>, tenants: readonly string[]): string {
+/** Date, precis, and author. Tags stay on the shared form. Parent blog is set when the article is created. */
+export function articleMeta(record: Record<string, unknown>): string {
   const date = fieldValue(record, "date");
-  const tenant = fieldValue(record, "tenant");
+  const parentId = typeof record.parentId === "string" ? record.parentId.trim() : "";
+  const blogLine = parentId
+    ? `<p class="w3-text-grey">Blog: <a href="#/articles/${encodeURIComponent(parentId)}">${escapeHtml(parentId)}</a></p>`
+    : "";
   return `<fieldset class="editor-fieldset"><legend>Article</legend>
+    ${blogLine}
     <p><label for="fields.date">Date</label>
       <input id="fields.date" name="fields.date" type="date" class="w3-input w3-border w3-margin-top" required value="${escapeHtml(date)}" /></p>
-    ${select("fields.tenant", "Tenant", tenant, tenants, true)}
     <p><label for="fields.precis">Precis</label>
       <input id="fields.precis" name="fields.precis" class="w3-input w3-border w3-margin-top" value="${escapeHtml(fieldValue(record, "precis"))}" /></p>
     <p><label for="fields.author">Author</label>
@@ -51,17 +43,15 @@ export function heroField(heroId: string, heroUrl?: string): string {
   </fieldset>`;
 }
 
-export function blogMeta(record: Record<string, unknown>, tenants: readonly string[]): string {
+export function blogMeta(record: Record<string, unknown>): string {
   const pageSize = fieldValue(record, "pageSize") || "10";
-  const tenant = fieldValue(record, "tenant");
   const indexId = `${String(record.id ?? "")}-index`;
   return `<fieldset class="editor-fieldset"><legend>Blog</legend>
     <p><label for="fields.pageSize">Page size</label>
       <input id="fields.pageSize" name="fields.pageSize" inputmode="numeric" class="w3-input w3-border w3-margin-top" value="${escapeHtml(pageSize)}" /></p>
     ${heroStyleSelect(fieldValue(record, "heroStyle"))}
-    ${select("fields.tenant", "Tenant", tenant, tenants, false)}
     <p class="editor-check"><label><input id="fields.showIndexInNav" name="fields.showIndexInNav" type="checkbox" data-kind="checkbox"${fieldValue(record, "showIndexInNav") === "true" ? " checked" : ""} /> Show index in the menu</label></p>
-    <p class="w3-text-grey">Leave the tenant empty for the one unscoped blog. Its menu lists each tenant. An article whose tenant has no blog uses that blog as its parent. The index is hidden from the menu unless it is shown here.</p>
+    <p class="w3-text-grey">Place this blog on the Nav record. The index is hidden from the menu unless it is shown here.</p>
     <p>Index: <a href="#/content/${encodeURIComponent(indexId)}">${escapeHtml(indexId)}</a></p>
   </fieldset>`;
 }

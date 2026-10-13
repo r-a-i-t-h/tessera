@@ -1,6 +1,6 @@
 id: blog-summer-fair
 title: "Summer fair: a recap in crumbs"
-parentId: news
+parentId: hall
 zones:
   title:
     html: "Summer fair: a recap in crumbs"
@@ -10,7 +10,6 @@ type: article
 tags:
   - fair
 fields:
-  tenant: hall
   date: 2026-07-14
   author: Lina Vogel
   precis: The tombola ate a teapot, the brass band did not, and the garden survived both.

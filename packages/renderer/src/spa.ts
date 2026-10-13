@@ -212,7 +212,7 @@ export class SiteRenderer {
   }
 }
 
-/** `#news/tenant/hall` is page `news`. A plain `#about` stays `about`. */
+/** `#news/tag/fair` is page `news`. A plain `#about` stays `about`. */
 function pageIdFromHash(hash: string): string {
   const raw = hash.replace(/^#/, "");
   const cut = raw.search(/[/?]/);

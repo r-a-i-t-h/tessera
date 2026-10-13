@@ -139,7 +139,7 @@ export type RecordSummary = {
   type?: string;
   tags?: string[];
   date?: string;
-  tenant?: string;
+  parentId?: string;
 };
 
 export type RecordList = {
@@ -270,16 +270,16 @@ export function renameItem(id: string, nextId: string): Promise<{ ok: true; id: 
   });
 }
 
-export function deleteTenant(id: string): Promise<{ ok: true }> {
-  return request(`/api/records/tenants/${encodeURIComponent(id)}`, { method: "DELETE" });
+export function deleteBlog(id: string): Promise<{ ok: true }> {
+  return request(`/api/records/blogs/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
 
-export function cascadeTenant(id: string): Promise<{ ok: true }> {
-  return request(`/api/records/tenants/${encodeURIComponent(id)}/cascade`, { method: "POST" });
+export function cascadeBlog(id: string): Promise<{ ok: true }> {
+  return request(`/api/records/blogs/${encodeURIComponent(id)}/cascade`, { method: "POST" });
 }
 
-export function renameTenant(id: string, nextId: string): Promise<{ ok: true; id: string }> {
-  return request(`/api/records/tenants/${encodeURIComponent(id)}/rename`, {
+export function renameBlog(id: string, nextId: string): Promise<{ ok: true; id: string }> {
+  return request(`/api/records/blogs/${encodeURIComponent(id)}/rename`, {
     method: "POST",
     body: JSON.stringify({ id: nextId }),
   });

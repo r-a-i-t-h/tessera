@@ -40,7 +40,7 @@ export function composeFormInner(
   record: Record<string, unknown>,
   layout?: PageLayoutHint,
   types?: readonly string[],
-  options?: { tenants?: readonly string[]; heroUrl?: string },
+  options?: { heroUrl?: string },
 ): string {
   const zoneLayout =
     kind === "content" && record.type === "article" && layout
@@ -63,12 +63,11 @@ export function composeFormInner(
         <p><button type="button" class="w3-button w3-white w3-border" data-compose-list aria-pressed="false">List</button></p>
         ${PALETTE.map((item) => `<button type="button" class="w3-button w3-white w3-border" draggable="true" data-palette="${item.kind}">${item.label}</button>`).join("")}
       </div>`;
-  const tenants = options?.tenants ?? [];
   const prefix =
     kind === "content" && record.type === "article"
-      ? articleMeta(record, tenants)
+      ? articleMeta(record)
       : kind === "content" && record.type === "blog"
-        ? blogMeta(record, tenants)
+        ? blogMeta(record)
         : "";
   const hero =
     kind === "content" && record.type === "article"

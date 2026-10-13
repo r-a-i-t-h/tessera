@@ -44,7 +44,6 @@ function card(ctx: Parameters<ComponentFn>[0], page: Page): BlogCard {
     dateLabel: date ? formatDate(date) : "",
     precis: page.fields?.precis ?? "",
     tags: page.tags ?? [],
-    tenant: page.fields?.tenant ?? "",
     href: hrefForPage(ctx, page.id),
     heroHtml: hero ? ctx.mediaHtml(hero) : "",
   };
@@ -61,9 +60,7 @@ export const blogArticle: ComponentFn = (ctx) => {
   const index = blog ? indexPage(ctx.document, blog) : undefined;
   const blogHref = blog ? hrefForPage(ctx, blog.id) : "#";
   const indexHref = index ? hrefForPage(ctx, index.id) : blogHref;
-  const same = blog
-    ? articlesFor(ctx.document, blog).filter((item) => item.fields?.tenant === page.fields?.tenant)
-    : [];
+  const same = blog ? articlesFor(ctx.document, blog) : [];
   const payload = {
     kind: "article",
     pageId: page.id,
@@ -104,30 +101,19 @@ export const blogFeed: ComponentFn = (ctx) => {
   const index = indexPage(ctx.document, blog);
   const blogHref = hrefForPage(ctx, blog.id);
   const indexHref = index ? hrefForPage(ctx, index.id) : "";
-  const pinned = blog.fields?.tenant?.trim() ?? "";
-  const tenants = (ctx.document.tenants ?? []).map((tenant) => tenant.id);
   const payload = {
     kind: "feed",
     pageId: blog.id,
-    pinned,
     pageSize: pageSize(blog),
     indexHref,
     blogHref,
-    tenants,
     cards: articlesFor(ctx.document, blog).map((page) => card(ctx, page)),
   };
-  const choices = pinned
-    ? ""
-    : `<nav class="tessera-blog-tenants" aria-label="Tenants">${tenants
-        .map((id) => `<a href="${ctx.escapeHtml(hashHref(blogHref, `tenant/${encodeURIComponent(id)}`))}">${ctx.escapeHtml(id)}</a>`)
-        .join("")}</nav>`;
   const indexLink = indexHref ? `<p class="tessera-blog-index-link"><a href="${ctx.escapeHtml(indexHref)}">Index</a></p>` : "";
   return `<section data-tessera-blog="feed">
     <script type="application/json" class="tessera-blog-data">${embed(payload)}</script>
-    ${choices}
-    <p class="tessera-blog-prompt"${pinned ? " hidden" : ""}>Choose a tenant.</p>
     <nav class="tessera-blog-tags" aria-label="Tags"></nav>
-    <div class="tessera-blog-mount">${payload.cards.map((card) => publishedCard(card)).join("")}</div>
+    <div class="tessera-blog-mount">${payload.cards.map((item) => publishedCard(item)).join("")}</div>
     <nav class="tessera-blog-pager" aria-label="Pages"></nav>
     ${indexLink}
   </section>`;
@@ -136,30 +122,27 @@ export const blogFeed: ComponentFn = (ctx) => {
 export const blogIndex: ComponentFn = (ctx) => {
   const index = ctx.page;
   const blog = index.parentId ? ctx.document.pages.find((page) => page.id === index.parentId) : undefined;
-  const pinned = blog?.type === "blog" ? (blog.fields?.tenant?.trim() ?? "") : "";
   const cards = blog && blog.type === "blog" ? articlesFor(ctx.document, blog).map((page) => card(ctx, page)) : [];
-  const payload = { kind: "index", pageId: index.id, pinned, cards };
+  const payload = { kind: "index", pageId: index.id, cards };
   return `<section data-tessera-blog="index">
     <script type="application/json" class="tessera-blog-data">${embed(payload)}</script>
     <div class="tessera-blog-tools">
       <nav class="tessera-blog-tags" aria-label="Tags"></nav>
       <p><label>Search <input class="tessera-blog-query" type="search" /></label></p>
     </div>
-    <div class="tessera-blog-mount">${cards.map((item) => publishedIndexRow(item, !pinned)).join("")}</div>
+    <div class="tessera-blog-mount">${cards.map((item) => publishedIndexRow(item)).join("")}</div>
   </section>`;
 };
 
-function publishedCard(card: BlogCard, showTenant = false): string {
+function publishedCard(card: BlogCard): string {
   const hero = card.heroHtml ? `<div class="tessera-blog-hero">${card.heroHtml}</div>` : "";
-  const tenant = showTenant ? ` <span class="tessera-blog-tenant">${escape(card.tenant)}</span>` : "";
   const precis = card.precis ? `<p>${escape(card.precis)}</p>` : "";
-  return `<article class="tessera-blog-card">${hero}<h2><a href="${escape(card.href)}">${escape(card.title)}</a></h2><p class="tessera-blog-meta"><time datetime="${escape(card.date)}">${escape(card.dateLabel)}</time>${tenant}</p>${precis}</article>`;
+  return `<article class="tessera-blog-card">${hero}<h2><a href="${escape(card.href)}">${escape(card.title)}</a></h2><p class="tessera-blog-meta"><time datetime="${escape(card.date)}">${escape(card.dateLabel)}</time></p>${precis}</article>`;
 }
 
-function publishedIndexRow(card: BlogCard, showTenant: boolean): string {
+function publishedIndexRow(card: BlogCard): string {
   const tags = card.tags.map((tag) => `<span>${escape(tag)}</span>`).join(" ");
-  const tenant = showTenant ? ` <span class="tessera-blog-tenant">${escape(card.tenant)}</span>` : "";
-  return `<p class="tessera-blog-index-row"><time datetime="${escape(card.date)}">${escape(card.dateLabel)}</time> <a href="${escape(card.href)}">${escape(card.title)}</a>${tenant} ${tags}</p>`;
+  return `<p class="tessera-blog-index-row"><time datetime="${escape(card.date)}">${escape(card.dateLabel)}</time> <a href="${escape(card.href)}">${escape(card.title)}</a> ${tags}</p>`;
 }
 
 function escape(value: string): string {

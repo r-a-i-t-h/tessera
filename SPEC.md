@@ -63,9 +63,9 @@ A listing behavior names the types it reads and, for dates, a window (`past`, `u
 
 ### Blog
 
-A blog is reserved, not assembled from a type and a binding. One site hosts every blog. A **tenant** is a record (`records/tenants/<id>.yaml`). An article selects one and cannot clear it. A blog selects one, or none. Two blogs cannot select the same tenant, and only one blog may select none.
+A blog is reserved, not assembled from a type and a binding. One site hosts every blog. Each blog is one dated stream. An article belongs to a blog via `parentId` and cannot stand alone.
 
-The author places the blog in the nav. That sets the path and the frame. Articles are not menu items. The generated children are the index, then one link per tenant when the blog names none. A tenant link opens that blog with the tenant selected.
+The author places each blog in the nav. That sets the path and the frame. Articles are not menu items. The generated child is the index when the blog asks for it in the menu.
 
 An article is a page: its own HTML file, Compose body, title, slug, and description. It has no includes, no layout control, and no frame of its own. The frame is the blog's frame. `date` orders the blog, the index, and previous/next. Tags filter those pages. `navTags`, a nav `itemsTag`, and the Pages tag filter ignore article tags.
 
@@ -257,7 +257,7 @@ Gallery, layout primitives, nav, bindings, and the blog are in the product. List
 - Access is **all-or-nothing**: any authenticated user may perform every editor mutation. `requireEditor` is the choke point so later ACL can replace that helper without rewriting routes.
 - The **editor SPA** (`apps/editor`) is a same-origin Vite app (not shipped with the renderer). Dev proxies `/auth`, `/api`, `/health` to the API; production can serve `dist` from the Hono process so the `httpOnly` session cookie never crosses origins.
 - Authoring is **file-based YAML** (one file per Tessera `id`) in `$TESSERA_DATA/records`, outside the web root. An edit writes the SPA snapshot to `preview/data/site.json`. **Publish** writes `publish/` in the site's `delivery` flavour. No database.
-- A starter site can be created from the editor when `site.yaml` is absent: shell, master layout (header, left sidebar, footer zone that includes a `common-footer` item), a standard type and layout, a Hello world home page, a first sidebar link, and a blog for tenant `blogger` with one article dated 2026-10-09. The sidebar stays open on the left from 993px up and becomes a Menu button on the right of the bar plus a flyout from the right below that. `POST /api/site/reseed` replaces an existing site with that starter after a safety backup, and keeps editors. `delivery` defaults to `pages`.
+- A starter site can be created from the editor when `site.yaml` is absent: shell, master layout (header, left sidebar, footer zone that includes a `common-footer` item), a standard type and layout, a Hello world home page, a first sidebar link, and a blog with one article dated 2026-10-09. The sidebar stays open on the left from 993px up and becomes a Menu button on the right of the bar plus a flyout from the right below that. `POST /api/site/reseed` replaces an existing site with that starter after a safety backup, and keeps editors. `delivery` defaults to `pages`.
 - **Compose** edits a page as sections and stores zone HTML. Fields and Raw file edit that same HTML. The section catalogue is `@r-a-i-t-h/tessera-sections`.
 - A **template** is `records/templates/<id>.yaml`. Publish skips that folder. A new page copied from one keeps tags, includes, and every zone except the title. A locked template sets `locked` on the page so the arrangement stays fixed while words and pictures stay editable. `locked` and `templateId` are editor fields; the published page omits them.
 - The **library** holds images and PDFs. A virtual move does not change the published URL. The **Styles** page edits chrome tokens on the site record.

@@ -1,6 +1,6 @@
 id: blog-roof-appeal
 title: "Roof appeal: the quiet halfway mark"
-parentId: news
+parentId: hall
 zones:
   title:
     html: "Roof appeal: the quiet halfway mark"
@@ -10,7 +10,6 @@ type: article
 tags:
   - roof
 fields:
-  tenant: hall
   date: 2026-08-22
   author: Sam Okonkwo
   precis: Slates, gutters, and the small miracle of people putting envelopes through the porch.

@@ -193,46 +193,46 @@ recordRoutes.delete("/records/content/:id", async (c) => {
   }
 });
 
-recordRoutes.delete("/records/tenants/:id", async (c) => {
+recordRoutes.delete("/records/blogs/:id", async (c) => {
   const site = c.get("requiredSite");
   const id = c.req.param("id");
-  if (!isRecordId(id)) return apiError(c, 400, "Invalid tenant id.");
+  if (!isRecordId(id)) return apiError(c, 400, "Invalid blog id.");
   try {
-    await site.deleteTenant(id);
+    await site.deleteBlog(id);
     return c.json({ ok: true, id });
   } catch (err) {
-    return apiError(c, 400, err instanceof Error ? err.message : "Could not delete that tenant.");
+    return apiError(c, 400, err instanceof Error ? err.message : "Could not delete that blog.");
   }
 });
 
-recordRoutes.post("/records/tenants/:id/cascade", async (c) => {
+recordRoutes.post("/records/blogs/:id/cascade", async (c) => {
   const site = c.get("requiredSite");
   const id = c.req.param("id");
-  if (!isRecordId(id)) return apiError(c, 400, "Invalid tenant id.");
+  if (!isRecordId(id)) return apiError(c, 400, "Invalid blog id.");
   try {
-    await site.cascadeTenant(id);
+    await site.cascadeBlog(id);
     return c.json({ ok: true, id });
   } catch (err) {
-    return apiError(c, 400, err instanceof Error ? err.message : "Could not delete that tenant.");
+    return apiError(c, 400, err instanceof Error ? err.message : "Could not delete that blog.");
   }
 });
 
-recordRoutes.post("/records/tenants/:id/rename", async (c) => {
+recordRoutes.post("/records/blogs/:id/rename", async (c) => {
   const site = c.get("requiredSite");
   const id = c.req.param("id");
-  if (!isRecordId(id)) return apiError(c, 400, "Invalid tenant id.");
+  if (!isRecordId(id)) return apiError(c, 400, "Invalid blog id.");
   let body: { id?: unknown };
   try {
     body = (await c.req.json()) as { id?: unknown };
   } catch {
     return apiError(c, 400, "Send the new id.");
   }
-  if (typeof body.id !== "string" || !isRecordId(body.id)) return apiError(c, 400, "Invalid tenant id.");
+  if (typeof body.id !== "string" || !isRecordId(body.id)) return apiError(c, 400, "Invalid blog id.");
   try {
-    await site.renameTenant(id, body.id);
+    await site.renameBlog(id, body.id);
     return c.json({ ok: true, id: body.id });
   } catch (err) {
-    return apiError(c, 400, err instanceof Error ? err.message : "Could not rename that tenant.");
+    return apiError(c, 400, err instanceof Error ? err.message : "Could not rename that blog.");
   }
 });
 

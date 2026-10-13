@@ -10,13 +10,13 @@ describe("editPlace", () => {
     });
   });
 
-  it("returns an article to its tenant", () => {
+  it("returns an article to its blog", () => {
     expect(
       editPlace("content", "fair", {
         id: "fair",
         title: "Summer fair",
         type: "article",
-        fields: { tenant: "hall" },
+        parentId: "hall",
       }),
     ).toEqual({
       section: "articles",

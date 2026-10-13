@@ -61,7 +61,7 @@ describe("blank site", () => {
     expect(snapshot).toContain('"type": "page"');
     expect(snapshot).toContain("Hello world");
     expect(snapshot).toContain("common-footer");
-    expect(snapshot).toContain('"id": "blogger"');
+    expect(snapshot).toContain('"id": "blog"');
     expect(snapshot).toContain("The blog begins");
     expect(snapshot).toContain("2026-10-09");
     expect(snapshot).toContain("tessera-blog");

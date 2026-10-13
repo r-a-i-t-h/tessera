@@ -13,10 +13,10 @@ export function editPlace(kind: string, id: string, record: Record<string, unkno
   }
   const heading = titleOf(record, id);
   if (record?.type === "article") {
-    const tenant = stringField(record, "tenant");
+    const parentId = typeof record.parentId === "string" ? record.parentId.trim() : "";
     return {
       section: "articles",
-      back: tenant ? `#/articles/${encodeURIComponent(tenant)}` : "#/articles",
+      back: parentId ? `#/articles/${encodeURIComponent(parentId)}` : "#/articles",
       heading,
     };
   }
@@ -29,11 +29,4 @@ export function editPlace(kind: string, id: string, record: Record<string, unkno
 function titleOf(record: Record<string, unknown> | undefined, id: string): string {
   const title = record?.title;
   return typeof title === "string" && title.trim() ? title.trim() : id;
-}
-
-function stringField(record: Record<string, unknown>, id: string): string {
-  const fields = record.fields;
-  if (!fields || typeof fields !== "object" || Array.isArray(fields)) return "";
-  const value = (fields as Record<string, unknown>)[id];
-  return typeof value === "string" ? value.trim() : "";
 }

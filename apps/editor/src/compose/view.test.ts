@@ -20,12 +20,12 @@ describe("composeFormInner", () => {
         id: "fair",
         title: "Summer fair",
         type: "article",
-        fields: { tenant: "hall", date: "2026-10-09" },
+        parentId: "hall",
+        fields: { date: "2026-10-09" },
         zones: { title: { html: "Summer fair" }, main: { html: "<p>Body</p>" } },
       },
       layout,
       [],
-      { tenants: ["hall"] },
     );
     expect(html).toContain('name="title"');
     expect(html).toContain("Summer fair");

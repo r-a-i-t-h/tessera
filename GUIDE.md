@@ -56,7 +56,7 @@ Put one of these in the master layout as a component. `scope` is `sidebar` (the 
 
 ## Articles
 
-Pages are ordinary pages. Articles opens on the tenant records, then that tenant’s articles. A blog is the reading list: path, frame, page size, lead, and an optional tenant. Blogs and tenants are edited together under Records → Blogs. Creating a blog also creates its index. Place the blog on the Nav record. The menu adds the index, and one link per tenant when the blog names none. Articles are not menu items.
+Pages are ordinary pages. Articles opens on the blog list, then that blog’s articles. A blog is one dated stream: path, frame, page size, hero, and lead. Blogs are edited under Records → Blogs. Creating a blog also creates its index. Place each blog on the Nav record yourself. The menu can add the index when the blog asks for it. Articles are not menu items.
 
 ## Bindings
 

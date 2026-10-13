@@ -3,7 +3,6 @@ import { mkdir, readdir, rename, unlink } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { SiteDocument } from "@r-a-i-t-h/tessera-model";
 import {
-  assertBlogTenants,
   collectDeclaredZones,
   layoutHasPageSlot,
   markBlogLinks,
@@ -65,7 +64,7 @@ export type RecordSummary = {
   type?: string;
   tags?: string[];
   date?: string;
-  tenant?: string;
+  parentId?: string;
 };
 
 export type PageLayoutHint = {
@@ -86,7 +85,7 @@ export type PageLayoutHint = {
 };
 
 /** These records are named by id. A title on them is not public content. */
-const ID_NAMED_KINDS = new Set<RecordKind>(["templates", "items", "layouts", "types", "folders", "tenants"]);
+const ID_NAMED_KINDS = new Set<RecordKind>(["templates", "items", "layouts", "types", "folders"]);
 
 function dropPrivateTitle(kind: RecordKind, data: Record<string, unknown>): Record<string, unknown> {
   if (!ID_NAMED_KINDS.has(kind) || !Object.prototype.hasOwnProperty.call(data, "title")) return data;
@@ -150,7 +149,7 @@ export class SiteStore {
             ? (data.fields as Record<string, unknown>)
             : {};
         const date = typeof fields.date === "string" ? fields.date : "";
-        const tenant = typeof fields.tenant === "string" ? fields.tenant : "";
+        const parentId = typeof data.parentId === "string" ? data.parentId : "";
         out.push({
           kind,
           id,
@@ -158,7 +157,7 @@ export class SiteStore {
           ...(kind === "content" && typeof data.type === "string" && data.type ? { type: data.type } : {}),
           ...(kind === "content" && tags.length ? { tags } : {}),
           ...(kind === "content" && date ? { date } : {}),
-          ...(kind === "content" && tenant ? { tenant } : {}),
+          ...(kind === "content" && parentId ? { parentId } : {}),
         });
       }
     }
@@ -588,7 +587,6 @@ export class SiteStore {
       types: await this.loadKind("types"),
       media: await this.loadKind("media"),
       folders: await this.loadKind("folders"),
-      tenants: await this.loadKind("tenants"),
     };
   }
 
@@ -606,7 +604,7 @@ export class SiteStore {
   }
 
   /**
-   * Articles take a tenant and a parent blog. A blog gains its index.
+   * Articles belong to a blog. A blog gains its index.
    * The check runs against the site as it would be after this save.
    */
   private async finalizeContent(id: string, record: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -618,10 +616,11 @@ export class SiteStore {
       delete next.masterLayoutId;
       delete next.templateId;
       delete next.locked;
+      const parentId = typeof next.parentId === "string" ? next.parentId.trim() : "";
+      if (!parentId) throw new Error("An article must belong to a blog.");
+      next.parentId = parentId;
       const fields = stringFields(next.fields);
-      const tenant = fields.tenant?.trim() ?? "";
-      if (!tenant) throw new Error("An article must name a tenant.");
-      fields.tenant = tenant;
+      delete fields.tenant;
       const date = fields.date?.trim() ?? "";
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
         throw new Error("An article date must be a calendar day, YYYY-MM-DD.");
@@ -649,9 +648,7 @@ export class SiteStore {
       const fields = stringFields(next.fields);
       if (showIndex === true || showIndex === "true") fields.showIndexInNav = "true";
       else delete fields.showIndexInNav;
-      const tenant = fields.tenant?.trim() ?? "";
-      if (tenant) fields.tenant = tenant;
-      else delete fields.tenant;
+      delete fields.tenant;
       const pageSize = fields.pageSize?.trim() ?? "";
       if (pageSize) fields.pageSize = pageSize;
       else delete fields.pageSize;
@@ -667,14 +664,7 @@ export class SiteStore {
     }
     const others = (await this.contentRecords()).filter((page) => page.id !== id);
     const projected = [...others, next as AuthoredPage];
-    const pages = placeArticles(projected.map((page) => authoredPageToPage(page)));
-    assertBlogTenants(
-      pages,
-      await this.listIds("tenants"),
-    );
-    if (type === "article") {
-      next.parentId = pages.find((page) => page.id === id)?.parentId;
-    }
+    placeArticles(projected.map((page) => authoredPageToPage(page)));
     return next;
   }
 
@@ -821,60 +811,74 @@ export class SiteStore {
     await this.rebuild();
   }
 
-  /** Refused while an article or a blog still selects this tenant. */
-  async deleteTenant(id: string): Promise<void> {
+  /** Refused while articles still belong to this blog. */
+  async deleteBlog(id: string): Promise<void> {
     this.assertId(id);
-    await this.read("tenants", id);
-    const users = (await this.contentRecords()).filter((page) => page.fields?.tenant === id);
-    if (users.length) {
-      throw new Error(`Tenant ${id} is still selected by ${users.map((page) => page.id).join(", ")}.`);
-    }
-    await this.removeRecord("tenants", id);
-    await this.rebuild();
+    const record = (await this.read("content", id)) as AuthoredPage;
+    if (record.type !== "blog") throw new Error(`${id} is not a blog.`);
+    await this.deleteContent(id);
   }
 
   /**
-   * Remove the tenant, every article and blog that selects it, that blog's index,
-   * their history, and the nav row for that blog. Library files stay.
+   * Remove the blog, its index, every article that belongs to it, their history,
+   * and the nav row for that blog. Library files stay.
    */
-  async cascadeTenant(id: string): Promise<void> {
+  async cascadeBlog(id: string): Promise<void> {
     this.assertId(id);
-    await this.read("tenants", id);
+    const record = (await this.read("content", id)) as AuthoredPage;
+    if (record.type !== "blog") throw new Error(`${id} is not a blog.`);
     const pages = await this.contentRecords();
-    const articles = pages.filter((page) => page.type === "article" && page.fields?.tenant === id);
-    const blog = pages.find((page) => page.type === "blog" && page.fields?.tenant === id);
-    const index = blog
-      ? pages.find((page) => page.type === "blog-index" && page.parentId === blog.id)
-      : undefined;
-    for (const page of [...articles, ...(blog ? [blog] : []), ...(index ? [index] : [])]) {
+    const articles = pages.filter((page) => page.type === "article" && page.parentId === id);
+    const index = pages.find((page) => page.type === "blog-index" && page.parentId === id);
+    for (const page of [...articles, ...(index ? [index] : []), record]) {
       await this.removeRecord("content", page.id);
     }
-    await this.removeRecord("tenants", id);
-    if (blog) {
-      const nav = await this.readNav();
-      if (Array.isArray(nav)) {
-        await this.commitText(this.navFile(), toYaml(stripNavId(nav, blog.id)), { rebuild: false });
-      }
+    const nav = await this.readNav();
+    if (Array.isArray(nav)) {
+      await this.commitText(this.navFile(), toYaml(stripNavId(nav, id)), { rebuild: false });
     }
     await this.rebuild();
   }
 
-  /** Rename a tenant id and rewrite every article and blog that selects it. */
-  async renameTenant(id: string, nextId: string): Promise<void> {
+  /** Rename a blog, its index, child articles' parentId, and nav references. */
+  async renameBlog(id: string, nextId: string): Promise<void> {
     this.assertId(id);
     if (!isRecordId(nextId)) throw new Error(`Invalid record id "${nextId}".`);
     if (nextId === id) return;
-    await this.read("tenants", id);
-    const existing = await this.listIds("tenants");
-    if (existing.includes(nextId)) throw new Error(`Tenant ${nextId} already exists.`);
+    const record = (await this.read("content", id)) as AuthoredPage;
+    if (record.type !== "blog") throw new Error(`${id} is not a blog.`);
+    const existing = await this.listIds("content");
+    if (existing.includes(nextId)) throw new Error(`Blog ${nextId} already exists.`);
+    const nextIndexId = `${nextId}-index`;
     const pages = await this.contentRecords();
-    for (const page of pages) {
-      if (page.fields?.tenant !== id) continue;
-      const fields = { ...page.fields, tenant: nextId };
-      await this.commitRecord("content", page.id, recordToYaml("content", { ...page, fields }), { rebuild: false });
+    const index = pages.find((page) => page.type === "blog-index" && page.parentId === id);
+    const slug = record.slug?.trim() ?? "";
+    const nextBlog: AuthoredPage = {
+      ...record,
+      id: nextId,
+      ...(slug === id ? { slug: nextId } : {}),
+    };
+    await this.commitRecord("content", nextId, recordToYaml("content", nextBlog), { rebuild: false });
+    if (index) {
+      const nextIndex = { ...index, id: nextIndexId, parentId: nextId };
+      await this.commitRecord("content", nextIndexId, recordToYaml("content", nextIndex), { rebuild: false });
+      await this.removeRecord("content", index.id);
     }
-    await this.commitRecord("tenants", nextId, recordToYaml("tenants", { id: nextId }), { rebuild: false });
-    await this.removeRecord("tenants", id);
+    for (const page of pages) {
+      if (page.type === "article" && page.parentId === id) {
+        await this.commitRecord(
+          "content",
+          page.id,
+          recordToYaml("content", { ...page, parentId: nextId }),
+          { rebuild: false },
+        );
+      }
+    }
+    const nav = await this.readNav();
+    if (Array.isArray(nav)) {
+      await this.commitText(this.navFile(), toYaml(rewriteNavId(nav, id, nextId)), { rebuild: false });
+    }
+    await this.removeRecord("content", id);
     await this.rebuild();
   }
 }
@@ -891,6 +895,21 @@ function stringFields(value: unknown): Record<string, string> {
 
 function escapeText(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function rewriteNavId(entries: unknown[], from: string, to: string): unknown[] {
+  const out: unknown[] = [];
+  for (const entry of entries) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      out.push(entry);
+      continue;
+    }
+    const row = entry as Record<string, unknown>;
+    const next = { ...row, ...(row.id === from ? { id: to } : {}) };
+    if (Array.isArray(row.children)) next.children = rewriteNavId(row.children, from, to);
+    out.push(next);
+  }
+  return out;
 }
 
 function stripNavId(entries: unknown[], id: string): unknown[] {

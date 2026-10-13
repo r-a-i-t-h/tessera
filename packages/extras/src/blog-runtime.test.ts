@@ -8,17 +8,16 @@ describe("blog dates and hashes", () => {
     expect(isFutureDate("not-a-date", "2026-10-08")).toBe(false);
   });
 
-  it("reads a snapshot hash and a pages hash", () => {
-    expect(blogStateFromHash("#news/tenant/hall/tag/fair/slice/2", "news")).toEqual({
-      tenant: "hall",
+  it("reads tag and slice from a snapshot hash", () => {
+    expect(blogStateFromHash("#news/tag/fair/slice/2", "news")).toEqual({
       tag: "fair",
       slice: 2,
     });
-    expect(blogStateFromHash("#tenant/admin", "news")).toEqual({ tenant: "admin", slice: 0 });
+    expect(blogStateFromHash("#tag/admin", "news")).toEqual({ tag: "admin", slice: 0 });
   });
 
   it("builds the hash onto the page href", () => {
-    expect(blogHash("news", "#news", { tenant: "hall", slice: 0 })).toBe("#news/tenant/hall");
+    expect(blogHash("news", "#news", { tag: "fair", slice: 0 })).toBe("#news/tag/fair");
     expect(blogHash("news", "./news/", { tag: "fair", slice: 1 })).toBe("./news/#tag/fair/slice/1");
   });
 });

@@ -167,8 +167,6 @@ function schemaFor(kind: AuthoredKind, data: unknown): z.ZodTypeAny {
       return isRecord(data) && typeof data.path === "string" && data.path.length > 0
         ? FolderSchema
         : libraryFolder;
-    case "tenants":
-      return z.object({ id: z.string().min(1) });
   }
 }
 

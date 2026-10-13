@@ -1,7 +1,7 @@
 export type Route =
   | { page: "home" }
   | { page: "pages" }
-  | { page: "articles"; tenant?: string }
+  | { page: "articles"; blog?: string }
   | { page: "records"; kind?: string }
   | { page: "library"; id: string | null }
   | { page: "backups" }
@@ -22,7 +22,7 @@ export function parseRoute(hash: string): Route {
   if (head === "pages") return rest ? { page: "missing" } : { page: "pages" };
   if (head === "articles") {
     if (rest.includes("/")) return { page: "missing" };
-    return { page: "articles", tenant: rest || undefined };
+    return { page: "articles", blog: rest || undefined };
   }
   if (head === "records") {
     if (rest.includes("/")) return { page: "missing" };

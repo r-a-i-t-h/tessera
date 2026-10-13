@@ -1,6 +1,6 @@
 id: blog-harvest-supper
 title: Harvest supper tickets are out
-parentId: news
+parentId: hall
 zones:
   title:
     html: Harvest supper tickets are out
@@ -10,7 +10,6 @@ type: article
 tags:
   - harvest
 fields:
-  tenant: hall
   date: 2026-09-08
   author: Priya Nair
   precis: Two sittings, one pudding table, and a raffle that still features a fruit cake of mysterious age.

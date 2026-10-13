@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   ARTICLE_LAYOUT_ID,
-  assertBlogTenants,
   blogHeroStyle,
   injectBlogLayouts,
   markBlogLinks,
@@ -30,12 +29,13 @@ describe("placeArticles", () => {
     id: "fair",
     title: "Fair",
     type: "article",
+    parentId: "news",
     includes: ["common-footer"],
     masterLayoutId: "other",
-    fields: { tenant: "hall", date: "2026-07-14" },
+    fields: { date: "2026-07-14" },
   });
 
-  it("parents an article on the unscoped blog and drops includes and frame", () => {
+  it("parents an article on its blog and drops includes and frame", () => {
     const [placedNews, placedIndex, placed] = placeArticles([news, index, fair]);
     expect(placedNews).toBe(news);
     expect(placedIndex?.slug).toBe("index");
@@ -45,31 +45,27 @@ describe("placeArticles", () => {
     expect(placed?.masterLayoutId).toBeUndefined();
   });
 
-  it("parents an article on the blog that names its tenant", () => {
-    const hall = page({ id: "hall-blog", title: "Hall", type: "blog", fields: { tenant: "hall" } });
-    const placed = placeArticles([news, hall, fair]).find((item) => item.id === "fair");
-    expect(placed?.parentId).toBe("hall-blog");
-  });
-
-  it("refuses an article with no blog, two unscoped blogs, and a shared tenant", () => {
-    expect(() => placeArticles([fair])).toThrow(/no blog/);
+  it("refuses an article with no blog parent, tenant fields, and invalid blogs", () => {
+    expect(() =>
+      placeArticles([
+        page({ id: "fair", title: "Fair", type: "article", fields: { date: "2026-07-14" } }),
+      ]),
+    ).toThrow(/must belong to a blog/);
     expect(() =>
       placeArticles([
         news,
-        page({ id: "other", title: "Other", type: "blog" }),
+        page({ id: "fair", title: "Fair", type: "article", fields: { tenant: "hall", date: "2026-07-14" } }),
       ]),
-    ).toThrow(/omit a tenant/);
+    ).toThrow(/must not name a tenant/);
+    expect(() =>
+      placeArticles([page({ id: "news", title: "News", type: "blog", fields: { tenant: "hall" } }), fair]),
+    ).toThrow(/must not name a tenant/);
     expect(() =>
       placeArticles([
-        page({ id: "a", title: "A", type: "blog", fields: { tenant: "hall" } }),
-        page({ id: "b", title: "B", type: "blog", fields: { tenant: "hall" } }),
+        page({ id: "fair", title: "Fair", type: "article", parentId: "home", fields: { date: "2026-07-14" } }),
+        page({ id: "home", title: "Home", type: "standard" }),
       ]),
-    ).toThrow(/Two blogs/);
-  });
-
-  it("refuses a tenant that is not a tenant record", () => {
-    expect(() => assertBlogTenants(placeArticles([news, fair]), [])).toThrow(/not a tenant record/);
-    expect(() => assertBlogTenants(placeArticles([news, fair]), ["hall"])).not.toThrow();
+    ).toThrow(/not a blog/);
   });
 
   it("accepts a blog hero of full, banner, or side", () => {
@@ -77,7 +73,10 @@ describe("placeArticles", () => {
     expect(blogHeroStyle({ heroStyle: "side" })).toBe("side");
     expect(blogHeroStyle({ heroStyle: "nope" })).toBe("banner");
     expect(() =>
-      placeArticles([page({ id: "news", title: "News", type: "blog", fields: { heroStyle: "wide" } }), fair]),
+      placeArticles([
+        page({ id: "news", title: "News", type: "blog", fields: { heroStyle: "wide" } }),
+        fair,
+      ]),
     ).toThrow(/hero must be full, banner, or side/);
     expect(() =>
       placeArticles([page({ id: "news", title: "News", type: "blog", fields: { heroStyle: "full" } }), fair]),

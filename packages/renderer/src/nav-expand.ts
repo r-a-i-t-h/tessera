@@ -80,17 +80,6 @@ function blogChildren(
   const index = document.pages.find((page) => page.type === "blog-index" && page.parentId === blog.id);
   const out: ResolvedNavNode[] = [];
   if (index && blog.fields?.showIndexInNav === "true") out.push({ ...flags, id: index.id, title: index.title });
-  const pinned = blog.fields?.tenant?.trim() ?? "";
-  if (!pinned) {
-    for (const tenant of document.tenants ?? []) {
-      out.push({
-        ...flags,
-        id: blog.id,
-        title: tenant.id,
-        hash: `tenant/${encodeURIComponent(tenant.id)}`,
-      });
-    }
-  }
   return out;
 }
 

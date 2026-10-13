@@ -1,0 +1,11 @@
+id: admin
+title: Office news
+slug: admin
+type: blog
+fields:
+  pageSize: "10"
+zones:
+  title:
+    html: Office news
+  lead:
+    html: <p class="w3-large">Updates from the office.</p>

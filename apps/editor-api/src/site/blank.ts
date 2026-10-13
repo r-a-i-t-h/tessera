@@ -124,7 +124,6 @@ title: Blog
 slug: blog
 type: blog
 fields:
-  tenant: blogger
   pageSize: "10"
 zones:
   title:
@@ -148,7 +147,6 @@ title: The blog begins
 parentId: blog
 type: article
 fields:
-  tenant: blogger
   date: 2026-10-09
   author: Blogger
   precis: Dated on the day the blog arrived.
@@ -157,9 +155,6 @@ zones:
     html: The blog begins
   main:
     html: '<p>This is the first article, dated 9 October 2026, the day the blog arrived.</p>'
-`;
-
-const TENANT_YAML = `id: blogger
 `;
 
 const FOOTER_YAML = `id: common-footer
@@ -188,9 +183,6 @@ const CONTENT_ORDER = `- home
 - birthday
 `;
 
-const TENANT_ORDER = `- blogger
-`;
-
 const TYPE_ORDER = `- standard
 `;
 
@@ -199,7 +191,7 @@ const ITEM_ORDER = `- common-footer
 
 /**
  * Shell, master layout (includes the common-footer item), standard type and
- * layout, Hello world home page, and a blog for tenant blogger with one article.
+ * layout, Hello world home page, and a blog with one article.
  * Overwrites those files when they already exist.
  */
 export async function writeSeedFiles(siteRoot: string): Promise<void> {
@@ -219,8 +211,6 @@ export async function writeSeedFiles(siteRoot: string): Promise<void> {
   await writeTextAtomic(join(records, "content", "blog-index.yaml"), BLOG_INDEX_YAML);
   await writeTextAtomic(join(records, "content", "birthday.yaml"), ARTICLE_YAML);
   await writeTextAtomic(join(records, "content", "_order.yaml"), CONTENT_ORDER);
-  await writeTextAtomic(join(records, "tenants", "blogger.yaml"), TENANT_YAML);
-  await writeTextAtomic(join(records, "tenants", "_order.yaml"), TENANT_ORDER);
   await writeTextAtomic(join(records, "nav.yaml"), NAV_YAML);
 }
 

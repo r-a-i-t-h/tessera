@@ -13,7 +13,6 @@ import type {
 } from "@r-a-i-t-h/tessera-model";
 import {
   ARTICLE_LAYOUT_ID,
-  assertBlogTenants,
   BLOG_INDEX_LAYOUT_ID,
   BLOG_LAYOUT_ID,
   injectBlogLayouts,
@@ -165,8 +164,6 @@ export function authoredItemToItem(raw: AuthoredItem): Item {
   };
 }
 
-export type AuthoredTenant = { id: string };
-
 export type SplitSite = {
   site: SiteFile;
   nav: NavEntry[];
@@ -177,7 +174,6 @@ export type SplitSite = {
   types: Type[];
   media: Media[];
   folders: Folder[];
-  tenants: AuthoredTenant[];
 };
 
 export function splitDocument(doc: SiteDocument): SplitSite {
@@ -194,7 +190,6 @@ export function splitDocument(doc: SiteDocument): SplitSite {
     types: doc.types ?? [],
     media: doc.media ?? [],
     folders: doc.folders ?? [],
-    tenants: doc.tenants ?? [],
   };
 }
 
@@ -208,7 +203,6 @@ export type LoadedSite = {
   types: Type[];
   media: Media[];
   folders: Folder[];
-  tenants: AuthoredTenant[];
 };
 
 export function assembleDocument(parts: LoadedSite): SiteDocument {
@@ -216,8 +210,6 @@ export function assembleDocument(parts: LoadedSite): SiteDocument {
   const version = parts.site.version ?? SITE_DOCUMENT_SCHEMA_VERSION;
   const projected = projectLibrary(parts.media, parts.folders);
   const pages = placeArticles(parts.content.filter((page) => page.published !== false).map(authoredPageToPage));
-  assertBlogTenants(pages, parts.tenants.map((tenant) => tenant.id));
-  const tenants = parts.tenants.map((tenant) => ({ id: tenant.id }));
   return parseSiteDocument({
     version,
     site: meta,
@@ -229,7 +221,6 @@ export function assembleDocument(parts: LoadedSite): SiteDocument {
     nav: parts.nav,
     bindings: parts.bindings,
     types: parts.types,
-    ...(tenants.length ? { tenants } : {}),
   });
 }
 

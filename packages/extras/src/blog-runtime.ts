@@ -19,13 +19,11 @@ export type BlogCard = {
   dateLabel: string;
   precis: string;
   tags: string[];
-  tenant: string;
   href: string;
   heroHtml: string;
 };
 
 export type BlogState = {
-  tenant?: string;
   tag?: string;
   slice: number;
 };
@@ -33,18 +31,15 @@ export type BlogState = {
 type FeedPayload = {
   kind: "feed";
   pageId: string;
-  pinned: string;
   pageSize: number;
   indexHref: string;
   blogHref: string;
-  tenants: string[];
   cards: BlogCard[];
 };
 
 type IndexPayload = {
   kind: "index";
   pageId: string;
-  pinned: string;
   cards: BlogCard[];
 };
 
@@ -59,7 +54,7 @@ type ArticlePayload = {
 
 type BlogPayload = FeedPayload | IndexPayload | ArticlePayload;
 
-/** Read tenant, tag, and slice from a snapshot hash (`#news/tenant/hall`) or a pages hash (`#tenant/hall`). */
+/** Read tag and slice from a snapshot hash (`#news/tag/fair/slice/2`) or a pages hash. */
 export function blogStateFromHash(hash: string, pageId: string): BlogState {
   let raw = hash.replace(/^#/, "");
   if (raw === pageId) raw = "";
@@ -71,8 +66,7 @@ export function blogStateFromHash(hash: string, pageId: string): BlogState {
     const value = parts[i + 1];
     if (!key || value === undefined) continue;
     const decoded = decodeURIComponent(value);
-    if (key === "tenant") state.tenant = decoded;
-    else if (key === "tag") state.tag = decoded;
+    if (key === "tag") state.tag = decoded;
     else if (key === "slice") state.slice = Math.max(0, Number(decoded) || 0);
   }
   return state;
@@ -80,7 +74,6 @@ export function blogStateFromHash(hash: string, pageId: string): BlogState {
 
 export function blogHash(pageId: string, blogHref: string, state: BlogState): string {
   const bits: string[] = [];
-  if (state.tenant) bits.push("tenant", encodeURIComponent(state.tenant));
   if (state.tag) bits.push("tag", encodeURIComponent(state.tag));
   if (state.slice > 0) bits.push("slice", String(state.slice));
   const suffix = bits.join("/");
@@ -141,30 +134,21 @@ function paintArticle(host: HTMLElement, payload: ArticlePayload, today: string)
 
 function paintFeed(host: HTMLElement, payload: FeedPayload, today: string): void {
   const state = blogStateFromHash(window.location.hash, payload.pageId);
-  const tenant = payload.pinned || state.tenant || "";
   const mount = host.querySelector<HTMLElement>(".tessera-blog-mount");
   const tags = host.querySelector<HTMLElement>(".tessera-blog-tags");
   const pager = host.querySelector<HTMLElement>(".tessera-blog-pager");
-  const prompt = host.querySelector<HTMLElement>(".tessera-blog-prompt");
-  if (prompt) prompt.hidden = Boolean(tenant);
-  if (!tenant) {
-    if (mount) mount.innerHTML = "";
-    if (tags) tags.innerHTML = "";
-    if (pager) pager.innerHTML = "";
-    return;
-  }
-  const cards = visible(payload.cards, today).filter((card) => payload.pinned || card.tenant === tenant);
+  const cards = visible(payload.cards, today);
   const tag = state.tag ?? "";
   const filtered = tag ? cards.filter((card) => card.tags.includes(tag)) : cards;
   const size = payload.pageSize > 0 ? payload.pageSize : 10;
   const pages = Math.max(1, Math.ceil(filtered.length / size));
   const slice = Math.min(state.slice, pages - 1);
   const shown = filtered.slice(slice * size, slice * size + size);
-  if (tags) tags.innerHTML = tagLinks(payload, cards, tenant, tag);
+  if (tags) tags.innerHTML = tagLinks(payload, cards, tag);
   if (mount) mount.innerHTML = shown.map(cardHtml).join("") || `<p class="tessera-blog-empty">No articles.</p>`;
   if (pager) {
-    const newer = slice > 0 ? pageLink(payload, tenant, tag, slice - 1, "Newer") : "";
-    const older = slice + 1 < pages ? pageLink(payload, tenant, tag, slice + 1, "Older") : "";
+    const newer = slice > 0 ? pageLink(payload, tag, slice - 1, "Newer") : "";
+    const older = slice + 1 < pages ? pageLink(payload, tag, slice + 1, "Older") : "";
     pager.innerHTML = [newer, older].filter(Boolean).join("");
   }
 }
@@ -177,7 +161,6 @@ function paintIndex(host: HTMLElement, payload: IndexPayload, today: string): vo
   }
   const text = query?.value.trim().toLowerCase() ?? "";
   const cards = visible(payload.cards, today).filter((card) => {
-    if (payload.pinned && card.tenant !== payload.pinned) return false;
     if (state.tag && !card.tags.includes(state.tag)) return false;
     if (!text) return true;
     const haystack = `${card.title} ${card.tags.join(" ")}`.toLowerCase();
@@ -191,20 +174,16 @@ function paintIndex(host: HTMLElement, payload: IndexPayload, today: string): vo
   }
   if (mount) {
     mount.innerHTML =
-      cards.map((card) => indexRow(card, !payload.pinned)).join("") || `<p class="tessera-blog-empty">No articles.</p>`;
+      cards.map((card) => indexRow(card)).join("") || `<p class="tessera-blog-empty">No articles.</p>`;
   }
 }
 
-function tagLinks(payload: FeedPayload, cards: readonly BlogCard[], tenant: string, current: string): string {
+function tagLinks(payload: FeedPayload, cards: readonly BlogCard[], current: string): string {
   const tags = uniqueTags(cards);
   if (!tags.length) return "";
-  const all = blogHash(payload.pageId, payload.blogHref, { tenant: payload.pinned ? undefined : tenant, slice: 0 });
+  const all = blogHash(payload.pageId, payload.blogHref, { slice: 0 });
   const links = tags.map((tag) => {
-    const href = blogHash(payload.pageId, payload.blogHref, {
-      tenant: payload.pinned ? undefined : tenant,
-      tag,
-      slice: 0,
-    });
+    const href = blogHash(payload.pageId, payload.blogHref, { tag, slice: 0 });
     const on = tag === current ? ` aria-current="true"` : "";
     return `<a href="${escapeAttr(href)}"${on}>${escapeText(tag)}</a>`;
   });
@@ -230,9 +209,8 @@ function hashBase(pageId: string): string {
   return path || "./";
 }
 
-function pageLink(payload: FeedPayload, tenant: string, tag: string, slice: number, label: string): string {
+function pageLink(payload: FeedPayload, tag: string, slice: number, label: string): string {
   const href = blogHash(payload.pageId, payload.blogHref, {
-    tenant: payload.pinned ? undefined : tenant,
     ...(tag ? { tag } : {}),
     slice,
   });
@@ -244,10 +222,9 @@ function cardHtml(card: BlogCard): string {
   return `<article class="tessera-blog-card">${hero}<h2><a href="${escapeAttr(card.href)}">${escapeText(card.title)}</a></h2><p class="tessera-blog-meta"><time datetime="${escapeAttr(card.date)}">${escapeText(card.dateLabel)}</time></p>${card.precis ? `<p>${escapeText(card.precis)}</p>` : ""}</article>`;
 }
 
-function indexRow(card: BlogCard, showTenant: boolean): string {
+function indexRow(card: BlogCard): string {
   const tags = card.tags.map((tag) => `<span>${escapeText(tag)}</span>`).join(" ");
-  const tenant = showTenant ? `<span class="tessera-blog-tenant">${escapeText(card.tenant)}</span>` : "";
-  return `<p class="tessera-blog-index-row"><time datetime="${escapeAttr(card.date)}">${escapeText(card.dateLabel)}</time> <a href="${escapeAttr(card.href)}">${escapeText(card.title)}</a> ${tenant} ${tags}</p>`;
+  return `<p class="tessera-blog-index-row"><time datetime="${escapeAttr(card.date)}">${escapeText(card.dateLabel)}</time> <a href="${escapeAttr(card.href)}">${escapeText(card.title)}</a> ${tags}</p>`;
 }
 
 function uniqueTags(cards: readonly BlogCard[]): string[] {
