@@ -120,7 +120,7 @@ export type GalleryMode = "grid" | "slides";
 
 export type Section =
   | { kind: "heading"; level: 1 | 2 | 3; text: string }
-  | { kind: "text"; heading: string; level: 1 | 2 | 3; html: string }
+  | { kind: "text"; heading: string; level: 1 | 2 | 3; html: string; loose?: boolean }
   | { kind: "panel"; tone: ToneId; html: string }
   | { kind: "quote"; tone: ToneId; text: string; attribution: string }
   | { kind: "imgbox"; src: string; alt: string; caption: string; plain: boolean }
@@ -302,7 +302,7 @@ export function parseSections(html: string): Section[] {
 function paintText(section: Extract<Section, { kind: "text" }>): string {
   const heading = section.heading.trim();
   const title = heading ? `<h${section.level}>${escapeText(heading)}</h${section.level}>` : "";
-  return `<div class="${joinClass(BLOCK_CLASS, "tessera-text")}">${title}${renderMarkdownLinks(section.html)}</div>`;
+  return `<div class="${joinClass(BLOCK_CLASS, "tessera-text", section.loose ? "tessera-loose" : "")}">${title}${renderMarkdownLinks(section.html)}</div>`;
 }
 
 function paintYoutube(section: Extract<Section, { kind: "youtube" }>): string {
@@ -428,7 +428,14 @@ function asTextRun(el: ElNode): Section | null {
     level = Number(first.tag[1]) as 1 | 2 | 3;
     start = 1;
   }
-  return { kind: "text", heading, level, html: serializeChildren(children.slice(start)) };
+  const loose = hasClass(el, "tessera-loose");
+  return {
+    kind: "text",
+    heading,
+    level,
+    html: serializeChildren(children.slice(start)),
+    ...(loose ? { loose: true } : {}),
+  };
 }
 
 function classify(el: ElNode, allowColumns: boolean): Section[] {

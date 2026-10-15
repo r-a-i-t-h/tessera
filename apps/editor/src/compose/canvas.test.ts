@@ -308,6 +308,44 @@ describe("side by side layouts", () => {
   });
 });
 
+describe("text spacing", () => {
+  it("keeps blank paragraphs before and after words", () => {
+    const form = mountZone(
+      `<div class="tessera-text"><p><br></p><p>Hello</p><p><br></p><p><br></p></div>`,
+    );
+    const html = readComposeHtml(form).main ?? "";
+    expect(html).toContain("<p><br></p><p>Hello</p><p><br></p><p><br></p>");
+  });
+
+  it("stores no body html when only blank paragraphs remain", () => {
+    const form = mountZone(`<div class="tessera-text"><p>Hi</p></div>`);
+    const body = form.querySelector<HTMLElement>(".editor-text-body");
+    if (!body) throw new Error("body");
+    body.innerHTML = "<p><br></p>";
+    body.dispatchEvent(new dom.Event("input", { bubbles: true }));
+    const html = readComposeHtml(form).main ?? "";
+    expect(html).toContain('class="tessera-block tessera-text"');
+    expect(html).not.toContain("<p>");
+  });
+
+  it("round-trips Super space on a text block", () => {
+    const form = mountZone(`<div class="tessera-text tessera-loose"><p>Wide</p></div>`);
+    expect(form.querySelector(".editor-text.tessera-loose")).toBeTruthy();
+    let html = readComposeHtml(form).main ?? "";
+    expect(html).toContain("tessera-loose");
+    expect(parseSections(html)[0]).toMatchObject({ kind: "text", loose: true });
+
+    const loose = form.querySelector<HTMLInputElement>('[data-field="loose"]');
+    if (!loose) throw new Error("loose");
+    expect(loose.checked).toBe(true);
+    loose.checked = false;
+    loose.dispatchEvent(new dom.Event("change", { bubbles: true }));
+    html = readComposeHtml(form).main ?? "";
+    expect(html).not.toContain("tessera-loose");
+    expect(parseSections(html)[0]).not.toMatchObject({ loose: true });
+  });
+});
+
 describe("card container", () => {
   it("holds text and side by side", () => {
     const form = mountZone(

@@ -135,6 +135,26 @@ describe("paintSections", () => {
     expect(html).not.toContain("href=\"javascript:");
   });
 
+  it("round-trips Super space on text sections", () => {
+    const sections: Section[] = [{ kind: "text", heading: "", level: 2, html: "<p>Hi</p>", loose: true }];
+    const html = paintSections(sections);
+    expect(html).toContain("tessera-loose");
+    expect(parseSections(html)).toEqual(sections);
+  });
+
+  it("leaves loose off text sections unpainted", () => {
+    const sections: Section[] = [{ kind: "text", heading: "", level: 2, html: "<p>Hi</p>" }];
+    const html = paintSections(sections);
+    expect(html).not.toContain("tessera-loose");
+  });
+
+  it("keeps blank paragraph lines inside text html", () => {
+    const html = `<div class="tessera-block tessera-text"><p><br></p><p>Hello</p></div>`;
+    expect(parseSections(html)).toMatchObject([
+      { kind: "text", heading: "", level: 2, html: "<p><br></p><p>Hello</p>" },
+    ]);
+  });
+
   it("rebuilds the same sections from painted HTML", () => {
     const sections: Section[] = [
       { kind: "heading", level: 2, text: "Hello" },

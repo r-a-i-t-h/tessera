@@ -149,6 +149,16 @@ body.fontD h6 {
   margin-top: 0;
 }
 
+.tessera-block.w3-card:not(.tessera-video):not(.tessera-imgbox) {
+  padding: 1.5rem 1.65rem !important;
+  margin-top: 1.25rem !important;
+  margin-bottom: 2.5rem !important;
+}
+
+.tessera-block.w3-card:not(.tessera-video):not(.tessera-imgbox):last-child {
+  margin-bottom: 2.5rem !important;
+}
+
 .rt-card-body > .tessera-block:last-child {
   margin-bottom: 0;
 }
@@ -160,6 +170,29 @@ body.fontD h6 {
 
 .tessera-text :where(p, ul, ol):last-child {
   margin-bottom: 0;
+}
+
+.tessera-text :where(p):has(> br:only-child) {
+  margin-bottom: 0;
+  min-height: 1.55em;
+}
+
+.tessera-text.tessera-loose {
+  padding-top: 0.35rem;
+  padding-bottom: 0.5rem;
+}
+
+.tessera-text.tessera-loose :where(p, ul, ol) {
+  margin: 0 0 1.85em;
+  line-height: 1.8;
+}
+
+.tessera-text.tessera-loose :where(p, ul, ol):last-child {
+  margin-bottom: 0;
+}
+
+.tessera-text.tessera-loose :where(p):has(> br:only-child) {
+  min-height: 1.8em;
 }
 
 .tessera-text > :is(h1, h2, h3) {

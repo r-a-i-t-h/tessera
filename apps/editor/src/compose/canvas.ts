@@ -202,6 +202,10 @@ function toSection(node: EditNode): Section {
     return { kind: "card", title: node.title, sections: node.items.map(toSection) };
   }
   const { uid: _uid, ...section } = node;
+  if (section.kind === "text") {
+    const { loose, ...rest } = section;
+    return loose ? { ...rest, loose: true } : rest;
+  }
   return section;
 }
 
@@ -295,7 +299,7 @@ function propsFor(node: EditNode, choices: Choices, locked: boolean): string {
     case "heading":
       return levelSelect(node.level);
     case "text":
-      return `${levelSelect(node.level)}${editingToolbar(inlineTools(), listTools())}`;
+      return `${levelSelect(node.level)}${superSpaceCheck(node)}${editingToolbar(inlineTools(), listTools())}`;
     case "panel":
       return `<label class="editor-prop">Tone <select data-field="tone">${toneOptions(node.tone)}</select></label>${editingToolbar(inlineTools())}`;
     case "quote":
@@ -326,7 +330,7 @@ function propsFor(node: EditNode, choices: Choices, locked: boolean): string {
 function lockedProps(node: EditNode, choices: Choices): string {
   switch (node.kind) {
     case "text":
-      return editingToolbar(inlineTools(), listTools());
+      return `${superSpaceCheck(node)}${editingToolbar(inlineTools(), listTools())}`;
     case "panel":
     case "pasted":
       return editingToolbar(inlineTools());
@@ -376,6 +380,10 @@ function levelSelect(level: 1 | 2 | 3): string {
   return `<label class="editor-prop">Level <select data-field="level">${[1, 2, 3]
     .map((item) => `<option value="${item}"${level === item ? " selected" : ""}>${item}</option>`)
     .join("")}</select></label>`;
+}
+
+function superSpaceCheck(node: Extract<EditLeaf, { kind: "text" }>): string {
+  return `<label class="editor-prop">Super space <input type="checkbox" data-field="loose"${node.loose ? " checked" : ""}></label>`;
 }
 
 function editingToolbar(inline: string, list = ""): string {
@@ -429,7 +437,7 @@ function bodyFor(node: EditNode, choices: Choices, zone: string, locked: boolean
     case "heading":
       return `<h${node.level} class="${BLOCK_CLASS}" contenteditable="true" data-field="text" data-plain="true" data-placeholder="Heading">${escapeText(node.text)}</h${node.level}>`;
     case "text":
-      return `<div class="${joinClass(BLOCK_CLASS, "editor-text")}"><h${node.level} contenteditable="true" data-field="heading" data-plain="true" data-placeholder="Heading">${escapeText(node.heading)}</h${node.level}><div class="editor-text-body" contenteditable="true" data-field="html" data-blocks="true" data-placeholder="Write…">${htmlForEditing(node.html)}</div></div>`;
+      return `<div class="${joinClass(BLOCK_CLASS, "editor-text", node.loose ? "tessera-loose" : "")}"><h${node.level} contenteditable="true" data-field="heading" data-plain="true" data-placeholder="Heading">${escapeText(node.heading)}</h${node.level}><div class="editor-text-body" contenteditable="true" data-field="html" data-blocks="true" data-placeholder="Write…">${htmlForEditing(node.html)}</div></div>`;
     case "panel":
       return `<div class="${joinClass(BLOCK_CLASS, "w3-panel", "w3-padding", toneClass(node.tone))}"><div contenteditable="true" data-field="html" data-placeholder="Panel">${htmlForEditing(node.html)}</div></div>`;
     case "quote":
@@ -555,6 +563,11 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
     }
     if (field === "heading" && target.isContentEditable && node.kind === "text") {
       node.heading = (target.textContent ?? "").replace(/\n+/g, " ");
+      return;
+    }
+    if (node.kind === "text" && field === "loose" && target instanceof HTMLInputElement) {
+      node.loose = target.checked;
+      article?.querySelector(".editor-text")?.classList.toggle("tessera-loose", node.loose);
       return;
     }
     if (field === "text" && target.isContentEditable) {
@@ -1083,6 +1096,7 @@ function applyControl(node: EditLeaf | EditCard, field: string, value: string): 
   if (node.kind === "imgbox" && field === "alt") node.alt = value;
   if (node.kind === "imgbox" && field === "caption") node.caption = value;
   if (node.kind === "imgbox" && field === "plain") node.plain = value === "true";
+  if (node.kind === "text" && field === "loose") node.loose = value === "true";
   if (node.kind === "card" && field === "title") node.title = value;
   if (node.kind === "insert" && field === "id") node.id = value.trim();
   if (node.kind === "subpages" && field === "title") node.title = value;
@@ -1191,12 +1205,36 @@ function insertMarkdownLink(href: string): void {
 }
 
 function paragraphsFromPlain(text: string): string {
-  return text
-    .split(/\n{2,}/)
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .map((part) => `<p>${escapeText(part).replace(/\n/g, "<br>")}</p>`)
+  const parts: string[] = [];
+  let current = "";
+  let i = 0;
+  while (i < text.length) {
+    if (text[i] === "\n") {
+      let run = 0;
+      while (i < text.length && text[i] === "\n") {
+        run++;
+        i++;
+      }
+      if (run >= 2) {
+        parts.push(current);
+        current = "";
+        for (let blank = 0; blank < run - 2; blank++) parts.push("");
+      } else {
+        current += "\n";
+      }
+      continue;
+    }
+    current += text[i]!;
+    i++;
+  }
+  parts.push(current);
+  const html = parts
+    .map((part) => {
+      if (!part.trim()) return "<p><br></p>";
+      return `<p>${escapeText(part).replace(/\n/g, "<br>")}</p>`;
+    })
     .join("");
+  return textBlocksHaveWords(html) ? html : "";
 }
 
 function readTextHtml(html: string): string {
@@ -1243,7 +1281,11 @@ function blocksIn(parent: Element): string {
       }
       flush();
       const inner = sanitize(node.innerHTML);
-      if (!inner.replace(/<br>/g, "").trim()) continue;
+      if (!inner.replace(/<br>/gi, "").trim()) {
+        const open = tag === "p" ? tagOpen(node, "p") : "p";
+        out += `<${open}><br></p>`;
+        continue;
+      }
       const open = tag === "p" ? tagOpen(node, "p") : "p";
       out += `<${open}>${inner}</p>`;
       continue;
@@ -1255,7 +1297,11 @@ function blocksIn(parent: Element): string {
     inline += sanitize(node.outerHTML);
   }
   flush();
-  return out;
+  return textBlocksHaveWords(out) ? out : "";
+}
+
+function textBlocksHaveWords(html: string): boolean {
+  return html.replace(/<[^>]+>/g, "").replace(/\s/g, "") !== "";
 }
 
 function tagOpen(el: Element, tag: string): string {
