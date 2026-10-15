@@ -849,6 +849,15 @@ img[data-hero-preview] {
   margin: 0 0 0.65em;
 }
 
+.editor-text [data-field="heading"]:not(:first-child),
+.tessera-block.editor-text:not(:first-child) > [data-field="heading"]:first-child {
+  margin-top: 1.75rem;
+}
+
+.rt-card-body > .tessera-block.editor-text:first-child > [data-field="heading"]:first-child {
+  margin-top: 0;
+}
+
 .editor-text [data-field="heading"]:empty {
   margin: 0;
   font-size: 1.05rem;

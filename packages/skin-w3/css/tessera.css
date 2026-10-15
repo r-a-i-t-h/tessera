@@ -227,6 +227,16 @@ body.fontD h6 {
   line-height: 1.25;
 }
 
+/* Leading space above headings that follow body copy or an earlier block. */
+.tessera-text > :is(h1, h2, h3):not(:first-child),
+.tessera-block.tessera-text:not(:first-child) > :is(h1, h2, h3):first-child {
+  margin-top: 1.75rem;
+}
+
+.rt-card-body > .tessera-block.tessera-text:first-child > :is(h1, h2, h3):first-child {
+  margin-top: 0;
+}
+
 body.leftnav .tessera-sidebar {
   left: 0;
   right: auto;
