@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { SiteDocument } from "@r-a-i-t-h/tessera-model";
-import { resolveNavTree, flattenNav } from "../nav-expand.js";
-import { makeFixtureDoc } from "./fixtures.js";
+import type { SiteDocument } from "../schema.js";
+import { collectNavPageOrder, flattenNav, resolveNavTree } from "../nav-expand.js";
+import { makeFixtureDoc } from "./nav-fixtures.js";
 
 describe("resolveNavTree", () => {
   it("resolves source.pageType into dynamic children without listing all pages", () => {
@@ -29,7 +29,6 @@ describe("resolveNavTree", () => {
     expect(tree[1]!.children).toEqual([
       expect.objectContaining({ id: "meetup-1", title: "Meetup One", dynamic: true }),
     ]);
-    // about exists as a page but is not in designed nav and has no event tag
     expect(flattenNav(tree).some((n) => n.id === "about")).toBe(false);
   });
 
@@ -78,7 +77,15 @@ describe("resolveNavTree", () => {
     doc.pages.push(
       { id: "news", title: "News", type: "blog", fields: { showIndexInNav: "true" }, zones: {} },
       { id: "news-index", title: "Index", type: "blog-index", parentId: "news", zones: {} },
-      { id: "fair", title: "Fair", type: "article", parentId: "news", tags: ["fair"], fields: { date: "2026-07-14" }, zones: {} },
+      {
+        id: "fair",
+        title: "Fair",
+        type: "article",
+        parentId: "news",
+        tags: ["fair"],
+        fields: { date: "2026-07-14" },
+        zones: {},
+      },
     );
     doc.nav = [{ id: "news", title: "News", sidebar: true, source: { blog: true } }];
     const tree = resolveNavTree(doc);
@@ -107,5 +114,34 @@ describe("resolveNavTree", () => {
     ];
     const tree = resolveNavTree(doc);
     expect(tree.map((node) => node.id ?? node.heading)).toEqual(["home", "Kept"]);
+  });
+});
+
+describe("collectNavPageOrder", () => {
+  it("returns ids in nav order with depth and skips disallowed ids", () => {
+    const doc = makeFixtureDoc();
+    doc.nav = [
+      { id: "home", sidebar: true },
+      {
+        heading: "Section",
+        children: [{ id: "about", sidebar: true }],
+      },
+    ];
+    const tree = resolveNavTree(doc);
+    const allowed = new Set(["home", "about", "ghost"]);
+    expect(collectNavPageOrder(tree, allowed)).toEqual([
+      { id: "home", depth: 0 },
+      { id: "about", depth: 1 },
+    ]);
+  });
+
+  it("uses first occurrence when the same page appears twice", () => {
+    const doc = makeFixtureDoc();
+    doc.nav = [
+      { id: "home", sidebar: true },
+      { id: "home", sidebar: true, title: "Again" },
+    ];
+    const tree = resolveNavTree(doc);
+    expect(collectNavPageOrder(tree, new Set(["home"]))).toEqual([{ id: "home", depth: 0 }]);
   });
 });

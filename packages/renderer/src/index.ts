@@ -38,6 +38,7 @@ export {
 export {
   resolveNavTree,
   flattenNav,
+  collectNavPageOrder,
   type ResolvedNavNode,
 } from "./nav-expand.js";
 export {

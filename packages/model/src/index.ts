@@ -49,6 +49,12 @@ export {
   type PageTreeNode,
 } from "./page-tree.js";
 export {
+  resolveNavTree,
+  flattenNav,
+  collectNavPageOrder,
+  type ResolvedNavNode,
+} from "./nav-expand.js";
+export {
   SITE_POINTER_META,
   SITE_REVISION_FILE,
   SNAPSHOT_HASH_LENGTH,

@@ -155,7 +155,7 @@ export class SiteStore {
           id,
           title: typeof data.title === "string" ? data.title : id,
           ...(kind === "content" && typeof data.type === "string" && data.type ? { type: data.type } : {}),
-          ...(kind === "content" && tags.length ? { tags } : {}),
+          ...(tags.length && (kind === "content" || kind === "items") ? { tags } : {}),
           ...(kind === "content" && date ? { date } : {}),
           ...(kind === "content" && parentId ? { parentId } : {}),
         });

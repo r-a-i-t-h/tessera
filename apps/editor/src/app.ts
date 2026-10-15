@@ -129,6 +129,22 @@ import {
 import { editorMediaSrc } from "./forms/media-url.js";
 import { guideHtml } from "./guide.js";
 import { escapeHtml, fieldId, formErrorPanel, noticePanel, statusPanels } from "./dom.js";
+import { buildContentCreationRank } from "./creation-rank.js";
+import {
+  readArticleListOrder,
+  sortArticles,
+  writeArticleListOrder,
+  type ArticleListOrder,
+} from "./articles-list.js";
+import {
+  buildNavSortDocument,
+  readPageListOrder,
+  sortPages,
+  writePageListOrder,
+  type ListedPage,
+  type PageListOrder,
+} from "./pages-list.js";
+import type { NavEntry } from "@r-a-i-t-h/tessera-model";
 import { parseRoute } from "./router.js";
 import { paintSpecimen, previewStyle, readStyleForm, stylesheetEditors, stylesPageHtml } from "./styles-page.js";
 import { usernameError } from "./username.js";
@@ -1571,7 +1587,12 @@ function recordTab(
   const rows = byKind.get(kind.kind) ?? [];
   const body =
     kind.kind === "content"
-      ? contentSection(rows, byKind.get("templates") ?? [], siteReady)
+      ? contentSection(
+          sortPages(rows, readPageListOrder(), { creationRank: buildContentCreationRank(listing.records) }),
+          byKind.get("templates") ?? [],
+          siteReady,
+          readPageListOrder(),
+        )
       : kind.kind === "templates"
         ? templateSection(rows, siteReady)
         : kind.kind === "layouts"
@@ -1687,21 +1708,53 @@ function kindPanel(rows: RecordSummary[]): string {
   return rows.length ? recordList(rows) : `<p class="w3-text-grey">No records yet.</p>`;
 }
 
-async function bindPages(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {
-  const listing = await listRecords();
-  const rows = listing.records.filter(
+function filterPageRows(listing: RecordList): RecordSummary[] {
+  return listing.records.filter(
     (row) => row.kind === "content" && row.type !== "article" && row.type !== "blog" && row.type !== "blog-index",
   );
+}
+
+async function loadNavSortDocument(listing: RecordList) {
+  const siteRow = listing.records.find((row) => row.kind === "site");
+  if (!siteRow) return undefined;
+  try {
+    const [sitePayload, navPayload] = await Promise.all([
+      getRecord("site", siteRow.id),
+      getRecord("nav", "nav"),
+    ]);
+    const siteData = asRecord(sitePayload.data);
+    if (!siteData) return undefined;
+    const nav = Array.isArray(navPayload.data) ? (navPayload.data as NavEntry[]) : [];
+    const contentForNav = listing.records.filter((row) => row.kind === "content" && row.type !== "article");
+    const items = listing.records.filter((row) => row.kind === "items");
+    return buildNavSortDocument(siteData, nav, contentForNav, items);
+  } catch {
+    return undefined;
+  }
+}
+
+async function listedPages(listing: RecordList, order: PageListOrder): Promise<ListedPage[]> {
+  const rows = filterPageRows(listing);
+  const creationRank = buildContentCreationRank(listing.records);
+  const navDocument = order === "nav" ? await loadNavSortDocument(listing) : undefined;
+  return sortPages(rows, order, { creationRank, navDocument });
+}
+
+async function bindPages(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {
+  const listing = await listRecords();
+  const listOrder = readPageListOrder();
+  const listed = await listedPages(listing, listOrder);
   const templates = listing.records.filter((row) => row.kind === "templates");
   const siteReady = listing.records.some((row) => row.kind === "site");
   root.innerHTML = chrome(
     user,
-    `<h1 class="w3-large">Pages</h1>${statusPanels(notice, error)}${contentSection(rows, templates, siteReady)}`,
+    `<h1 class="w3-large">Pages</h1>${statusPanels(notice, error)}${contentSection(listed, templates, siteReady, listOrder)}`,
     true,
     "pages",
   );
   bindChrome(root);
   bindEntryFilter(root);
+  bindPageListOrder(root, listing);
   root.querySelector("[data-action=new-page]")?.addEventListener("click", () => {
     const form = root.querySelector<HTMLFormElement>("#new-page-form");
     if (!form) return;
@@ -1714,14 +1767,40 @@ async function bindPages(root: HTMLElement, user: PublicUser, notice = "", error
   });
 }
 
+function bindPageListOrder(root: HTMLElement, listing: RecordList): void {
+  const select = root.querySelector<HTMLSelectElement>("#page-list-order");
+  select?.addEventListener("change", () => {
+    const order = select.value as PageListOrder;
+    if (order !== "created" && order !== "alpha" && order !== "nested" && order !== "nav") return;
+    writePageListOrder(order);
+    void (async () => {
+      const listed = await listedPages(listing, order);
+      const list = root.querySelector<HTMLUListElement>("#entry-list");
+      if (list) list.outerHTML = entryRecordList(listed);
+      applyEntryFilter(root);
+    })();
+  });
+}
+
 async function bindArticles(root: HTMLElement, user: PublicUser, blog?: string, notice = "", error = ""): Promise<void> {
   const listing = await listRecords();
-  root.innerHTML = chrome(user, articlesHtml(listing, blog, notice, error), true, "articles");
+  if (!blog) {
+    const blogs = listing.records.filter((row) => row.kind === "content" && row.type === "blog");
+    if (blogs.length === 1) {
+      const next = `#/articles/${encodeURIComponent(blogs[0]!.id)}`;
+      if (window.location.hash !== next) {
+        window.location.hash = next;
+        return;
+      }
+    }
+  }
+  const listOrder = readArticleListOrder();
+  root.innerHTML = chrome(user, articlesHtml(listing, blog, notice, error, listOrder), true, "articles");
   bindChrome(root);
   const filter = root.querySelector<HTMLInputElement>("#article-tag");
   const list = root.querySelector<HTMLUListElement>("#article-list");
-  filter?.addEventListener("input", () => {
-    const needle = filter.value.trim().toLowerCase();
+  const applyArticleTagFilter = () => {
+    const needle = filter?.value.trim().toLowerCase() ?? "";
     let shown = 0;
     list?.querySelectorAll("li").forEach((item) => {
       const tags = (item.getAttribute("data-tags") ?? "").toLowerCase();
@@ -1731,6 +1810,17 @@ async function bindArticles(root: HTMLElement, user: PublicUser, blog?: string, 
     });
     const empty = root.querySelector<HTMLElement>("#article-filter-empty");
     if (empty) empty.hidden = shown !== 0;
+  };
+  filter?.addEventListener("input", applyArticleTagFilter);
+  root.querySelector<HTMLSelectElement>("#article-list-order")?.addEventListener("change", (event) => {
+    const select = event.currentTarget;
+    if (!(select instanceof HTMLSelectElement) || !blog || !list) return;
+    const order = select.value as ArticleListOrder;
+    if (order !== "created" && order !== "date" && order !== "alpha") return;
+    writeArticleListOrder(order);
+    const articles = blogArticles(listing, blog, order);
+    list.innerHTML = renderArticleListItems(articles);
+    applyArticleTagFilter();
   });
   root.querySelector("[data-action=new-article]")?.addEventListener("click", () => {
     const form = root.querySelector<HTMLFormElement>("#new-article-form");
@@ -1744,7 +1834,43 @@ async function bindArticles(root: HTMLElement, user: PublicUser, blog?: string, 
   });
 }
 
-function articlesHtml(listing: RecordList, blog: string | undefined, notice: string, error: string): string {
+function blogArticles(listing: RecordList, blog: string, order: ArticleListOrder): RecordSummary[] {
+  const rows = listing.records.filter(
+    (row) => row.kind === "content" && row.type === "article" && row.parentId === blog,
+  );
+  return sortArticles(rows, order, buildContentCreationRank(listing.records));
+}
+
+function renderArticleListItems(articles: RecordSummary[]): string {
+  return articles
+    .map((row) => {
+      const when = row.date ? ` <span class="w3-text-grey w3-small">${escapeHtml(row.date)}</span>` : "";
+      return `<li data-tags="${escapeHtml((row.tags ?? []).join("\u001f"))}"><a href="#/content/${encodeURIComponent(row.id)}">${escapeHtml(row.title ?? row.id)}</a>${when}</li>`;
+    })
+    .join("");
+}
+
+function articleTagFilter(): string {
+  return `<p class="editor-list-order"><label for="article-tag">Tag</label>
+    <input id="article-tag" class="w3-input w3-border" autocomplete="off" /></p>`;
+}
+
+function articleListOrderSelect(order: ArticleListOrder): string {
+  return `<p class="editor-list-order"><label for="article-list-order">List order</label>
+    <select id="article-list-order" class="w3-select w3-border">
+      <option value="created"${order === "created" ? " selected" : ""}>Recently added</option>
+      <option value="date"${order === "date" ? " selected" : ""}>Publish date</option>
+      <option value="alpha"${order === "alpha" ? " selected" : ""}>A–Z</option>
+    </select></p>`;
+}
+
+function articlesHtml(
+  listing: RecordList,
+  blog: string | undefined,
+  notice: string,
+  error: string,
+  listOrder: ArticleListOrder = readArticleListOrder(),
+): string {
   const blogs = listing.records.filter((row) => row.kind === "content" && row.type === "blog");
   if (!blog) {
     const items = blogs.length
@@ -1761,15 +1887,8 @@ function articlesHtml(listing: RecordList, blog: string | undefined, notice: str
     return `<h1 class="w3-large">Articles</h1><p>That blog is not a record. <a href="#/articles">Back</a></p>`;
   }
   const blogRow = blogs.find((row) => row.id === blog);
-  const articles = listing.records
-    .filter((row) => row.kind === "content" && row.type === "article" && row.parentId === blog)
-    .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? "") || a.id.localeCompare(b.id));
-  const items = articles
-    .map((row) => {
-      const when = row.date ? ` <span class="w3-text-grey w3-small">${escapeHtml(row.date)}</span>` : "";
-      return `<li data-tags="${escapeHtml((row.tags ?? []).join("\u001f"))}"><a href="#/content/${encodeURIComponent(row.id)}">${escapeHtml(row.title ?? row.id)}</a>${when}</li>`;
-    })
-    .join("");
+  const articles = blogArticles(listing, blog, listOrder);
+  const items = renderArticleListItems(articles);
   return `<h1 class="w3-large">Articles</h1>
     ${statusPanels(notice, error)}
     <p><a href="#/articles">Blogs</a> · ${escapeHtml(blogRow?.title ?? blog)}</p>
@@ -1782,8 +1901,8 @@ function articlesHtml(listing: RecordList, blog: string | undefined, notice: str
       ${formErrorPanel()}
       <p><button type="submit" class="w3-button w3-theme">Create article</button></p>
     </form>
-    <p><label for="article-tag">Tag</label>
-      <input id="article-tag" class="w3-input w3-border w3-margin-top" autocomplete="off" /></p>
+    ${articleTagFilter()}
+    ${articleListOrderSelect(listOrder)}
     ${items ? `<ul class="w3-ul" id="article-list">${items}</ul><p id="article-filter-empty" class="w3-text-grey" hidden>No articles with that tag.</p>` : `<p class="w3-text-grey">No articles for this blog yet.</p>`}`;
 }
 
@@ -1921,7 +2040,22 @@ async function createBlog(root: HTMLElement, listing: RecordList): Promise<void>
   });
 }
 
-function contentSection(rows: RecordSummary[], templates: RecordSummary[], siteReady: boolean): string {
+function pageListOrderSelect(order: PageListOrder): string {
+  return `<p class="editor-list-order"><label for="page-list-order">List order</label>
+    <select id="page-list-order" class="w3-select w3-border">
+      <option value="created"${order === "created" ? " selected" : ""}>Recently added</option>
+      <option value="alpha"${order === "alpha" ? " selected" : ""}>A–Z</option>
+      <option value="nested"${order === "nested" ? " selected" : ""}>Nested</option>
+      <option value="nav"${order === "nav" ? " selected" : ""}>Nav order</option>
+    </select></p>`;
+}
+
+function contentSection(
+  listed: ListedPage[],
+  templates: RecordSummary[],
+  siteReady: boolean,
+  listOrder: PageListOrder,
+): string {
   if (!siteReady) return `<p class="w3-text-grey">No records yet.</p>`;
   const options = templates
     .map((row) => `<option value="${escapeHtml(row.id)}">${escapeHtml(row.title ?? row.id)}</option>`)
@@ -1944,7 +2078,7 @@ function contentSection(rows: RecordSummary[], templates: RecordSummary[], siteR
       ${formErrorPanel()}
       <p><button type="submit" class="w3-button w3-theme">Create page</button></p>
     </form>
-    ${rows.length ? `${entryFilter()}${recordList(rows, true)}<p id="entry-filter-empty" class="w3-text-grey" hidden>No entries match.</p>` : `<p class="w3-text-grey">No records yet.</p>`}`;
+    ${listed.length ? `${entryFilter()}${pageListOrderSelect(listOrder)}${entryRecordList(listed)}<p id="entry-filter-empty" class="w3-text-grey" hidden>No entries match.</p>` : `<p class="w3-text-grey">No records yet.</p>`}`;
 }
 
 function entryFilter(): string {
@@ -1962,36 +2096,39 @@ function entryFilter(): string {
   </div>`;
 }
 
-function bindEntryFilter(root: HTMLElement): void {
+function applyEntryFilter(root: HTMLElement): void {
   const bar = root.querySelector<HTMLElement>("#entry-filter");
   const list = root.querySelector<HTMLUListElement>("#entry-list");
   const empty = root.querySelector<HTMLElement>("#entry-filter-empty");
   if (!bar || !list) return;
-  const apply = () => {
-    const query = {
-      type: bar.querySelector<HTMLInputElement>("[name=type]")?.value ?? "",
-      tag: bar.querySelector<HTMLInputElement>("[name=tag]")?.value ?? "",
-      title: bar.querySelector<HTMLInputElement>("[name=title]")?.value ?? "",
-    };
-    let shown = 0;
-    for (const item of list.querySelectorAll<HTMLLIElement>("li")) {
-      const visible = entryVisible(
-        {
-          type: item.dataset.type,
-          tags: (item.dataset.tags ?? "").split("\u001f").filter(Boolean),
-          title: item.dataset.title,
-        },
-        query,
-      );
-      item.hidden = !visible;
-      if (visible) shown += 1;
-    }
-    if (empty) empty.hidden = shown !== 0;
+  const query = {
+    type: bar.querySelector<HTMLInputElement>("[name=type]")?.value ?? "",
+    tag: bar.querySelector<HTMLInputElement>("[name=tag]")?.value ?? "",
+    title: bar.querySelector<HTMLInputElement>("[name=title]")?.value ?? "",
   };
-  bar.addEventListener("input", apply);
+  let shown = 0;
+  for (const item of list.querySelectorAll<HTMLLIElement>("li")) {
+    const visible = entryVisible(
+      {
+        type: item.dataset.type,
+        tags: (item.dataset.tags ?? "").split("\u001f").filter(Boolean),
+        title: item.dataset.title,
+      },
+      query,
+    );
+    item.hidden = !visible;
+    if (visible) shown += 1;
+  }
+  if (empty) empty.hidden = shown !== 0;
+}
+
+function bindEntryFilter(root: HTMLElement): void {
+  const bar = root.querySelector<HTMLElement>("#entry-filter");
+  if (!bar) return;
+  bar.addEventListener("input", () => applyEntryFilter(root));
   bar.querySelector("[data-action=clear-entry-filter]")?.addEventListener("click", () => {
     for (const input of bar.querySelectorAll("input")) input.value = "";
-    apply();
+    applyEntryFilter(root);
   });
 }
 
@@ -2170,8 +2307,33 @@ function layoutDraftChanged(draft: Record<string, unknown>, baselineData: unknow
   return JSON.stringify(cleanNode(nextRoot)) !== JSON.stringify(cleanNode(baseRoot)) || JSON.stringify(rest) !== JSON.stringify(baseRest);
 }
 
+function entryRecordList(listed: ListedPage[], noteFor?: (row: RecordSummary) => string): string {
+  return `<ul class="w3-ul" id="entry-list">
+    ${listed
+      .map(({ row, depth }) => entryListItem(row, depth, noteFor))
+      .join("")}
+  </ul>`;
+}
+
+function entryListItem(row: RecordSummary, depth: number, noteFor?: (row: RecordSummary) => string): string {
+  const label = row.title ?? row.id;
+  const idNote =
+    row.title && row.title !== row.id ? ` <span class="w3-text-grey w3-small">${escapeHtml(row.id)}</span>` : "";
+  const typeNote = row.type ? ` <span class="w3-text-grey w3-small">${escapeHtml(row.type)}</span>` : "";
+  const extra = noteFor?.(row);
+  const extraNote = extra ? ` <span class="w3-text-grey w3-small">${escapeHtml(extra)}</span>` : "";
+  const style = depth > 0 ? ` style="padding-left: calc(0.75rem + ${depth} * 1.25rem)"` : "";
+  return `<li${style} data-type="${escapeHtml(row.type ?? "")}" data-tags="${escapeHtml((row.tags ?? []).join("\u001f"))}" data-title="${escapeHtml(row.title ?? row.id)}"><a href="#/${encodeURIComponent(row.kind)}/${encodeURIComponent(row.id)}">${escapeHtml(label)}</a>${idNote}${typeNote}${extraNote}</li>`;
+}
+
 function recordList(rows: RecordSummary[], entries = false, noteFor?: (row: RecordSummary) => string): string {
-  return `<ul class="w3-ul"${entries ? ' id="entry-list"' : ""}>
+  if (entries) {
+    return entryRecordList(
+      rows.map((row) => ({ row, depth: 0 })),
+      noteFor,
+    );
+  }
+  return `<ul class="w3-ul">
     ${rows
       .map((row) => {
         const publicTitle = row.kind === "site" || row.kind === "content" || row.kind === "nav";
@@ -2183,10 +2345,7 @@ function recordList(rows: RecordSummary[], entries = false, noteFor?: (row: Reco
         const typeNote = row.type ? ` <span class="w3-text-grey w3-small">${escapeHtml(row.type)}</span>` : "";
         const extra = noteFor?.(row);
         const extraNote = extra ? ` <span class="w3-text-grey w3-small">${escapeHtml(extra)}</span>` : "";
-        const attrs = entries
-          ? ` data-type="${escapeHtml(row.type ?? "")}" data-tags="${escapeHtml((row.tags ?? []).join("\u001f"))}" data-title="${escapeHtml(row.title ?? row.id)}"`
-          : "";
-        return `<li${attrs}><a href="#/${encodeURIComponent(row.kind)}/${encodeURIComponent(row.id)}">${escapeHtml(label)}</a>${idNote}${typeNote}${extraNote}</li>`;
+        return `<li><a href="#/${encodeURIComponent(row.kind)}/${encodeURIComponent(row.id)}">${escapeHtml(label)}</a>${idNote}${typeNote}${extraNote}</li>`;
       })
       .join("")}
   </ul>`;

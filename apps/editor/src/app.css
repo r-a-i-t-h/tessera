@@ -537,6 +537,26 @@ img[data-hero-preview] {
   margin: 0;
 }
 
+.editor-list-order {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.75rem;
+}
+
+.editor-list-order label {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.editor-list-order select,
+.editor-list-order input {
+  flex: 1 1 12rem;
+  max-width: 100%;
+  margin: 0;
+}
+
 @media (max-width: 40rem) {
   .editor-entry-filter,
   .editor-props {
