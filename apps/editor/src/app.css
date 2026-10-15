@@ -755,14 +755,41 @@ img[data-hero-preview] {
   flex: none;
 }
 
-.editor-drop-line {
-  height: 0.45rem;
-  margin: 0;
-  border-radius: 4px;
+:root {
+  --tessera-drop-slot-pad: 0.45rem;
 }
 
-.editor-drop-line.editor-drop-active {
+.editor-drop-line {
+  height: 0;
+  margin: 0;
+  padding: var(--tessera-drop-slot-pad) 0;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.editor-dragging .editor-drop-line,
+.editor-dragging .arrange-gap,
+.editor-dragging .arrange-well[data-drop-parent] {
+  opacity: 0.5;
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(0, 150, 136, 0.12),
+    rgba(0, 150, 136, 0.12) 6px,
+    rgba(0, 150, 136, 0.28) 6px,
+    rgba(0, 150, 136, 0.28) 12px
+  );
+}
+
+.editor-drop-line.editor-drop-active,
+.editor-dragging .editor-drop-line.editor-drop-active {
+  opacity: 1;
   background: #009688;
+}
+
+.editor-dragging .arrange-gap.is-over,
+.editor-dragging .arrange-children.is-over,
+.editor-dragging .arrange-well.is-over {
+  opacity: 1;
 }
 
 .editor-cell {
@@ -1190,7 +1217,9 @@ button.editor-library-row:hover,
 }
 
 .arrange-gap {
-  height: 0.45rem;
+  height: 0;
+  padding: var(--tessera-drop-slot-pad) 0;
+  box-sizing: border-box;
 }
 
 .arrange-gap.is-over,

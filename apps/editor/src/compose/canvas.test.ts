@@ -188,6 +188,29 @@ describe("compose drag ghost", () => {
     expect(dragGhost(button).textContent).toBe("Pasted note");
   });
 
+  it("marks the form while a drag is active", () => {
+    const form = mount(`<button type="button" data-palette="pasted">Pasted note</button><div data-canvas data-zone="main"></div>`);
+    const button = form.querySelector("[data-palette=pasted]");
+    if (!button) throw new Error("palette");
+    fireDragStart(button);
+    expect(form.classList.contains("editor-dragging")).toBe(true);
+    form.dispatchEvent(new dom.Event("dragend", { bubbles: true }));
+    expect(form.classList.contains("editor-dragging")).toBe(false);
+  });
+
+  it("keeps drop preview visible while hovering a slot", () => {
+    const form = mount(`<button type="button" data-palette="pasted">Pasted note</button><div data-canvas data-zone="main"></div>`);
+    const button = form.querySelector("[data-palette=pasted]");
+    const slot = form.querySelector("[data-drop]");
+    if (!button || !slot) throw new Error("drag sources");
+    fireDragStart(button);
+    const over = new dom.Event("dragover", { bubbles: true });
+    Object.defineProperty(over, "dataTransfer", { value: { dropEffect: "" } });
+    slot.dispatchEvent(over);
+    expect(form.classList.contains("editor-dragging")).toBe(true);
+    expect(slot.classList.contains("editor-drop-active")).toBe(true);
+  });
+
   it("shows the section kind while an existing section is moved", () => {
     dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;
     const form = dom.document.querySelector("form");
@@ -427,6 +450,17 @@ function mount(inner: string): HTMLFormElement {
   if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
   mountComposeCanvases(form, { bindings: [], htmlByZone: { main: "" } });
   return form;
+}
+
+function fireDragStart(target: Element): void {
+  const transfer = {
+    effectAllowed: "",
+    setData() {},
+    setDragImage() {},
+  };
+  const event = new dom.Event("dragstart", { bubbles: true });
+  Object.defineProperty(event, "dataTransfer", { value: transfer });
+  target.dispatchEvent(event);
 }
 
 function dragGhost(target: Element): Element {

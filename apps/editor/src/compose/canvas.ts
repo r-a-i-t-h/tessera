@@ -910,6 +910,7 @@ function onDragStart(form: HTMLFormElement, event: DragEvent): void {
     event.dataTransfer.setData("text/plain", palette.dataset.palette);
     event.dataTransfer.effectAllowed = "copy";
     setDragGhost(event.dataTransfer, palette.textContent ?? "");
+    beginDropPreview(form);
     return;
   }
   const handle = target.closest<HTMLElement>("[data-drag]");
@@ -920,6 +921,7 @@ function onDragStart(form: HTMLFormElement, event: DragEvent): void {
   event.dataTransfer.setData("text/plain", article.dataset.itemId);
   event.dataTransfer.effectAllowed = "move";
   setDragGhost(event.dataTransfer, article.querySelector(".editor-section-kind")?.textContent ?? "");
+  beginDropPreview(form);
   event.stopPropagation();
 }
 
@@ -929,7 +931,7 @@ function onDragOver(form: HTMLFormElement, event: DragEvent): void {
   if (!slot) return;
   event.preventDefault();
   if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
-  clearDrop(form);
+  clearDropActive(form);
   slot.classList.add("editor-drop-active");
 }
 
@@ -1110,8 +1112,17 @@ function applyControl(node: EditLeaf | EditCard, field: string, value: string): 
   if (node.kind === "gallery" && field === "mode") node.mode = value === "slides" ? "slides" : "grid";
 }
 
-function clearDrop(form: HTMLElement): void {
+function beginDropPreview(form: HTMLFormElement): void {
+  form.classList.add("editor-dragging");
+}
+
+function clearDropActive(form: HTMLElement): void {
   for (const line of form.querySelectorAll(".editor-drop-active")) line.classList.remove("editor-drop-active");
+}
+
+function clearDrop(form: HTMLElement): void {
+  clearDropActive(form);
+  form.classList.remove("editor-dragging");
 }
 
 function focusedColumns(state: Mounted): boolean {

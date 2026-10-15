@@ -33,7 +33,34 @@ describe("arrange drag ghost", () => {
     expect(dragGhost(palette).textContent).toBe("Zone");
     expect(dragGhost(grip).textContent).toBe("Zone : main");
   });
+
+  it("marks the form while a drag is active", () => {
+    const { root } = newPageLayout("home");
+    const info = { layoutId: "home", master: false, fallback: false, typeIds: [] as string[] };
+    dom.document.body.innerHTML = `<form>${arrangeMarkup(root, info)}</form>`;
+    const form = dom.document.querySelector("form");
+    if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
+    mountArrange(form, root, info);
+
+    const palette = form.querySelector("[data-palette=zone]");
+    if (!palette) throw new Error("palette");
+    fireDragStart(palette);
+    expect(form.classList.contains("editor-dragging")).toBe(true);
+    form.dispatchEvent(new dom.Event("dragend", { bubbles: true }));
+    expect(form.classList.contains("editor-dragging")).toBe(false);
+  });
 });
+
+function fireDragStart(target: Element): void {
+  const transfer = {
+    effectAllowed: "",
+    setData() {},
+    setDragImage() {},
+  };
+  const event = new dom.Event("dragstart", { bubbles: true });
+  Object.defineProperty(event, "dataTransfer", { value: transfer });
+  target.dispatchEvent(event);
+}
 
 function dragGhost(target: Element): Element {
   const images: Element[] = [];

@@ -155,6 +155,13 @@ function bind(form: HTMLFormElement, state: State, onEdit?: (burstId?: string) =
       event.dataTransfer.effectAllowed = "move";
       setDragGhost(event.dataTransfer, label);
     }
+    form.classList.add("editor-dragging");
+  });
+
+  form.addEventListener("dragend", () => {
+    form.querySelectorAll(".is-over").forEach((el) => el.classList.remove("is-over"));
+    form.classList.remove("editor-dragging");
+    drag = undefined;
   });
 
   form.addEventListener("dragover", (event) => {
