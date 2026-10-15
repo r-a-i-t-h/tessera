@@ -148,10 +148,22 @@ import type { NavEntry } from "@r-a-i-t-h/tessera-model";
 import { parseRoute } from "./router.js";
 import { paintSpecimen, previewStyle, readStyleForm, stylesheetEditors, stylesPageHtml } from "./styles-page.js";
 import { usernameError } from "./username.js";
+import { handleEscape, hasOpenModal } from "./escape-key.js";
+
+let libraryAddOpen = true;
 
 export async function mount(root: HTMLElement): Promise<void> {
   window.addEventListener("hashchange", () => void render(root));
   document.addEventListener("keydown", (event) => {
+    if (
+      event.key === "Escape" &&
+      !event.defaultPrevented &&
+      !hasOpenModal() &&
+      handleEscape(root, { onLibraryAddClose: () => { libraryAddOpen = false; } })
+    ) {
+      event.preventDefault();
+      return;
+    }
     if (event.code !== "KeyS" || event.altKey || event.shiftKey || !(event.metaKey || event.ctrlKey)) return;
     const active = document.activeElement;
     const focused = active instanceof HTMLElement ? active.closest("form") : null;
@@ -2582,7 +2594,7 @@ async function bindEdit(
       user,
       `<div class="editor-toolbar">
          <div class="editor-toolbar-row">
-           <a class="w3-button w3-white editor-back" href="${place.back}" aria-label="Back" title="Back">←</a>
+           <a class="w3-button w3-white editor-back" href="${place.back}" aria-label="Back" title="Back (Escape)">←</a>
            <h1 class="w3-large">${escapeHtml(place.heading)}</h1>
            ${actionRow}
          </div>
@@ -3510,8 +3522,6 @@ function openLibraryPicker(initial: PickerMode): Promise<PickedAsset | { id: str
       }),
   );
 }
-
-let libraryAddOpen = true;
 
 async function bindLibrary(root: HTMLElement, user: PublicUser, openId: string | null, notice = ""): Promise<void> {
   const listing = await getLibrary();
