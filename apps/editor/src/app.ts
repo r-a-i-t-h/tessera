@@ -2112,16 +2112,16 @@ function contentSection(
 
 function entryFilter(): string {
   return `<div class="editor-entry-filter" id="entry-filter">
-    <p><label for="filter-type">Type</label>
-      <input id="filter-type" name="type" class="w3-input w3-border w3-margin-top" autocomplete="off" />
+    <p class="editor-entry-filter-field"><label for="filter-type">Type</label>
+      <input id="filter-type" name="type" class="w3-input w3-border" autocomplete="off" />
     </p>
-    <p><label for="filter-tag">Tag</label>
-      <input id="filter-tag" name="tag" class="w3-input w3-border w3-margin-top" autocomplete="off" />
+    <p class="editor-entry-filter-field"><label for="filter-tag">Tag</label>
+      <input id="filter-tag" name="tag" class="w3-input w3-border" autocomplete="off" />
     </p>
-    <p><label for="filter-title">Title</label>
-      <input id="filter-title" name="title" class="w3-input w3-border w3-margin-top" autocomplete="off" />
+    <p class="editor-entry-filter-field"><label for="filter-title">Title</label>
+      <input id="filter-title" name="title" class="w3-input w3-border" autocomplete="off" />
     </p>
-    <p><button type="button" class="w3-button w3-white" data-action="clear-entry-filter">Clear</button></p>
+    <button type="button" class="w3-button w3-white" data-action="clear-entry-filter">Clear</button>
   </div>`;
 }
 

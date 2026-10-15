@@ -526,14 +526,30 @@ img[data-hero-preview] {
 }
 
 .editor-entry-filter {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 0.75rem;
-  align-items: end;
   margin: 0 0 1rem;
 }
 
-.editor-entry-filter p {
+.editor-entry-filter-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.editor-entry-filter label {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.editor-entry-filter input {
+  flex: 1 1 8rem;
+  width: 8rem;
+  max-width: 100%;
   margin: 0;
 }
 
@@ -562,7 +578,6 @@ img[data-hero-preview] {
 }
 
 @media (max-width: 40rem) {
-  .editor-entry-filter,
   .editor-props {
     grid-template-columns: 1fr;
   }
