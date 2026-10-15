@@ -204,22 +204,14 @@ body.fontD h6 {
   min-height: 1.55em;
 }
 
-.tessera-text.tessera-loose {
-  padding-top: 0.35rem;
-  padding-bottom: 0.5rem;
+.tessera-block.tessera-text.tessera-loose {
+  margin-bottom: 2.35rem;
+  padding-top: 1rem;
+  padding-bottom: 1.25rem;
 }
 
-.tessera-text.tessera-loose :where(p, ul, ol) {
-  margin: 0 0 1.85em;
-  line-height: 1.8;
-}
-
-.tessera-text.tessera-loose :where(p, ul, ol):last-child {
-  margin-bottom: 0;
-}
-
-.tessera-text.tessera-loose :where(p):has(> br:only-child) {
-  min-height: 1.8em;
+.tessera-block.tessera-text.tessera-loose:not(:first-child) {
+  margin-top: 1rem;
 }
 
 .tessera-text > :is(h1, h2, h3) {

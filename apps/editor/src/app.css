@@ -884,25 +884,14 @@ img[data-hero-preview] {
   min-height: 1.55em;
 }
 
-.editor-text.tessera-loose {
-  padding-top: 0.35rem;
-  padding-bottom: 0.5rem;
+.tessera-block.editor-text.tessera-loose {
+  margin-bottom: 2.35rem;
+  padding-top: 1rem;
+  padding-bottom: 1.25rem;
 }
 
-.editor-text.tessera-loose .editor-text-body {
-  line-height: 1.8;
-}
-
-.editor-text.tessera-loose .editor-text-body :where(p, ul, ol) {
-  margin: 0 0 1.85em;
-}
-
-.editor-text.tessera-loose .editor-text-body :where(p, ul, ol):last-child {
-  margin-bottom: 0;
-}
-
-.editor-text.tessera-loose .editor-text-body :where(p):has(> br:only-child) {
-  min-height: 1.8em;
+.tessera-block.editor-text.tessera-loose:not(:first-child) {
+  margin-top: 1rem;
 }
 
 .editor-section,
