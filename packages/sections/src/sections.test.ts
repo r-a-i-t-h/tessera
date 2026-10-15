@@ -6,6 +6,7 @@ import {
   renderMarkdownLinks,
   restoreMarkdownLinks,
   youtubeVideoId,
+  type ColumnLayoutId,
   type Section,
 } from "./index.js";
 
@@ -83,6 +84,7 @@ describe("parseSections", () => {
     const columns = sections[2];
     expect(columns).toMatchObject({ kind: "columns" });
     if (columns?.kind !== "columns") return;
+    expect(columns.layout).toBe("1:1");
     expect(columns.cells).toHaveLength(2);
     expect(columns.cells[0]?.className).toBe("w3-orange");
     expect(columns.cells[0]?.sections[0]).toMatchObject({ kind: "text", heading: "TO DO", level: 3 });
@@ -102,7 +104,7 @@ describe("parseSections", () => {
     const html = `<div><div class="w3-panel w3-pale-blue w3-padding"><p>Gallery</p></div><div class="w3-display-container w3-container w3-padding-16 w3-card w3-center"><img src="photo.jpg" class="w3-image" style="width: 100%" alt="Sheep"><div class="w3-display-middle w3-container w3-padding-16 w3-display-hover w3-normal w3-round-large w3-opacity-min w3-white">Open days</div></div></div>`;
     expect(parseSections(html)).toEqual([
       { kind: "panel", tone: "pale-blue", html: "<p>Gallery</p>" },
-      { kind: "imgbox", src: "photo.jpg", alt: "Sheep", caption: "Open days" },
+      { kind: "imgbox", src: "photo.jpg", alt: "Sheep", caption: "Open days", plain: false },
     ]);
   });
 });
@@ -144,10 +146,15 @@ describe("paintSections", () => {
       },
       { kind: "panel", tone: "sand", html: "<p>Note</p>" },
       { kind: "quote", tone: "pale", text: "Stay curious", attribution: "Ada" },
-      { kind: "imgbox", src: "a.jpg", alt: "Alt", caption: "Caption" },
-      { kind: "card", title: "Card", html: "<p>Body</p>" },
+      { kind: "imgbox", src: "a.jpg", alt: "Alt", caption: "Caption", plain: false },
+      {
+        kind: "card",
+        title: "Card",
+        sections: [{ kind: "text", heading: "", level: 2, html: "<p>Body</p>" }],
+      },
       {
         kind: "columns",
+        layout: "1:1:1",
         cells: [
           { className: "w3-orange", sections: [{ kind: "heading", level: 3, text: "Left" }] },
           { className: "", sections: [{ kind: "text", heading: "", level: 2, html: "<p>Right</p>" }] },
@@ -168,7 +175,7 @@ describe("paintSections", () => {
     const html = paintSections([
       { kind: "quote", tone: "sand", text: "Words", attribution: "" },
       { kind: "panel", tone: "theme", html: "<p>Panel</p>" },
-      { kind: "imgbox", src: "a.jpg", alt: "", caption: "Cap" },
+      { kind: "imgbox", src: "a.jpg", alt: "", caption: "Cap", plain: false },
       blankSection("columns"),
     ]);
     expect(html).toContain("w3-panel");
@@ -180,6 +187,73 @@ describe("paintSections", () => {
     expect(html).toContain('src="a.jpg"');
     expect(html).toContain("w3-row-padding");
     expect(html).toContain("w3-half");
+  });
+
+  it("drops the image frame when asked and keeps the padding", () => {
+    const plain = paintSections([{ kind: "imgbox", src: "a.jpg", alt: "Alt", caption: "Cap", plain: true }]);
+    expect(plain).toContain("w3-padding-16");
+    expect(plain).toContain("tessera-imgbox");
+    expect(plain).not.toContain("w3-card");
+    expect(parseSections(plain)).toEqual([{ kind: "imgbox", src: "a.jpg", alt: "Alt", caption: "Cap", plain: true }]);
+  });
+
+  it("reads an older card body as sections inside the card", () => {
+    const sections = parseSections(
+      `<div class="w3-card w3-padding w3-margin-bottom w3-white"><h3 class="w3-text-theme">Card</h3><div class="rt-card-body"><p>Body</p></div></div>`,
+    );
+    expect(sections).toEqual([
+      {
+        kind: "card",
+        title: "Card",
+        sections: [{ kind: "text", heading: "", level: 2, html: "<p>Body</p>" }],
+      },
+    ]);
+  });
+
+  it("round-trips a card that holds text and side by side", () => {
+    const sections: Section[] = [
+      {
+        kind: "card",
+        title: "Visit",
+        sections: [
+          { kind: "text", heading: "Hours", level: 2, html: "<p>Open at nine.</p>" },
+          {
+            kind: "columns",
+            layout: "2:1",
+            cells: [
+              { className: "", sections: [{ kind: "text", heading: "", level: 2, html: "<p>Wide</p>" }] },
+              { className: "", sections: [{ kind: "text", heading: "", level: 2, html: "<p>Narrow</p>" }] },
+            ],
+          },
+        ],
+      },
+    ];
+    const html = paintSections(sections);
+    expect(html).toContain("w3-twothird");
+    expect(html).toContain("w3-third");
+    expect(parseSections(html)).toEqual(sections);
+  });
+
+  it("paints each side-by-side ratio with the matching W3 classes", () => {
+    const cases: { layout: ColumnLayoutId; widths: string[] }[] = [
+      { layout: "1:1", widths: ["w3-half", "w3-half"] },
+      { layout: "2:1", widths: ["w3-twothird", "w3-third"] },
+      { layout: "1:2", widths: ["w3-third", "w3-twothird"] },
+      { layout: "1:1:1", widths: ["w3-third", "w3-third", "w3-third"] },
+      { layout: "1:2:1", widths: ["w3-quarter", "w3-half", "w3-quarter"] },
+      { layout: "1:1:1:1", widths: ["w3-quarter", "w3-quarter", "w3-quarter", "w3-quarter"] },
+    ];
+    for (const item of cases) {
+      const section: Section = {
+        kind: "columns",
+        layout: item.layout,
+        cells: item.widths.map(() => ({ className: "", sections: [] })),
+      };
+      const html = paintSections([section]);
+      const classes = [...html.matchAll(/class="([^"]+)"/g)].map((match) => match[1]);
+      expect(classes.slice(1)).toEqual(item.widths);
+      expect(parseSections(html)).toEqual([section]);
+    }
   });
 
   it("leaves a binding token in the painted HTML", () => {

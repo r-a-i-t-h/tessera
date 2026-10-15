@@ -1,7 +1,11 @@
 import {
+  COLUMN_LAYOUTS,
   PALETTE,
   PALETTE_TONES,
   blankSection,
+  columnWidths,
+  imgboxClass,
+  isColumnLayout,
   paintSections,
   parseSections,
   renderMarkdownLinks,
@@ -9,6 +13,7 @@ import {
   toneClass,
   toneLabel,
   youtubeVideoId,
+  type ColumnLayoutId,
   type PaletteKind,
   type Section,
   type ToneId,
@@ -25,11 +30,19 @@ type Choices = { bindings: BindingChoice[]; folders: FolderChoice[] };
 type EditColumns = {
   uid: string;
   kind: "columns";
+  layout: ColumnLayoutId;
   cells: { className: string; items: EditNode[] }[];
 };
 
-type EditLeaf = { uid: string } & Exclude<Section, { kind: "columns" }>;
-type EditNode = EditLeaf | EditColumns;
+type EditCard = {
+  uid: string;
+  kind: "card";
+  title: string;
+  items: EditNode[];
+};
+
+type EditLeaf = { uid: string } & Exclude<Section, { kind: "columns" } | { kind: "card" }>;
+type EditNode = EditLeaf | EditColumns | EditCard;
 
 type ZoneState = {
   name: string;
@@ -155,10 +168,19 @@ function toEdit(section: Section): EditNode {
     return {
       uid: nextId(),
       kind: "columns",
+      layout: section.layout,
       cells: section.cells.map((cell) => ({
         className: cell.className,
         items: cell.sections.map(toEdit),
       })),
+    };
+  }
+  if (section.kind === "card") {
+    return {
+      uid: nextId(),
+      kind: "card",
+      title: section.title,
+      items: section.sections.map(toEdit),
     };
   }
   return { uid: nextId(), ...section };
@@ -168,11 +190,15 @@ function toSection(node: EditNode): Section {
   if (node.kind === "columns") {
     return {
       kind: "columns",
+      layout: node.layout,
       cells: node.cells.map((cell) => ({
         className: cell.className,
         sections: cell.items.map(toSection),
       })),
     };
+  }
+  if (node.kind === "card") {
+    return { kind: "card", title: node.title, sections: node.items.map(toSection) };
   }
   const { uid: _uid, ...section } = node;
   return section;
@@ -276,11 +302,11 @@ function propsFor(node: EditNode, choices: Choices, locked: boolean): string {
     case "quote":
       return `<label class="editor-prop">Tone <select data-field="tone">${toneOptions(node.tone)}</select></label><label class="editor-prop">Attribution <input data-field="attribution" class="w3-input" value="${escapeAttr(node.attribution)}"></label>`;
     case "imgbox":
-      return `<label class="editor-prop">Image <input data-field="src" class="w3-input" value="${escapeAttr(node.src)}" placeholder="Image address"></label><button type="button" class="w3-button w3-small w3-white" data-library="image">Library</button><label class="editor-prop">Alt <input data-field="alt" class="w3-input" value="${escapeAttr(node.alt)}"></label><label class="editor-prop">Caption <input data-field="caption" class="w3-input" value="${escapeAttr(node.caption)}"></label>`;
+      return `${imgboxFields(node)}<label class="editor-prop">Hide frame <input type="checkbox" data-field="plain"${node.plain ? " checked" : ""}></label>`;
     case "card":
-      return `<label class="editor-prop">Title <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}"></label>${editingToolbar(inlineTools())}`;
+      return `<label class="editor-prop">Title <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}"></label>`;
     case "columns":
-      return `<span class="editor-prop"><button type="button" class="w3-button w3-small w3-white" data-cols="2">2 columns</button><button type="button" class="w3-button w3-small w3-white" data-cols="3">3 columns</button></span>`;
+      return layoutSelect(node.layout);
     case "insert":
       return choices.bindings.length
         ? `<label class="editor-prop">Binding <select data-field="id">${bindingOptions(choices.bindings, node.id)}</select></label>`
@@ -308,9 +334,9 @@ function lockedProps(node: EditNode, choices: Choices): string {
     case "quote":
       return `<label class="editor-prop">Attribution <input data-field="attribution" class="w3-input" value="${escapeAttr(node.attribution)}"></label>`;
     case "imgbox":
-      return `<label class="editor-prop">Image <input data-field="src" class="w3-input" value="${escapeAttr(node.src)}" placeholder="Image address"></label><button type="button" class="w3-button w3-small w3-white" data-library="image">Library</button><label class="editor-prop">Alt <input data-field="alt" class="w3-input" value="${escapeAttr(node.alt)}"></label><label class="editor-prop">Caption <input data-field="caption" class="w3-input" value="${escapeAttr(node.caption)}"></label>`;
+      return imgboxFields(node);
     case "card":
-      return `<label class="editor-prop">Title <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}"></label>${editingToolbar(inlineTools())}`;
+      return `<label class="editor-prop">Title <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}"></label>`;
     case "gallery":
       return `<label class="editor-prop">Folder <select data-field="folder">${folderOptions(choices.folders, node.folder)}</select></label>`;
     case "youtube":
@@ -320,6 +346,17 @@ function lockedProps(node: EditNode, choices: Choices): string {
     default:
       return "";
   }
+}
+
+function imgboxFields(node: Extract<EditLeaf, { kind: "imgbox" }>): string {
+  return `<label class="editor-prop">Image <input data-field="src" class="w3-input" value="${escapeAttr(node.src)}" placeholder="Image address"></label><button type="button" class="w3-button w3-small w3-white" data-library="image">Library</button><label class="editor-prop">Alt <input data-field="alt" class="w3-input" value="${escapeAttr(node.alt)}"></label><label class="editor-prop">Caption <input data-field="caption" class="w3-input" value="${escapeAttr(node.caption)}"></label>`;
+}
+
+function layoutSelect(layout: ColumnLayoutId): string {
+  const options = COLUMN_LAYOUTS.map(
+    (item) => `<option value="${item.id}"${item.id === layout ? " selected" : ""}>${escapeText(item.label)}</option>`,
+  ).join("");
+  return `<label class="editor-prop">Layout <select data-field="layout">${options}</select></label>`;
 }
 
 function headingLevel(value: string): 1 | 2 | 3 {
@@ -401,7 +438,7 @@ function bodyFor(node: EditNode, choices: Choices, zone: string, locked: boolean
     case "imgbox":
       return imgboxBody(node);
     case "card":
-      return `<div class="w3-card w3-padding w3-margin-bottom w3-white"><h3 class="w3-text-theme" data-card-title>${escapeText(node.title)}</h3><div class="rt-card-body" contenteditable="true" data-field="html" data-placeholder="Card">${htmlForEditing(node.html)}</div></div>`;
+      return cardBody(node, choices, zone, locked);
     case "columns":
       return columnsBody(node, choices, zone, locked);
     case "insert": {
@@ -442,22 +479,34 @@ function imgboxBody(node: Extract<EditLeaf, { kind: "imgbox" }>): string {
     ? `<div class="w3-display-middle w3-container w3-padding-16 w3-round-large w3-white" data-caption>${escapeText(node.caption)}</div>`
     : `<div class="w3-display-middle w3-hide" data-caption></div>`;
   const src = node.src ? editorMediaSrc(node.src) : "";
-  return `<div class="tessera-imgbox w3-display-container w3-container w3-padding-16 w3-card w3-center">${src ? `<img src="${escapeAttr(src)}" class="w3-image" alt="${escapeAttr(node.alt)}">` : `<p class="w3-text-grey">Add an image address.</p>`}${caption}</div>`;
+  return `<div class="${imgboxClass(node.plain)}">${src ? `<img src="${escapeAttr(src)}" class="w3-image" alt="${escapeAttr(node.alt)}">` : `<p class="w3-text-grey">Add an image address.</p>`}${caption}</div>`;
+}
+
+function cardBody(node: EditCard, choices: Choices, zone: string, locked: boolean): string {
+  const inner = nestedItems(node.items, choices, zone, locked, node.uid, "");
+  return `<div class="w3-card w3-padding w3-margin-bottom w3-white"><h3 class="w3-text-theme" data-card-title>${escapeText(node.title)}</h3><div class="rt-card-body editor-cell">${inner}</div></div>`;
 }
 
 function columnsBody(node: EditColumns, choices: Choices, zone: string, locked: boolean): string {
-  const layout = node.cells.length === 3 ? "w3-third" : "w3-half";
+  const widths = columnWidths(node.layout);
   const cells = node.cells
     .map((cell, index) => {
-      const inner = locked
-        ? cell.items.map((item) => renderItem(item, choices, zone, true)).join("")
-        : cell.items.length
-          ? cell.items.map((item, itemIndex) => `${itemIndex === 0 ? dropSlot(zone, 0, node.uid, index) : ""}${renderItem(item, choices, zone, false, itemIndex, cell.items.length)}${dropSlot(zone, itemIndex + 1, node.uid, index)}`).join("")
-          : dropSlot(zone, 0, node.uid, index);
-      return `<div class="${joinClass(layout, cell.className)} editor-cell">${inner}</div>`;
+      const inner = nestedItems(cell.items, choices, zone, locked, node.uid, index);
+      return `<div class="${joinClass(widths[index] ?? "", cell.className)} editor-cell">${inner}</div>`;
     })
     .join("");
   return `<div class="w3-row-padding w3-stretch">${cells}</div>`;
+}
+
+function nestedItems(items: EditNode[], choices: Choices, zone: string, locked: boolean, parent: string, cell: string | number): string {
+  if (locked) return items.map((item) => renderItem(item, choices, zone, true)).join("");
+  if (!items.length) return dropSlot(zone, 0, parent, cell);
+  return items
+    .map(
+      (item, index) =>
+        `${index === 0 ? dropSlot(zone, 0, parent, cell) : ""}${renderItem(item, choices, zone, false, index, items.length)}${dropSlot(zone, index + 1, parent, cell)}`,
+    )
+    .join("");
 }
 
 function resolveSlot(target: EventTarget | null, form: HTMLFormElement): HTMLElement | null {
@@ -487,15 +536,21 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
   if (!state) return;
   const article = target.closest<HTMLElement>("[data-item-id]");
   const node = article ? findNode(allItems(state), article.dataset.itemId ?? "") : undefined;
-  if (!node || node.kind === "columns") return;
+  if (!node) return;
   if (state.locked && isDesignField(node.kind, field)) return;
   mark(form);
   try {
+    if (node.kind === "columns") {
+      if (field === "layout" && fromChange && target instanceof HTMLSelectElement && isColumnLayout(target.value)) {
+        setColumnLayout(form, node, target.value);
+      }
+      return;
+    }
     if (field === "html" && target.isContentEditable && node.kind === "text") {
       node.html = htmlFromEditing(target.innerHTML, true);
       return;
     }
-    if (field === "html" && target.isContentEditable && (node.kind === "panel" || node.kind === "card" || node.kind === "pasted")) {
+    if (field === "html" && target.isContentEditable && (node.kind === "panel" || node.kind === "pasted")) {
       node.html = htmlFromEditing(target.innerHTML, false);
       return;
     }
@@ -530,6 +585,7 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
       if (field === "src") node.src = value;
       if (field === "alt") node.alt = value;
       if (field === "caption") node.caption = value;
+      if (field === "plain" && target instanceof HTMLInputElement) node.plain = target.checked;
       if (fromChange) rerenderArticle(form, node.uid);
       return;
     }
@@ -575,7 +631,7 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
 }
 
 function isDesignField(kind: EditNode["kind"], field: string): boolean {
-  if (field === "level" || field === "tone" || field === "mode") return true;
+  if (field === "level" || field === "tone" || field === "mode" || field === "layout" || field === "plain") return true;
   return kind === "insert" && field === "id";
 }
 
@@ -610,13 +666,6 @@ function onClick(form: HTMLFormElement, event: MouseEvent): void {
     event.preventDefault();
     if (state.locked || move.disabled) return;
     moveSection(form, state, move);
-    return;
-  }
-  const cols = target.closest<HTMLElement>("[data-cols]");
-  if (cols?.dataset.cols) {
-    event.preventDefault();
-    if (state.locked) return;
-    setColumns(form, cols);
     return;
   }
   const remove = target.closest<HTMLElement>("[data-remove]");
@@ -656,7 +705,7 @@ function appendPalette(form: HTMLFormElement, kind: string): void {
   if (!state || state.locked || !isPaletteKind(kind)) return;
   const zone = state.zones.find((item) => item.name === state.active) ?? state.zones[0];
   if (!zone) return;
-  if (kind === "columns" && insideCell()) return;
+  if (kind === "columns" && focusedColumns(state)) return;
   mark(form);
   syncAll(state);
   zone.items.push(toEdit(blankSection(kind)));
@@ -796,15 +845,12 @@ function touchEditable(): void {
   el?.closest("[contenteditable]")?.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
-function setColumns(form: HTMLFormElement, button: HTMLElement): void {
+function setColumnLayout(form: HTMLFormElement, node: EditColumns, layout: ColumnLayoutId): void {
   const state = mounted.get(form);
-  if (state?.locked) return;
-  const article = button.closest<HTMLElement>("[data-item-id]");
-  const node = state && article ? findNode(allItems(state), article.dataset.itemId ?? "") : undefined;
-  if (!state || !node || node.kind !== "columns") return;
-  const count = button.dataset.cols === "3" ? 3 : 2;
-  mark(form);
+  if (!state || state.locked) return;
+  const count = columnWidths(layout).length;
   syncAll(state);
+  node.layout = layout;
   while (node.cells.length < count) node.cells.push({ className: "", items: [] });
   while (node.cells.length > count) {
     const removed = node.cells.pop();
@@ -813,7 +859,6 @@ function setColumns(form: HTMLFormElement, button: HTMLElement): void {
   }
   const zone = zoneOf(state, node.uid);
   if (zone) renderZone(form, zone);
-  notifyStructure(form);
 }
 
 function onPaste(event: ClipboardEvent): void {
@@ -889,10 +934,11 @@ function onDrop(form: HTMLFormElement, event: DragEvent): void {
   const cell = Number(slot.dataset.dropCell || "0");
   const list = listFor(state, zoneName, parent, cell);
   if (!list) return;
+  const host = parent ? findNode(zoneItems(state, zoneName), parent) : undefined;
   const palette = event.dataTransfer.getData("application/x-tessera-palette");
   if (palette) {
     if (!isPaletteKind(palette)) return;
-    if (palette === "columns" && parent) return;
+    if (palette === "columns" && host?.kind === "columns") return;
     list.splice(index, 0, toEdit(blankSection(palette)));
     mark(form);
     renderAll(form, state);
@@ -903,7 +949,8 @@ function onDrop(form: HTMLFormElement, event: DragEvent): void {
   const uid = itemData.split("\t")[1];
   if (!uid || parent === uid) return;
   const moving = findNode(allItems(state), uid);
-  if (parent && (isColumns(moving) || containsNode(moving, parent))) return;
+  if (parent && host?.kind === "columns" && isColumns(moving)) return;
+  if (parent && containsNode(moving, parent)) return;
   const from = locate(state, uid);
   if (!from) return;
   mark(form);
@@ -919,9 +966,14 @@ function listFor(state: Mounted, zoneName: string, parent: string, cell: number)
   const zone = state.zones.find((item) => item.name === zoneName);
   if (!zone) return;
   if (!parent) return zone.items;
-  const columns = findNode(zone.items, parent);
-  if (!columns || columns.kind !== "columns") return;
-  return columns.cells[cell]?.items;
+  const host = findNode(zone.items, parent);
+  if (host?.kind === "card") return host.items;
+  if (host?.kind === "columns") return host.cells[cell]?.items;
+  return;
+}
+
+function zoneItems(state: Mounted, zoneName: string): EditNode[] {
+  return state.zones.find((item) => item.name === zoneName)?.items ?? [];
 }
 
 function locate(state: Mounted, uid: string): { list: EditNode[]; index: number } | undefined {
@@ -929,9 +981,8 @@ function locate(state: Mounted, uid: string): { list: EditNode[]; index: number 
     const index = list.findIndex((item) => item.uid === uid);
     if (index >= 0) return { list, index };
     for (const item of list) {
-      if (item.kind !== "columns") continue;
-      for (const cell of item.cells) {
-        const found = search(cell.items);
+      for (const nested of childLists(item)) {
+        const found = search(nested);
         if (found) return found;
       }
     }
@@ -950,28 +1001,29 @@ function removeNode(list: EditNode[], uid: string): boolean {
     list.splice(index, 1);
     return true;
   }
-  for (const item of list) {
-    if (item.kind === "columns" && item.cells.some((cell) => removeNode(cell.items, uid))) return true;
-  }
-  return false;
+  return list.some((item) => childLists(item).some((nested) => removeNode(nested, uid)));
 }
 
 function findNode(list: EditNode[], uid: string): EditNode | undefined {
   for (const item of list) {
     if (item.uid === uid) return item;
-    if (item.kind === "columns") {
-      for (const cell of item.cells) {
-        const found = findNode(cell.items, uid);
-        if (found) return found;
-      }
+    for (const nested of childLists(item)) {
+      const found = findNode(nested, uid);
+      if (found) return found;
     }
   }
   return;
 }
 
+function childLists(node: EditNode): EditNode[][] {
+  if (node.kind === "columns") return node.cells.map((cell) => cell.items);
+  if (node.kind === "card") return [node.items];
+  return [];
+}
+
 function containsNode(node: EditNode | undefined, uid: string): boolean {
-  if (!node || node.kind !== "columns") return false;
-  return node.cells.some((cell) => cell.items.some((item) => item.uid === uid || containsNode(item, uid)));
+  if (!node) return false;
+  return childLists(node).some((list) => list.some((item) => item.uid === uid || containsNode(item, uid)));
 }
 
 function isColumns(node: EditNode | undefined): boolean {
@@ -1009,26 +1061,29 @@ function syncAll(state: Mounted): void {
       if (field.dataset.field === "heading" && field.isContentEditable && node.kind === "text") {
         node.heading = (field.textContent ?? "").replace(/\n+/g, " ");
       }
-      if (field.dataset.field === "html" && field.isContentEditable && (node.kind === "panel" || node.kind === "card" || node.kind === "pasted")) {
+      if (field.dataset.field === "html" && field.isContentEditable && (node.kind === "panel" || node.kind === "pasted")) {
         node.html = htmlFromEditing(field.innerHTML, false);
       }
       if (field.dataset.field === "text" && field.isContentEditable && (node.kind === "heading" || node.kind === "quote")) {
         node.text = field.textContent ?? "";
       }
-      if (field instanceof HTMLInputElement || field instanceof HTMLSelectElement) {
+      if (field instanceof HTMLInputElement && field.type === "checkbox") {
+        applyControl(node, field.dataset.field ?? "", field.checked ? "true" : "false");
+      } else if (field instanceof HTMLInputElement || field instanceof HTMLSelectElement) {
         applyControl(node, field.dataset.field ?? "", field.value);
       }
     }
   }
 }
 
-function applyControl(node: EditLeaf, field: string, value: string): void {
+function applyControl(node: EditLeaf | EditCard, field: string, value: string): void {
   if ((node.kind === "heading" || node.kind === "text") && field === "level") node.level = headingLevel(value);
   if ((node.kind === "panel" || node.kind === "quote") && field === "tone" && isTone(value)) node.tone = value;
   if (node.kind === "quote" && field === "attribution") node.attribution = value;
   if (node.kind === "imgbox" && field === "src") node.src = value;
   if (node.kind === "imgbox" && field === "alt") node.alt = value;
   if (node.kind === "imgbox" && field === "caption") node.caption = value;
+  if (node.kind === "imgbox" && field === "plain") node.plain = value === "true";
   if (node.kind === "card" && field === "title") node.title = value;
   if (node.kind === "insert" && field === "id") node.id = value.trim();
   if (node.kind === "subpages" && field === "title") node.title = value;
@@ -1045,9 +1100,11 @@ function clearDrop(form: HTMLElement): void {
   for (const line of form.querySelectorAll(".editor-drop-active")) line.classList.remove("editor-drop-active");
 }
 
-function insideCell(): boolean {
-  const selection = document.activeElement?.closest("[data-drop-parent]");
-  return !!selection && !!selection.getAttribute("data-drop-parent");
+function focusedColumns(state: Mounted): boolean {
+  const slot = document.activeElement?.closest<HTMLElement>("[data-drop-parent]");
+  const parent = slot?.getAttribute("data-drop-parent") ?? "";
+  if (!parent) return false;
+  return findNode(allItems(state), parent)?.kind === "columns";
 }
 
 function toneOptions(current: ToneId): string {

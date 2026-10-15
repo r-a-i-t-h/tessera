@@ -85,6 +85,18 @@ const COLUMN_LAYOUT = new Set([
   "w3-cell",
 ]);
 
+/** Side-by-side ratios, using the W3 column classes. */
+export const COLUMN_LAYOUTS = [
+  { id: "1:1", label: "2 columns 1:1", widths: ["w3-half", "w3-half"] },
+  { id: "2:1", label: "2 columns 2:1", widths: ["w3-twothird", "w3-third"] },
+  { id: "1:2", label: "2 columns 1:2", widths: ["w3-third", "w3-twothird"] },
+  { id: "1:1:1", label: "3 columns 1:1:1", widths: ["w3-third", "w3-third", "w3-third"] },
+  { id: "1:2:1", label: "3 columns 1:2:1", widths: ["w3-quarter", "w3-half", "w3-quarter"] },
+  { id: "1:1:1:1", label: "4 columns 1:1:1:1", widths: ["w3-quarter", "w3-quarter", "w3-quarter", "w3-quarter"] },
+] as const;
+
+export type ColumnLayoutId = (typeof COLUMN_LAYOUTS)[number]["id"];
+
 const COLUMN_CHROME = new Set([
   ...COLUMN_LAYOUT,
   "w3-container",
@@ -107,9 +119,9 @@ export type Section =
   | { kind: "text"; heading: string; level: 1 | 2 | 3; html: string }
   | { kind: "panel"; tone: ToneId; html: string }
   | { kind: "quote"; tone: ToneId; text: string; attribution: string }
-  | { kind: "imgbox"; src: string; alt: string; caption: string }
-  | { kind: "card"; title: string; html: string }
-  | { kind: "columns"; cells: ColumnCell[] }
+  | { kind: "imgbox"; src: string; alt: string; caption: string; plain: boolean }
+  | { kind: "card"; title: string; sections: Section[] }
+  | { kind: "columns"; layout: ColumnLayoutId; cells: ColumnCell[] }
   | { kind: "insert"; id: string }
   | { kind: "subpages"; title: string }
   | { kind: "youtube"; videoId: string; title: string }
@@ -158,6 +170,26 @@ export function toneLabel(tone: ToneId): string {
   return TONES.find((item) => item.id === tone)?.label ?? tone;
 }
 
+export function isColumnLayout(value: string): value is ColumnLayoutId {
+  return COLUMN_LAYOUTS.some((item) => item.id === value);
+}
+
+export function columnWidths(layout: ColumnLayoutId): readonly string[] {
+  return COLUMN_LAYOUTS.find((item) => item.id === layout)?.widths ?? COLUMN_LAYOUTS[0].widths;
+}
+
+/** Image box frame. Padding stays; `plain` drops the card shadow. */
+export function imgboxClass(plain: boolean): string {
+  return joinClass(
+    "tessera-imgbox",
+    "w3-display-container",
+    "w3-container",
+    "w3-padding-16",
+    plain ? "" : "w3-card",
+    "w3-center",
+  );
+}
+
 export function blankSection(kind: PaletteKind): Section {
   switch (kind) {
     case "heading":
@@ -169,12 +201,13 @@ export function blankSection(kind: PaletteKind): Section {
     case "quote":
       return { kind: "quote", tone: "sand", text: "", attribution: "" };
     case "imgbox":
-      return { kind: "imgbox", src: "", alt: "", caption: "" };
+      return { kind: "imgbox", src: "", alt: "", caption: "", plain: false };
     case "card":
-      return { kind: "card", title: "", html: "" };
+      return { kind: "card", title: "", sections: [] };
     case "columns":
       return {
         kind: "columns",
+        layout: "1:1",
         cells: [
           { className: "", sections: [] },
           { className: "", sections: [] },
@@ -238,9 +271,9 @@ export function paintSection(section: Section): string {
     case "imgbox":
       return paintImgbox(section);
     case "card":
-      return `<div class="w3-card w3-padding w3-margin-bottom w3-white"><h3 class="w3-text-theme">${escapeText(section.title)}</h3><div class="rt-card-body">${renderMarkdownLinks(section.html)}</div></div>`;
+      return paintCard(section);
     case "columns":
-      return paintColumns(section.cells);
+      return paintColumns(section);
     case "insert":
       return INSERT_ID.test(section.id) ? `{{${section.id}}}` : "";
     case "subpages":
@@ -286,13 +319,17 @@ function paintImgbox(section: Extract<Section, { kind: "imgbox" }>): string {
   const caption = section.caption
     ? `<div class="w3-display-middle w3-container w3-padding-16 w3-display-hover w3-normal w3-round-large w3-opacity-min w3-white">${escapeText(section.caption)}</div>`
     : "";
-  return `<div class="tessera-imgbox w3-display-container w3-container w3-padding-16 w3-card w3-center"><img src="${escapeAttr(section.src)}" class="w3-image" alt="${escapeAttr(section.alt)}">${caption}</div>`;
+  return `<div class="${imgboxClass(section.plain)}"><img src="${escapeAttr(section.src)}" class="w3-image" alt="${escapeAttr(section.alt)}">${caption}</div>`;
 }
 
-function paintColumns(cells: ColumnCell[]): string {
-  const layout = cells.length === 3 ? "w3-third" : cells.length === 4 ? "w3-quarter" : "w3-half";
-  const inner = cells
-    .map((cell) => `<div class="${joinClass(layout, cell.className)}">${paintSections(cell.sections)}</div>`)
+function paintCard(section: Extract<Section, { kind: "card" }>): string {
+  return `<div class="w3-card w3-padding w3-margin-bottom w3-white"><h3 class="w3-text-theme">${escapeText(section.title)}</h3><div class="rt-card-body">${paintSections(section.sections)}</div></div>`;
+}
+
+function paintColumns(section: Extract<Section, { kind: "columns" }>): string {
+  const widths = columnWidths(section.layout);
+  const inner = section.cells
+    .map((cell, index) => `<div class="${joinClass(widths[index] ?? "", cell.className)}">${paintSections(cell.sections)}</div>`)
     .join("");
   return `<div class="w3-row-padding w3-stretch">${inner}</div>`;
 }
@@ -450,6 +487,7 @@ function asColumns(el: ElNode): Section | null {
   if (cells.length < 2) return null;
   return {
     kind: "columns",
+    layout: layoutOf(cells),
     cells: cells.map((cell) => ({
       className: classList(cell)
         .filter((name) => !COLUMN_CHROME.has(name))
@@ -457,6 +495,15 @@ function asColumns(el: ElNode): Section | null {
       sections: walk(cell.children, false),
     })),
   };
+}
+
+function layoutOf(cells: ElNode[]): ColumnLayoutId {
+  const widths = cells.map((cell) => classList(cell).find((name) => name !== "w3-col" && name !== "w3-rest" && name !== "w3-cell" && COLUMN_LAYOUT.has(name)) ?? "");
+  const found = COLUMN_LAYOUTS.find((item) => item.widths.length === widths.length && item.widths.every((width, index) => widths[index] === width));
+  if (found) return found.id;
+  if (cells.length >= 4) return "1:1:1:1";
+  if (cells.length === 3) return "1:1:1";
+  return "1:1";
 }
 
 function asImgbox(el: ElNode): Section | null {
@@ -469,6 +516,7 @@ function asImgbox(el: ElNode): Section | null {
     src: attr(img, "src"),
     alt: attr(img, "alt"),
     caption: captionEl ? textContent(captionEl).trim() : "",
+    plain: !hasClass(el, "w3-card"),
   };
 }
 
@@ -498,13 +546,18 @@ function asPanel(el: ElNode): Section | null {
 }
 
 function asCard(el: ElNode): Section | null {
-  if (!hasClass(el, "w3-card") || hasClass(el, "w3-panel") || hasClass(el, "w3-display-container")) return null;
-  const titleEl = findEl(el, (node) => node.tag === "h3");
-  const body = findEl(el, (node) => hasClass(node, "rt-card-body"));
-  const html = body
-    ? serializeChildren(body.children)
-    : serializeChildren(el.children.filter((child) => !(child.type === "el" && child.tag === "h3")));
-  return { kind: "card", title: titleEl ? textContent(titleEl).trim() : "", html };
+  if (!hasClass(el, "w3-card") || hasClass(el, "w3-panel") || hasClass(el, "w3-display-container") || hasClass(el, "tessera-video")) return null;
+  const titleEl = directChild(el, (node) => node.tag === "h3");
+  const body = directChild(el, (node) => hasClass(node, "rt-card-body"));
+  const nodes = body ? body.children : el.children.filter((child) => !(child.type === "el" && child.tag === "h3"));
+  return { kind: "card", title: titleEl ? textContent(titleEl).trim() : "", sections: walk(nodes, true) };
+}
+
+function directChild(el: ElNode, pred: (node: ElNode) => boolean): ElNode | null {
+  for (const child of el.children) {
+    if (child.type === "el" && pred(child)) return child;
+  }
+  return null;
 }
 
 function classesArePanel(el: ElNode): boolean {

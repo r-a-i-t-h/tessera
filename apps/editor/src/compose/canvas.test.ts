@@ -1,3 +1,4 @@
+import { parseSections } from "@r-a-i-t-h/tessera-sections";
 import { Window } from "happy-dom";
 import { beforeAll, describe, expect, it } from "vitest";
 import { mountComposeCanvases, readComposeHtml } from "./canvas.js";
@@ -258,6 +259,80 @@ describe("section actions", () => {
   });
 });
 
+describe("image frame", () => {
+  it("hides the frame and keeps the padding", () => {
+    const form = mountZone(
+      `<div class="tessera-imgbox w3-display-container w3-container w3-padding-16 w3-card w3-center"><img src="./media/porch.svg" class="w3-image" alt="Porch"></div>`,
+    );
+    const box = form.querySelector(".tessera-imgbox");
+    expect(box?.classList.contains("w3-card")).toBe(true);
+    expect(box?.classList.contains("w3-padding-16")).toBe(true);
+    const hide = form.querySelector<HTMLInputElement>("[data-field=plain]");
+    if (!hide) throw new Error("hide frame");
+    hide.checked = true;
+    hide.dispatchEvent(new dom.Event("change", { bubbles: true }));
+    const next = form.querySelector(".tessera-imgbox");
+    expect(next?.classList.contains("w3-card")).toBe(false);
+    expect(next?.classList.contains("w3-padding-16")).toBe(true);
+    const html = readComposeHtml(form).main ?? "";
+    expect(html).toContain("w3-padding-16");
+    expect(html).not.toContain("w3-card");
+  });
+});
+
+describe("side by side layouts", () => {
+  it("switches ratios and keeps the cells", () => {
+    const form = mountZone(
+      `<div class="w3-row-padding w3-stretch"><div class="w3-half"><p>Left</p></div><div class="w3-half"><p>Right</p></div></div>`,
+    );
+    const select = form.querySelector<HTMLSelectElement>("[data-field=layout]");
+    if (!select) throw new Error("layout");
+    expect(select.value).toBe("1:1");
+    chooseLayout(form, "2:1");
+    let html = readComposeHtml(form).main ?? "";
+    expect(html).toContain('class="w3-twothird"');
+    expect(html).toContain('class="w3-third"');
+    expect(html).toContain("<p>Left</p>");
+    expect(html).toContain("<p>Right</p>");
+
+    const nested = form.querySelector(".editor-cell [data-drop]");
+    if (!nested) throw new Error("column slot");
+    dropPalette(nested, "columns");
+    expect(form.querySelectorAll(".editor-cell")).toHaveLength(2);
+
+    chooseLayout(form, "1:2:1");
+    html = readComposeHtml(form).main ?? "";
+    expect(html).toContain('class="w3-quarter"');
+    expect(html).toContain('class="w3-half"');
+    expect(form.querySelectorAll(".editor-cell")).toHaveLength(3);
+  });
+});
+
+describe("card container", () => {
+  it("holds text and side by side", () => {
+    const form = mountZone(
+      `<div class="w3-card w3-padding w3-margin-bottom w3-white"><h3 class="w3-text-theme">Visit</h3><div class="rt-card-body"><div class="tessera-text"><p>Open at nine.</p></div></div></div>`,
+    );
+    const card = form.querySelector(".w3-card");
+    const slot = card?.querySelector<HTMLElement>("[data-drop]");
+    if (!card || !slot) throw new Error("card");
+    expect(card.querySelector(".editor-section-kind")?.textContent).toBe("Text");
+    dropPalette(slot, "columns");
+    const html = readComposeHtml(form).main ?? "";
+    const sections = parseSections(html);
+    expect(sections).toMatchObject([
+      {
+        kind: "card",
+        title: "Visit",
+        sections: [
+          { kind: "columns", layout: "1:1" },
+          { kind: "text", html: "<p>Open at nine.</p>" },
+        ],
+      },
+    ]);
+  });
+});
+
 describe("image preview", () => {
   it("shows a library image from the preview and keeps the published address", () => {
     dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;
@@ -279,6 +354,34 @@ describe("image preview", () => {
     expect(readComposeHtml(form).main).toContain('src="./media/gate.png"');
   });
 });
+
+function mountZone(main: string): HTMLFormElement {
+  dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;
+  const form = dom.document.querySelector("form");
+  if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
+  mountComposeCanvases(form, { bindings: [], htmlByZone: { main } });
+  return form;
+}
+
+function chooseLayout(form: HTMLFormElement, layout: string): void {
+  const select = form.querySelector<HTMLSelectElement>("[data-field=layout]");
+  if (!select) throw new Error("layout");
+  select.value = layout;
+  select.dispatchEvent(new dom.Event("change", { bubbles: true }));
+}
+
+function dropPalette(slot: Element, kind: string): void {
+  const transfer = {
+    dropEffect: "",
+    getData(type: string) {
+      if (type === "application/x-tessera-palette") return kind;
+      return kind;
+    },
+  };
+  const event = new dom.Event("drop", { bubbles: true });
+  Object.defineProperty(event, "dataTransfer", { value: transfer });
+  slot.dispatchEvent(event);
+}
 
 function mount(inner: string): HTMLFormElement {
   dom.document.body.innerHTML = `<form>${inner}</form>`;

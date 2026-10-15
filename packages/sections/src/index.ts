@@ -1,8 +1,12 @@
 export {
+  COLUMN_LAYOUTS,
   PALETTE,
   PALETTE_TONES,
   TONES,
   blankSection,
+  columnWidths,
+  imgboxClass,
+  isColumnLayout,
   paintSection,
   paintSections,
   parseSections,
@@ -11,4 +15,4 @@ export {
   youtubeVideoId,
 } from "./sections.js";
 export { renderMarkdownLinks, restoreMarkdownLinks } from "./html.js";
-export type { ColumnCell, GalleryMode, PaletteKind, Section, ToneId } from "./sections.js";
+export type { ColumnCell, ColumnLayoutId, GalleryMode, PaletteKind, Section, ToneId } from "./sections.js";
