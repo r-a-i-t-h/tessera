@@ -3,6 +3,7 @@ export {
   PALETTE,
   PALETTE_TONES,
   TONES,
+  BLOCK_CLASS,
   blankSection,
   columnWidths,
   imgboxClass,

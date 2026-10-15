@@ -50,7 +50,11 @@ const TONE_CLASS = new Map<string, ToneId>([
   ["w3-teal", "teal"],
 ]);
 
+/** Vertical rhythm between composed blocks on a page. */
+export const BLOCK_CLASS = "tessera-block";
+
 const PANEL_STRUCTURAL = new Set([
+  BLOCK_CLASS,
   "w3-panel",
   "w3-padding",
   "w3-padding-16",
@@ -181,6 +185,7 @@ export function columnWidths(layout: ColumnLayoutId): readonly string[] {
 /** Image box frame. Padding stays; `plain` drops the card shadow. */
 export function imgboxClass(plain: boolean): string {
   return joinClass(
+    BLOCK_CLASS,
     "tessera-imgbox",
     "w3-display-container",
     "w3-container",
@@ -259,11 +264,11 @@ export function paintSections(sections: Section[]): string {
 export function paintSection(section: Section): string {
   switch (section.kind) {
     case "heading":
-      return `<h${section.level}>${escapeText(section.text)}</h${section.level}>`;
+      return `<h${section.level} class="${BLOCK_CLASS}">${escapeText(section.text)}</h${section.level}>`;
     case "text":
       return paintText(section);
     case "panel": {
-      const cls = joinClass("w3-panel", "w3-padding", toneClass(section.tone));
+      const cls = joinClass(BLOCK_CLASS, "w3-panel", "w3-padding", toneClass(section.tone));
       return `<div class="${cls}">${renderMarkdownLinks(section.html)}</div>`;
     }
     case "quote":
@@ -277,13 +282,13 @@ export function paintSection(section: Section): string {
     case "insert":
       return INSERT_ID.test(section.id) ? `{{${section.id}}}` : "";
     case "subpages":
-      return `<nav class="tessera-subpages w3-margin-bottom" data-tessera="subpages" data-title="${escapeAttr(section.title)}"></nav>`;
+      return `<nav class="${joinClass(BLOCK_CLASS, "tessera-subpages")}" data-tessera="subpages" data-title="${escapeAttr(section.title)}"></nav>`;
     case "youtube":
       return paintYoutube(section);
     case "gallery":
-      return `<div class="tessera-page-gallery w3-margin-bottom" data-tessera="gallery" data-folder="${escapeAttr(section.folder)}" data-mode="${section.mode === "slides" ? "slides" : "grid"}"></div>`;
+      return `<div class="${joinClass(BLOCK_CLASS, "tessera-page-gallery")}" data-tessera="gallery" data-folder="${escapeAttr(section.folder)}" data-mode="${section.mode === "slides" ? "slides" : "grid"}"></div>`;
     case "pasted":
-      return `<div class="tessera-pasted w3-margin-bottom"><div class="tessera-pasted-sheet">${renderMarkdownLinks(section.html)}</div></div>`;
+      return `<div class="${joinClass(BLOCK_CLASS, "tessera-pasted")}"><div class="tessera-pasted-sheet">${renderMarkdownLinks(section.html)}</div></div>`;
     case "html":
       return renderMarkdownLinks(section.html);
   }
@@ -297,13 +302,13 @@ export function parseSections(html: string): Section[] {
 function paintText(section: Extract<Section, { kind: "text" }>): string {
   const heading = section.heading.trim();
   const title = heading ? `<h${section.level}>${escapeText(heading)}</h${section.level}>` : "";
-  return `<div class="tessera-text">${title}${renderMarkdownLinks(section.html)}</div>`;
+  return `<div class="${joinClass(BLOCK_CLASS, "tessera-text")}">${title}${renderMarkdownLinks(section.html)}</div>`;
 }
 
 function paintYoutube(section: Extract<Section, { kind: "youtube" }>): string {
   const id = youtubeVideoId(section.videoId);
   const src = id ? ` src="https://www.youtube-nocookie.com/embed/${escapeAttr(id)}"` : "";
-  return `<div class="tessera-video w3-card w3-margin-bottom"><iframe${src} title="${escapeAttr(section.title)}" allow="${YOUTUBE_ALLOW}" allowfullscreen></iframe></div>`;
+  return `<div class="${joinClass(BLOCK_CLASS, "tessera-video", "w3-card")}"><iframe${src} title="${escapeAttr(section.title)}" allow="${YOUTUBE_ALLOW}" allowfullscreen></iframe></div>`;
 }
 
 function paintQuote(section: Extract<Section, { kind: "quote" }>): string {
@@ -312,7 +317,7 @@ function paintQuote(section: Extract<Section, { kind: "quote" }>): string {
   const close = section.attribution
     ? `<p class="w3-right-align">${escapeText(section.attribution)}</p>`
     : `<p class="w3-right-align"><i class="fa fa-quote-right w3-xlarge w3-text-black w3-opacity-max"></i></p>`;
-  return `<div class="w3-content w3-padding-16" style="max-width: 70%"><div class="${cls}"><p class="w3-left-align"><i class="fa fa-quote-left w3-xlarge w3-text-black w3-opacity-max"></i></p><p class="w3-xlarge w3-serif w3-center">${escapeText(section.text)}</p>${close}</div></div>`;
+  return `<div class="${joinClass(BLOCK_CLASS, "w3-content", "w3-padding-16")}" style="max-width: 70%"><div class="${cls}"><p class="w3-left-align"><i class="fa fa-quote-left w3-xlarge w3-text-black w3-opacity-max"></i></p><p class="w3-xlarge w3-serif w3-center">${escapeText(section.text)}</p>${close}</div></div>`;
 }
 
 function paintImgbox(section: Extract<Section, { kind: "imgbox" }>): string {
@@ -323,7 +328,7 @@ function paintImgbox(section: Extract<Section, { kind: "imgbox" }>): string {
 }
 
 function paintCard(section: Extract<Section, { kind: "card" }>): string {
-  return `<div class="w3-card w3-padding w3-margin-bottom w3-white"><h3 class="w3-text-theme">${escapeText(section.title)}</h3><div class="rt-card-body">${paintSections(section.sections)}</div></div>`;
+  return `<div class="${joinClass(BLOCK_CLASS, "w3-card", "w3-padding", "w3-white")}"><h3 class="w3-text-theme">${escapeText(section.title)}</h3><div class="rt-card-body">${paintSections(section.sections)}</div></div>`;
 }
 
 function paintColumns(section: Extract<Section, { kind: "columns" }>): string {
@@ -331,7 +336,7 @@ function paintColumns(section: Extract<Section, { kind: "columns" }>): string {
   const inner = section.cells
     .map((cell, index) => `<div class="${joinClass(widths[index] ?? "", cell.className)}">${paintSections(cell.sections)}</div>`)
     .join("");
-  return `<div class="w3-row-padding w3-stretch">${inner}</div>`;
+  return `<div class="${joinClass(BLOCK_CLASS, "w3-row-padding", "w3-stretch")}">${inner}</div>`;
 }
 
 type Atom =

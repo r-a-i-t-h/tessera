@@ -136,6 +136,37 @@ body.fontD h6 {
   padding: 1rem 1rem 2rem;
 }
 
+/* Space between composed blocks (headings, text, panels, media, …). */
+.tessera-block {
+  margin: 0 0 1.35rem;
+}
+
+.tessera-block:last-child {
+  margin-bottom: 0;
+}
+
+.tessera-block.w3-panel {
+  margin-top: 0;
+}
+
+.rt-card-body > .tessera-block:last-child {
+  margin-bottom: 0;
+}
+
+.tessera-text :where(p, ul, ol) {
+  margin: 0 0 1em;
+  line-height: 1.55;
+}
+
+.tessera-text :where(p, ul, ol):last-child {
+  margin-bottom: 0;
+}
+
+.tessera-text > :is(h1, h2, h3) {
+  margin: 0 0 0.65em;
+  line-height: 1.25;
+}
+
 body.leftnav .tessera-sidebar {
   left: 0;
   right: auto;

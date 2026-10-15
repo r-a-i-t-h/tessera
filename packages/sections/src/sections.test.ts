@@ -270,7 +270,7 @@ describe("paintSections", () => {
     expect(html).toContain('data-tessera="subpages"');
     expect(html).toContain('data-title="Visit"');
     expect(html).toContain("https://www.youtube-nocookie.com/embed/QvAdmE0vPW0");
-    expect(html).toContain('class="tessera-video w3-card w3-margin-bottom"');
+    expect(html).toContain('class="tessera-block tessera-video w3-card"');
     expect(html).toContain('data-tessera="gallery"');
     expect(html).toContain('data-mode="grid"');
     expect(html).toContain("tessera-pasted-sheet");

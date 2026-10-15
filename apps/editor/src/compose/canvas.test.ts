@@ -96,7 +96,7 @@ describe("compose palette", () => {
     level.dispatchEvent(new dom.Event("change", { bubbles: true }));
 
     const html = readComposeHtml(form).main ?? "";
-    expect(html).toContain('<div class="tessera-text"><h3>Saturday market</h3><p>Opens at nine.</p><p>Closes at one.</p><p>Dogs welcome.</p><ul><li>Bread</li></ul></div>');
+    expect(html).toContain('<div class="tessera-block tessera-text"><h3>Saturday market</h3><p>Opens at nine.</p><p>Closes at one.</p><p>Dogs welcome.</p><ul><li>Bread</li></ul></div>');
     expect(html).toContain('data-tessera="gallery"');
     expect(html.match(/tessera-text/g)).toHaveLength(1);
 

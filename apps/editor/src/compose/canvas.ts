@@ -1,4 +1,5 @@
 import {
+  BLOCK_CLASS,
   COLUMN_LAYOUTS,
   PALETTE,
   PALETTE_TONES,
@@ -428,11 +429,11 @@ const ALIGN_JUSTIFY_ICON = `<svg viewBox="0 0 16 16" aria-hidden="true"><path fi
 function bodyFor(node: EditNode, choices: Choices, zone: string, locked: boolean): string {
   switch (node.kind) {
     case "heading":
-      return `<h${node.level} contenteditable="true" data-field="text" data-plain="true" data-placeholder="Heading">${escapeText(node.text)}</h${node.level}>`;
+      return `<h${node.level} class="${BLOCK_CLASS}" contenteditable="true" data-field="text" data-plain="true" data-placeholder="Heading">${escapeText(node.text)}</h${node.level}>`;
     case "text":
-      return `<div class="editor-text"><h${node.level} contenteditable="true" data-field="heading" data-plain="true" data-placeholder="Heading">${escapeText(node.heading)}</h${node.level}><div class="editor-text-body" contenteditable="true" data-field="html" data-blocks="true" data-placeholder="Write…">${htmlForEditing(node.html)}</div></div>`;
+      return `<div class="${joinClass(BLOCK_CLASS, "editor-text")}"><h${node.level} contenteditable="true" data-field="heading" data-plain="true" data-placeholder="Heading">${escapeText(node.heading)}</h${node.level}><div class="editor-text-body" contenteditable="true" data-field="html" data-blocks="true" data-placeholder="Write…">${htmlForEditing(node.html)}</div></div>`;
     case "panel":
-      return `<div class="${joinClass("w3-panel", "w3-padding", toneClass(node.tone))}"><div contenteditable="true" data-field="html" data-placeholder="Panel">${htmlForEditing(node.html)}</div></div>`;
+      return `<div class="${joinClass(BLOCK_CLASS, "w3-panel", "w3-padding", toneClass(node.tone))}"><div contenteditable="true" data-field="html" data-placeholder="Panel">${htmlForEditing(node.html)}</div></div>`;
     case "quote":
       return quoteBody(node);
     case "imgbox":
@@ -455,7 +456,7 @@ function bodyFor(node: EditNode, choices: Choices, zone: string, locked: boolean
       return `<p class="w3-panel w3-pale-yellow">Gallery: ${escapeText(name)} (${node.mode === "slides" ? "slides" : "grid"})</p>`;
     }
     case "pasted":
-      return `<div class="tessera-pasted"><div class="tessera-pasted-sheet"><div contenteditable="true" data-field="html" data-placeholder="Write on the paper…">${htmlForEditing(node.html)}</div></div></div>`;
+      return `<div class="${joinClass(BLOCK_CLASS, "tessera-pasted")}"><div class="tessera-pasted-sheet"><div contenteditable="true" data-field="html" data-placeholder="Write on the paper…">${htmlForEditing(node.html)}</div></div></div>`;
     case "html":
       return `<div class="editor-html-preview">${editorMediaHtml(renderMarkdownLinks(node.html))}</div>`;
   }
@@ -464,14 +465,14 @@ function bodyFor(node: EditNode, choices: Choices, zone: string, locked: boolean
 function youtubeBody(node: Extract<EditLeaf, { kind: "youtube" }>): string {
   const id = youtubeVideoId(node.videoId);
   if (!id) return `<p class="w3-text-grey">Add a YouTube address.</p>`;
-  return `<div class="tessera-video w3-card"><iframe src="https://www.youtube-nocookie.com/embed/${escapeAttr(id)}" title="${escapeAttr(node.title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
+  return `<div class="${joinClass(BLOCK_CLASS, "tessera-video", "w3-card")}"><iframe src="https://www.youtube-nocookie.com/embed/${escapeAttr(id)}" title="${escapeAttr(node.title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
 }
 
 function quoteBody(node: Extract<EditLeaf, { kind: "quote" }>): string {
   const close = node.attribution
     ? `<p class="w3-right-align" data-quote-by>${escapeText(node.attribution)}</p>`
     : `<p class="w3-right-align" data-quote-by><i class="fa fa-quote-right w3-xlarge w3-text-black w3-opacity-max"></i></p>`;
-  return `<div class="w3-content w3-padding-16" style="max-width: 70%"><div class="${joinClass("w3-panel", "w3-card-4", "w3-round-large", toneClass(node.tone))}"><p class="w3-left-align"><i class="fa fa-quote-left w3-xlarge w3-text-black w3-opacity-max"></i></p><p class="w3-xlarge w3-serif w3-center" contenteditable="true" data-field="text" data-plain="true" data-placeholder="Quote">${escapeText(node.text)}</p>${close}</div></div>`;
+  return `<div class="${joinClass(BLOCK_CLASS, "w3-content", "w3-padding-16")}" style="max-width: 70%"><div class="${joinClass("w3-panel", "w3-card-4", "w3-round-large", toneClass(node.tone))}"><p class="w3-left-align"><i class="fa fa-quote-left w3-xlarge w3-text-black w3-opacity-max"></i></p><p class="w3-xlarge w3-serif w3-center" contenteditable="true" data-field="text" data-plain="true" data-placeholder="Quote">${escapeText(node.text)}</p>${close}</div></div>`;
 }
 
 function imgboxBody(node: Extract<EditLeaf, { kind: "imgbox" }>): string {
@@ -484,7 +485,7 @@ function imgboxBody(node: Extract<EditLeaf, { kind: "imgbox" }>): string {
 
 function cardBody(node: EditCard, choices: Choices, zone: string, locked: boolean): string {
   const inner = nestedItems(node.items, choices, zone, locked, node.uid, "");
-  return `<div class="w3-card w3-padding w3-margin-bottom w3-white"><h3 class="w3-text-theme" data-card-title>${escapeText(node.title)}</h3><div class="rt-card-body editor-cell">${inner}</div></div>`;
+  return `<div class="${joinClass(BLOCK_CLASS, "w3-card", "w3-padding", "w3-white")}"><h3 class="w3-text-theme" data-card-title>${escapeText(node.title)}</h3><div class="rt-card-body editor-cell">${inner}</div></div>`;
 }
 
 function columnsBody(node: EditColumns, choices: Choices, zone: string, locked: boolean): string {
@@ -495,7 +496,7 @@ function columnsBody(node: EditColumns, choices: Choices, zone: string, locked: 
       return `<div class="${joinClass(widths[index] ?? "", cell.className)} editor-cell">${inner}</div>`;
     })
     .join("");
-  return `<div class="w3-row-padding w3-stretch">${cells}</div>`;
+  return `<div class="${joinClass(BLOCK_CLASS, "w3-row-padding", "w3-stretch")}">${cells}</div>`;
 }
 
 function nestedItems(items: EditNode[], choices: Choices, zone: string, locked: boolean, parent: string, cell: string | number): string {

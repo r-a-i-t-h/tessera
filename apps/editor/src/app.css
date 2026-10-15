@@ -571,11 +571,11 @@ img[data-hero-preview] {
 .editor-canvas {
   min-height: 8rem;
   background: #fff;
-  padding: 0.25rem 0.25rem 0.75rem;
+  padding: 0.35rem 0.35rem 1rem;
 }
 
 .editor-section {
-  margin: 0 0 0.75rem;
+  margin: 0 0 1.1rem;
   background: #fff;
 }
 
@@ -744,10 +744,11 @@ img[data-hero-preview] {
 }
 
 .editor-text [data-field="heading"] {
-  margin: 0 0 0.35rem;
+  margin: 0 0 0.65em;
 }
 
 .editor-text [data-field="heading"]:empty {
+  margin: 0;
   font-size: 1.05rem;
   font-weight: 600;
   line-height: 1.4;
@@ -756,10 +757,11 @@ img[data-hero-preview] {
 .editor-text-body {
   min-height: 2.5rem;
   outline: none;
+  line-height: 1.55;
 }
 
 .editor-text-body :where(p, ul, ol) {
-  margin: 0 0 0.75rem;
+  margin: 0 0 1em;
 }
 
 .editor-text-body :where(p, ul, ol):last-child {
