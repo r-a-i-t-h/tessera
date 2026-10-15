@@ -9,6 +9,7 @@ import {
   isColumnLayout,
   paintSections,
   parseSections,
+  quoteBlockHtml,
   renderMarkdownLinks,
   restoreMarkdownLinks,
   toneClass,
@@ -475,10 +476,10 @@ function youtubeBody(node: Extract<EditLeaf, { kind: "youtube" }>): string {
 }
 
 function quoteBody(node: Extract<EditLeaf, { kind: "quote" }>): string {
-  const close = node.attribution
-    ? `<p class="w3-right-align" data-quote-by>${escapeText(node.attribution)}</p>`
-    : `<p class="w3-right-align" data-quote-by><i class="fa fa-quote-right w3-xlarge w3-text-black w3-opacity-max"></i></p>`;
-  return `<div class="${joinClass(BLOCK_CLASS, "w3-content", "w3-padding-16")}" style="max-width: 70%"><div class="${joinClass("w3-panel", "w3-card-4", "w3-round-large", toneClass(node.tone))}"><p class="w3-left-align"><i class="fa fa-quote-left w3-xlarge w3-text-black w3-opacity-max"></i></p><p class="w3-xlarge w3-serif w3-center" contenteditable="true" data-field="text" data-plain="true" data-placeholder="Quote">${escapeText(node.text)}</p>${close}</div></div>`;
+  return quoteBlockHtml(node.text, node.attribution, node.tone, {
+    textAttributes: 'contenteditable="true" data-field="text" data-plain="true" data-placeholder="Quote"',
+    attributionAttributes: "data-quote-by",
+  });
 }
 
 function imgboxBody(node: Extract<EditLeaf, { kind: "imgbox" }>): string {

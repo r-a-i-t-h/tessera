@@ -200,7 +200,7 @@ describe("paintSections", () => {
     ]);
     expect(html).toContain("w3-panel");
     expect(html).toContain("w3-sand");
-    expect(html).toContain("fa-quote-left");
+    expect(html).toContain("tessera-quote-open");
     expect(html).toContain("w3-theme-l4");
     expect(html).toContain("w3-display-container");
     expect(html).toContain("tessera-imgbox");

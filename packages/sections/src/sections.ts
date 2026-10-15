@@ -311,13 +311,32 @@ function paintYoutube(section: Extract<Section, { kind: "youtube" }>): string {
   return `<div class="${joinClass(BLOCK_CLASS, "tessera-video", "w3-card")}"><iframe${src} title="${escapeAttr(section.title)}" allow="${YOUTUBE_ALLOW}" allowfullscreen></iframe></div>`;
 }
 
+export type QuoteBlockOptions = {
+  textAttributes?: string;
+  attributionAttributes?: string;
+};
+
+function quoteMark(role: "open" | "close"): string {
+  const ch = role === "open" ? "\u201C" : "\u201D";
+  return `<span class="tessera-quote-mark tessera-quote-${role}" aria-hidden="true">${ch}</span>`;
+}
+
+function quoteInnerHtml(text: string, attribution: string, options: QuoteBlockOptions = {}): string {
+  const textAttrs = options.textAttributes ? ` ${options.textAttributes}` : "";
+  const byAttrs = options.attributionAttributes ? ` ${options.attributionAttributes}` : "";
+  const close = attribution
+    ? `<p class="w3-right-align"${byAttrs}>${escapeText(attribution)}</p>`
+    : quoteMark("close");
+  return `${quoteMark("open")}<p class="w3-xlarge w3-serif w3-center"${textAttrs}>${escapeText(text)}</p>${close}`;
+}
+
+export function quoteBlockHtml(text: string, attribution: string, tone: ToneId, options: QuoteBlockOptions = {}): string {
+  const cls = joinClass("w3-panel", "w3-card-4", "w3-round-large", "tessera-quote", toneClass(tone));
+  return `<div class="${joinClass(BLOCK_CLASS, "w3-content", "w3-padding-16")}" style="max-width: 70%"><div class="${cls}">${quoteInnerHtml(text, attribution, options)}</div></div>`;
+}
+
 function paintQuote(section: Extract<Section, { kind: "quote" }>): string {
-  const tone = toneClass(section.tone);
-  const cls = joinClass("w3-panel", "w3-card-4", "w3-round-large", tone);
-  const close = section.attribution
-    ? `<p class="w3-right-align">${escapeText(section.attribution)}</p>`
-    : `<p class="w3-right-align"><i class="fa fa-quote-right w3-xlarge w3-text-black w3-opacity-max"></i></p>`;
-  return `<div class="${joinClass(BLOCK_CLASS, "w3-content", "w3-padding-16")}" style="max-width: 70%"><div class="${cls}"><p class="w3-left-align"><i class="fa fa-quote-left w3-xlarge w3-text-black w3-opacity-max"></i></p><p class="w3-xlarge w3-serif w3-center">${escapeText(section.text)}</p>${close}</div></div>`;
+  return quoteBlockHtml(section.text, section.attribution, section.tone);
 }
 
 function paintImgbox(section: Extract<Section, { kind: "imgbox" }>): string {
@@ -532,15 +551,20 @@ function asImgbox(el: ElNode): Section | null {
   };
 }
 
+function isQuoteDecoration(para: ElNode): boolean {
+  if (hasIcon(para, "fa-quote-left") || hasIcon(para, "fa-quote-right")) return true;
+  return findEl(para, (node) => hasClass(node, "tessera-quote-mark")) !== null;
+}
+
 function asQuote(el: ElNode): Section | null {
-  if (el.tag !== "blockquote" && !hasIcon(el, "fa-quote-left") && !hasIcon(el, "fa-quote-right")) return null;
   const panel = findEl(el, (node) => hasClass(node, "w3-panel")) ?? el;
+  const marked = hasClass(panel, "tessera-quote");
+  if (el.tag !== "blockquote" && !marked && !hasIcon(el, "fa-quote-left") && !hasIcon(el, "fa-quote-right")) return null;
   let text = "";
   let attribution = "";
   for (const para of collect(el, (node) => node.tag === "p")) {
     const words = textContent(para).trim();
-    if (hasIcon(para, "fa-quote-left")) continue;
-    if (hasIcon(para, "fa-quote-right")) continue;
+    if (isQuoteDecoration(para)) continue;
     if (hasClass(para, "w3-right-align")) {
       attribution = words;
       continue;

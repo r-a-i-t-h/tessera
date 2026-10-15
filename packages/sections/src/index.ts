@@ -11,6 +11,7 @@ export {
   paintSection,
   paintSections,
   parseSections,
+  quoteBlockHtml,
   toneClass,
   toneLabel,
   youtubeVideoId,
