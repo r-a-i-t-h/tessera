@@ -29,7 +29,7 @@ describe("blog ops", () => {
       zones: { title: { html: "News" }, lead: { html: "" } },
     });
     const index = await site.read("content", "news-index");
-    expect(index).toMatchObject({ type: "blog-index", parentId: "news", slug: "index" });
+    expect(index).toMatchObject({ type: "blog-index", parentId: "news" });
     await site.write("content", "fair", {
       title: "Fair",
       type: "article",

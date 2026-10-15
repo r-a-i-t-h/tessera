@@ -183,8 +183,7 @@ describe("binding records", () => {
 describe("binding forms", () => {
   it("shows the gallery questions on one page", () => {
     const html = renderGalleryForm("hall-gallery", galleryDraft(hall), [{ id: "hall-gallery" }, { id: "lambs" }]);
-    expect(html).toContain("A Gallery section in Compose stays on that one page.");
-    expect(html).toContain("{{hall-gallery}}");
+    expect(html).toContain('data-folder-id="hall-gallery"');
     expect(html).toContain('data-folder-id="hall-gallery" checked');
     expect(html).toContain("Only filenames matching");
     expect(html).toContain("data-gallery-autoplay hidden");
@@ -196,7 +195,6 @@ describe("binding forms", () => {
 
   it("explains a dated list and that children follow the page", () => {
     const dated = renderDatedForm("upcoming-events", datedDraft(upcoming), ["event", "news"]);
-    expect(dated).toContain("Only pages with a date field are listed.");
     expect(dated).toContain('value="event" checked');
     const links = renderLinksForm(
       "whats-on",
@@ -211,7 +209,6 @@ describe("binding forms", () => {
       },
       { folders: [], types: ["event"], headings: ["What's on"] },
     );
-    expect(links).toContain("Children follow the page the insert sits on.");
     expect(links).toContain("data-links-type hidden");
     expect(renderBindingForm("upcoming-events", upcoming, { folders: [], types: ["event"], headings: [] })).toContain(
       "dated-when",
@@ -220,14 +217,11 @@ describe("binding forms", () => {
 
   it("walks a new gallery from the id to the pictures, then writes a folder list", () => {
     const start = renderNewBinding(blankNewBinding(), { folders: [], types: [], headings: [] });
-    expect(start).toContain("data-binding-token");
-    expect(start).toContain(">{{id}}</code>");
     expect(start).toContain(">Next</button>");
     const pictures = renderNewBinding(
       { ...blankNewBinding(), id: "lambs", step: 2, gallery: { ...galleryDraft({}), folders: ["lambs"] } },
       { folders: [{ id: "lambs" }], types: [], headings: [] },
     );
-    expect(pictures).toContain(">{{lambs}}</code>");
     expect(pictures).toContain('data-folder-id="lambs"');
     const created = readNewBinding(
       [

@@ -119,7 +119,7 @@ export function placeArticles(pages: readonly Page[]): Page[] {
 
   return pages.map((page) => {
     if (page.type === BLOG_INDEX_TYPE) {
-      const next: Page = { ...page, slug: "index" };
+      const next: Page = { ...page };
       delete next.includes;
       delete next.masterLayoutId;
       return next;

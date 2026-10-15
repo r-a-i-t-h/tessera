@@ -5,7 +5,6 @@ import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 type ContentPage = {
   id: string;
   title?: string;
-  slug?: string;
   parentId?: string;
   type?: string;
   fields?: Record<string, string>;
@@ -26,7 +25,6 @@ function cloneBlogFromTemplate(template: ContentPage, tenantId: string): Content
     ...template,
     id: tenantId,
     title,
-    slug: tenantId,
     type: "blog",
     fields,
     zones: template.zones ? structuredClone(template.zones) : {},
@@ -37,7 +35,6 @@ function indexForBlog(blogId: string): ContentPage {
   return {
     id: `${blogId}-index`,
     title: "Index",
-    slug: "index",
     parentId: blogId,
     type: "blog-index",
     zones: { title: { html: "Index" } },
@@ -145,7 +142,7 @@ export async function migrateRemoveTenants(dataDir: string): Promise<void> {
       if (content.has(tenantId)) throw new Error(`Cannot rekey blog ${blog.id} to ${tenantId}: id already used.`);
       const oldId = blog.id;
       const oldIndexId = `${oldId}-index`;
-      blog = { ...blog, id: tenantId, slug: blog.slug === oldId ? tenantId : blog.slug };
+      blog = { ...blog, id: tenantId };
       content.delete(oldId);
       content.set(tenantId, blog);
       const oldIndex = content.get(oldIndexId);

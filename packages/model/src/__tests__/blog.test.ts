@@ -38,7 +38,6 @@ describe("placeArticles", () => {
   it("parents an article on its blog and drops includes and frame", () => {
     const [placedNews, placedIndex, placed] = placeArticles([news, index, fair]);
     expect(placedNews).toBe(news);
-    expect(placedIndex?.slug).toBe("index");
     expect(placedIndex?.includes).toBeUndefined();
     expect(placed?.parentId).toBe("news");
     expect(placed?.includes).toBeUndefined();
@@ -54,7 +53,13 @@ describe("placeArticles", () => {
     expect(() =>
       placeArticles([
         news,
-        page({ id: "fair", title: "Fair", type: "article", fields: { tenant: "hall", date: "2026-07-14" } }),
+        page({
+          id: "fair",
+          title: "Fair",
+          type: "article",
+          parentId: "news",
+          fields: { tenant: "hall", date: "2026-07-14" },
+        }),
       ]),
     ).toThrow(/must not name a tenant/);
     expect(() =>

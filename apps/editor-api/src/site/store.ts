@@ -608,9 +608,10 @@ export class SiteStore {
    * The check runs against the site as it would be after this save.
    */
   private async finalizeContent(id: string, record: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const type = record.type;
-    if (type !== "article" && type !== "blog" && type !== "blog-index") return record;
     const next: Record<string, unknown> = { ...record, id };
+    delete next.slug;
+    const type = record.type;
+    if (type !== "article" && type !== "blog" && type !== "blog-index") return next;
     if (type === "article") {
       delete next.includes;
       delete next.masterLayoutId;
@@ -660,7 +661,6 @@ export class SiteStore {
     if (type === "blog-index") {
       delete next.includes;
       delete next.masterLayoutId;
-      next.slug = "index";
     }
     const others = (await this.contentRecords()).filter((page) => page.id !== id);
     const projected = [...others, next as AuthoredPage];
@@ -680,8 +680,9 @@ export class SiteStore {
   private async ensureBlogIndex(record: Record<string, unknown>): Promise<string | undefined> {
     if (record.type !== "blog" || typeof record.id !== "string") return undefined;
     const pages = await this.contentRecords();
-    if (pages.some((page) => page.type === "blog-index" && page.parentId === record.id)) return undefined;
     const indexId = `${record.id}-index`;
+    if (pages.some((page) => page.id === indexId)) return undefined;
+    if (pages.some((page) => page.type === "blog-index" && page.parentId === record.id)) return undefined;
     if (!isRecordId(indexId)) throw new Error("This blog id cannot have an index filename.");
     if (pages.some((page) => page.id === indexId)) {
       throw new Error(`Cannot create index ${indexId}: that page already exists.`);
@@ -689,7 +690,6 @@ export class SiteStore {
     const index = {
       id: indexId,
       title: "Index",
-      slug: "index",
       parentId: record.id,
       type: "blog-index",
     };
@@ -840,6 +840,26 @@ export class SiteStore {
     await this.rebuild();
   }
 
+  /** Rename a content page or article and rewrite structured references. */
+  async renameContent(id: string, nextId: string): Promise<void> {
+    this.assertId(id);
+    if (!isRecordId(nextId)) throw new Error(`Invalid record id "${nextId}".`);
+    if (nextId === id) return;
+    const record = (await this.read("content", id)) as AuthoredPage;
+    if (record.type === "blog-index") {
+      throw new Error("Rename the blog instead of its index.");
+    }
+    if (record.type === "blog") {
+      await this.renameBlog(id, nextId);
+      return;
+    }
+    const existing = await this.listIds("content");
+    if (existing.includes(nextId)) throw new Error(`Page ${nextId} already exists.`);
+    await this.rewriteContentReferences(id, nextId);
+    await this.moveContentRecord(id, nextId, { ...record, id: nextId });
+    await this.rebuild();
+  }
+
   /** Rename a blog, its index, child articles' parentId, and nav references. */
   async renameBlog(id: string, nextId: string): Promise<void> {
     this.assertId(id);
@@ -850,20 +870,11 @@ export class SiteStore {
     const existing = await this.listIds("content");
     if (existing.includes(nextId)) throw new Error(`Blog ${nextId} already exists.`);
     const nextIndexId = `${nextId}-index`;
+    if (existing.includes(nextIndexId) && nextIndexId !== `${id}-index`) {
+      throw new Error(`Page ${nextIndexId} already exists.`);
+    }
     const pages = await this.contentRecords();
     const index = pages.find((page) => page.type === "blog-index" && page.parentId === id);
-    const slug = record.slug?.trim() ?? "";
-    const nextBlog: AuthoredPage = {
-      ...record,
-      id: nextId,
-      ...(slug === id ? { slug: nextId } : {}),
-    };
-    await this.commitRecord("content", nextId, recordToYaml("content", nextBlog), { rebuild: false });
-    if (index) {
-      const nextIndex = { ...index, id: nextIndexId, parentId: nextId };
-      await this.commitRecord("content", nextIndexId, recordToYaml("content", nextIndex), { rebuild: false });
-      await this.removeRecord("content", index.id);
-    }
     for (const page of pages) {
       if (page.type === "article" && page.parentId === id) {
         await this.commitRecord(
@@ -874,12 +885,68 @@ export class SiteStore {
         );
       }
     }
-    const nav = await this.readNav();
-    if (Array.isArray(nav)) {
-      await this.commitText(this.navFile(), toYaml(rewriteNavId(nav, id, nextId)), { rebuild: false });
+    await this.moveContentRecord(id, nextId, { ...record, id: nextId });
+    if (index) {
+      const nextIndex = { ...index, id: nextIndexId, parentId: nextId };
+      await this.moveContentRecord(index.id, nextIndexId, nextIndex);
     }
-    await this.removeRecord("content", id);
+    try {
+      const nav = await this.readNav();
+      if (Array.isArray(nav)) {
+        await this.commitText(this.navFile(), toYaml(rewriteNavId(nav, id, nextId)), { rebuild: false });
+      }
+    } catch {
+      // nav.yaml is optional until the author adds one
+    }
     await this.rebuild();
+  }
+
+  private async rewriteContentReferences(from: string, to: string): Promise<void> {
+    for (const page of await this.contentRecords()) {
+      if (page.id === from || page.parentId !== from || page.type === "blog-index") continue;
+      await this.commitRecord(
+        "content",
+        page.id,
+        recordToYaml("content", { ...page, parentId: to }),
+        { rebuild: false },
+      );
+    }
+    const site = await this.readSite();
+    if (site.homePageId === from) {
+      await this.commitText(this.siteFile(), toYaml({ ...site, homePageId: to }), { rebuild: false });
+    }
+    try {
+      const nav = await this.readNav();
+      if (Array.isArray(nav)) {
+        await this.commitText(this.navFile(), toYaml(rewriteNavId(nav, from, to)), { rebuild: false });
+      }
+    } catch {
+      // nav.yaml is optional until the author adds one
+    }
+  }
+
+  private async moveContentRecord(from: string, to: string, record: AuthoredPage): Promise<void> {
+    if (from === to) return;
+    const order = await this.readOrder("content");
+    const idx = order.indexOf(from);
+    if (idx >= 0) order[idx] = to;
+    else if (!order.includes(to)) order.push(to);
+    const seen = new Set<string>();
+    const nextOrder = order.filter((item) => {
+      if (item === from) return false;
+      if (seen.has(item)) return false;
+      seen.add(item);
+      return true;
+    });
+    if (!seen.has(to)) nextOrder.push(to);
+    await writeTextAtomic(this.orderFile("content"), toYaml(nextOrder));
+
+    await this.commitRecord("content", to, recordToYaml("content", record), { rebuild: false });
+    const historyDir = dirname(this.historyDir);
+    const historyFrom = pageHistoryPath(historyDir, from);
+    const historyTo = pageHistoryPath(historyDir, to);
+    await rename(historyFrom, historyTo).catch(() => undefined);
+    await unlink(this.recordFile("content", from)).catch(() => undefined);
   }
 }
 

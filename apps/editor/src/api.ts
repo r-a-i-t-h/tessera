@@ -278,6 +278,13 @@ export function cascadeBlog(id: string): Promise<{ ok: true }> {
   return request(`/api/records/blogs/${encodeURIComponent(id)}/cascade`, { method: "POST" });
 }
 
+export function renameContent(id: string, nextId: string): Promise<{ ok: true; id: string }> {
+  return request(`/api/records/content/${encodeURIComponent(id)}/rename`, {
+    method: "POST",
+    body: JSON.stringify({ id: nextId }),
+  });
+}
+
 export function renameBlog(id: string, nextId: string): Promise<{ ok: true; id: string }> {
   return request(`/api/records/blogs/${encodeURIComponent(id)}/rename`, {
     method: "POST",

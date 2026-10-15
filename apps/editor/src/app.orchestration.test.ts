@@ -197,7 +197,7 @@ describe("editor route orchestration", () => {
     await vi.waitFor(() => {
       expect(root.querySelector("[data-action=new-item]")?.textContent).toBe("New item");
     });
-    expect(root.textContent).toContain("HTML, JSON, a component, or a block list");
+    expect(root.querySelector("#new-item-form")).toBeTruthy();
 
     root.querySelector<HTMLButtonElement>("[data-action=new-item]")?.click();
     const form = root.querySelector<HTMLFormElement>("#new-item-form");

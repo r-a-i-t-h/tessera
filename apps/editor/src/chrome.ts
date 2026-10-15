@@ -60,7 +60,6 @@ export function loginView(error = "", username = ""): string {
     <div class="editor-scroll">
     <main class="editor-main"><form id="login-form" class="w3-card w3-white w3-padding-large editor-card">
       <h1 class="w3-large">Sign in</h1>
-      <p class="w3-text-grey">Session cookie stays on this origin. Seed user: <code>admin</code> / <code>admin</code>.</p>
       ${error ? `<p class="w3-panel w3-pale-red w3-leftbar w3-border-red" role="alert">${escapeHtml(error)}</p>` : ""}
       <p>
         <label for="username">Username</label>

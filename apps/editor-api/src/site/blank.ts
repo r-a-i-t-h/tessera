@@ -121,7 +121,6 @@ zones:
 
 const BLOG_YAML = `id: blog
 title: Blog
-slug: blog
 type: blog
 fields:
   pageSize: "10"
@@ -134,7 +133,6 @@ zones:
 
 const BLOG_INDEX_YAML = `id: blog-index
 title: Index
-slug: index
 parentId: blog
 type: blog-index
 zones:

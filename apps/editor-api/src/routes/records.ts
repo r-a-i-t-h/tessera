@@ -217,6 +217,25 @@ recordRoutes.post("/records/blogs/:id/cascade", async (c) => {
   }
 });
 
+recordRoutes.post("/records/content/:id/rename", async (c) => {
+  const site = c.get("requiredSite");
+  const id = c.req.param("id");
+  if (!isRecordId(id)) return apiError(c, 400, "Invalid content id.");
+  let body: { id?: unknown };
+  try {
+    body = (await c.req.json()) as { id?: unknown };
+  } catch {
+    return apiError(c, 400, "Send the new id.");
+  }
+  if (typeof body.id !== "string" || !isRecordId(body.id)) return apiError(c, 400, "Invalid content id.");
+  try {
+    await site.renameContent(id, body.id);
+    return c.json({ ok: true, id: body.id });
+  } catch (err) {
+    return apiError(c, 400, err instanceof Error ? err.message : "Could not rename that page.");
+  }
+});
+
 recordRoutes.post("/records/blogs/:id/rename", async (c) => {
   const site = c.get("requiredSite");
   const id = c.req.param("id");

@@ -9,9 +9,9 @@ export type PageTreeNode = {
   children: PageTreeNode[];
 };
 
-/** Path segment used for a non-home page: `slug` when set, otherwise `id`. */
+/** Path segment used for a non-home page: the page `id`. */
 export function pagePathSegment(page: Page): string {
-  const segment = page.slug?.trim() || page.id;
+  const segment = page.id;
   if (!SEGMENT.test(segment)) {
     throw new Error(
       `Page ${page.id} path segment "${segment}" must match ${SEGMENT}`,

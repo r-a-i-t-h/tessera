@@ -70,7 +70,6 @@ const document = parseSiteDocument({
     {
       id: "fair",
       title: "Summer fair",
-      slug: "summer-fair",
       parentId: "events",
       description: "The fair",
       layoutId: "L",
@@ -100,7 +99,7 @@ describe("publishPages", () => {
     expect([...byPath.keys()].sort()).toEqual([
       "draft-hidden/index.html",
       "events/index.html",
-      "events/summer-fair/index.html",
+      "events/fair/index.html",
       "index.html",
       "sitemap.xml",
     ]);
@@ -120,14 +119,14 @@ describe("publishPages", () => {
 
   it("writes the master frame into every page and does not invent a second nav", () => {
     const home = byPath.get("index.html")!;
-    const fair = byPath.get("events/summer-fair/index.html")!;
+    const fair = byPath.get("events/fair/index.html")!;
     expect(home).toContain("<header>Hall frame</header>");
     expect(home).toContain("Welcome");
     expect(home).not.toContain('aria-label="Primary"');
     expect(home).not.toContain("Private");
     expect(fair).toContain("<header>Hall frame</header>");
     expect(fair).toContain("<title>Summer fair · Willow Hall</title>");
-    expect(fair).toContain('<link rel="canonical" href="https://example.test/events/summer-fair/" />');
+    expect(fair).toContain('<link rel="canonical" href="https://example.test/events/fair/" />');
   });
 
   it("leaves a component as a mount and still publishes a hidden page", () => {
@@ -145,12 +144,12 @@ describe("publishPages", () => {
     const sitemap = byPath.get("sitemap.xml")!;
     expect(sitemap).toContain("<loc>https://example.test/</loc>");
     expect(sitemap).toContain("<loc>https://example.test/events/</loc>");
-    expect(sitemap).toContain("<loc>https://example.test/events/summer-fair/</loc>");
+    expect(sitemap).toContain("<loc>https://example.test/events/fair/</loc>");
     expect(sitemap).toContain("<loc>https://example.test/draft-hidden/</loc>");
   });
 
   it("links stylesheets and the pages runtime with a relative prefix", () => {
-    const fair = byPath.get("events/summer-fair/index.html")!;
+    const fair = byPath.get("events/fair/index.html")!;
     expect(fair).toContain('href="../../skin/w3.css"');
     expect(fair).toContain('href="../../skin/tessera.css"');
     expect(fair).toContain('href="../../skin/microapps.css"');

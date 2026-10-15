@@ -122,12 +122,10 @@ export function renderLibrary(listing: LibraryListing, openId: string | null, no
       <div class="editor-library-panels">
         <section id="library-detail" class="w3-card w3-white w3-padding editor-card" aria-label="Details">
           <p><strong>Details</strong></p>
-          <p class="w3-text-grey">Select a file to edit its name, title, and folder.</p>
         </section>
         <details id="library-add" class="w3-card w3-white editor-card editor-library-add"${addOpen ? " open" : ""}>
           <summary>Add files</summary>
           <form id="library-upload" class="w3-padding editor-drop">
-            <p class="w3-text-grey">Drop files or a folder here, or choose them. Images and PDFs only.</p>
             <p>
               <input id="library-files" name="file" type="file" multiple />
               <input id="library-dir" name="dir" type="file" webkitdirectory />

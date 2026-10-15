@@ -26,6 +26,7 @@ import {
   initSite,
   publishSite,
   renameItem,
+  renameContent,
   renameBlog,
   renderSite,
   restoreExample,
@@ -468,7 +469,6 @@ function accountHtml(user: PublicUser, notice: string, error: string): string {
     ${statusPanels(notice, error)}
     <form id="username-form" class="w3-card w3-white w3-padding-large editor-card">
       <h2 class="w3-medium">Change username</h2>
-      <p class="w3-text-grey">Start with a letter. Use letters, numbers, dots, underscores, and hyphens. It has to be different from every other editor.</p>
       <p>
         <label for="account-username">Username</label>
         <input id="account-username" name="username" class="w3-input w3-border w3-margin-top" autocomplete="username" required value="${escapeHtml(user.username)}" />
@@ -477,7 +477,6 @@ function accountHtml(user: PublicUser, notice: string, error: string): string {
     </form>
     <form id="password-form" class="w3-card w3-white w3-padding-large editor-card">
       <h2 class="w3-medium">Change password</h2>
-      <p class="w3-text-grey">A new site starts with a publicly known password. Replace it with at least 6 characters before anyone else can reach this editor.</p>
       <p>
         <label for="current-password">Current password</label>
         <input id="current-password" name="currentPassword" type="password" class="w3-input w3-border w3-margin-top" autocomplete="current-password" required />
@@ -636,7 +635,6 @@ function usersHtml(users: ManagedUser[], actor: PublicUser, notice: string, erro
     : `<p class="w3-text-grey">No editors yet.</p>`;
   return `<h1 class="w3-large">Users</h1>
     ${statusPanels(notice, error)}
-    <p class="w3-text-grey">Every signed-in editor can reach the whole site. A disabled editor is signed out and cannot sign in. You cannot delete or disable the account you are using.</p>
     <form id="new-user-form" class="w3-card w3-white w3-padding-large editor-card">
       <h2 class="w3-medium">Add user</h2>
       <p>
@@ -685,9 +683,7 @@ function userEditHtml(target: ManagedUser, actor: PublicUser, notice: string, er
   const self = target.username === actor.username;
   const disabled = target.disabled ? " checked" : "";
   const lock = self ? " disabled" : "";
-  const note = self
-    ? `<p class="w3-text-grey">You cannot disable the account you are signed in with.</p>`
-    : "";
+  const note = "";
   return `<h1 class="w3-large">Edit ${escapeHtml(target.username)}</h1>
     ${statusPanels(notice, error)}
     <form id="edit-user-form" class="w3-card w3-white w3-padding-large editor-card">
@@ -703,7 +699,6 @@ function userEditHtml(target: ManagedUser, actor: PublicUser, notice: string, er
         <label for="edit-confirm">Confirm new password</label>
         <input id="edit-confirm" name="confirmPassword" type="password" class="w3-input w3-border w3-margin-top" autocomplete="new-password" minlength="6" />
       </p>
-      <p class="w3-text-grey">Leave the password blank to keep the current one. A new password must be at least 6 characters.</p>
       <p class="editor-check"><label><input id="user-disabled" name="disabled" type="checkbox"${disabled}${lock} /> Disabled</label></p>
       ${note}
       <p><button type="submit" class="w3-button w3-theme">Save</button></p>
@@ -1462,14 +1457,11 @@ function backupsHtml(listing: BackupList, notice: string, error: string): string
     : `<p class="w3-text-grey">No example archives are in the backup folder yet.</p>`;
   return `<h1 class="w3-large">Backups</h1>
     ${statusPanels(notice, error)}
-    <p class="w3-text-grey">A backup is a dated <code>.tar.gz</code> of this site directory (records, editors, history, shell, and <code>publish/</code>). Session handoff is left out. Files live in <code>${escapeHtml(listing.directory)}</code>, outside the release, so an update does not remove them. Drop a file named like <code>2026-09-28T191500Z.tar.gz</code> there over SFTP and it shows up in this list.</p>
     <p><button type="button" class="w3-button w3-theme" data-action="backup">Back up now</button></p>
     ${rows}
     <h2 class="w3-medium">Examples</h2>
-    <p class="w3-text-grey">Willow is a <code>.tar.gz</code> in that same backup folder. Starting the editor copies the release archive over it when that file has changed. Restoring it fills this site with the community example. Your editors stay.</p>
     ${examples}
     <h2 class="w3-medium">Re-seed</h2>
-    <p class="w3-text-grey">Replace this site with a fresh starter: a master layout, a standard type and page layout, a Hello world home page, a header, a left-hand menu, a common-footer item, and a blog with one article dated 9 October 2026. The menu stays open on the left from tablet landscape width up. On a narrower screen a Menu button on the right of the bar opens a flyout from the right, so the site title stays put. Editors stay. The current site is saved as a new backup first. Restore Willow when a fuller example is needed.</p>
     <p><button type="button" class="w3-button w3-white" data-action="reseed">Re-seed this site</button></p>`;
 }
 
@@ -1488,13 +1480,11 @@ function homeHtml(listing: RecordList, notice = "", error = ""): string {
     : startSiteHtml();
   return `<h1 class="w3-large">Tessera editor</h1>
     ${statusPanels(notice, error)}
-    <p class="w3-text-grey">YAML files named with Tessera <code>id</code>, outside the web root. Saving a page appends the previous file to a history file and refreshes the preview at <code>${previewUrl}</code>. <strong>Render site</strong> rebuilds that preview for every page. <strong>Publish</strong> writes the copyable <code>publish/</code> folder. Set <strong>Publish to</strong> on the site record to also replace the files in an existing directory this process can write. That directory is not created, and files already in it are removed.</p>
     ${body}`;
 }
 
 function startSiteHtml(): string {
-  return `<p><button type="button" class="w3-button w3-theme" data-action="init-site">Start an empty site</button></p>
-    <p class="w3-text-grey">This writes a shell, a master layout, a standard type and page layout, a Hello world home page, a common-footer item, and a blog with one article. It does not replace a site that already has records. To replace one, use Re-seed on Backups.</p>`;
+  return `<p><button type="button" class="w3-button w3-theme" data-action="init-site">Start an empty site</button></p>`;
 }
 
 /** Media and folders are edited in the Library, not as record lists. */
@@ -1614,14 +1604,12 @@ function layoutSection(rows: RecordSummary[], siteReady: boolean, notes: Map<str
       <p><label for="new-layout-id">Id</label>
         <input id="new-layout-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
       </p>
-      <p class="w3-text-grey">One file, <code>records/layouts/&lt;id&gt;.yaml</code>. Start with a letter or number, then letters, numbers, dots, hyphens, or underscores.</p>
       <p><label for="new-layout-kind">Kind</label>
         <select id="new-layout-kind" name="kind" class="w3-select w3-border w3-margin-top">
           <option value="page">Page layout</option>
           <option value="frame">Frame</option>
         </select>
       </p>
-      <p class="w3-text-grey">A page layout declares the zones Compose fills. A frame wraps every page: one page slot, and the menus around it.</p>
       ${formErrorPanel()}
       <p><button type="submit" class="w3-button w3-theme">Create layout</button></p>
     </form>
@@ -1767,7 +1755,7 @@ function articlesHtml(listing: RecordList, blog: string | undefined, notice: str
           )
           .join("")}</ul>`
       : `<p class="w3-text-grey">No blogs yet. Add one under <a href="#/records/blogs">Records → Blogs</a>.</p>`;
-    return `<h1 class="w3-large">Articles</h1>${statusPanels(notice, error)}<p class="w3-text-grey">Choose a blog.</p>${items}`;
+    return `<h1 class="w3-large">Articles</h1>${statusPanels(notice, error)}${items}`;
   }
   if (!blogs.some((row) => row.id === blog)) {
     return `<h1 class="w3-large">Articles</h1><p>That blog is not a record. <a href="#/articles">Back</a></p>`;
@@ -1852,8 +1840,7 @@ function blogsSection(listing: RecordList): string {
       </li>`;
     })
     .join("");
-  return `<p class="w3-text-grey">A blog is one dated stream. Deleting a blog is refused while articles still belong to it. Cascade delete removes the blog, its index, and those articles. Renaming rewrites nav, the index, and article parent ids. Place each blog on the Nav record yourself.</p>
-    ${rows ? `<ul class="w3-ul">${rows}</ul>` : `<p class="w3-text-grey">No blogs yet.</p>`}
+  return `${rows ? `<ul class="w3-ul">${rows}</ul>` : `<p class="w3-text-grey">No blogs yet.</p>`}
     <h2 class="w3-medium">New blog</h2>
     <form id="new-blog-form">
       <p><label for="new-blog-id">Id</label>
@@ -1916,7 +1903,6 @@ async function createBlog(root: HTMLElement, listing: RecordList): Promise<void>
       return {
         id,
         title: pageTitle,
-        slug: id,
         type: "blog",
         fields: { pageSize: "10" },
         zones: { title: { html: pageTitle }, lead: { html: "" } },
@@ -1945,7 +1931,6 @@ function contentSection(rows: RecordSummary[], templates: RecordSummary[], siteR
       <p><label for="new-page-id">Id</label>
         <input id="new-page-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
       </p>
-      <p class="w3-text-grey">This becomes the page address and the filename. Start with a letter or number, then letters, numbers, dots, hyphens, or underscores.</p>
       <p><label for="new-page-title">Title</label>
         <input id="new-page-title" name="title" class="w3-input w3-border w3-margin-top" required />
       </p>
@@ -1955,7 +1940,6 @@ function contentSection(rows: RecordSummary[], templates: RecordSummary[], siteR
           ${options}
         </select>
       </p>
-      <p class="w3-text-grey">Free form starts empty and can be rearranged. A template copies that prototype, including its placeholder text.</p>
       <p class="editor-check"><label><input name="sidebar" type="checkbox" checked /> Include in the sidebar</label></p>
       ${formErrorPanel()}
       <p><button type="submit" class="w3-button w3-theme">Create page</button></p>
@@ -2021,14 +2005,12 @@ function itemSection(rows: RecordSummary[], siteReady: boolean, zones: readonly 
       <p><label for="new-item-id">Id</label>
         <input id="new-item-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
       </p>
-      <p class="w3-text-grey">One file, <code>records/items/&lt;id&gt;.yaml</code>. Start with a letter or number, then letters, numbers, dots, hyphens, or underscores.</p>
       <p><label for="new-item-zone">Zone</label>
         <select id="new-item-zone" name="zone" class="w3-select w3-border w3-margin-top">
           <option value="">-- none --</option>
           ${zoneOptions}
         </select>
       </p>
-      <p class="w3-text-grey">The layout zone this item fills. <strong>-- none --</strong> leaves it with no zone.</p>
       <p data-item-fill hidden><label for="new-item-content">Content</label>
         <select id="new-item-content" name="content" class="w3-select w3-border w3-margin-top">
           <option value="html">HTML</option>
@@ -2040,12 +2022,9 @@ function itemSection(rows: RecordSummary[], siteReady: boolean, zones: readonly 
       <p data-item-component hidden><label for="new-item-component">Component</label>
         <input id="new-item-component" name="component" class="w3-input w3-border w3-margin-top" autocomplete="off" spellcheck="false" placeholder="eventList" />
       </p>
-      <p data-item-component hidden class="w3-text-grey">The catalogue name, such as <code>eventList</code>.</p>
-      <p data-item-fill hidden class="w3-text-grey">HTML opens a markup box. JSON opens an empty JSON box. A component asks for its catalogue name. Blocks opens an empty JSON array.</p>
       ${formErrorPanel()}
       <p><button type="submit" class="w3-button w3-theme">Create item</button></p>
     </form>
-    <p class="w3-text-grey">An item is shared content. A layout or a page includes it, and it fills the zones it names. A zone holds HTML, JSON, a component, or a block list.</p>
     ${rows.length ? recordList(rows) : `<p class="w3-text-grey">No items yet.</p>`}`;
 }
 
@@ -2056,7 +2035,6 @@ function typeSection(rows: RecordSummary[], siteReady: boolean): string {
       <p><label for="new-type-id">Id</label>
         <input id="new-type-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
       </p>
-      <p class="w3-text-grey">One file, <code>records/types/&lt;id&gt;.yaml</code>. Start with a letter or number, then letters, numbers, dots, hyphens, or underscores. The id is the name a page’s Type field uses.</p>
       ${formErrorPanel()}
       <p><button type="submit" class="w3-button w3-theme">Create type</button></p>
     </form>
@@ -2067,7 +2045,6 @@ function bindingSection(rows: RecordSummary[], siteReady: boolean, notes: Map<st
   if (!siteReady) return `<p class="w3-text-grey">No records yet.</p>`;
   return `<p><button type="button" class="w3-button w3-theme" data-action="new-binding">New binding</button></p>
     <form id="new-binding-form" class="editor-new-page" hidden></form>
-    <p class="w3-text-grey">A binding is a named piece you drop on a page with Compose → Insert. <a href="#/guide">Guide</a>.</p>
     ${rows.length ? recordList(rows, false, (row) => notes.get(row.id) ?? "") : `<p class="w3-text-grey">No bindings yet.</p>`}`;
 }
 
@@ -2078,7 +2055,6 @@ function templateSection(rows: RecordSummary[], siteReady: boolean): string {
       <p><label for="new-template-id">Id</label>
         <input id="new-template-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
       </p>
-      <p class="w3-text-grey">One file, <code>records/templates/&lt;id&gt;.yaml</code>. Copy that file to reuse the template on another site. Start with a letter or number, then letters, numbers, dots, hyphens, or underscores.</p>
       ${formErrorPanel()}
       <p><button type="submit" class="w3-button w3-theme">Create template</button></p>
     </form>
@@ -2366,10 +2342,7 @@ async function bindEdit(
   const bodyLayout = kind === "templates" ? templateBodyLayout() : payload.layout;
   const navList = kind === "nav" && editMode === "fields" && Array.isArray(payload.data);
   const pages: PageChoice[] = navList ? await contentPages() : [];
-  const navNote =
-    kind === "nav" && editMode === "fields" && !Array.isArray(payload.data)
-      ? `<p class="w3-text-grey">This navigation file is not a list. Edit it as YAML, or switch to Raw file.</p>`
-      : "";
+  const navNote = "";
   const assisted = kind === "bindings" && editMode === "fields" && bindingKind(record) !== "other";
   const bindingChoices = assisted ? await loadBindingChoices() : undefined;
   const arrangeInfo = kind === "layouts" ? await loadArrangeInfo(id) : undefined;
@@ -2388,13 +2361,11 @@ async function bindEdit(
         : `<p class="w3-panel w3-pale-red" role="alert">This layout’s root could not be read. Use Raw file.</p>`
       : editMode === "raw"
       ? `<p><label for="raw-file">Raw YAML</label>
-         <textarea id="raw-file" name="raw" rows="24" spellcheck="false" class="w3-input w3-border w3-margin-top editor-raw">${escapeHtml(rawShown)}</textarea></p>
-         <p class="w3-text-grey">Indent with spaces. Two spaces per level is what Fields → Save writes. Keys at one level share a column. <a href="#/guide">Guide</a>.</p>`
+         <textarea id="raw-file" name="raw" rows="24" spellcheck="false" class="w3-input w3-border w3-margin-top editor-raw">${escapeHtml(rawShown)}</textarea></p>`
       : editMode === "compose" && record
         ? composeFormInner(kind, record, bodyLayout, typeIds, contentExtras)
       : navList
-        ? `<p class="w3-text-grey">Sidebar, Top bar, and Footer choose which menu component can show the row. A heading’s Type lists every page of that type. <strong>Show in nav</strong> on a page does not add a link. <a href="#/guide">Guide</a>.</p>
-           <div id="nav-editor">${renderNavList(navRows(payload.data), pages)}</div>`
+        ? `<div id="nav-editor">${renderNavList(navRows(payload.data), pages)}</div>`
         : typeEditor
           ? `<div id="type-editor">${renderTypeForm(typeDraft(record), typeLayouts)}</div>`
           : assisted && record && bindingChoices
@@ -2435,6 +2406,11 @@ async function bindEdit(
        ${pageHost ? "" : `${saveStatus}${actionRow}`}
      </form>
      ${kind === "items" ? itemToolsHtml(id) : ""}
+     ${
+       kind === "content" && record?.type !== "blog" && record?.type !== "blog-index"
+         ? contentToolsHtml(id)
+         : ""
+     }
      ${historyHtml(payload)}`;
   let scope: ParentNode = root;
   if (host === "tab") {
@@ -2571,6 +2547,23 @@ async function bindEdit(
         showSaveError(root, err instanceof Error ? err.message : "Could not rename that item.");
       });
   });
+  scope.querySelector<HTMLFormElement>("#content-tools")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const input = (event.currentTarget as HTMLFormElement).querySelector<HTMLInputElement>("[name=content-rename-id]");
+    const nextId = input?.value.trim() ?? "";
+    if (!nextId || nextId === id) return;
+    if (!window.confirm(`Rename ${id} to ${nextId}? References will be updated.`)) return;
+    void renameContent(id, nextId)
+      .then(() => {
+        contentSession = undefined;
+        const next = `#/content/${encodeURIComponent(nextId)}`;
+        if (window.location.hash === next) void render(root);
+        else window.location.hash = next;
+      })
+      .catch((err: unknown) => {
+        showSaveError(root, err instanceof Error ? err.message : "Could not rename that page.");
+      });
+  });
   scope.querySelector<HTMLButtonElement>("[data-action=delete-item]")?.addEventListener("click", () => {
     if (!window.confirm(`Delete ${id}? This cannot be undone.`)) return;
     void deleteItem(id)
@@ -2704,7 +2697,16 @@ function itemToolsHtml(id: string): string {
       <button type="submit" class="w3-button w3-white">Rename</button>
       <button type="button" class="w3-button w3-white" data-action="delete-item">Delete</button>
     </p>
-    <p class="w3-text-grey">Rename updates every include and binding that names this item. Delete is refused while anything still uses it.</p>
+  </form>`;
+}
+
+function contentToolsHtml(id: string): string {
+  return `<form id="content-tools" class="w3-card w3-white w3-padding editor-card">
+    <p class="editor-rename-row">
+      <label for="content-rename-id">New id</label>
+      <input id="content-rename-id" name="content-rename-id" class="w3-input w3-border" value="${escapeHtml(id)}" autocomplete="off" spellcheck="false" />
+      <button type="submit" class="w3-button w3-white">Rename</button>
+    </p>
   </form>`;
 }
 
@@ -2747,7 +2749,6 @@ function historyHtml(payload: RecordPayload): string {
   return `<section class="editor-history">
     <details>
       <summary class="w3-medium">History (${rows.length})</summary>
-      <p class="w3-text-grey">One file, <code>${escapeHtml(payload.historyFile)}</code>. Each save appends the previous raw YAML. The published snapshot keeps only the current page.</p>
       ${list}
       <pre id="history-view" class="w3-code editor-history-raw" hidden></pre>
     </details>
@@ -2814,11 +2815,7 @@ function fieldsHtml(
       : kind === "items"
         ? zoneFields(zonesOf(record), undefined, true)
         : "";
-  const navHint =
-    kind === "content"
-      ? `<p class="w3-text-grey"><strong>Show in nav</strong> stores a flag on this page. Links are chosen on <a href="#/records/nav">Nav</a>, then drawn by a component in the master layout. <a href="#/guide">Guide</a>.</p>`
-      : "";
-  return `${renderForm({ fields: base }, record)}${navHint}${zones}${extras.length ? renderForm({ fields: extras }, record) : ""}`;
+  return `${renderForm({ fields: base }, record)}${zones}${extras.length ? renderForm({ fields: extras }, record) : ""}`;
 }
 
 function recordSchema(
@@ -2847,10 +2844,8 @@ function zonesOf(record: Record<string, unknown>): Record<string, unknown> {
     : {};
 }
 
-function layoutBanner(layout?: PageLayoutHint): string {
-  if (!layout) return "";
-  const via = layout.layoutSource === "type" ? `type ${layout.typeId ?? ""}`.trim() : "site default";
-  return `<p class="w3-text-grey">Zones from layout <strong>${escapeHtml(layout.layoutId)}</strong> (${escapeHtml(via)}).</p>`;
+function layoutBanner(_layout?: PageLayoutHint): string {
+  return "";
 }
 
 function stringField(record: Record<string, unknown>, id: string): string {
@@ -2885,7 +2880,6 @@ function zoneFields(zones: Record<string, unknown>, layout?: PageLayoutHint, ite
     offLayout.length
       ? `<section class="editor-off-layout">
         <h2 class="w3-medium">Off layout</h2>
-        <p class="w3-text-grey">On this page but not declared by the layout. Still saved as data (for components).</p>
         ${offLayout.join("")}
       </section>`
       : ""

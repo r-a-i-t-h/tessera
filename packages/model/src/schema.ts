@@ -159,11 +159,6 @@ export const PageSchema = z.object({
   /** Meta description for a published HTML page. Empty when omitted. */
   description: z.string().optional(),
   /**
-   * URL path segment. When omitted, the pages publisher uses `id`.
-   * The home page is always the site root, ignoring `slug`.
-   */
-  slug: z.string().optional(),
-  /**
    * Parent page id in the published tree. Omitted pages are roots.
    * The home page is always a root; its `parentId` is ignored.
    * Drafts are pages left out of the published document, not a status on this record.

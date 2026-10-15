@@ -5,7 +5,7 @@ import { draftYaml, parsePageYaml, withZoneHtml } from "./draft.js";
 import { readComposeHtml } from "./canvas.js";
 import { readFormValues, renderForm } from "../forms/form.js";
 import { articleMeta, blogMeta, heroField } from "../forms/article.js";
-import { authoredSchema, frameWhere, schemaFor, withFrameChoices, withTypeChoices } from "../forms/schema.js";
+import { authoredSchema, schemaFor, withFrameChoices, withTypeChoices } from "../forms/schema.js";
 
 export type ContentMode = "compose" | "fields" | "raw";
 
@@ -29,10 +29,8 @@ export function templateBodyLayout(): PageLayoutHint {
   };
 }
 
-export function frameNote(layout?: PageLayoutHint): string {
-  if (!layout?.masterLayoutId) return "";
-  const where = frameWhere(layout.masterSource, layout.masterFromPageId);
-  return `<p class="w3-text-grey">Frame <strong>${escapeHtml(layout.masterLayoutId)}</strong>, ${escapeHtml(where)}.</p>`;
+export function frameNote(_layout?: PageLayoutHint): string {
+  return "";
 }
 
 export function composeFormInner(
@@ -57,9 +55,8 @@ export function composeFormInner(
   const offLayout = zones.filter((zone) => zone.off);
   const locked = record.locked === true;
   const palette = locked
-    ? `<p class="w3-text-grey">This page's layout is fixed. Edit the words and the pictures.</p>`
+    ? ""
     : `<div class="editor-palette">
-        <p class="w3-small w3-text-grey">Drag onto the page, or click to add.</p>
         <p><button type="button" class="w3-button w3-white w3-border" data-compose-list aria-pressed="false">List</button></p>
         ${PALETTE.map((item) => `<button type="button" class="w3-button w3-white w3-border" draggable="true" data-palette="${item.kind}">${item.label}</button>`).join("")}
       </div>`;
@@ -84,7 +81,7 @@ export function composeFormInner(
         ${onLayout.map((zone) => zoneBlock(zone)).join("")}
         ${
           offLayout.length
-            ? `<section class="editor-off-layout"><h2 class="w3-medium">Off layout</h2><p class="w3-text-grey">On this page but not declared by the layout. Still saved.</p>${offLayout.map((zone) => zoneBlock(zone)).join("")}</section>`
+            ? `<section class="editor-off-layout"><h2 class="w3-medium">Off layout</h2>${offLayout.map((zone) => zoneBlock(zone)).join("")}</section>`
             : ""
         }
       </div>
@@ -159,7 +156,7 @@ export function rawText(fromEditor: boolean, draft: Record<string, unknown>, bas
 
 function zoneBlock(zone: ZoneView): string {
   if (zone.kind === "note") {
-    return `<p class="w3-text-grey"><strong>${escapeHtml(zone.label)}</strong> is structured data. Edit it on Fields.</p>`;
+    return `<section class="editor-zone"><h2 class="w3-medium">${escapeHtml(zone.label)}</h2></section>`;
   }
   return `<section class="editor-zone"><h2 class="w3-medium">${escapeHtml(zone.label)}</h2><div class="editor-canvas" data-canvas data-zone="${escapeHtml(zone.name)}"></div></section>`;
 }
@@ -218,11 +215,6 @@ function stringField(record: Record<string, unknown>, id: string): string {
   return typeof value === "string" ? value : "";
 }
 
-function layoutBanner(record: Record<string, unknown>, layout?: PageLayoutHint): string {
-  if (record.type === "article" || record.type === "blog" || record.type === "blog-index") {
-    return `<p class="w3-text-grey">This layout is built in.</p>`;
-  }
-  if (!layout?.layoutId) return "";
-  const via = layout.layoutSource === "type" ? `type ${layout.typeId ?? ""}`.trim() : "site default";
-  return `<p class="w3-text-grey">Zones from layout <strong>${escapeHtml(layout.layoutId)}</strong> (${escapeHtml(via)}).</p>`;
+function layoutBanner(_record: Record<string, unknown>, _layout?: PageLayoutHint): string {
+  return "";
 }

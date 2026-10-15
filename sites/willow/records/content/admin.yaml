@@ -1,6 +1,5 @@
 id: admin
 title: Office news
-slug: admin
 type: blog
 fields:
   pageSize: "10"

@@ -466,24 +466,13 @@ function kindField(state: NewBinding): string {
             `<option value="${item.value}"${item.value === state.kind ? " selected" : ""}>${item.label}</option>`,
         )
         .join("")}</select></p>
-    <p class="w3-text-grey">${kindNote(state.kind)}</p>`;
-}
-
-function kindNote(kind: BindingKind): string {
-  if (kind === "gallery") {
-    return "A named gallery you can drop on many pages. A Gallery section in Compose stays on that one page. Next you choose the folders, then how it looks.";
-  }
-  if (kind === "dated") return "Pages of a type that have a date field.";
-  if (kind === "people") return "Pages of a type, using the photo and role fields.";
-  if (kind === "links") return "A titled set of links. Children follow the page the insert sits on.";
-  return "You edit this as the raw file.";
+`;
 }
 
 function idField(state: NewBinding): string {
-  const token = state.id.trim() || "id";
   return `<p><label for="new-binding-id">Id</label>
       <input id="new-binding-id" name="binding-id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" data-binding-focus value="${escapeHtml(state.id)}" /></p>
-    <p class="w3-text-grey">Pages insert this as <code data-binding-token>{{${escapeHtml(token)}}}</code>. One file, <code>records/bindings/&lt;id&gt;.yaml</code>.</p>`;
+`;
 }
 
 function kindBody(state: NewBinding, choices: BindingChoices): string {
@@ -492,26 +481,26 @@ function kindBody(state: NewBinding, choices: BindingChoices): string {
   if (state.kind === "links") return linksFields(state.links, choices);
   return `<div class="editor-props"><p><label for="new-binding-component">Component</label>
     <input id="new-binding-component" name="binding-component" class="w3-input w3-border" spellcheck="false" autocomplete="off" value="${escapeHtml(state.component)}" /></p>
-    <p class="editor-prop-wide w3-text-grey">The catalogue name, such as <code>eventList</code>.</p></div>`;
+</div>`;
 }
 
 function galleryIntro(): string {
-  return `<p class="w3-text-grey">A named gallery you can drop on any page. A Gallery section in Compose stays on that one page.</p>`;
+  return "";
 }
 
-function insertLine(id: string): string {
-  return `<p>Put it on a page with Compose → Insert. The token is <code>{{${escapeHtml(id)}}}</code>.</p>`;
+function insertLine(_id: string): string {
+  return "";
 }
 
 function pictureFields(draft: GalleryDraft, folders: readonly { id: string }[], focusFilter = false): string {
   const listed = listedFolders(draft.folders, folders);
   const checks = listed.length
     ? folderChecklist(listed, draft.folders)
-    : `<p class="editor-prop-wide w3-text-grey">The library has no folders yet.</p>`;
+    : "";
   return `<div class="editor-props">${checks}
     <p><label for="gallery-filter">Only filenames matching</label>
       <input id="gallery-filter" name="gallery-filter" class="w3-input w3-border" spellcheck="false" placeholder="2024" value="${escapeHtml(draft.filter)}"${focusFilter ? " data-binding-focus" : ""} /></p>
-    <p class="editor-prop-wide w3-text-grey">A pattern. 2024 keeps filenames that contain 2024.</p></div>`;
+</div>`;
 }
 
 function lookFields(draft: GalleryDraft, focus = false): string {
@@ -528,7 +517,6 @@ function datedFields(draft: DatedDraft, types: readonly string[]): string {
       <div class="editor-props">${typeChecklist("dated-type", draft.types, types)}</div>
     </fieldset>
     <div class="editor-props">
-    <p class="editor-prop-wide w3-text-grey">Only pages with a date field are listed. Precis is the line under the date.</p>
     <p><label for="dated-when">When</label>
       <select id="dated-when" name="dated-when" class="w3-select w3-border">
         <option value="upcoming"${draft.when === "upcoming" ? " selected" : ""}>Upcoming</option>
@@ -537,10 +525,8 @@ function datedFields(draft: DatedDraft, types: readonly string[]): string {
       </select></p>
     <p><label for="dated-limit">Limit</label>
       <input id="dated-limit" name="dated-limit" class="w3-input w3-border" inputmode="numeric" value="${escapeHtml(draft.limit)}" /></p>
-    <p class="editor-prop-wide w3-text-grey">Leave blank to list every matching page.</p>
     <p><label for="dated-empty">Empty message</label>
-      <input id="dated-empty" name="dated-empty" class="w3-input w3-border" value="${escapeHtml(draft.empty)}" /></p>
-    <p class="editor-prop-wide w3-text-grey">Shown when nothing matches. Leave blank for the usual line.</p></div>`;
+      <input id="dated-empty" name="dated-empty" class="w3-input w3-border" value="${escapeHtml(draft.empty)}" /></p></div>`;
 }
 
 function peopleFields(draft: PeopleDraft, types: readonly string[]): string {
@@ -548,17 +534,14 @@ function peopleFields(draft: PeopleDraft, types: readonly string[]): string {
       <div class="editor-props">${typeChecklist("people-type", draft.types, types)}</div>
     </fieldset>
     <div class="editor-props">
-    <p class="editor-prop-wide w3-text-grey">Each page uses its photo and role fields. Leave every type unticked to list person pages.</p>
     <p><label for="people-limit">Limit</label>
       <input id="people-limit" name="people-limit" class="w3-input w3-border" inputmode="numeric" value="${escapeHtml(draft.limit)}" /></p>
-    <p class="editor-prop-wide w3-text-grey">Leave blank to list every matching page.</p></div>`;
+</div>`;
 }
 
 function linksFields(draft: LinksDraft, choices: BindingChoices): string {
-  return `<div class="editor-props"><p class="editor-prop-wide w3-text-grey">Children follow the page the insert sits on.</p>
-    <p><label for="links-title">Title</label>
+  return `<div class="editor-props"><p><label for="links-title">Title</label>
       <input id="links-title" name="links-title" class="w3-input w3-border" value="${escapeHtml(draft.title)}" /></p>
-    <p class="editor-prop-wide w3-text-grey">Leave blank and the list has no heading of its own.</p>
     <p><label for="links-source">Source</label>
       <select id="links-source" name="links-source" class="w3-select w3-border">
         <option value="children"${draft.source === "children" ? " selected" : ""}>This page's children</option>
@@ -580,7 +563,7 @@ function linksFields(draft: LinksDraft, choices: BindingChoices): string {
 function typeChecklist(name: string, selected: readonly string[], types: readonly string[]): string {
   const ids = [...types];
   for (const id of selected) if (id && !ids.includes(id)) ids.push(id);
-  if (!ids.length) return `<p class="editor-prop-wide w3-text-grey">This site has no types yet. Create one under Records → Types.</p>`;
+  if (!ids.length) return "";
   return ids
     .map((id) => {
       const checked = selected.includes(id) ? " checked" : "";

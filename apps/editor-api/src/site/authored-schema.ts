@@ -69,7 +69,6 @@ const authoredPage = z.object({
   id,
   title: z.string(),
   description: z.string().optional(),
-  slug: z.string().optional(),
   parentId: id.optional(),
   masterLayoutId: id.optional(),
   showInNav: z.boolean().optional(),

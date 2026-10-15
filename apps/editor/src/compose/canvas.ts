@@ -208,9 +208,7 @@ function toSection(node: EditNode): Section {
 function renderZone(form: HTMLElement, zone: ZoneState): void {
   const state = mounted.get(form);
   if (!state) return;
-  const empty = zone.items.length
-    ? ""
-    : `<p class="editor-canvas-empty w3-text-grey">${state.locked ? "This section is empty." : "Drag a section here, or choose one from the list."}</p>`;
+  const empty = "";
   const body = zone.items.length
     ? state.locked
       ? zone.items.map((item) => renderItem(item, choicesFor(zone.host), zone.name, true, 0, 1)).join("")
@@ -321,7 +319,7 @@ function propsFor(node: EditNode, choices: Choices, locked: boolean): string {
     case "pasted":
       return editingToolbar(inlineTools());
     case "html":
-      return `<span class="editor-prop w3-text-grey">Edit this markup on Fields.</span>`;
+      return "";
   }
 }
 

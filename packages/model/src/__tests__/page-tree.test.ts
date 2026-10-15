@@ -18,7 +18,7 @@ describe("published page tree", () => {
       doc([
         { id: "home", title: "Home", zones: {} },
         { id: "events", title: "Events", parentId: "home", zones: {} },
-        { id: "fair", title: "Fair", slug: "summer-fair", parentId: "events", zones: {} },
+        { id: "fair", title: "Fair", parentId: "events", zones: {} },
         { id: "about", title: "About", zones: {} },
       ]),
     );
@@ -27,11 +27,11 @@ describe("published page tree", () => {
       ["about", "about"],
     ]);
     expect(tree[0]!.children.map((node) => node.path)).toEqual(["events"]);
-    expect(tree[0]!.children[0]!.children.map((node) => node.path)).toEqual(["events/summer-fair"]);
+    expect(tree[0]!.children[0]!.children.map((node) => node.path)).toEqual(["events/fair"]);
     expect(flattenPageTree(tree).map((node) => node.path)).toEqual([
       "",
       "events",
-      "events/summer-fair",
+      "events/fair",
       "about",
     ]);
   });
@@ -71,15 +71,5 @@ describe("published page tree", () => {
         ]),
       ),
     ).toThrow(/parent/);
-
-    expect(() =>
-      publishedPageTree(
-        doc([
-          { id: "home", title: "Home", zones: {} },
-          { id: "a", title: "A", slug: "same", zones: {} },
-          { id: "b", title: "B", slug: "same", zones: {} },
-        ]),
-      ),
-    ).toThrow(/both publish/);
   });
 });

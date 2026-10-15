@@ -13,7 +13,6 @@ export function stylesPageHtml(record: Record<string, unknown>, notice = "", err
     )
     .join("");
   return `<h1 class="w3-large">Styles</h1>
-    <p class="w3-text-grey">These tokens size and colour the default frame: a <code>tessera-sidebar</code>, a <code>tessera-bar</code>, and <code>tessera-main</code>. Values you change are saved on the site record and written into a style element after the files below, so they override the same variables in Tessera. A value left at its default is not copied, so editing that variable in the stylesheet shows in the preview. Willow’s shell uses <code>site.css</code> and <code>wh-</code> classes, so saving here leaves the hall unchanged. Menu side moves a <code>tessera-sidebar</code>. Willow’s drawer is placed by the master layout. <a href="#/guide">Guide</a>.</p>
     ${noticePanel(notice)}
     ${errorPanel(error)}
     <div id="style-specimen" class="style-specimen" data-side="${escapeHtml(values.navSide)}">
@@ -33,8 +32,7 @@ export function stylesPageHtml(record: Record<string, unknown>, notice = "", err
       ${fields}
       <p><button type="submit" class="w3-button w3-theme">Save styles</button></p>
     </form>
-    <h2 class="w3-large">Stylesheets</h2>
-    <p class="w3-text-grey">These are the files the site loads. Shared files start as the copies shipped with Tessera. Saving one stores a copy for this site. The preview uses a save immediately. Publish to update the published site.</p>`;
+    <h2 class="w3-large">Stylesheets</h2>`;
 }
 
 export function readStyleForm(form: HTMLFormElement): { ok: true; style: SiteStyle } | { ok: false; error: string } {

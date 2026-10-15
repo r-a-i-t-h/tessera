@@ -35,7 +35,6 @@ export type AuthoredPage = {
   id: string;
   title: string;
   description?: string;
-  slug?: string;
   parentId?: string;
   masterLayoutId?: string;
   showInNav?: boolean;
@@ -119,7 +118,6 @@ export function pageToAuthoring(page: Page): AuthoredPage {
     id: page.id,
     title: page.title,
     ...(page.description ? { description: page.description } : {}),
-    ...(page.slug ? { slug: page.slug } : {}),
     ...(page.parentId ? { parentId: page.parentId } : {}),
     ...(page.masterLayoutId ? { masterLayoutId: page.masterLayoutId } : {}),
     ...(page.showInNav === false ? { showInNav: false } : {}),
@@ -144,7 +142,6 @@ export function authoredPageToPage(raw: AuthoredPage): Page {
     id: raw.id,
     title: raw.title,
     ...(raw.description ? { description: raw.description } : {}),
-    ...(raw.slug ? { slug: raw.slug } : {}),
     ...(raw.parentId ? { parentId: raw.parentId } : {}),
     ...(raw.masterLayoutId ? { masterLayoutId: raw.masterLayoutId } : {}),
     ...(raw.showInNav === false ? { showInNav: false } : {}),

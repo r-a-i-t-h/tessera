@@ -39,7 +39,6 @@ export function heroField(heroId: string, heroUrl?: string): string {
     </p>
     <p><label>Upload <input data-hero-file type="file" accept="image/*" /></label>
       <button type="button" class="w3-button w3-white" data-hero-upload>Upload</button></p>
-    <p class="w3-text-grey">An upload is stored in the articles folder, which is created the first time.</p>
   </fieldset>`;
 }
 
@@ -51,7 +50,6 @@ export function blogMeta(record: Record<string, unknown>): string {
       <input id="fields.pageSize" name="fields.pageSize" inputmode="numeric" class="w3-input w3-border w3-margin-top" value="${escapeHtml(pageSize)}" /></p>
     ${heroStyleSelect(fieldValue(record, "heroStyle"))}
     <p class="editor-check"><label><input id="fields.showIndexInNav" name="fields.showIndexInNav" type="checkbox" data-kind="checkbox"${fieldValue(record, "showIndexInNav") === "true" ? " checked" : ""} /> Show index in the menu</label></p>
-    <p class="w3-text-grey">Place this blog on the Nav record. The index is hidden from the menu unless it is shown here.</p>
     <p>Index: <a href="#/content/${encodeURIComponent(indexId)}">${escapeHtml(indexId)}</a></p>
   </fieldset>`;
 }
@@ -70,11 +68,11 @@ function heroStyleSelect(current: string): string {
     .join("");
   return `<p><label for="fields.heroStyle">Hero</label>
     <select id="fields.heroStyle" name="fields.heroStyle" class="w3-select w3-border w3-margin-top">${items}</select></p>
-    <p class="w3-text-grey">How an article shows its picture. Full uses the picture’s own size. Banner limits the height. Side places it to the right of the title.</p>`;
+`;
 }
 
 export function indexNote(record: Record<string, unknown>): string {
   const parent = typeof record.parentId === "string" ? record.parentId : "";
   const link = parent ? `<p><a href="#/content/${encodeURIComponent(parent)}">Open the blog</a></p>` : "";
-  return `<p>This index is created with its blog. It lists that blog by date, title, and tags. There is nothing to compose here.</p>${link}`;
+  return link;
 }

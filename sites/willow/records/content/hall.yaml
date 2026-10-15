@@ -1,6 +1,5 @@
 id: hall
 title: Hall news
-slug: hall
 type: blog
 fields:
   pageSize: "10"

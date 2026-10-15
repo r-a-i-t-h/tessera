@@ -67,7 +67,7 @@ A blog is reserved, not assembled from a type and a binding. One site hosts ever
 
 The author places each blog in the nav. That sets the path and the frame. Articles are not menu items. The generated child is the index when the blog asks for it in the menu.
 
-An article is a page: its own HTML file, Compose body, title, slug, and description. It has no includes, no layout control, and no frame of its own. The frame is the blog's frame. `date` orders the blog, the index, and previous/next. Tags filter those pages. `navTags`, a nav `itemsTag`, and the Pages tag filter ignore article tags.
+An article is a page: its own HTML file, Compose body, title, and description. It has no includes, no layout control, and no frame of its own. The frame is the blog's frame. `date` orders the blog, the index, and previous/next. Tags filter those pages. `navTags`, a nav `itemsTag`, and the Pages tag filter ignore article tags.
 
 A date still in the future is hidden on the blog, the index, previous/next, and the article page until that calendar day in the visitor's local timezone. The HTML file stays on disk. The blog shows a page of the filtered list (default 10) with Older and Newer. The index lists the whole blog by date, title, and tags, and can be narrowed by tag or text. Both filters run in the browser.
 
@@ -131,7 +131,7 @@ Folder-relative URLs (`./…`) and Vite `base: "./"` keep a published site porta
 
 #### Pages
 
-- A **tree of pages**. `parentId` is the parent. The home page is the site root (`index.html`). Every other page is `{path}/index.html`, where the path is the chain of `slug` (or `id`) segments under the home page.
+- A **tree of pages**. `parentId` is the parent. The home page is the site root (`index.html`). Every other page is `{path}/index.html`, where the path is the chain of page `id` segments under the home page.
 - Each file contains that page’s prose, `<title>`, optional meta description, canonical URL, and that page’s frame: the site master, or the frame set on the page or its nearest ancestor. `showInNav: false` keeps the URL and the file. A menu link appears only when that frame's nav component includes that page.
 - Micro-app regions are empty `data-tessera-microapp` mounts plus a JSON description. They run in the browser.
 - `sitemap.xml` lists every published page URL.
@@ -305,7 +305,7 @@ Criteria define “done enough,” not a build order (see [ROADMAP.md](./ROADMAP
 
 ### Pages flavour
 
-- [x] A published page record is `id`, `title`, optional `description`, optional `parentId`, optional `slug`, optional `masterLayoutId`, optional `showInNav`, and the existing body zones. `locked`, `templateId`, and history are not on that record.
+- [x] A published page record is `id`, `title`, optional `description`, optional `parentId`, optional `masterLayoutId`, optional `showInNav`, and the existing body zones. `locked`, `templateId`, and history are not on that record.
 - [x] `publishPages` writes one HTML file per page, with prose, title, canonical URL, and that page’s frame.
 - [x] Micro-apps are `data-tessera-microapp` mounts plus JSON. The publisher does not run them.
 - [x] `sitemap.xml` lists every published page URL, including pages omitted from nav.
