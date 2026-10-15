@@ -1726,16 +1726,20 @@ function filterPageRows(listing: RecordList): RecordSummary[] {
   );
 }
 
-async function loadNavSortDocument(listing: RecordList) {
+async function loadSiteData(listing: RecordList): Promise<Record<string, unknown> | undefined> {
   const siteRow = listing.records.find((row) => row.kind === "site");
   if (!siteRow) return undefined;
   try {
-    const [sitePayload, navPayload] = await Promise.all([
-      getRecord("site", siteRow.id),
-      getRecord("nav", "nav"),
-    ]);
-    const siteData = asRecord(sitePayload.data);
-    if (!siteData) return undefined;
+    const sitePayload = await getRecord("site", siteRow.id);
+    return asRecord(sitePayload.data);
+  } catch {
+    return undefined;
+  }
+}
+
+async function loadNavSortDocument(listing: RecordList, siteData: Record<string, unknown>) {
+  try {
+    const navPayload = await getRecord("nav", "nav");
     const nav = Array.isArray(navPayload.data) ? (navPayload.data as NavEntry[]) : [];
     const contentForNav = listing.records.filter((row) => row.kind === "content" && row.type !== "article");
     const items = listing.records.filter((row) => row.kind === "items");
@@ -1745,22 +1749,34 @@ async function loadNavSortDocument(listing: RecordList) {
   }
 }
 
-async function listedPages(listing: RecordList, order: PageListOrder): Promise<ListedPage[]> {
+function listedHomePageId(siteData: Record<string, unknown> | undefined): string {
+  return typeof siteData?.homePageId === "string" ? siteData.homePageId.trim() : "";
+}
+
+async function listedPages(
+  listing: RecordList,
+  order: PageListOrder,
+): Promise<{ listed: ListedPage[]; homePageId: string }> {
   const rows = filterPageRows(listing);
   const creationRank = buildContentCreationRank(listing.records);
-  const navDocument = order === "nav" ? await loadNavSortDocument(listing) : undefined;
-  return sortPages(rows, order, { creationRank, navDocument });
+  const siteData = await loadSiteData(listing);
+  const homePageId = listedHomePageId(siteData);
+  const navDocument = order === "nav" && siteData ? await loadNavSortDocument(listing, siteData) : undefined;
+  return {
+    listed: sortPages(rows, order, { creationRank, navDocument, homePageId }),
+    homePageId,
+  };
 }
 
 async function bindPages(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {
   const listing = await listRecords();
   const listOrder = readPageListOrder();
-  const listed = await listedPages(listing, listOrder);
+  const { listed, homePageId } = await listedPages(listing, listOrder);
   const templates = listing.records.filter((row) => row.kind === "templates");
   const siteReady = listing.records.some((row) => row.kind === "site");
   root.innerHTML = chrome(
     user,
-    `<h1 class="w3-large">Pages</h1>${statusPanels(notice, error)}${contentSection(listed, templates, siteReady, listOrder)}`,
+    `<h1 class="w3-large">Pages</h1>${statusPanels(notice, error)}${contentSection(listed, templates, siteReady, listOrder, homePageId)}`,
     true,
     "pages",
   );
@@ -1786,9 +1802,9 @@ function bindPageListOrder(root: HTMLElement, listing: RecordList): void {
     if (order !== "created" && order !== "alpha" && order !== "nested" && order !== "nav") return;
     writePageListOrder(order);
     void (async () => {
-      const listed = await listedPages(listing, order);
+      const { listed, homePageId } = await listedPages(listing, order);
       const list = root.querySelector<HTMLUListElement>("#entry-list");
-      if (list) list.outerHTML = entryRecordList(listed);
+      if (list) list.outerHTML = entryRecordList(listed, undefined, homePageId);
       applyEntryFilter(root);
     })();
   });
@@ -2067,6 +2083,7 @@ function contentSection(
   templates: RecordSummary[],
   siteReady: boolean,
   listOrder: PageListOrder,
+  homePageId = "",
 ): string {
   if (!siteReady) return `<p class="w3-text-grey">No records yet.</p>`;
   const options = templates
@@ -2090,7 +2107,7 @@ function contentSection(
       ${formErrorPanel()}
       <p><button type="submit" class="w3-button w3-theme">Create page</button></p>
     </form>
-    ${listed.length ? `${entryFilter()}${pageListOrderSelect(listOrder)}${entryRecordList(listed)}<p id="entry-filter-empty" class="w3-text-grey" hidden>No entries match.</p>` : `<p class="w3-text-grey">No records yet.</p>`}`;
+    ${listed.length ? `${entryFilter()}${pageListOrderSelect(listOrder)}${entryRecordList(listed, undefined, homePageId)}<p id="entry-filter-empty" class="w3-text-grey" hidden>No entries match.</p>` : `<p class="w3-text-grey">No records yet.</p>`}`;
 }
 
 function entryFilter(): string {
@@ -2319,15 +2336,35 @@ function layoutDraftChanged(draft: Record<string, unknown>, baselineData: unknow
   return JSON.stringify(cleanNode(nextRoot)) !== JSON.stringify(cleanNode(baseRoot)) || JSON.stringify(rest) !== JSON.stringify(baseRest);
 }
 
-function entryRecordList(listed: ListedPage[], noteFor?: (row: RecordSummary) => string): string {
+function homeListBoundaryIndex(listed: readonly ListedPage[], homePageId: string): number {
+  if (!homePageId) return -1;
+  const start = listed.findIndex((item) => item.row.id === homePageId);
+  if (start < 0) return -1;
+  const baseDepth = listed[start]!.depth;
+  let end = start + 1;
+  while (end < listed.length && listed[end]!.depth > baseDepth) end += 1;
+  return end - 1;
+}
+
+function entryRecordList(
+  listed: ListedPage[],
+  noteFor?: (row: RecordSummary) => string,
+  homePageId = "",
+): string {
+  const boundary = homeListBoundaryIndex(listed, homePageId);
   return `<ul class="w3-ul" id="entry-list">
     ${listed
-      .map(({ row, depth }) => entryListItem(row, depth, noteFor))
+      .map(({ row, depth }, index) => entryListItem(row, depth, noteFor, index === boundary))
       .join("")}
   </ul>`;
 }
 
-function entryListItem(row: RecordSummary, depth: number, noteFor?: (row: RecordSummary) => string): string {
+function entryListItem(
+  row: RecordSummary,
+  depth: number,
+  noteFor?: (row: RecordSummary) => string,
+  homeBoundary = false,
+): string {
   const label = row.title ?? row.id;
   const idNote =
     row.title && row.title !== row.id ? ` <span class="w3-text-grey w3-small">${escapeHtml(row.id)}</span>` : "";
@@ -2335,7 +2372,8 @@ function entryListItem(row: RecordSummary, depth: number, noteFor?: (row: Record
   const extra = noteFor?.(row);
   const extraNote = extra ? ` <span class="w3-text-grey w3-small">${escapeHtml(extra)}</span>` : "";
   const style = depth > 0 ? ` style="padding-left: calc(0.75rem + ${depth} * 1.25rem)"` : "";
-  return `<li${style} data-type="${escapeHtml(row.type ?? "")}" data-tags="${escapeHtml((row.tags ?? []).join("\u001f"))}" data-title="${escapeHtml(row.title ?? row.id)}"><a href="#/${encodeURIComponent(row.kind)}/${encodeURIComponent(row.id)}">${escapeHtml(label)}</a>${idNote}${typeNote}${extraNote}</li>`;
+  const homeClass = homeBoundary ? ` class="editor-entry-home-boundary"` : "";
+  return `<li${homeClass}${style} data-type="${escapeHtml(row.type ?? "")}" data-tags="${escapeHtml((row.tags ?? []).join("\u001f"))}" data-title="${escapeHtml(row.title ?? row.id)}"><a href="#/${encodeURIComponent(row.kind)}/${encodeURIComponent(row.id)}">${escapeHtml(label)}</a>${idNote}${typeNote}${extraNote}</li>`;
 }
 
 function recordList(rows: RecordSummary[], entries = false, noteFor?: (row: RecordSummary) => string): string {

@@ -557,6 +557,10 @@ img[data-hero-preview] {
   margin: 0;
 }
 
+#entry-list li.editor-entry-home-boundary {
+  border-bottom: 3px solid #999;
+}
+
 @media (max-width: 40rem) {
   .editor-entry-filter,
   .editor-props {

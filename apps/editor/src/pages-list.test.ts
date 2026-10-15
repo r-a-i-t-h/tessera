@@ -63,4 +63,62 @@ describe("sortPages", () => {
       ["zzz", 0],
     ]);
   });
+
+  it("pins the home page first in flat orders", () => {
+    const rows = [
+      row("about", { title: "About" }),
+      row("home", { title: "Welcome" }),
+      row("zeta", { title: "Zeta" }),
+    ];
+    const ctx = { creationRank: ranks(["about", "home", "zeta"]), homePageId: "home" };
+    expect(sortPages(rows, "created", ctx).map((item) => item.row.id)).toEqual(["home", "zeta", "about"]);
+    expect(sortPages(rows, "alpha", ctx).map((item) => item.row.id)).toEqual(["home", "about", "zeta"]);
+  });
+
+  it("pins the home page above nested siblings and keeps its children with it", () => {
+    const rows = [
+      row("alpha", { title: "Alpha" }),
+      row("events", { title: "Events" }),
+      row("home", { title: "Welcome", parentId: "events" }),
+      row("fair", { parentId: "home", title: "Fair" }),
+      row("news", { parentId: "events", title: "News" }),
+    ];
+    const sorted = sortPages(rows, "nested", {
+      creationRank: ranks(rows.map((item) => item.id)),
+      homePageId: "home",
+    });
+    expect(sorted.map((item) => [item.row.id, item.depth])).toEqual([
+      ["home", 0],
+      ["fair", 1],
+      ["alpha", 0],
+      ["events", 0],
+      ["news", 1],
+    ]);
+  });
+
+  it("pins the home page above nav order and keeps pages nested under it", () => {
+    const rows = [row("about"), row("home"), row("fair", { title: "Fair" }), row("zeta", { title: "Zeta" })];
+    const doc = buildNavSortDocument(
+      { id: "s", title: "S", homePageId: "home" },
+      [
+        { id: "about", sidebar: true },
+        {
+          heading: "Visit",
+          children: [{ id: "home", sidebar: true, children: [{ id: "fair", sidebar: true }] }],
+        },
+      ],
+      rows,
+      [],
+    );
+    const sorted = sortPages(rows, "nav", {
+      creationRank: buildContentCreationRank(rows),
+      navDocument: doc,
+    });
+    expect(sorted.map((item) => [item.row.id, item.depth])).toEqual([
+      ["home", 0],
+      ["fair", 1],
+      ["about", 0],
+      ["zeta", 0],
+    ]);
+  });
 });

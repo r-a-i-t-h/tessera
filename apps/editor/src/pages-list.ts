@@ -16,6 +16,8 @@ export type ListedPage = { row: RecordSummary; depth: number };
 export type PageListSortContext = {
   creationRank: ReadonlyMap<string, number>;
   navDocument?: SiteDocument;
+  /** Site home page. Always listed first; other pages keep the chosen order. */
+  homePageId?: string;
 };
 
 const STUB_LAYOUT = {
@@ -88,19 +90,36 @@ export function sortPages(
   ctx: PageListSortContext,
 ): ListedPage[] {
   const list = [...rows];
-  if (order === "created") {
-    return [...list].reverse().map((row) => ({ row, depth: 0 }));
-  }
-  if (order === "alpha") {
-    return [...list].sort(compareAlpha).map((row) => ({ row, depth: 0 }));
-  }
-  if (order === "nested") {
-    return nestedPages(list);
-  }
-  if (order === "nav") {
-    return navPages(list, ctx);
-  }
-  return list.map((row) => ({ row, depth: 0 }));
+  const ordered =
+    order === "created"
+      ? [...list].reverse().map((row) => ({ row, depth: 0 }))
+      : order === "alpha"
+        ? [...list].sort(compareAlpha).map((row) => ({ row, depth: 0 }))
+        : order === "nested"
+          ? nestedPages(list)
+          : order === "nav"
+            ? navPages(list, ctx)
+            : list.map((row) => ({ row, depth: 0 }));
+  return pinHomePage(ordered, homePageIdFrom(ctx));
+}
+
+function homePageIdFrom(ctx: PageListSortContext): string {
+  const explicit = ctx.homePageId?.trim();
+  if (explicit) return explicit;
+  return ctx.navDocument?.site.homePageId.trim() ?? "";
+}
+
+/** Home stays first. Pages nested under it in this list stay with it, shifted up to the root. */
+function pinHomePage(listed: ListedPage[], homePageId: string): ListedPage[] {
+  if (!homePageId) return listed;
+  const index = listed.findIndex((item) => item.row.id === homePageId);
+  if (index < 0) return listed;
+  const homeDepth = listed[index]!.depth;
+  let end = index + 1;
+  while (end < listed.length && listed[end]!.depth > homeDepth) end += 1;
+  if (index === 0 && homeDepth === 0) return listed;
+  const block = listed.slice(index, end).map((item) => ({ ...item, depth: item.depth - homeDepth }));
+  return [...block, ...listed.slice(0, index), ...listed.slice(end)];
 }
 
 function nestedPages(rows: RecordSummary[]): ListedPage[] {
