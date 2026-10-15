@@ -87,6 +87,14 @@ function pageIsPresent(document: SiteDocument, id: string): boolean {
   return document.pages.some((page) => page.id === id);
 }
 
+/** A designed link title wins. Otherwise use the page title. */
+function linkTitle(document: SiteDocument, entry: NavEntry): string | undefined {
+  if (entry.title?.trim()) return entry.title;
+  if (!entry.id) return undefined;
+  const pageTitle = document.pages.find((page) => page.id === entry.id)?.title.trim();
+  return pageTitle || undefined;
+}
+
 function resolveEntry(document: SiteDocument, entry: NavEntry): ResolvedNavNode | undefined {
   if (entry.id && !pageIsPresent(document, entry.id)) return undefined;
   const children: ResolvedNavNode[] = [];
@@ -118,7 +126,7 @@ function resolveEntry(document: SiteDocument, entry: NavEntry): ResolvedNavNode 
 
   return {
     id: entry.id,
-    title: entry.title,
+    title: linkTitle(document, entry),
     heading: entry.heading,
     fa: entry.fa,
     sidebar: entry.sidebar,

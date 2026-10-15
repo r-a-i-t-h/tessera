@@ -86,6 +86,18 @@ describe("resolveNavTree", () => {
     expect(tree[0]!.children.some((child) => child.id === "fair")).toBe(false);
   });
 
+  it("uses the page title when a link title is omitted", () => {
+    const doc = makeFixtureDoc();
+    doc.nav = [{ id: "about", sidebar: true }];
+    expect(resolveNavTree(doc)[0]).toMatchObject({ id: "about", title: "About" });
+  });
+
+  it("keeps a link title that differs from the page title", () => {
+    const doc = makeFixtureDoc();
+    doc.nav = [{ id: "about", title: "Who we are", sidebar: true }];
+    expect(resolveNavTree(doc)[0]).toMatchObject({ id: "about", title: "Who we are" });
+  });
+
   it("skips a row whose page is not in the document", () => {
     const doc = makeFixtureDoc();
     doc.nav = [
