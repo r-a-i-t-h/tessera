@@ -188,11 +188,33 @@ textarea.w3-input.editor-html {
 }
 
 .editor-backup,
-.editor-user {
+.editor-user,
+.editor-blog {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem 0.75rem;
   align-items: center;
+}
+
+.editor-blog-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+  margin-left: auto;
+}
+
+.editor-blog-rename {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0;
+}
+
+.editor-blog-rename .w3-input {
+  width: auto;
+  min-width: 10rem;
+  margin: 0;
 }
 
 .editor-kind ul {

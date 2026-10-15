@@ -1975,31 +1975,39 @@ function blogsSection(listing: RecordList): string {
   const blogs = listing.records.filter((row) => row.kind === "content" && row.type === "blog");
   const rows = blogs
     .map((blog) => {
-      return `<li>
+      return `<li class="editor-blog">
         <a href="#/content/${encodeURIComponent(blog.id)}"><strong>${escapeHtml(blog.title ?? blog.id)}</strong></a>
-        <span class="w3-text-grey w3-small"> ${escapeHtml(blog.id)}</span>
-        <form data-rename-blog="${escapeHtml(blog.id)}" class="editor-inline">
-          <input name="next" class="w3-input w3-border" aria-label="New id for ${escapeHtml(blog.id)}" placeholder="New id" />
-          <button type="submit" class="w3-button w3-white">Rename</button>
-        </form>
-        <button type="button" class="w3-button w3-white" data-delete-blog="${escapeHtml(blog.id)}">Delete</button>
-        <button type="button" class="w3-button w3-white" data-cascade-blog="${escapeHtml(blog.id)}">Cascade delete</button>
+        <span class="w3-text-grey w3-small">${escapeHtml(blog.id)}</span>
+        <span class="editor-blog-tools">
+          <form data-rename-blog="${escapeHtml(blog.id)}" class="editor-blog-rename">
+            <input name="next" class="w3-input w3-border" aria-label="New id for ${escapeHtml(blog.id)}" placeholder="New id" />
+            <button type="submit" class="w3-button w3-small w3-white">Rename</button>
+          </form>
+          <button type="button" class="w3-button w3-small w3-white" data-delete-blog="${escapeHtml(blog.id)}">Delete</button>
+          <button type="button" class="w3-button w3-small w3-white" data-cascade-blog="${escapeHtml(blog.id)}">Cascade delete</button>
+        </span>
       </li>`;
     })
     .join("");
-  return `${rows ? `<ul class="w3-ul">${rows}</ul>` : `<p class="w3-text-grey">No blogs yet.</p>`}
-    <h2 class="w3-medium">New blog</h2>
-    <form id="new-blog-form">
+  return `<p><button type="button" class="w3-button w3-theme" data-action="new-blog">New blog</button></p>
+    <form id="new-blog-form" class="editor-new-page" hidden>
       <p><label for="new-blog-id">Id</label>
         <input id="new-blog-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" /></p>
       <p><label for="new-blog-title">Title</label>
         <input id="new-blog-title" name="title" class="w3-input w3-border w3-margin-top" required /></p>
       ${formErrorPanel()}
       <p><button type="submit" class="w3-button w3-theme">Create blog</button></p>
-    </form>`;
+    </form>
+    ${rows ? `<ul class="w3-ul">${rows}</ul>` : `<p class="w3-text-grey">No blogs yet.</p>`}`;
 }
 
 function bindBlogs(root: HTMLElement, user: PublicUser, listing: RecordList): void {
+  root.querySelector("[data-action=new-blog]")?.addEventListener("click", () => {
+    const form = root.querySelector<HTMLFormElement>("#new-blog-form");
+    if (!form) return;
+    form.hidden = false;
+    form.querySelector<HTMLInputElement>("#new-blog-id")?.focus();
+  });
   root.querySelector<HTMLFormElement>("#new-blog-form")?.addEventListener("submit", (event) => {
     event.preventDefault();
     void createBlog(root, listing);
