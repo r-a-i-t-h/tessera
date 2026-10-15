@@ -3,11 +3,20 @@ import type { ComponentFn } from "../types.js";
 import { hrefForPage } from "../page-href.js";
 import { flattenNav, resolveNavTree, type ResolvedNavNode } from "../nav-expand.js";
 
+/** Nav heading row (optional title): groups links; not a page link. */
+function isNavGroup(n: ResolvedNavNode): boolean {
+  return !n.id && (n.children.length > 0 || n.heading !== undefined);
+}
+
 function filterScope(nodes: ResolvedNavNode[], scope: string | undefined): ResolvedNavNode[] {
   if (!scope) return nodes;
   return nodes.filter((n) => {
     if (scope === "sidebar") {
-      return n.sidebar === true || Boolean(n.heading) || n.children.some((c) => c.sidebar !== false);
+      return (
+        n.sidebar === true ||
+        Boolean(n.heading?.trim()) ||
+        (isNavGroup(n) && n.children.some((c) => c.sidebar !== false))
+      );
     }
     if (scope === "topbar") return n.topbar === true;
     if (scope === "footer") return n.footer === true;
@@ -24,13 +33,45 @@ function linkHtml(ctx: Parameters<ComponentFn>[0], node: ResolvedNavNode): strin
   return `<a class="w3-bar-item w3-button${active}" href="${href}">${label}</a>`;
 }
 
+/** Nested list markup for link nodes (Sub-level child style). */
+function renderTreeLinks(ctx: Parameters<ComponentFn>[0], nodes: ResolvedNavNode[]): string {
+  if (!nodes.length) return "";
+  const items = nodes
+    .map((n) => {
+      if (n.id) {
+        const kids = n.children.length ? renderTreeLinks(ctx, n.children) : "";
+        return `<li>${linkHtml(ctx, n)}${kids}</li>`;
+      }
+      if (n.children.length) {
+        return `<li>${renderTreeList(ctx, n.children)}</li>`;
+      }
+      return "";
+    })
+    .join("");
+  return `<ul class="w3-ul tessera-nav-tree">${items}</ul>`;
+}
+
+/** Sub-level list for Current group siblings (same link markup as Sub-level menu). */
+function renderCurrentGroupSiblings(ctx: Parameters<ComponentFn>[0], nodes: ResolvedNavNode[]): string {
+  if (!nodes.length) return "";
+  const items = nodes
+    .filter((n) => n.id)
+    .map((n) => `<li>${linkHtml(ctx, n)}</li>`)
+    .join("");
+  return `<ul class="w3-ul tessera-nav-tree tessera-nav-sublinks">${items}</ul>`;
+}
+
 function renderTreeList(ctx: Parameters<ComponentFn>[0], nodes: ResolvedNavNode[]): string {
   if (!nodes.length) return "";
   const items = nodes
     .map((n) => {
-      if (n.heading) {
+      const label = n.heading?.trim();
+      if (label) {
         const kids = renderTreeList(ctx, n.children);
-        return `<li class="tessera-nav-branch"><span class="w3-text-theme">${ctx.escapeHtml(n.heading)}</span>${kids}</li>`;
+        return `<li class="tessera-nav-branch"><span class="w3-text-theme">${ctx.escapeHtml(label)}</span>${kids}</li>`;
+      }
+      if (isNavGroup(n)) {
+        return `<li>${renderTreeList(ctx, n.children)}</li>`;
       }
       if (n.id) {
         const kids = n.children.length ? renderTreeList(ctx, n.children) : "";
@@ -45,19 +86,32 @@ function renderTreeList(ctx: Parameters<ComponentFn>[0], nodes: ResolvedNavNode[
   return `<ul class="w3-ul tessera-nav-tree">${items}</ul>`;
 }
 
-function collapseBranch(ctx: Parameters<ComponentFn>[0], n: ResolvedNavNode): string {
-  if (n.heading) {
-    const inner = n.children.map((c) => collapseBranch(ctx, c)).join("");
-    return `<details class="w3-margin-bottom tessera-nav-collapse" open>
-      <summary class="w3-text-theme w3-padding-small">${ctx.escapeHtml(n.heading)}</summary>
-      <div class="w3-padding-small">${inner}</div>
-    </details>`;
+function groupLinkMembers(children: ResolvedNavNode[]): ResolvedNavNode[] {
+  return children.filter((c) => Boolean(c.id));
+}
+
+function groupContainsPage(members: ResolvedNavNode[], pageId: string): boolean {
+  return members.some((m) => m.id === pageId);
+}
+
+function renderCurrentGroupNode(ctx: Parameters<ComponentFn>[0], n: ResolvedNavNode): string {
+  if (isNavGroup(n)) {
+    const links = groupLinkMembers(n.children);
+    let html = "";
+    if (links.length) {
+      const [parent, ...siblings] = links;
+      html = linkHtml(ctx, parent!);
+      if (siblings.length && groupContainsPage(links, ctx.page.id)) {
+        html += renderCurrentGroupSiblings(ctx, siblings);
+      }
+    }
+    for (const child of n.children) {
+      if (isNavGroup(child)) html += renderCurrentGroupNode(ctx, child);
+    }
+    return html;
   }
-  if (n.id) {
-    const inner = n.children.map((c) => collapseBranch(ctx, c)).join("");
-    return `${linkHtml(ctx, n)}${inner}`;
-  }
-  return n.children.map((c) => collapseBranch(ctx, c)).join("");
+  if (n.id) return linkHtml(ctx, n);
+  return n.children.map((c) => renderCurrentGroupNode(ctx, c)).join("");
 }
 
 /** Full designed nav tree (with content-implied `source` children resolved). */
@@ -68,12 +122,12 @@ export const navTree: ComponentFn = (ctx, props = {}) => {
   return renderTreeList(ctx, tree);
 };
 
-/** Collapsible regions (details/summary) over the designed nav tree. */
+/** First link in each Nav group is the section entry; siblings use Sub-level markup when the current page is in that group. */
 export const navCollapse: ComponentFn = (ctx, props = {}) => {
   const scope = typeof props.scope === "string" ? props.scope : undefined;
   const tree = filterScope(resolveNavTree(ctx.document), scope);
   if (!tree.length) return `<p class="w3-text-grey"><em>No nav.</em></p>`;
-  return `<div class="tessera-nav-collapse-root">${tree.map((n) => collapseBranch(ctx, n)).join("")}</div>`;
+  return `<div class="tessera-nav-collapse-root">${tree.map((n) => renderCurrentGroupNode(ctx, n)).join("")}</div>`;
 };
 
 /**
@@ -208,14 +262,17 @@ function findHeading(nodes: ResolvedNavNode[], heading: string): ResolvedNavNode
 export const navFlat: ComponentFn = (ctx, props = {}) => {
   const scope = typeof props.scope === "string" ? props.scope : "sidebar";
   const flat = flattenNav(resolveNavTree(ctx.document)).filter((n) => {
-    if (scope === "sidebar") return n.sidebar === true || Boolean(n.heading);
+    if (scope === "sidebar") {
+      return n.sidebar === true || Boolean(n.heading?.trim()) || (isNavGroup(n) && n.children.length > 0);
+    }
     if (scope === "topbar") return n.topbar === true;
     if (scope === "footer") return n.footer === true;
     return true;
   });
   return flat
     .map((n) => {
-      if (n.heading) return `<h4 class="w3-text-theme">${ctx.escapeHtml(n.heading)}</h4>`;
+      const label = n.heading?.trim();
+      if (label) return `<h4 class="w3-text-theme">${ctx.escapeHtml(label)}</h4>`;
       if (!n.id) return "";
       return linkHtml(ctx, n);
     })

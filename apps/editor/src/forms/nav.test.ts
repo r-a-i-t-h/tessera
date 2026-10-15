@@ -84,6 +84,25 @@ describe("nav list", () => {
     expect(navEntries(navRows(sample))).toEqual(sample);
   });
 
+  it("round-trips a heading group with no heading text", () => {
+    const data = [
+      { id: "home", title: "Home", sidebar: true },
+      {
+        sidebar: true,
+        children: [
+          { id: "about", title: "About", sidebar: true },
+          { id: "more", title: "More", sidebar: true },
+        ],
+      },
+    ];
+    const rows = navRows(data);
+    expect(rows).toHaveLength(2);
+    expect(rows[1]?.kind).toBe("heading");
+    if (rows[1]?.kind === "heading") expect(rows[1].children.map((c) => c.id)).toEqual(["about", "more"]);
+    const html = renderNavList(rows, pages);
+    expect(navEntries(rowsFromControls(controlsIn(html)))).toEqual(data);
+  });
+
   it("round-trips a footer flag on a link and a heading", () => {
     const data = [
       { id: "home", title: "Home", footer: true },

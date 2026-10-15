@@ -3,9 +3,9 @@ import { LayoutNodeSchema, type LayoutComponentNode, type LayoutNode, type Regio
 export const REGION_TAGS = ["div", "header", "nav", "main", "footer", "aside", "section", "article", "h1"] as const;
 
 export const MENU_SHAPES = [
-  { name: "navFlat", label: "Flat list" },
-  { name: "navTree", label: "Nested" },
-  { name: "navCollapse", label: "Sections" },
+  { name: "navFlat", label: "Top-level" },
+  { name: "navTree", label: "Sub-level" },
+  { name: "navCollapse", label: "Current group" },
   { name: "navTags", label: "By tag" },
   { name: "pageNav", label: "Pages with no type" },
 ] as const;

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { SiteDocument } from "@r-a-i-t-h/tessera-model";
 import { parseSiteDocument } from "@r-a-i-t-h/tessera-model";
-import { breadcrumbs, linkCluster, navFlat, navTree, subpageList } from "../builtins/nav.js";
+import { breadcrumbs, linkCluster, navCollapse, navFlat, navTree, subpageList } from "../builtins/nav.js";
 import { escapeHtml } from "../render.js";
 import { ComponentRegistry } from "../registry.js";
 import type { RenderContext } from "../types.js";
@@ -118,6 +118,109 @@ describe("nav places", () => {
     const tree = navTree(ctx, { scope: "footer" });
     expect(tree).toContain('href="#events"');
     expect(tree).not.toContain('href="#home"');
+  });
+});
+
+describe("navCollapse", () => {
+  const groupPages = [
+    { id: "home", title: "Home", layoutId: "L", zones: {}, tags: ["page"] },
+    { id: "about", title: "About", layoutId: "L", zones: {} },
+    { id: "origins", title: "Origins", layoutId: "L", zones: {} },
+  ];
+  const groupDoc = parseSiteDocument({
+    version: 2,
+    site: { id: "s", title: "Hall", homePageId: "home" },
+    layouts: [{ id: "L", root: { type: "region", children: [{ type: "zone", id: "main" }] } }],
+    pages: groupPages,
+    nav: [
+      { id: "home", title: "Home", sidebar: true },
+      {
+        heading: "About section",
+        sidebar: true,
+        children: [
+          { id: "about", title: "About", sidebar: true },
+          { id: "origins", title: "Origins", sidebar: true },
+        ],
+      },
+    ],
+  });
+
+  it("hides the heading label and shows only the first link when the group is inactive", () => {
+    const html = navCollapse(context(groupDoc, "home"), { scope: "sidebar" });
+    expect(html).toContain('href="#about"');
+    expect(html).not.toContain("About section");
+    expect(html).not.toContain('href="#origins"');
+    expect(html).not.toContain("<details");
+  });
+
+  it("shows siblings in sub-level markup when the current page is in the group", () => {
+    const html = navCollapse(context(groupDoc, "origins"), { scope: "sidebar" });
+    expect(html).toContain('href="#about"');
+    expect(html).toContain('href="#origins"');
+    expect(html).toContain("tessera-nav-tree");
+    expect(html).not.toContain("About section");
+    expect(html).not.toContain("<details");
+  });
+
+  it("keeps the section entry top-level when siblings use sub-level list markup", () => {
+    const html = navCollapse(context(groupDoc, "origins"), { scope: "sidebar" });
+    expect(html).toMatch(
+      /<a class="w3-bar-item w3-button(?: is-active w3-theme-l3)?" href="#about">About<\/a>/,
+    );
+    expect(html).toMatch(
+      /<ul class="w3-ul tessera-nav-tree tessera-nav-sublinks"><li><a class="w3-bar-item w3-button is-active w3-theme-l3" href="#origins">Origins<\/a><\/li><\/ul>/,
+    );
+  });
+
+  it("supports a group with no heading text", () => {
+    const doc = parseSiteDocument({
+      version: 2,
+      site: { id: "s", title: "Hall", homePageId: "home" },
+      layouts: [{ id: "L", root: { type: "region", children: [{ type: "zone", id: "main" }] } }],
+      pages: groupPages,
+      nav: [
+        {
+          sidebar: true,
+          children: [
+            { id: "about", title: "About", sidebar: true },
+            { id: "origins", title: "Origins", sidebar: true },
+          ],
+        },
+      ],
+    });
+    const inactive = navCollapse(context(doc, "home"), { scope: "sidebar" });
+    expect(inactive).toContain('href="#about"');
+    expect(inactive).not.toContain('href="#origins"');
+    const active = navCollapse(context(doc, "origins"), { scope: "sidebar" });
+    expect(active).toContain("tessera-nav-tree");
+    expect(active).toContain('href="#origins"');
+    expect(active).not.toContain("<details");
+  });
+});
+
+describe("optional heading labels", () => {
+  it("omits an empty heading in Top-level and Sub-level menus", () => {
+    const doc = parseSiteDocument({
+      version: 2,
+      site: { id: "s", title: "Hall", homePageId: "home" },
+      layouts: [{ id: "L", root: { type: "region", children: [{ type: "zone", id: "main" }] } }],
+      pages: [
+        { id: "home", title: "Home", layoutId: "L", zones: {} },
+        { id: "about", title: "About", layoutId: "L", zones: {} },
+      ],
+      nav: [
+        {
+          sidebar: true,
+          children: [{ id: "about", title: "About", sidebar: true }],
+        },
+      ],
+    });
+    const flat = navFlat(context(doc, "home"), { scope: "sidebar" });
+    expect(flat).not.toContain("<h4");
+    expect(flat).toContain('href="#about"');
+    const tree = navTree(context(doc, "home"), { scope: "sidebar" });
+    expect(tree).not.toContain("w3-text-theme");
+    expect(tree).toContain('href="#about"');
   });
 });
 

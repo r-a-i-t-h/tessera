@@ -55,13 +55,13 @@ describe("layout arrange tree", () => {
     expect(names).not.toContain("Overlay");
     expect(names).not.toContain("Close");
     expect(names).not.toContain("Custom HTML");
-    expect(names).toContain("Menu · Flat list · Top bar");
-    expect(names).toContain("Menu · Flat list · Sidebar");
+    expect(names).toContain("Menu · Top-level · Top bar");
+    expect(names).toContain("Menu · Top-level · Sidebar");
     expect(names).toContain("Page");
     const html = treeHtml(root, "");
     expect(html).toContain("data-tag=\"header\"");
     expect(html).toContain("data-drawer=\"closed\"");
-    expect(html.indexOf("header")).toBeLessThan(html.indexOf("Menu · Flat list · Top bar"));
+    expect(html.indexOf("header")).toBeLessThan(html.indexOf("Menu · Top-level · Top bar"));
     const drawer = getNode(root, [1]);
     expect(drawer && drawerState(drawer)).toBe("closed");
     expect(drawer && stayOpenNote(drawer)).toMatch(/site\.css/);

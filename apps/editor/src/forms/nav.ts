@@ -326,10 +326,17 @@ function draftLink(fields: Map<string, ControlValue>): NavLinkRow {
   };
 }
 
+function isNavGroupEntry(entry: Record<string, unknown>, id: string): boolean {
+  if (id) return false;
+  if ("heading" in entry) return true;
+  if (entry.source !== undefined && entry.source !== null) return true;
+  return Array.isArray(entry.children) && entry.children.length > 0;
+}
+
 function rowFromEntry(entry: Record<string, unknown>): NavRow {
   const id = typeof entry.id === "string" ? entry.id : "";
   const heading = typeof entry.heading === "string" ? entry.heading : "";
-  if (heading && !id) return headingRow(entry, heading);
+  if (isNavGroupEntry(entry, id)) return headingRow(entry, heading);
   return linkRow(entry, id);
 }
 
@@ -377,8 +384,7 @@ function headingRow(entry: Record<string, unknown>, heading: string): NavHeading
         continue;
       }
       const childId = typeof child.id === "string" ? child.id : "";
-      const childHeading = typeof child.heading === "string" ? child.heading : "";
-      if (childHeading && !childId) rest.push(child);
+      if (isNavGroupEntry(child, childId)) rest.push(child);
       else children.push(linkRow(child, childId));
     }
   } else if (entry.children !== undefined) {

@@ -39,15 +39,17 @@ A heading can fill itself. **Type** `meeting` lists every page whose type is `me
 
 Leave Top bar unticked and those links stay in the sidebar component.
 
+A **heading** row groups links. Heading text is optional: leave it blank to group without a visible title. The group still applies for every menu style below.
+
 ## Menu components
 
 Put one of these in the master layout as a component. `scope` is `sidebar` (the default for `navFlat`), `topbar`, or `footer`.
 
 | Name | What it draws |
 |------|----------------|
-| `navFlat` | A flat list. Headings become small titles. This is what Willow uses. |
-| `navTree` | A nested list. |
-| `navCollapse` | Disclosure sections. |
+| `navFlat` | **Top-level** — one column of links; optional group titles as large headings (`h4`). This is what Willow uses. |
+| `navTree` | **Sub-level** — same groups; optional small group titles; child links in a nested list. |
+| `navCollapse` | **Current group** — group titles are never shown. The first link under each heading is the section entry; when you are on that link or any sibling in the group, the rest appear in Sub-level list style. |
 | `navTags` | Pages grouped by tag. Ignores the Nav record and article tags. Optional prop `tag` keeps one tag. |
 | `breadcrumbs` | Home, then parent pages, then the current page. |
 | `subpageList` | The current page’s children. Optional prop `title`. |
