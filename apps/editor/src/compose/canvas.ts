@@ -52,12 +52,17 @@ type ZoneState = {
   items: EditNode[];
 };
 
+type ComposeDrag =
+  | { kind: "palette"; palette: string }
+  | { kind: "item"; zone: string; uid: string };
+
 type Mounted = {
   zones: ZoneState[];
   bindings: BindingChoice[];
   folders: FolderChoice[];
   active: string;
   locked: boolean;
+  drag?: ComposeDrag;
   onEdit?: (burstId?: string) => void;
 };
 
@@ -129,6 +134,7 @@ export function mountComposeCanvases(
   form.addEventListener("dragover", (event) => onDragOver(form, event));
   form.addEventListener("drop", (event) => onDrop(form, event));
   form.addEventListener("dragend", () => {
+    state.drag = undefined;
     clearDrop(form);
     window.setTimeout(() => {
       suppressClick = false;
@@ -897,15 +903,18 @@ function onPaste(event: ClipboardEvent): void {
 }
 
 function onDragStart(form: HTMLFormElement, event: DragEvent): void {
-  if (mounted.get(form)?.locked) {
+  const state = mounted.get(form);
+  if (state?.locked) {
     event.preventDefault();
     return;
   }
   const target = event.target;
-  if (!(target instanceof HTMLElement) || !event.dataTransfer) return;
+  if (!(target instanceof HTMLElement) || !event.dataTransfer || !state) return;
   suppressClick = true;
+  state.drag = undefined;
   const palette = target.closest<HTMLElement>("[data-palette]");
   if (palette?.dataset.palette) {
+    state.drag = { kind: "palette", palette: palette.dataset.palette };
     event.dataTransfer.setData("application/x-tessera-palette", palette.dataset.palette);
     event.dataTransfer.setData("text/plain", palette.dataset.palette);
     event.dataTransfer.effectAllowed = "copy";
@@ -916,9 +925,11 @@ function onDragStart(form: HTMLFormElement, event: DragEvent): void {
   const handle = target.closest<HTMLElement>("[data-drag]");
   const article = handle?.closest<HTMLElement>("[data-item-id]");
   const zone = article?.dataset.zone;
-  if (!handle || !article?.dataset.itemId || !zone) return;
-  event.dataTransfer.setData("application/x-tessera-item", `${zone}\t${article.dataset.itemId}`);
-  event.dataTransfer.setData("text/plain", article.dataset.itemId);
+  const uid = article?.dataset.itemId;
+  if (!handle || !uid || !zone) return;
+  state.drag = { kind: "item", zone, uid };
+  event.dataTransfer.setData("application/x-tessera-item", `${zone}\t${uid}`);
+  event.dataTransfer.setData("text/plain", uid);
   event.dataTransfer.effectAllowed = "move";
   setDragGhost(event.dataTransfer, article.querySelector(".editor-section-kind")?.textContent ?? "");
   beginDropPreview(form);
@@ -926,22 +937,27 @@ function onDragStart(form: HTMLFormElement, event: DragEvent): void {
 }
 
 function onDragOver(form: HTMLFormElement, event: DragEvent): void {
-  if (mounted.get(form)?.locked) return;
+  const state = mounted.get(form);
+  if (state?.locked) return;
   const slot = resolveSlot(event.target, form);
   if (!slot) return;
   event.preventDefault();
-  if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = state?.drag?.kind === "item" ? "move" : "copy";
+  }
   clearDropActive(form);
   slot.classList.add("editor-drop-active");
 }
 
 function onDrop(form: HTMLFormElement, event: DragEvent): void {
-  if (mounted.get(form)?.locked) return;
-  const slot = resolveSlot(event.target, form);
   const state = mounted.get(form);
+  if (state?.locked) return;
+  const slot = resolveSlot(event.target, form);
   if (!slot || !state || !event.dataTransfer) return;
   event.preventDefault();
   clearDrop(form);
+  const drag = state.drag;
+  state.drag = undefined;
   syncAll(state);
   const zoneName = slot.dataset.dropZone ?? "";
   const index = Number(slot.dataset.dropIndex ?? "0");
@@ -950,7 +966,7 @@ function onDrop(form: HTMLFormElement, event: DragEvent): void {
   const list = listFor(state, zoneName, parent, cell);
   if (!list) return;
   const host = parent ? findNode(zoneItems(state, zoneName), parent) : undefined;
-  const palette = event.dataTransfer.getData("application/x-tessera-palette");
+  const palette = paletteFromDrop(drag, event.dataTransfer);
   if (palette) {
     if (!isPaletteKind(palette)) return;
     if (palette === "columns" && host?.kind === "columns") return;
@@ -960,8 +976,7 @@ function onDrop(form: HTMLFormElement, event: DragEvent): void {
     notifyStructure(form);
     return;
   }
-  const itemData = event.dataTransfer.getData("application/x-tessera-item");
-  const uid = itemData.split("\t")[1];
+  const uid = itemUidFromDrop(drag, event.dataTransfer);
   if (!uid || parent === uid) return;
   const moving = findNode(allItems(state), uid);
   if (parent && host?.kind === "columns" && isColumns(moving)) return;
@@ -975,6 +990,19 @@ function onDrop(form: HTMLFormElement, event: DragEvent): void {
   list.splice(Math.max(0, dest), 0, moved);
   renderAll(form, state);
   notifyStructure(form);
+}
+
+function paletteFromDrop(drag: ComposeDrag | undefined, transfer: DataTransfer): string {
+  if (drag?.kind === "palette") return drag.palette;
+  if (drag?.kind === "item") return transfer.getData("application/x-tessera-palette");
+  return transfer.getData("application/x-tessera-palette") || transfer.getData("text/plain");
+}
+
+function itemUidFromDrop(drag: ComposeDrag | undefined, transfer: DataTransfer): string {
+  if (drag?.kind === "item") return drag.uid;
+  const itemData = transfer.getData("application/x-tessera-item");
+  if (itemData) return itemData.split("\t")[1] ?? "";
+  return transfer.getData("text/plain");
 }
 
 function listFor(state: Mounted, zoneName: string, parent: string, cell: number): EditNode[] | undefined {

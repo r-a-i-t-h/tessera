@@ -211,6 +211,31 @@ describe("compose drag ghost", () => {
     expect(slot.classList.contains("editor-drop-active")).toBe(true);
   });
 
+  it("sets move dropEffect while reordering a section", () => {
+    const form = mountZone(`<h2>First</h2><h2>Second</h2>`);
+    const handle = form.querySelector("[data-drag]");
+    const slot = form.querySelector("[data-drop]");
+    if (!handle || !slot) throw new Error("drag sources");
+    fireDragStart(handle);
+    const transfer = { dropEffect: "" };
+    const over = new dom.Event("dragover", { bubbles: true });
+    Object.defineProperty(over, "dataTransfer", { value: transfer });
+    slot.dispatchEvent(over);
+    expect(transfer.dropEffect).toBe("move");
+  });
+
+  it("reorders when drop dataTransfer getData is empty", () => {
+    const form = mountZone(`<h2>First</h2><h2>Second</h2>`);
+    const handle = form.querySelector("[data-drag]");
+    const slots = form.querySelectorAll("[data-drop]");
+    const afterSecond = slots[slots.length - 1];
+    if (!handle || !afterSecond) throw new Error("drag sources");
+    fireDragStart(handle);
+    dropWithEmptyTransfer(afterSecond);
+    const headings = [...form.querySelectorAll("[data-field=text]")].map((node) => node.textContent);
+    expect(headings).toEqual(["Second", "First"]);
+  });
+
   it("shows the section kind while an existing section is moved", () => {
     dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;
     const form = dom.document.querySelector("form");
@@ -437,6 +462,18 @@ function dropPalette(slot: Element, kind: string): void {
     getData(type: string) {
       if (type === "application/x-tessera-palette") return kind;
       return kind;
+    },
+  };
+  const event = new dom.Event("drop", { bubbles: true });
+  Object.defineProperty(event, "dataTransfer", { value: transfer });
+  slot.dispatchEvent(event);
+}
+
+function dropWithEmptyTransfer(slot: Element): void {
+  const transfer = {
+    dropEffect: "",
+    getData() {
+      return "";
     },
   };
   const event = new dom.Event("drop", { bubbles: true });
