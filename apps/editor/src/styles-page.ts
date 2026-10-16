@@ -3,6 +3,71 @@ import { activateDialog, type DialogController } from "./dialog.js";
 import { errorPanel, escapeHtml, noticePanel } from "./dom.js";
 import { STYLE_FIELDS, styleDraft, styleFieldValues, styleFromValues, styleGroups } from "./forms/style.js";
 
+const PANELS_KEY = "tessera.styles.panels";
+
+type StoredPanels = {
+  tokens?: boolean;
+  sheets?: Record<string, boolean>;
+};
+
+function storedPanels(): StoredPanels {
+  try {
+    const raw = localStorage.getItem(PANELS_KEY);
+    if (!raw) return {};
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    return parsed as StoredPanels;
+  } catch {
+    return {};
+  }
+}
+
+function savePanels(state: StoredPanels): void {
+  try {
+    localStorage.setItem(PANELS_KEY, JSON.stringify(state));
+  } catch {
+    // ignore
+  }
+}
+
+/** Whether the Site style block starts open. Default open. */
+export function readStyleTokensOpen(): boolean {
+  const { tokens } = storedPanels();
+  return tokens ?? true;
+}
+
+/** Whether a stylesheet editor starts open. Site layout defaults open. */
+export function readStylesheetOpen(id: string): boolean {
+  const { sheets } = storedPanels();
+  if (sheets && Object.prototype.hasOwnProperty.call(sheets, id)) return sheets[id]!;
+  return id === "site";
+}
+
+function writeStyleTokensOpen(open: boolean): void {
+  const state = storedPanels();
+  state.tokens = open;
+  savePanels(state);
+}
+
+function writeStylesheetOpen(id: string, open: boolean): void {
+  const state = storedPanels();
+  state.sheets = { ...state.sheets, [id]: open };
+  savePanels(state);
+}
+
+export function bindStylePanels(root: ParentNode): void {
+  const tokens = root.querySelector<HTMLDetailsElement>("details.style-tokens");
+  tokens?.addEventListener("toggle", () => writeStyleTokensOpen(tokens.open));
+
+  for (const form of root.querySelectorAll<HTMLFormElement>("form[data-sheet]")) {
+    const sheet = form.closest<HTMLDetailsElement>("details.style-sheet");
+    if (!sheet || sheet.classList.contains("style-tokens")) continue;
+    const id = form.dataset.sheet ?? "";
+    if (!id) continue;
+    sheet.addEventListener("toggle", () => writeStylesheetOpen(id, sheet.open));
+  }
+}
+
 export function stylesPageHtml(record: Record<string, unknown>, notice = "", error = ""): string {
   const values = styleFieldValues(record);
   const fields = styleGroups()
@@ -16,23 +81,26 @@ export function stylesPageHtml(record: Record<string, unknown>, notice = "", err
   return `<h1 class="w3-large">Styles</h1>
     ${noticePanel(notice)}
     ${errorPanel(error)}
-    <div id="style-specimen" class="style-specimen" data-side="${escapeHtml(values.navSide)}">
-      <style id="style-specimen-css">${siteStyleCss(values, ".style-specimen")}</style>
-      <div class="style-specimen-bar"><span>Site title</span><span>A B</span></div>
-      <div class="style-specimen-body">
-        <aside class="style-specimen-side">Home</aside>
-        <div class="style-specimen-main">
-          <p>Body text with a <a href="#/styles">link</a>.</p>
-          <nav class="tessera-links tessera-links-cards" aria-label="Sample links">
-            <div class="tessera-links-row"><a class="tessera-link-card" href="#/styles">Section</a></div>
-          </nav>
+    <details class="style-sheet style-tokens"${readStyleTokensOpen() ? " open" : ""}>
+      <summary>Site style</summary>
+      <div id="style-specimen" class="style-specimen" data-side="${escapeHtml(values.navSide)}">
+        <style id="style-specimen-css">${siteStyleCss(values, ".style-specimen")}</style>
+        <div class="style-specimen-bar"><span>Site title</span><span>A B</span></div>
+        <div class="style-specimen-body">
+          <aside class="style-specimen-side">Home</aside>
+          <div class="style-specimen-main">
+            <p>Body text with a <a href="#/styles">link</a>.</p>
+            <nav class="tessera-links tessera-links-cards" aria-label="Sample links">
+              <div class="tessera-links-row"><a class="tessera-link-card" href="#/styles">Section</a></div>
+            </nav>
+          </div>
         </div>
       </div>
-    </div>
-    <form id="style-form">
-      ${fields}
-      <p><button type="submit" class="w3-button w3-theme">Save styles</button></p>
-    </form>
+      <form id="style-form">
+        ${fields}
+        <p><button type="submit" class="w3-button w3-theme">Save styles</button></p>
+      </form>
+    </details>
     <h2 class="w3-large">Stylesheets</h2>`;
 }
 
@@ -101,7 +169,7 @@ export function stylesheetEditors(sheets: readonly StylesheetView[], error = "")
 }
 
 function sheetEditor(sheet: StylesheetView): string {
-  const open = sheet.id === "site" ? " open" : "";
+  const open = readStylesheetOpen(sheet.id) ? " open" : "";
   const own = sheet.overridden ? " This site has its own copy." : "";
   return `<details class="style-sheet"${open}>
     <summary>${escapeHtml(sheet.label)}</summary>

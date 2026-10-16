@@ -147,6 +147,7 @@ import {
 import type { NavEntry } from "@r-a-i-t-h/tessera-model";
 import { parseRoute } from "./router.js";
 import {
+  bindStylePanels,
   bindStylesheetEditors,
   paintSpecimen,
   previewStyle,
@@ -308,6 +309,7 @@ async function bindStyles(root: HTMLElement, user: PublicUser, notice = "", erro
   root.innerHTML = chrome(user, stylesPageHtml(record, notice, error) + (await stylesheetBlock()), true, "styles");
   bindChrome(root);
   bindStylesheetEditorActions(root, user);
+  bindStylePanels(root);
   const form = root.querySelector<HTMLFormElement>("#style-form");
   if (!form) return;
   const paint = () => paintSpecimen(root, previewStyle(form));

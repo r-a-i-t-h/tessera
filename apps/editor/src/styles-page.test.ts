@@ -1,11 +1,65 @@
 // @vitest-environment happy-dom
 
-import { afterEach, describe, expect, it } from "vitest";
-import { bindStylesheetEditors, stylesheetEditors } from "./styles-page.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  bindStylesheetEditors,
+  readStyleTokensOpen,
+  readStylesheetOpen,
+  stylesheetEditors,
+} from "./styles-page.js";
+
+const panelStore = new Map<string, string>();
+
+function stubPanelStorage(): void {
+  vi.stubGlobal("localStorage", {
+    getItem: (key: string) => panelStore.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      panelStore.set(key, value);
+    },
+    removeItem: (key: string) => {
+      panelStore.delete(key);
+    },
+  });
+}
+
+describe("style panel persistence", () => {
+  beforeEach(() => {
+    panelStore.clear();
+    stubPanelStorage();
+  });
+
+  afterEach(() => {
+    panelStore.clear();
+    vi.unstubAllGlobals();
+  });
+
+  it("defaults Site style open and site layout sheet open", () => {
+    expect(readStyleTokensOpen()).toBe(true);
+    expect(readStylesheetOpen("site")).toBe(true);
+    expect(readStylesheetOpen("w3")).toBe(false);
+  });
+
+  it("restores saved open state from localStorage", () => {
+    localStorage.setItem(
+      "tessera.styles.panels",
+      JSON.stringify({ tokens: false, sheets: { w3: true, site: false } }),
+    );
+    expect(readStyleTokensOpen()).toBe(false);
+    expect(readStylesheetOpen("w3")).toBe(true);
+    expect(readStylesheetOpen("site")).toBe(false);
+  });
+});
 
 describe("stylesheet editors", () => {
+  beforeEach(() => {
+    panelStore.clear();
+    stubPanelStorage();
+  });
+
   afterEach(() => {
     document.body.innerHTML = "";
+    panelStore.clear();
+    vi.unstubAllGlobals();
   });
 
   it("renders maximize and normalize controls beside each sheet editor", () => {

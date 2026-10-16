@@ -1108,6 +1108,10 @@ img[data-hero-preview] {
   border: none;
 }
 
+.style-tokens .style-specimen {
+  margin-top: 0.75rem;
+}
+
 .style-specimen {
   border: 1px solid #ccc;
   margin: 1rem 0 1.5rem;
