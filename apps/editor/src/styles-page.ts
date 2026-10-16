@@ -1,4 +1,5 @@
 import { siteStyleCss, type SiteStyle } from "@r-a-i-t-h/tessera-model";
+import { activateDialog, type DialogController } from "./dialog.js";
 import { errorPanel, escapeHtml, noticePanel } from "./dom.js";
 import { STYLE_FIELDS, styleDraft, styleFieldValues, styleFromValues, styleGroups } from "./forms/style.js";
 
@@ -105,11 +106,68 @@ function sheetEditor(sheet: StylesheetView): string {
   return `<details class="style-sheet"${open}>
     <summary>${escapeHtml(sheet.label)}</summary>
     <p class="w3-small w3-text-grey">${escapeHtml(sheetNote(sheet.id) + own)}</p>
-    <form data-sheet="${escapeHtml(sheet.id)}">
-      <p><textarea name="text" rows="18" spellcheck="false" class="w3-input w3-border editor-yaml">${escapeHtml(sheet.text)}</textarea></p>
-      <p><button type="submit" class="w3-button w3-theme">Save ${escapeHtml(sheet.label)}</button></p>
+    <form data-sheet="${escapeHtml(sheet.id)}" aria-labelledby="style-sheet-title-${escapeHtml(sheet.id)}">
+      <h3 class="style-sheet-dialog-title" id="style-sheet-title-${escapeHtml(sheet.id)}">${escapeHtml(sheet.label)}</h3>
+      <p class="style-sheet-tools"><button type="button" class="w3-button w3-small w3-white" data-sheet-maximize>Maximize</button></p>
+      <p class="style-sheet-editor"><textarea name="text" rows="18" spellcheck="false" class="w3-input w3-border editor-yaml">${escapeHtml(sheet.text)}</textarea></p>
+      <p class="style-sheet-actions">
+        <button type="submit" class="w3-button w3-theme">Save ${escapeHtml(sheet.label)}</button>
+        <button type="button" class="w3-button w3-white style-sheet-normalize" data-sheet-normalize>Normalize</button>
+      </p>
     </form>
   </details>`;
+}
+
+export function bindStylesheetEditors(
+  root: ParentNode,
+  onSave: (form: HTMLFormElement) => void,
+): void {
+  const dialogs = new WeakMap<HTMLDetailsElement, DialogController>();
+  for (const form of root.querySelectorAll<HTMLFormElement>("form[data-sheet]")) {
+    const sheet = form.closest<HTMLDetailsElement>("details.style-sheet");
+    const maximize = form.querySelector<HTMLButtonElement>("[data-sheet-maximize]");
+    const normalize = form.querySelector<HTMLButtonElement>("[data-sheet-normalize]");
+    let overlay: HTMLDivElement | null = null;
+    const restore = () => {
+      if (!sheet) return;
+      dialogs.get(sheet)?.destroy();
+      dialogs.delete(sheet);
+      sheet.classList.remove("style-sheet--maximized");
+      sheet.appendChild(form);
+      overlay?.remove();
+      overlay = null;
+      form.removeAttribute("role");
+      form.removeAttribute("aria-modal");
+      form.removeAttribute("tabindex");
+    };
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      onSave(form);
+    });
+    maximize?.addEventListener("click", () => {
+      if (!sheet || !maximize || !normalize) return;
+      sheet.open = true;
+      sheet.classList.add("style-sheet--maximized");
+      overlay = document.createElement("div");
+      overlay.className = "style-sheet-overlay-host";
+      document.body.appendChild(overlay);
+      overlay.appendChild(form);
+      form.setAttribute("role", "dialog");
+      form.setAttribute("aria-modal", "true");
+      form.tabIndex = -1;
+      const textarea = form.querySelector<HTMLTextAreaElement>('textarea[name="text"]');
+      textarea?.focus();
+      dialogs.set(
+        sheet,
+        activateDialog(overlay, {
+          onCancel: restore,
+          returnFocus: maximize,
+          initialFocus: 'textarea[name="text"]',
+        }),
+      );
+    });
+    normalize?.addEventListener("click", restore);
+  }
 }
 
 function sheetNote(id: string): string {

@@ -146,7 +146,14 @@ import {
 } from "./pages-list.js";
 import type { NavEntry } from "@r-a-i-t-h/tessera-model";
 import { parseRoute } from "./router.js";
-import { paintSpecimen, previewStyle, readStyleForm, stylesheetEditors, stylesPageHtml } from "./styles-page.js";
+import {
+  bindStylesheetEditors,
+  paintSpecimen,
+  previewStyle,
+  readStyleForm,
+  stylesheetEditors,
+  stylesPageHtml,
+} from "./styles-page.js";
 import { usernameError } from "./username.js";
 import { handleEscape, hasOpenModal } from "./escape-key.js";
 
@@ -300,7 +307,7 @@ async function bindStyles(root: HTMLElement, user: PublicUser, notice = "", erro
       : {};
   root.innerHTML = chrome(user, stylesPageHtml(record, notice, error) + (await stylesheetBlock()), true, "styles");
   bindChrome(root);
-  bindStylesheetSaves(root, user);
+  bindStylesheetEditorActions(root, user);
   const form = root.querySelector<HTMLFormElement>("#style-form");
   if (!form) return;
   const paint = () => paintSpecimen(root, previewStyle(form));
@@ -333,23 +340,20 @@ async function stylesheetBlock(): Promise<string> {
   }
 }
 
-function bindStylesheetSaves(root: HTMLElement, user: PublicUser): void {
-  for (const form of root.querySelectorAll<HTMLFormElement>("form[data-sheet]")) {
-    form.addEventListener("submit", (event) => {
-      event.preventDefault();
-      const id = form.dataset.sheet ?? "";
-      const field = form.elements.namedItem("text");
-      const text = field instanceof HTMLTextAreaElement ? field.value : "";
-      void (async () => {
-        try {
-          await saveStylesheet(id, text);
-          await bindStyles(root, user, "Saved. The preview uses this immediately. Publish to update the published site.");
-        } catch (err) {
-          await bindStyles(root, user, "", err instanceof Error ? err.message : "Could not save that stylesheet.");
-        }
-      })();
-    });
-  }
+function bindStylesheetEditorActions(root: HTMLElement, user: PublicUser): void {
+  bindStylesheetEditors(root, (form) => {
+    const id = form.dataset.sheet ?? "";
+    const field = form.elements.namedItem("text");
+    const text = field instanceof HTMLTextAreaElement ? field.value : "";
+    void (async () => {
+      try {
+        await saveStylesheet(id, text);
+        await bindStyles(root, user, "Saved. The preview uses this immediately. Publish to update the published site.");
+      } catch (err) {
+        await bindStyles(root, user, "", err instanceof Error ? err.message : "Could not save that stylesheet.");
+      }
+    })();
+  });
 }
 
 async function runRender(root: HTMLElement): Promise<void> {
