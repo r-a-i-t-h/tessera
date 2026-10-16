@@ -12,6 +12,7 @@ import { recordRoutes } from "./routes/records.js";
 import { libraryRoutes } from "./routes/library.js";
 import { renderRoutes } from "./routes/render.js";
 import { siteRoutes } from "./routes/site.js";
+import { themeRoutes } from "./routes/themes.js";
 import { stylesheetRoutes } from "./routes/stylesheets.js";
 import { userRoutes } from "./routes/users.js";
 import type { SiteStore } from "./site/store.js";
@@ -74,6 +75,7 @@ export function createApp(opts: {
   app.route("/api", libraryRoutes);
   app.route("/api", renderRoutes);
   app.route("/api", siteRoutes);
+  app.route("/api", themeRoutes);
   app.route("/api", stylesheetRoutes);
   app.route("/api", backupRoutes);
   app.route("/api", userRoutes);

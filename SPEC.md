@@ -267,6 +267,36 @@ Gallery, layout primitives, nav, bindings, and the blog are in the product. List
 - The renderer never depends on the editor. The editor API serves the real snapshot runtime from `/preview/`; the editing screen does not embed it yet. Hosting that render beside Compose is the next editor step.
 - Flatten output **is** the renderer contract.
 
+### Theme overlay and zone naming
+
+Three facets stay separate on a **theme apply** (drop-in design):
+
+| Facet | On apply |
+|-------|----------|
+| **Content** (`records/content/`) | Never modified |
+| **Layouts** + shell CSS | Replaced or merged from the kit |
+| **Types** | Optional merge per kit manifest |
+
+**Operations (distinct):**
+
+- **`POST /api/themes/:id/apply`** — patch layouts, shell, and allowed site keys; safety backup first; **does not** touch content or the media library.
+- **`POST /api/site/reseed`** — replace the site with the blank starter (destructive to content).
+- **Restore example (Willow)** — full example site (destructive).
+
+**Zone naming (guidance, not runtime validation):**
+
+| Tier | Ids | Role |
+|------|-----|------|
+| Core | `main` | Primary Compose body; interchange kits declare it on the default page layout. |
+| Common | `title`, `hero`, `lead`, `primary`, `aside`, `footer` | Optional marketing splits; kits declare whichever they use. |
+| Custom | any `kebab-case` id | Site-specific; unpainted zones stay in the page and appear as **Off layout** in the editor. |
+
+Outlet **id** must equal the content zone key (no aliases in v1). Articles use the page **title** field and Compose **main** only; a `title` zone on other types is separate.
+
+**Within reason after apply:** pages render zones whose ids appear on the resolved layout; other zone data is preserved but not painted until the layout declares them.
+
+**Theme kits** ship under the release seed (`seed/themes/<id>/`) with a `manifest.yaml` (`stack: w3`, patch rules, `zonesDeclared`, optional demo paths). Demo import is optional; **`POST /api/themes/:id/reset-demo`** removes only manifest demo records.
+
 ---
 
 ## 10. Acceptance criteria
@@ -319,11 +349,19 @@ Criteria define “done enough,” not a build order (see [ROADMAP.md](./ROADMAP
 
 - Dynamic menus from document nav into sidebar chrome; in-page headings menu; catalogue components such as `pageNav` (refine as nav-as-content lands).
 
+### Theme overlay
+
+- [x] **`POST /api/themes/:id/apply`** writes a safety backup, patches kit-owned paths (layouts, shell, optional types/items), merges allowed `site.yaml` keys, and does **not** modify `records/content/` or library files.
+- [x] Zone naming convention is documented (core `main`, common optional ids, unlimited custom ids).
+- [x] At least two W3 kits (`tessera-w3-starter`, `tessera-w3-alt`) share zone ids on the standard page layout so existing **`main`** content still paints after switching kits.
+- [x] Optional demo import and **`POST /api/themes/:id/reset-demo`** remove only kit demo paths.
+
 ### Explicitly later / soft
 
 - **Fanciness** — polish, motion, richer presentation beyond minimal W3 chrome; keep scoped as an open product goal until specified further.
 - **Cold-start offline** — icing only.
 - **Editor preview** — host the renderer inside the editor. Compose already edits the page; the rendered result is still a separate snapshot.
+- **Zone wire maps** — content key → layout outlet alias; region **part** keys for CSS — only if naming convention proves insufficient.
 
 ---
 

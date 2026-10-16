@@ -1,0 +1,44 @@
+id: master
+includes:
+  - common-footer
+root:
+  type: region
+  children:
+    - type: region
+      className: w3-top tessera-top
+      children:
+        - type: region
+          tag: header
+          className: w3-bar w3-light-grey tessera-bar
+          children:
+            - type: static
+              html: '<a class="w3-bar-item w3-button w3-right tessera-menu-btn w3-hide-large" href="javascript:void(0)" onclick="w3_open()" aria-label="Open menu">Menu</a><div class="w3-bar-item tessera-brand"><strong>Site</strong></div><span class="tessera-fonts" role="group" aria-label="Font"><button type="button" class="tessera-font-btn" onclick="body_switch.switch(&quot;font&quot;, 0)">A</button><button type="button" class="tessera-font-btn" onclick="body_switch.switch(&quot;font&quot;, 1)">B</button><button type="button" class="tessera-font-btn" onclick="body_switch.switch(&quot;font&quot;, 2)">C</button><button type="button" class="tessera-font-btn" onclick="body_switch.switch(&quot;font&quot;, 3)">D</button></span>'
+    - type: region
+      tag: nav
+      id: mySidebar
+      className: w3-sidebar w3-bar-block w3-collapse tessera-sidebar w3-white
+      children:
+        - type: static
+          html: '<a href="javascript:void(0)" onclick="w3_close()" class="w3-button w3-right w3-hide-large" aria-label="Close menu">Close</a>'
+        - type: component
+          name: navFlat
+          props:
+            scope: sidebar
+    - type: static
+      html: '<div class="w3-overlay w3-hide-large" onclick="w3_close()" id="myOverlay"></div>'
+    - type: region
+      tag: main
+      className: w3-main tessera-main
+      children:
+        - type: region
+          className: tessera-content w3-padding-16
+          children:
+            - type: component
+              name: breadcrumbs
+            - type: page
+        - type: region
+          tag: footer
+          className: tessera-footer w3-light-grey
+          children:
+            - type: zone
+              id: footer

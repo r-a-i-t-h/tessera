@@ -175,8 +175,23 @@ function zoneViews(record: Record<string, unknown>, layout?: PageLayoutHint): Zo
   ];
 }
 
+const ZONE_LABELS: Record<string, string> = {
+  main: "Body",
+  title: "Title",
+  hero: "Hero",
+  lead: "Lead",
+  primary: "Primary",
+  aside: "Aside",
+  footer: "Footer",
+};
+
+function zoneLabel(name: string, off: boolean): string {
+  if (off) return `Off layout: ${name}`;
+  return ZONE_LABELS[name] ?? `Zone: ${name}`;
+}
+
 function zoneView(name: string, zone: unknown, off: boolean): ZoneView {
-  const label = off ? `Off layout: ${name}` : name === "main" ? "Body" : `Zone: ${name}`;
+  const label = zoneLabel(name, off);
   if (zone === undefined || (isRecord(zone) && "html" in zone && !("json" in zone) && !("blocks" in zone) && !("component" in zone))) {
     return { name, label, off, kind: "html", html: isRecord(zone) ? String(zone.html ?? "") : "" };
   }

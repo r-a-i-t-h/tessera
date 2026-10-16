@@ -1,0 +1,4 @@
+id: common-footer
+zones:
+  footer:
+    html: '<p>Alternate theme</p>'

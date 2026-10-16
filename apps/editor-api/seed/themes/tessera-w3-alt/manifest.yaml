@@ -1,0 +1,29 @@
+id: tessera-w3-alt
+name: Tessera W3 alternate
+version: 1
+stack: w3
+masterLayoutId: master
+defaultLayoutId: standard
+patch:
+  layouts: replace-listed
+  layoutIds:
+    - master
+    - standard
+  shell: replace
+  site: merge-keys
+  types: skip
+  items: merge-listed
+  itemIds:
+    - common-footer
+  nav: skip
+zonesDeclared:
+  standard:
+    - title
+    - main
+  master: []
+site:
+  style:
+    navSide: left
+demo:
+  optional: true
+  paths: []

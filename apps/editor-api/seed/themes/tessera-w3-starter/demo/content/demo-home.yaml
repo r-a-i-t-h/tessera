@@ -1,0 +1,8 @@
+id: demo-home
+title: Theme demo page
+type: standard
+zones:
+  title:
+    html: Theme demo page
+  main:
+    html: '<p>Optional demo content from the theme kit. Remove demo when you are ready.</p>'

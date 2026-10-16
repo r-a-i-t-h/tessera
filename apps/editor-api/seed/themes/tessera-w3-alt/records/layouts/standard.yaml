@@ -1,0 +1,13 @@
+id: standard
+root:
+  type: region
+  className: w3-container
+  children:
+    - type: region
+      tag: h1
+      className: w3-text-theme
+      children:
+        - type: zone
+          id: title
+    - type: zone
+      id: main

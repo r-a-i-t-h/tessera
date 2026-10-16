@@ -1,0 +1,31 @@
+id: millers-ark
+name: Miller's Ark (nature frame)
+version: 1
+stack: custom
+masterLayoutId: master
+defaultLayoutId: standard
+patch:
+  layouts: replace-listed
+  layoutIds:
+    - master
+    - standard
+  shell: replace
+  site: merge-keys
+  types: skip
+  items: merge-listed
+  itemIds:
+    - common-footer
+  nav: skip
+zonesDeclared:
+  standard:
+    - title
+    - main
+  master:
+    - footer
+site:
+  style:
+    navSide: left
+    footerStyle: floating
+demo:
+  optional: false
+  paths: []

@@ -285,7 +285,8 @@ async function moveTree(from: string, to: string): Promise<void> {
   await rm(from, { recursive: true });
 }
 
-async function rollback(dataDir: string, backupDir: string, safetyName: string): Promise<void> {
+/** Restore the site directory from a safety archive after a failed mutation. */
+export async function rollback(dataDir: string, backupDir: string, safetyName: string): Promise<void> {
   const safety = join(backupDir, safetyName);
   try {
     await clearDataDir(dataDir);

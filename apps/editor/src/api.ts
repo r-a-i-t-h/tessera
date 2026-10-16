@@ -353,6 +353,32 @@ export function reseedSite(): Promise<RestoreResult> {
   return request("/api/site/reseed", { method: "POST" });
 }
 
+export type ThemeKitInfo = {
+  id: string;
+  name: string;
+  version: number;
+  stack: string;
+  zonesDeclared?: Record<string, string[]>;
+};
+
+export function listThemeKits(): Promise<{ ok: true; kits: ThemeKitInfo[] }> {
+  return request("/api/themes");
+}
+
+export function applyThemeKit(
+  id: string,
+  options?: { importDemo?: boolean },
+): Promise<RestoreResult & { kitId: string; importDemo: boolean; pages?: number }> {
+  return request(`/api/themes/${encodeURIComponent(id)}/apply`, {
+    method: "POST",
+    body: JSON.stringify(options ?? {}),
+  });
+}
+
+export function resetThemeDemo(id: string): Promise<RestoreResult> {
+  return request(`/api/themes/${encodeURIComponent(id)}/reset-demo`, { method: "POST" });
+}
+
 export type LibraryFolder = { id: string; parentId: string | null; sort?: number };
 export type LibraryAsset = {
   id: string;

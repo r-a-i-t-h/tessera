@@ -1,0 +1,17 @@
+/* Tessera W3 alternate kit — accent bar and sidebar edge. */
+
+.tessera-bar {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.tessera-sidebar {
+  border-right: 3px solid var(--tessera-accent, #009688);
+}
+
+@media (max-width: 992px) {
+  body.leftnav .tessera-sidebar {
+    left: auto;
+    right: 0;
+    animation: animateright 0.4s;
+  }
+}

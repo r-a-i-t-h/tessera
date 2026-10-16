@@ -1,0 +1,4 @@
+id: common-footer
+zones:
+  footer:
+    html: '<p>New site</p>'

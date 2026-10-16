@@ -31,6 +31,10 @@ import {
   renderSite,
   restoreExample,
   reseedSite,
+  listThemeKits,
+  applyThemeKit,
+  resetThemeDemo,
+  type ThemeKitInfo,
   saveRawRecord,
   saveRecord,
   listStylesheets,
@@ -1382,7 +1386,13 @@ function navControls(form: HTMLFormElement): ControlValue[] {
 
 async function bindBackups(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {
   const listing = await listBackups();
-  root.innerHTML = chrome(user, backupsHtml(listing, notice, error), true, "backups");
+  let themes: ThemeKitInfo[] = [];
+  try {
+    themes = (await listThemeKits()).kits;
+  } catch {
+    themes = [];
+  }
+  root.innerHTML = chrome(user, backupsHtml(listing, themes, notice, error), true, "backups");
   bindChrome(root);
   root.querySelector("[data-action=backup]")?.addEventListener("click", async () => {
     const button = root.querySelector<HTMLButtonElement>("[data-action=backup]");
@@ -1441,6 +1451,38 @@ async function bindBackups(root: HTMLElement, user: PublicUser, notice = "", err
     }
     void runRestore(root, user, () => reseedSite(), "this site", "Re-seeded");
   });
+  for (const button of root.querySelectorAll<HTMLButtonElement>("[data-theme-apply]")) {
+    button.addEventListener("click", () => {
+      const kitId = button.dataset.themeApply ?? "";
+      const kitName = button.dataset.themeName ?? kitId;
+      const importDemo = button.dataset.themeDemo === "true";
+      if (!kitId) return;
+      const demoNote = importDemo ? " Optional demo pages will be added." : "";
+      if (
+        !window.confirm(
+          `Apply the ${kitName} theme? Your page content stays as it is. Layouts and site styling are replaced.${demoNote} A safety backup is written first.`,
+        )
+      ) {
+        return;
+      }
+      void runRestore(
+        root,
+        user,
+        () => applyThemeKit(kitId, { importDemo }),
+        kitName,
+        "Applied theme",
+      );
+    });
+  }
+  for (const button of root.querySelectorAll<HTMLButtonElement>("[data-theme-reset-demo]")) {
+    button.addEventListener("click", () => {
+      const kitId = button.dataset.themeResetDemo ?? "";
+      const kitName = button.dataset.themeName ?? kitId;
+      if (!kitId) return;
+      if (!window.confirm(`Remove demo pages shipped with ${kitName}? Your other pages stay.`)) return;
+      void runRestore(root, user, () => resetThemeDemo(kitId), `${kitName} demo`, "Removed");
+    });
+  }
 }
 
 async function runRestore(
@@ -1466,7 +1508,25 @@ async function runRestore(
   }
 }
 
-function backupsHtml(listing: BackupList, notice: string, error: string): string {
+function backupsHtml(listing: BackupList, themes: ThemeKitInfo[], notice: string, error: string): string {
+  const themeRows = themes.length
+    ? `<ul class="w3-ul">${themes
+        .map((kit) => {
+          const hasDemo = kit.id === "tessera-w3-starter";
+          return `<li class="editor-backup">
+            <span>${escapeHtml(kit.name)}</span>
+            <span class="w3-text-grey w3-small">${escapeHtml(kit.id)}</span>
+            <button type="button" class="w3-button w3-small w3-white" data-theme-apply="${escapeHtml(kit.id)}" data-theme-name="${escapeHtml(kit.name)}">Apply</button>
+            ${
+              hasDemo
+                ? `<button type="button" class="w3-button w3-small w3-white" data-theme-apply="${escapeHtml(kit.id)}" data-theme-name="${escapeHtml(kit.name)}" data-theme-demo="true">Apply with demo</button>
+            <button type="button" class="w3-button w3-small w3-white" data-theme-reset-demo="${escapeHtml(kit.id)}" data-theme-name="${escapeHtml(kit.name)}">Remove demo</button>`
+                : ""
+            }
+          </li>`;
+        })
+        .join("")}</ul>`
+    : `<p class="w3-text-grey">No theme kits are available on this server.</p>`;
   const rows = listing.backups.length
     ? `<ul class="w3-ul">${listing.backups
         .map(
@@ -1493,6 +1553,9 @@ function backupsHtml(listing: BackupList, notice: string, error: string): string
     ${statusPanels(notice, error)}
     <p><button type="button" class="w3-button w3-theme" data-action="backup">Back up now</button></p>
     ${rows}
+    <h2 class="w3-medium">Themes</h2>
+    <p class="w3-small w3-text-grey">Apply a design without changing your page content. A safety backup is written first.</p>
+    ${themeRows}
     <h2 class="w3-medium">Examples</h2>
     ${examples}
     <h2 class="w3-medium">Re-seed</h2>

@@ -1,0 +1,70 @@
+id: master
+includes:
+  - common-footer
+root:
+  type: region
+  children:
+    - type: region
+      children:
+        - type: region
+          children:
+            - type: region
+              children:
+                - type: region
+                  children:
+                    - type: static
+                      html: <a class="ma-banner-link" href="#home"><span>Miller's Ark Animals</span></a><button type="button" class="ma-menu-btn w3-hide-large" onclick="w3_open()">Menu</button>
+                  tag: header
+                  id: header
+                - type: region
+                  children:
+                    - type: static
+                      html: <button type="button" class="ma-menu-close w3-hide-large" onclick="w3_close()">Close</button>
+                    - type: region
+                      children:
+                        - type: component
+                          name: navCollapse
+                          props:
+                            scope: sidebar
+                      id: nav
+                    - type: static
+                      html: <div class="ma-supported"><p>We are supported by...</p><p><img src="./img/supporters/loddon.jpg" alt="Loddon" width="140" height="43"></p><p><img src="./img/supporters/leader.png" alt="Leader" width="80" height="80"></p><p><img src="./img/supporters/eu.png" alt="European Agricultural Fund for Rural Development" width="106" height="77"></p></div>
+                  tag: nav
+                  id: mySidebar
+                - type: static
+                  html: <div class="w3-overlay w3-hide-large" onclick="w3_close()" id="myOverlay"></div>
+                - type: region
+                  children:
+                    - type: region
+                      children:
+                        - type: page
+                      className: ma-pad
+                  id: content
+                - type: static
+                  html: <div class="ma-clear"></div>
+              id: row1inner
+              className: rowinner
+          id: row1outer2
+      id: row1outer
+      className: rowouter
+    - type: region
+      children:
+        - type: region
+          children:
+            - type: region
+              children:
+                - type: region
+                  children:
+                    - type: component
+                      name: navTree
+                      props:
+                        scope: footer
+                  id: footermenucontainer
+                - type: zone
+                  id: footer
+              tag: footer
+              id: footer
+          id: row3inner
+          className: rowinner
+      id: row3outer
+      className: rowouter

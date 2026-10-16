@@ -1,0 +1,9 @@
+id: common-footer
+zones:
+  footer:
+    html: |-
+      <div class="ma-rule"></div>
+      <p>Tel: <strong>01256 767596</strong><br>
+      E-mail: <strong><a href="mailto:elizabeth@millersark.co.uk">elizabeth@millersark.co.uk</a></strong><br>
+      Farm address: <strong>Manor Farm, Blackstocks Lane, Hook, RG27 9PH</strong></p>
+      <p>&copy; 2013 Miller's Ark Animals</p>
