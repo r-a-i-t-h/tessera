@@ -99,6 +99,18 @@ describe("linkCluster", () => {
   });
 });
 
+describe("nav link labels", () => {
+  it("uses the page title when the nav entry has no title", () => {
+    const doc = parseSiteDocument({
+      ...document,
+      nav: [{ id: "events", sidebar: true }],
+    });
+    const html = navFlat(context(doc, "home"), { scope: "sidebar" });
+    expect(html).toContain(">Events</a>");
+    expect(html).not.toContain(">events</a>");
+  });
+});
+
 describe("nav places", () => {
   it("lets a component keep the links marked for its place", () => {
     const doc = parseSiteDocument({
