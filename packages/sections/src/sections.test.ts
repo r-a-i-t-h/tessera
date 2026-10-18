@@ -148,6 +148,16 @@ describe("paintSections", () => {
     expect(html).not.toContain("tessera-loose");
   });
 
+  it("round-trips heading level 4 on text and standalone headings", () => {
+    const sections: Section[] = [
+      { kind: "heading", level: 4, text: "Small title" },
+      { kind: "text", heading: "Sub", level: 4, html: "<p>Body</p>" },
+    ];
+    const html = paintSections(sections);
+    expect(html).toContain("<h4");
+    expect(parseSections(html)).toEqual(sections);
+  });
+
   it("keeps blank paragraph lines inside text html", () => {
     const html = `<div class="tessera-block tessera-text"><p><br></p><p>Hello</p></div>`;
     expect(parseSections(html)).toMatchObject([

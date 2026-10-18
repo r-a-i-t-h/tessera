@@ -13,10 +13,11 @@ export {
   paintSection,
   paintSections,
   parseSections,
+  parseHeadingLevel,
   quoteBlockHtml,
   toneClass,
   toneLabel,
   youtubeVideoId,
 } from "./sections.js";
 export { renderMarkdownLinks, restoreMarkdownLinks } from "./html.js";
-export type { ColumnCell, ColumnLayoutId, GalleryMode, PaletteKind, Section, ToneId, VideoWidthId } from "./sections.js";
+export type { ColumnCell, ColumnLayoutId, GalleryMode, HeadingLevel, PaletteKind, Section, ToneId, VideoWidthId } from "./sections.js";

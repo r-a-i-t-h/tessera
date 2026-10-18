@@ -9,6 +9,7 @@ import {
   isColumnLayout,
   isVideoWidth,
   paintSections,
+  parseHeadingLevel,
   parseSections,
   quoteBlockHtml,
   renderMarkdownLinks,
@@ -18,6 +19,7 @@ import {
   VIDEO_WIDTHS,
   youtubeVideoId,
   type ColumnLayoutId,
+  type HeadingLevel,
   type PaletteKind,
   type Section,
   type ToneId,
@@ -378,12 +380,7 @@ function layoutSelect(layout: ColumnLayoutId): string {
   return `<label class="editor-prop">Layout <select data-field="layout">${options}</select></label>`;
 }
 
-function headingLevel(value: string): 1 | 2 | 3 {
-  const level = Number(value);
-  return level === 1 ? 1 : level === 3 ? 3 : 2;
-}
-
-function retagHeading(article: HTMLElement, level: 1 | 2 | 3, field: "heading" | "text"): void {
+function retagHeading(article: HTMLElement, level: HeadingLevel, field: "heading" | "text"): void {
   const current = article.querySelector<HTMLElement>(`[data-field="${field}"]`);
   if (!current || current.tagName === `H${level}`) return;
   const next = document.createElement(`h${level}`);
@@ -392,8 +389,8 @@ function retagHeading(article: HTMLElement, level: 1 | 2 | 3, field: "heading" |
   current.replaceWith(next);
 }
 
-function levelSelect(level: 1 | 2 | 3): string {
-  return `<label class="editor-prop">Level <select data-field="level">${[1, 2, 3]
+function levelSelect(level: HeadingLevel): string {
+  return `<label class="editor-prop">Level <select data-field="level">${[1, 2, 3, 4]
     .map((item) => `<option value="${item}"${level === item ? " selected" : ""}>${item}</option>`)
     .join("")}</select></label>`;
 }
@@ -594,7 +591,7 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
     if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement)) return;
     const value = target.value;
     if ((node.kind === "heading" || node.kind === "text") && field === "level") {
-      node.level = headingLevel(value);
+      node.level = parseHeadingLevel(value);
       if (fromChange && article) retagHeading(article, node.level, node.kind === "text" ? "heading" : "text");
       return;
     }
@@ -1138,7 +1135,7 @@ function syncAll(state: Mounted): void {
 }
 
 function applyControl(node: EditLeaf | EditCard, field: string, value: string): void {
-  if ((node.kind === "heading" || node.kind === "text") && field === "level") node.level = headingLevel(value);
+  if ((node.kind === "heading" || node.kind === "text") && field === "level") node.level = parseHeadingLevel(value);
   if ((node.kind === "panel" || node.kind === "quote") && field === "tone" && isTone(value)) node.tone = value;
   if (node.kind === "quote" && field === "attribution") node.attribution = value;
   if (node.kind === "imgbox" && field === "src") node.src = value;

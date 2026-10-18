@@ -129,9 +129,21 @@ export type ColumnCell = {
 
 export type GalleryMode = "grid" | "slides";
 
+export type HeadingLevel = 1 | 2 | 3 | 4;
+
+export function parseHeadingLevel(value: string | number): HeadingLevel {
+  const level = typeof value === "number" ? value : Number(value);
+  if (level === 1 || level === 2 || level === 3 || level === 4) return level;
+  return 2;
+}
+
+function isHeadingTag(tag: string): tag is `h${HeadingLevel}` {
+  return tag === "h1" || tag === "h2" || tag === "h3" || tag === "h4";
+}
+
 export type Section =
-  | { kind: "heading"; level: 1 | 2 | 3; text: string }
-  | { kind: "text"; heading: string; level: 1 | 2 | 3; html: string; loose?: boolean }
+  | { kind: "heading"; level: HeadingLevel; text: string }
+  | { kind: "text"; heading: string; level: HeadingLevel; html: string; loose?: boolean }
   | { kind: "panel"; tone: ToneId; html: string }
   | { kind: "quote"; tone: ToneId; text: string; attribution: string }
   | { kind: "imgbox"; src: string; alt: string; caption: string; plain: boolean }
@@ -392,7 +404,7 @@ function paintColumns(section: Extract<Section, { kind: "columns" }>): string {
 
 type Atom =
   | { type: "flow"; html: string }
-  | { type: "heading"; level: 1 | 2 | 3; text: string }
+  | { type: "heading"; level: HeadingLevel; text: string }
   | { type: "section"; section: Section };
 
 function walk(nodes: HtmlNode[], allowColumns: boolean): Section[] {
@@ -411,7 +423,7 @@ function groupAtoms(atoms: Atom[]): Section[] {
       continue;
     }
     let heading = "";
-    let level: 1 | 2 | 3 = 2;
+    let level: HeadingLevel = 2;
     if (atom.type === "heading") {
       if (atoms[i + 1]?.type !== "flow") {
         sections.push({ kind: "heading", level: atom.level, text: atom.text });
@@ -448,8 +460,8 @@ function atomsFrom(node: HtmlNode, allowColumns: boolean): Atom[] {
     if (insert) return [{ type: "section", section: insert }];
     return [{ type: "flow", html: serializeNode(node) }];
   }
-  if (node.tag === "h1" || node.tag === "h2" || node.tag === "h3") {
-    return [{ type: "heading", level: Number(node.tag[1]) as 1 | 2 | 3, text: textContent(node).trim() }];
+  if (isHeadingTag(node.tag)) {
+    return [{ type: "heading", level: parseHeadingLevel(node.tag[1]!), text: textContent(node).trim() }];
   }
   return classify(node, allowColumns).map((section) => ({ type: "section", section }));
 }
@@ -474,12 +486,12 @@ function asTextRun(el: ElNode): Section | null {
   if (!hasClass(el, "tessera-text")) return null;
   const children = el.children.filter((child) => child.type !== "text" || child.text.trim());
   let heading = "";
-  let level: 1 | 2 | 3 = 2;
+  let level: HeadingLevel = 2;
   let start = 0;
   const first = children[0];
-  if (first?.type === "el" && (first.tag === "h1" || first.tag === "h2" || first.tag === "h3")) {
+  if (first?.type === "el" && isHeadingTag(first.tag)) {
     heading = textContent(first).trim();
-    level = Number(first.tag[1]) as 1 | 2 | 3;
+    level = parseHeadingLevel(first.tag[1]!);
     start = 1;
   }
   const html = serializeChildren(children.slice(start));

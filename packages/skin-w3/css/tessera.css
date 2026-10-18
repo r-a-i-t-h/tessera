@@ -222,24 +222,24 @@ body.fontD h6 {
   margin-top: 1rem;
 }
 
-.tessera-text > :is(h1, h2, h3) {
+.tessera-text > :is(h1, h2, h3, h4) {
   margin: 0 0 0.65em;
   line-height: 1.25;
 }
 
 /* Leading space above headings that follow body copy or an earlier block. */
-.tessera-text > :is(h1, h2, h3):not(:first-child),
-.tessera-block.tessera-text:not(:first-child) > :is(h1, h2, h3):first-child {
+.tessera-text > :is(h1, h2, h3, h4):not(:first-child),
+.tessera-block.tessera-text:not(:first-child) > :is(h1, h2, h3, h4):first-child {
   margin-top: 1.75rem;
 }
 
-.rt-card-body .tessera-text > :is(h1, h2, h3):first-child,
-.rt-card-body .tessera-text > :not(:is(h1, h2, h3)):first-child > :is(h1, h2, h3):first-child {
+.rt-card-body .tessera-text > :is(h1, h2, h3, h4):first-child,
+.rt-card-body .tessera-text > :not(:is(h1, h2, h3, h4)):first-child > :is(h1, h2, h3, h4):first-child {
   margin-top: 0;
 }
 
-.tessera-block.w3-card > :is(h1, h2, h3).w3-text-theme:first-child,
-.rt-card-body > :is(h1, h2, h3).tessera-block:first-child {
+.tessera-block.w3-card > :is(h1, h2, h3, h4).w3-text-theme:first-child,
+.rt-card-body > :is(h1, h2, h3, h4).tessera-block:first-child {
   margin-top: 0;
 }
 
