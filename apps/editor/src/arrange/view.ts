@@ -1,4 +1,9 @@
 import type { LayoutNode } from "@r-a-i-t-h/tessera-model";
+import {
+  W3_REGION_PRESETS,
+  isKnownW3RegionPreset,
+  w3RegionPresetClasses,
+} from "@r-a-i-t-h/tessera-skin-w3";
 import { escapeHtml } from "../dom.js";
 import {
   COMPONENT_CHOICES,
@@ -23,7 +28,11 @@ export type ArrangeInfo = {
   typeIds: string[];
 };
 
-const ID_NOTE = "The list names this box from its id.";
+const REGION_ID_NOTE =
+  "The list names this box from its id when set, otherwise from the skin preset below, otherwise “Region”.";
+const ZONE_ID_NOTE = "The list names this box from its id.";
+const SKIN_PRESET_HELP =
+  'Adds default <a href="https://www.w3schools.com/w3css/w3css_intro.asp" target="_blank" rel="noopener noreferrer">W3.CSS</a> classes for this kind of region, merged with Classes below. Id names the box in the list when set; a preset is only a fallback name and does not set an HTML id.';
 
 const WIDTHS: [string, string][] = [
   ["m6", "Half"],
@@ -68,6 +77,22 @@ export function treeHtml(root: LayoutNode, selected: string): string {
   return nodeHtml(root, [], selected);
 }
 
+function skinPresetOptions(current: string): string {
+  const selected = current;
+  const options = [`<option value=""${!selected ? " selected" : ""}>None</option>`];
+  for (const preset of W3_REGION_PRESETS) {
+    options.push(
+      `<option value="${escapeHtml(preset.id)}"${preset.id === selected ? " selected" : ""}>${escapeHtml(preset.label)}</option>`,
+    );
+  }
+  if (selected && !isKnownW3RegionPreset(selected)) {
+    options.push(
+      `<option value="${escapeHtml(selected)}" selected>Custom: ${escapeHtml(selected)}</option>`,
+    );
+  }
+  return options.join("");
+}
+
 export function inspectorHtml(node: LayoutNode | undefined, info: ArrangeInfo, frame: boolean, names = new Set<string>()): string {
   if (!node) return `<p class="w3-text-grey">Select a box.</p>`;
   const parts = [`<h2 class="w3-medium">${escapeHtml(nodeLabel(node))}</h2>`];
@@ -89,13 +114,18 @@ function regionFields(node: Extract<LayoutNode, { type: "region" }>): string {
   const widths = classTokens(node.className).includes("w3-col") ? widthOptions(width ?? "m6") : undefined;
   const drawer = drawerState(node);
   const note = stayOpenNote(node);
+  const role = node.role?.trim() ?? "";
+  const presetClasses = w3RegionPresetClasses(role);
+  const adds =
+    presetClasses ? `<p class="w3-small w3-text-grey">Adds: ${escapeHtml(presetClasses)}</p>` : "";
   return `<p><label>Tag <select class="w3-select w3-border" data-field="tag">${tags}</select></label></p>
     <p class="w3-small w3-text-grey">header, nav, main, and aside are plain blocks until a class places them. h1 is a heading.</p>
     <p><label>Id <input class="w3-input w3-border" data-field="id" value="${escapeHtml(node.id ?? "")}" /></label></p>
-    <p class="w3-small w3-text-grey">${ID_NOTE}</p>
+    <p class="w3-small w3-text-grey">${REGION_ID_NOTE}</p>
     ${node.id === "mySidebar" ? `<p class="w3-small w3-text-grey">The Menu button opens the element with this id.</p>` : ""}
-    <p><label>Role <input class="w3-input w3-border" data-field="role" value="${escapeHtml(node.role ?? "")}" /></label></p>
-    <p class="w3-small w3-text-grey">A role can add skin classes. Row adds w3-row.</p>
+    <p><label>Skin preset <select class="w3-select w3-border" data-field="role">${skinPresetOptions(role)}</select></label></p>
+    <p class="w3-small w3-text-grey">${SKIN_PRESET_HELP}</p>
+    ${adds}
     <p><label>Classes <input class="w3-input w3-border" data-field="className" value="${escapeHtml(node.className ?? "")}" /></label></p>
     <p class="w3-small w3-text-grey">Shared by every page that uses this layout.</p>
     ${
@@ -119,7 +149,7 @@ function zoneFields(node: Extract<LayoutNode, { type: "zone" }>, info: ArrangeIn
       ? `${info.typeIds.join(", ")} pages fill this in Compose.`
       : "Pages that use this layout fill this in Compose.";
   return `<p><label>Name <input class="w3-input w3-border" data-field="zoneId" value="${escapeHtml(node.id)}" /></label></p>
-    <p class="w3-small w3-text-grey">${ID_NOTE}</p>
+    <p class="w3-small w3-text-grey">${ZONE_ID_NOTE}</p>
     <p class="w3-small w3-text-grey">${escapeHtml(who)}</p>
     <p><label>Classes <input class="w3-input w3-border" data-field="className" value="${escapeHtml(node.className ?? "")}" /></label></p>
     <p class="w3-small w3-text-grey">Set when this zone should be wrapped in a div. Empty leaves the page HTML bare.</p>`;
@@ -127,7 +157,7 @@ function zoneFields(node: Extract<LayoutNode, { type: "zone" }>, info: ArrangeIn
 
 function staticFields(html: string): string {
   return `<p><label>HTML <textarea class="w3-input w3-border editor-html" data-field="html" rows="14" spellcheck="false">${escapeHtml(html)}</textarea></label></p>
-    <p class="w3-small w3-text-grey">${ID_NOTE}</p>
+    <p class="w3-small w3-text-grey">${ZONE_ID_NOTE}</p>
     <p class="w3-small w3-text-grey">This fragment is the same on every page.</p>`;
 }
 

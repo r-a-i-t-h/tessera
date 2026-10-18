@@ -5,17 +5,20 @@ root:
   type: region
   children:
     - type: region
+      id: ma-top-band
       children:
         - type: region
+          id: ma-top-inner
           children:
             - type: region
               children:
-                - type: region
-                  children:
-                    - type: static
-                      html: <a class="ma-banner-link" href="#home"><span>Miller's Ark Animals</span></a><button type="button" class="ma-menu-btn w3-hide-large" onclick="w3_open()">Menu</button>
-                  tag: header
-                  id: header
+                - type: static
+                  html: <a class="ma-banner-link" href="#home"><span>Miller's Ark Animals</span></a><button type="button" class="ma-menu-btn w3-hide-large" onclick="w3_open()">Menu</button>
+              tag: header
+              id: header
+            - type: region
+              id: ma-main
+              children:
                 - type: region
                   children:
                     - type: static
@@ -38,18 +41,13 @@ root:
                     - type: region
                       children:
                         - type: page
-                      className: ma-pad
+                      id: ma-pad
                   id: content
-                - type: static
-                  html: <div class="ma-clear"></div>
-              id: row1inner
-              className: rowinner
-          id: row1outer2
-      id: row1outer
-      className: rowouter
     - type: region
+      id: ma-footer-band
       children:
         - type: region
+          id: ma-footer-inner
           children:
             - type: region
               children:
@@ -64,7 +62,3 @@ root:
                   id: footer
               tag: footer
               id: footer
-          id: row3inner
-          className: rowinner
-      id: row3outer
-      className: rowouter

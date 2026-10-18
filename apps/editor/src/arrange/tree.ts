@@ -251,7 +251,7 @@ export function columnWidth(className: string | undefined): string | undefined {
 export function nodeLabel(node: LayoutNode): string {
   switch (node.type) {
     case "region":
-      return titled("Region", node.id);
+      return titled("Region", node.id?.trim() || node.role?.trim());
     case "zone":
       return titled("Zone", node.id);
     case "page":

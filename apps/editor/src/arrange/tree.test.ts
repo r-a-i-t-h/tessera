@@ -139,9 +139,31 @@ describe("layout arrange tree", () => {
   it("names a box from its kind and id", () => {
     expect(nodeLabel({ type: "region", children: [] })).toBe("Region");
     expect(nodeLabel({ type: "region", id: "mySidebar", children: [] })).toBe("Region : mySidebar");
+    expect(nodeLabel({ type: "region", role: "main", children: [] })).toBe("Region : main");
+    expect(nodeLabel({ type: "region", id: "x", role: "main", children: [] })).toBe("Region : x");
     expect(nodeLabel({ type: "zone", id: "footer" })).toBe("Zone : footer");
     expect(nodeLabel({ type: "static", html: '<div id="myOverlay"></div>' })).toBe("HTML : myOverlay");
     expect(nodeLabel({ type: "static", html: "<p>Footer</p>" })).toBe("HTML");
+  });
+
+  it("names Willow standard layout regions from id or skin preset", () => {
+    const root = load("standard.yaml");
+    const names = labels(root);
+    expect(names).toContain("Region : content");
+    expect(names).toContain("Region : main");
+  });
+
+  it("offers skin presets on regions in the inspector", () => {
+    const html = inspectorHtml(
+      { type: "region", role: "row", className: "w3-row-padding", children: [] },
+      { layoutId: "sample", master: false, fallback: false, typeIds: [] },
+      false,
+    );
+    expect(html).toContain("Skin preset");
+    expect(html).toContain("W3.CSS");
+    expect(html).toContain('data-field="role"');
+    expect(html).toContain("Adds: w3-row");
+    expect(html).toContain("Row (multi-column)");
   });
 
   it("starts custom HTML as an empty fragment edited as HTML", () => {
@@ -152,7 +174,7 @@ describe("layout arrange tree", () => {
     const html = inspectorHtml(made.nodes[0], { layoutId: "sample", master: false, fallback: false, typeIds: [] }, false);
     expect(html).toContain('data-field="html"');
     expect(html).not.toContain('data-field="paragraph"');
-    expect(html).toContain("The list names this box from its id.");
+    expect(html).toContain("The list names this box from its id when set");
   });
 
   it("groups the frame palette", () => {

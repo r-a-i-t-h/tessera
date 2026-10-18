@@ -6,12 +6,7 @@ html {
 
 body.nature2,
 body.nature2.fontA,
-body.nature2.fontA h1,
-body.nature2.fontA h2,
-body.nature2.fontA h3,
-body.nature2.fontA h4,
-body.nature2.fontA h5,
-body.nature2.fontA h6 {
+body.nature2.fontA :is(h1, h2, h3, h4, h5, h6) {
   font-family: "Comic Sans MS", Arial, sans-serif;
 }
 
@@ -28,44 +23,39 @@ body.nature2 {
   line-height: 1.45;
 }
 
-.rowouter {
-  position: relative;
-  float: left;
-  text-align: center;
+#ma-top-band {
+  display: flow-root;
   width: 100%;
-}
-
-.rowinner {
-  position: relative;
-  width: 960px;
-  text-align: left;
-  margin: 0 auto;
-}
-
-#row1outer {
   background-color: #e0f0ff;
-  background-image: url("./img/nature2/sky-bg-with-sun.jpg");
-  background-position: center top;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+  background-image:
+    url("./img/nature2/grass-top.gif"),
+    url("./img/nature2/sky-bg-with-sun.jpg");
+  background-position: center bottom, center top;
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: scroll, fixed;
 }
 
-#row1outer2 {
-  background-image: url("./img/nature2/grass-top.gif");
-  background-position: center bottom;
-  background-repeat: no-repeat;
+#ma-top-inner,
+#ma-footer-inner {
+  position: relative;
+  width: 100%;
+  max-width: 960px;
+  margin-inline: auto;
+  text-align: left;
 }
 
-#row1inner {
-  margin-top: 140px;
+#ma-top-inner {
   padding-bottom: 20px;
 }
 
+#ma-footer-band {
+  display: flow-root;
+  width: 100%;
+}
+
 #header {
-  position: absolute;
-  top: -140px;
-  left: 0;
-  width: 960px;
+  position: relative;
+  width: 100%;
   height: 140px;
   background-image: url("./img/nature2/sky-banner-3.gif");
   background-position: center top;
@@ -74,7 +64,7 @@ body.nature2 {
 
 .ma-banner-link {
   display: block;
-  width: 960px;
+  width: 100%;
   height: 140px;
   text-decoration: none;
 }
@@ -86,13 +76,8 @@ body.nature2 {
   padding: 0;
   margin: -1px;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
   border: 0;
-}
-
-#mySidebar {
-  float: left;
-  width: 200px;
 }
 
 .ma-menu-btn,
@@ -213,19 +198,13 @@ body.nature2 {
 }
 
 #content {
-  float: right;
-  width: 740px;
   font-size: 120%;
   background-color: rgba(255, 255, 255, 0.8);
   border-radius: 20px;
 }
 
-.ma-pad {
+#ma-pad {
   padding: 20px;
-}
-
-.ma-clear {
-  clear: both;
 }
 
 #content h1 {
@@ -297,10 +276,6 @@ body.nature2 {
   margin: 0;
 }
 
-#row3outer {
-  overflow: hidden;
-}
-
 #footer {
   color: #fff;
   padding: 10px 0;
@@ -319,15 +294,21 @@ body.nature2 {
 
 #footermenucontainer {
   width: 100%;
-  float: left;
   text-align: left;
   margin-bottom: 20px;
 }
 
+#footermenucontainer > .tessera-nav-tree {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
 #footermenucontainer > .tessera-nav-tree > li {
   width: 180px;
-  float: left;
-  margin-left: 10px;
 }
 
 #footermenucontainer a,
@@ -372,32 +353,45 @@ body.nature2 {
 }
 
 @media (min-width: 993px) {
+  #ma-main {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    gap: 20px;
+  }
+
   #mySidebar {
     display: block !important;
     position: static !important;
-    float: left;
+    flex: 0 0 200px;
     width: 200px;
     height: auto;
     animation: none;
   }
+
+  #content {
+    flex: 0 0 740px;
+    max-width: 740px;
+    min-width: 0;
+  }
 }
 
 @media (max-width: 992px) {
-  .rowinner,
+  #ma-top-band {
+    background-repeat: no-repeat, no-repeat;
+    background-attachment: scroll, scroll;
+  }
+
+  #ma-top-inner {
+    padding-top: 8px;
+  }
+
   #header,
   .ma-banner-link {
     width: auto;
   }
 
-  #row1inner {
-    margin-top: 0;
-    padding-top: 8px;
-  }
-
   #header {
-    position: relative;
-    top: 0;
-    left: 0;
     height: 90px;
     margin: 0 8px 8px;
     padding-right: 5.75rem;
@@ -411,7 +405,6 @@ body.nature2 {
   }
 
   #content {
-    float: none;
     width: auto;
     margin: 0 8px;
   }
@@ -424,7 +417,6 @@ body.nature2 {
     right: 0;
     left: auto;
     bottom: 0;
-    float: none;
     width: min(18rem, 86vw);
     height: auto;
     margin: 0;
@@ -436,8 +428,11 @@ body.nature2 {
     animation: animateright 0.4s;
   }
 
+  #footermenucontainer > .tessera-nav-tree {
+    display: block;
+  }
+
   #footermenucontainer > .tessera-nav-tree > li {
-    float: none;
     width: auto;
     margin: 0 8px 12px;
   }
