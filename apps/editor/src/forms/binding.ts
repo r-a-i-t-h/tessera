@@ -5,22 +5,18 @@ import type { ControlValue } from "./nav.js";
 
 export type BindingKind = "gallery" | "dated" | "people" | "links" | "imageReveal" | "other";
 
-export type ImageRevealLayout = "scale" | "stack";
+const IMAGE_REVEAL_SLOT_COUNT = 6;
 
 export type ImageRevealPanelDraft = {
   url: string;
   href: string;
-  alt: string;
-  left: string;
-  top: string;
-  width: string;
-  height: string;
+  title: string;
 };
 
 export type ImageRevealDraft = {
   width: string;
   height: string;
-  layout: ImageRevealLayout;
+  panelsPerRow: string;
   hoverExpand: string;
   navigateDelay: string;
   panels: ImageRevealPanelDraft[];
@@ -249,16 +245,18 @@ export function imageRevealDraft(data: unknown): ImageRevealDraft {
   delete propsExtra.items;
   delete propsExtra.width;
   delete propsExtra.height;
+  delete propsExtra.panelsPerRow;
   delete propsExtra.layout;
   delete propsExtra.hoverExpand;
   delete propsExtra.navigateDelay;
+  delete propsExtra.autoposition;
   const rawItems = Array.isArray(props.items) ? props.items : [];
   const panels: ImageRevealPanelDraft[] = rawItems.map((row) => panelDraftFromRow(row));
-  while (panels.length < 3) panels.push(blankImageRevealPanel());
+  while (panels.length < IMAGE_REVEAL_SLOT_COUNT) panels.push(blankImageRevealPanel());
   return {
     width: numText(props.width, "700"),
     height: numText(props.height, "300"),
-    layout: props.layout === "stack" ? "stack" : "scale",
+    panelsPerRow: numText(props.panelsPerRow, "3"),
     hoverExpand: numText(props.hoverExpand, "30"),
     navigateDelay: numText(props.navigateDelay, "2500"),
     panels,
@@ -271,9 +269,11 @@ export function imageRevealRecord(id: string, draft: ImageRevealDraft): Record<s
   const props: Record<string, unknown> = { ...draft.propsExtra };
   props.width = Number(draft.width.trim()) || 700;
   props.height = Number(draft.height.trim()) || 300;
-  props.layout = draft.layout;
+  props.panelsPerRow = clampPanelsPerRowText(draft.panelsPerRow);
   props.hoverExpand = Number(draft.hoverExpand.trim()) || 30;
   props.navigateDelay = Number(draft.navigateDelay.trim()) || 2500;
+  delete props.layout;
+  delete props.autoposition;
   props.items = draft.panels
     .map((panel) => panelToItem(panel))
     .filter((item): item is Record<string, unknown> => item !== null);
@@ -283,32 +283,24 @@ export function imageRevealRecord(id: string, draft: ImageRevealDraft): Record<s
 export function imageRevealDraftFromForm(controls: readonly ControlValue[]): ImageRevealDraft {
   const urls = valuesOf(controls, "ir-panel-url");
   const hrefs = valuesOf(controls, "ir-panel-href");
-  const alts = valuesOf(controls, "ir-panel-alt");
-  const lefts = valuesOf(controls, "ir-panel-left");
-  const tops = valuesOf(controls, "ir-panel-top");
-  const widths = valuesOf(controls, "ir-panel-width");
-  const heights = valuesOf(controls, "ir-panel-height");
-  const count = Math.max(urls.length, hrefs.length, alts.length, 1);
+  const titles = valuesOf(controls, "ir-panel-title");
+  const count = Math.max(urls.length, hrefs.length, titles.length, IMAGE_REVEAL_SLOT_COUNT);
   const panels: ImageRevealPanelDraft[] = [];
   for (let i = 0; i < count; i += 1) {
     panels.push({
       url: urls[i] ?? "",
       href: hrefs[i] ?? "",
-      alt: alts[i] ?? "",
-      left: lefts[i] ?? "",
-      top: tops[i] ?? "",
-      width: widths[i] ?? "",
-      height: heights[i] ?? "",
+      title: titles[i] ?? "",
     });
   }
-  const layout = valueOf(controls, "ir-layout") === "stack" ? "stack" : "scale";
+  while (panels.length < IMAGE_REVEAL_SLOT_COUNT) panels.push(blankImageRevealPanel());
   return {
     width: valueOf(controls, "ir-width").trim() || "700",
     height: valueOf(controls, "ir-height").trim() || "300",
-    layout,
+    panelsPerRow: valueOf(controls, "ir-panels-per-row").trim() || "3",
     hoverExpand: valueOf(controls, "ir-hover-expand").trim() || "30",
     navigateDelay: valueOf(controls, "ir-navigate-delay").trim() || "2500",
-    panels: panels.length ? panels : [blankImageRevealPanel()],
+    panels,
     propsExtra: parseObject(valueOf(controls, "ir-props-extra")),
     recordExtra: parseObject(valueOf(controls, "ir-record-extra")),
   };
@@ -316,8 +308,11 @@ export function imageRevealDraftFromForm(controls: readonly ControlValue[]): Ima
 
 export function renderImageRevealForm(id: string, draft: ImageRevealDraft): string {
   return `${insertLine(id)}${hiddenExtra("ir", draft.propsExtra, draft.recordExtra)}
-    ${imageRevealStageFields(draft)}
+    <fieldset class="editor-fieldset"><legend>Banner</legend>
+      ${imageRevealStageFields(draft)}
+    </fieldset>
     <fieldset class="editor-fieldset"><legend>Panels</legend>
+      <p class="w3-small w3-text-grey">Up to six panels; blank slots are skipped. Images should match full banner size. Order fills left to right, then down.</p>
       ${imageRevealPanelFields(draft.panels)}
     </fieldset>`;
 }
@@ -544,9 +539,11 @@ function imageRevealWizard(state: NewBinding): string {
     <input type="hidden" name="binding-kind" value="imageReveal" />
     <input type="hidden" name="binding-id" value="${escapeHtml(state.id)}" />
     <input type="hidden" name="binding-step" value="2" />
-    ${imageRevealStageFields(state.imageReveal, true)}
+    <fieldset class="editor-fieldset"><legend>Banner</legend>
+      ${imageRevealStageFields(state.imageReveal, true)}
+    </fieldset>
     <fieldset class="editor-fieldset"><legend>Panels</legend>
-      <p class="w3-small w3-text-grey">Leave layout blank to space panels automatically. Use Library for each image.</p>
+      <p class="w3-small w3-text-grey">Up to six panels; blank slots are skipped. Use Library for each image.</p>
       ${imageRevealPanelFields(state.imageReveal.panels, true)}
     </fieldset>
     ${formErrorPanel()}
@@ -788,20 +785,25 @@ function peoplePhrase(draft: PeopleDraft): string {
 }
 
 function imageRevealStageFields(draft: ImageRevealDraft, focus = false): string {
+  const ppr = clampPanelsPerRowText(draft.panelsPerRow);
+  const pprOptions = [2, 3, 4, 5, 6]
+    .map(
+      (n) =>
+        `<option value="${n}"${n === ppr ? " selected" : ""}>${n}</option>`,
+    )
+    .join("");
   return `<div class="editor-props">
-    <p><label for="ir-width">Stage width</label>
+    <p><label for="ir-width">Banner width</label>
       <input id="ir-width" name="ir-width" class="w3-input w3-border" inputmode="numeric" value="${escapeHtml(draft.width)}"${focus ? " data-binding-focus" : ""} /></p>
-    <p><label for="ir-height">Stage height</label>
+    <p><label for="ir-height">Banner height</label>
       <input id="ir-height" name="ir-height" class="w3-input w3-border" inputmode="numeric" value="${escapeHtml(draft.height)}" /></p>
-    <p><label for="ir-layout">Layout</label>
-      <select id="ir-layout" name="ir-layout" class="w3-select w3-border">
-        <option value="scale"${draft.layout === "scale" ? " selected" : ""}>Scale to fit (default)</option>
-        <option value="stack"${draft.layout === "stack" ? " selected" : ""}>Stack on narrow viewports</option>
-      </select></p>
+    <p><label for="ir-panels-per-row">Panels per row</label>
+      <select id="ir-panels-per-row" name="ir-panels-per-row" class="w3-select w3-border">${pprOptions}</select></p>
     <p><label for="ir-hover-expand">Hover grow (px)</label>
       <input id="ir-hover-expand" name="ir-hover-expand" class="w3-input w3-border" inputmode="numeric" value="${escapeHtml(draft.hoverExpand)}" /></p>
     <p><label for="ir-navigate-delay">Navigate delay (ms)</label>
       <input id="ir-navigate-delay" name="ir-navigate-delay" class="w3-input w3-border" inputmode="numeric" value="${escapeHtml(draft.navigateDelay)}" /></p>
+    <p class="editor-prop-wide w3-small w3-text-grey">Width and height set aspect ratio and design coordinates; height on the page follows width.</p>
   </div>`;
 }
 
@@ -809,17 +811,19 @@ function imageRevealPanelFields(panels: ImageRevealPanelDraft[], focusFirst = fa
   return panels
     .map((panel, index) => {
       const focus = focusFirst && index === 0 ? " data-binding-focus" : "";
-      return `<div class="editor-props editor-irg-panel" data-item-id="${index}">
+      return `<div class="editor-irg-panel" data-item-id="${index}">
         <p class="w3-medium">Panel ${index + 1}</p>
-        <p><label>Image URL <input name="ir-panel-url" class="w3-input w3-border" data-field="url" value="${escapeHtml(panel.url)}"${focus} /></label>
-          <button type="button" class="w3-button w3-small w3-white" data-library="image">Library</button></p>
-        <p><label>Link (page id or URL) <input name="ir-panel-href" class="w3-input w3-border" value="${escapeHtml(panel.href)}" /></label></p>
-        <p><label>Alt text <input name="ir-panel-alt" class="w3-input w3-border" data-field="alt" value="${escapeHtml(panel.alt)}" /></label></p>
-        <p class="w3-small w3-text-grey">Optional layout (design pixels):</p>
-        <p><label>Left <input name="ir-panel-left" class="w3-input w3-border" value="${escapeHtml(panel.left)}" /></label>
-          <label>Top <input name="ir-panel-top" class="w3-input w3-border" value="${escapeHtml(panel.top)}" /></label></p>
-        <p><label>Width <input name="ir-panel-width" class="w3-input w3-border" value="${escapeHtml(panel.width)}" /></label>
-          <label>Height <input name="ir-panel-height" class="w3-input w3-border" value="${escapeHtml(panel.height)}" /></label></p>
+        <div class="editor-props">
+          <p class="editor-prop-wide editor-irg-image-row"><label for="ir-panel-url-${index}">Image</label>
+            <span class="editor-irg-image-controls">
+              <input id="ir-panel-url-${index}" name="ir-panel-url" class="w3-input w3-border" data-field="url" value="${escapeHtml(panel.url)}"${focus} />
+              <button type="button" class="w3-button w3-small w3-white" data-library="image">Library</button>
+            </span></p>
+          <p><label for="ir-panel-title-${index}">Title</label>
+            <textarea id="ir-panel-title-${index}" name="ir-panel-title" class="w3-input w3-border" data-field="title" rows="2">${escapeHtml(panel.title)}</textarea></p>
+          <p><label for="ir-panel-href-${index}">URL</label>
+            <input id="ir-panel-href-${index}" name="ir-panel-href" class="w3-input w3-border" value="${escapeHtml(panel.href)}" /></p>
+        </div>
       </div>`;
     })
     .join("");
@@ -828,8 +832,8 @@ function imageRevealPanelFields(panels: ImageRevealPanelDraft[], focusFirst = fa
 function imageRevealPhrase(draft: ImageRevealDraft): string {
   const count = draft.panels.filter((panel) => panel.url.trim() && panel.href.trim()).length;
   if (!count) return "A reveal banner with no panels yet.";
-  const layout = draft.layout === "stack" ? "stacked" : "scaled";
-  return `Reveal banner with ${count} panel${count === 1 ? "" : "s"} (${layout}).`;
+  const ppr = clampPanelsPerRowText(draft.panelsPerRow);
+  return `Reveal banner with ${count} panel${count === 1 ? "" : "s"}, ${ppr} per row.`;
 }
 
 function imageRevealError(draft: ImageRevealDraft): string | undefined {
@@ -844,14 +848,12 @@ function imageRevealError(draft: ImageRevealDraft): string | undefined {
 
 function panelDraftFromRow(row: unknown): ImageRevealPanelDraft {
   if (!isRecord(row)) return blankImageRevealPanel();
+  const title =
+    typeof row.title === "string" ? row.title : typeof row.alt === "string" ? row.alt : "";
   return {
     url: typeof row.url === "string" ? row.url : "",
     href: typeof row.href === "string" ? row.href : "",
-    alt: typeof row.alt === "string" ? row.alt : "",
-    left: typeof row.left === "number" ? String(row.left) : "",
-    top: typeof row.top === "number" ? String(row.top) : "",
-    width: typeof row.width === "number" ? String(row.width) : "",
-    height: typeof row.height === "number" ? String(row.height) : "",
+    title,
   };
 }
 
@@ -860,19 +862,15 @@ function panelToItem(panel: ImageRevealPanelDraft): Record<string, unknown> | nu
   const href = panel.href.trim();
   if (!url || !href) return null;
   const item: Record<string, unknown> = { url, href };
-  const alt = panel.alt.trim();
-  if (alt) item.alt = alt;
-  const left = panel.left.trim();
-  const top = panel.top.trim();
-  const width = panel.width.trim();
-  const height = panel.height.trim();
-  if (left && top && width && height) {
-    item.left = Number(left);
-    item.top = Number(top);
-    item.width = Number(width);
-    item.height = Number(height);
-  }
+  const title = panel.title.trim();
+  if (title) item.title = title;
   return item;
+}
+
+function clampPanelsPerRowText(value: string): number {
+  const n = Number(value.trim());
+  if (!Number.isFinite(n)) return 3;
+  return Math.max(2, Math.min(6, Math.round(n)));
 }
 
 function numText(value: unknown, fallback: string): string {
@@ -882,17 +880,17 @@ function numText(value: unknown, fallback: string): string {
 }
 
 function blankImageRevealPanel(): ImageRevealPanelDraft {
-  return { url: "", href: "", alt: "", left: "", top: "", width: "", height: "" };
+  return { url: "", href: "", title: "" };
 }
 
 function blankImageReveal(): ImageRevealDraft {
   return {
     width: "700",
     height: "300",
-    layout: "scale",
+    panelsPerRow: "3",
     hoverExpand: "30",
     navigateDelay: "2500",
-    panels: [blankImageRevealPanel(), blankImageRevealPanel(), blankImageRevealPanel()],
+    panels: Array.from({ length: IMAGE_REVEAL_SLOT_COUNT }, () => blankImageRevealPanel()),
     propsExtra: {},
     recordExtra: {},
   };

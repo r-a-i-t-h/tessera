@@ -1075,6 +1075,7 @@ function bindNewBinding(root: HTMLElement, listing: RecordList, choices: Binding
   const form = root.querySelector<HTMLFormElement>("#new-binding-form");
   const open = root.querySelector<HTMLButtonElement>("[data-action=new-binding]");
   if (!form || !open) return;
+  bindPickers(form);
   const existing = listing.records.filter((row) => row.kind === "bindings").map((row) => row.id);
   let state = blankNewBinding();
 
@@ -1182,7 +1183,7 @@ function folderSelection(form: HTMLFormElement): string[] | undefined {
 }
 
 function bindingControls(form: HTMLFormElement): { name: string; value: string; checked?: boolean }[] {
-  const prefixes = ["binding-", "gallery-", "dated-", "people-", "links-"];
+  const prefixes = ["binding-", "gallery-", "dated-", "people-", "links-", "ir-"];
   const controls: { name: string; value: string; checked?: boolean }[] = [];
   for (const el of Array.from(form.elements)) {
     if (!(el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement)) {
@@ -3507,20 +3508,29 @@ async function insertFromLibrary(form: HTMLFormElement, insert: string, target: 
 async function fillImageBox(button: HTMLButtonElement): Promise<void> {
   const picked = await openLibraryPicker("image");
   if (!picked || !("url" in picked)) return;
-  const scope = button.closest("[data-item-id]") ?? button.parentElement;
+  const scope =
+    button.closest(".editor-irg-panel") ??
+    button.closest("[data-item-id]") ??
+    button.closest(".editor-props") ??
+    button.parentElement;
   const src =
     scope?.querySelector<HTMLInputElement>('[data-field="src"]') ??
     scope?.querySelector<HTMLInputElement>('[data-field="url"]');
-  const alt = scope?.querySelector<HTMLInputElement>('[data-field="alt"]');
+  const label =
+    scope?.querySelector<HTMLInputElement | HTMLTextAreaElement>('[data-field="title"]') ??
+    scope?.querySelector<HTMLInputElement>('[data-field="alt"]');
   if (src) {
     src.value = picked.url;
     src.dispatchEvent(new Event("input", { bubbles: true }));
   }
-  if (alt && !alt.value) {
-    alt.value = picked.alt || picked.title || picked.name;
-    alt.dispatchEvent(new Event("input", { bubbles: true }));
+  const fallback = picked.alt || picked.title || picked.name;
+  if (label && !label.value.trim() && fallback) {
+    label.value = fallback;
+    label.dispatchEvent(new Event("input", { bubbles: true }));
   }
   src?.dispatchEvent(new Event("change", { bubbles: true }));
+  const form = button.closest("form");
+  if (form) form.dataset.dirty = "true";
 }
 
 function insertAtCursor(el: HTMLTextAreaElement, text: string): void {
@@ -3731,8 +3741,13 @@ async function bindLibrary(root: HTMLElement, user: PublicUser, routeOpenId: str
   root.querySelector("[data-action=new-folder]")?.addEventListener("click", () => {
     const id = window.prompt("Folder id");
     if (!id?.trim()) return;
-    void createLibraryFolder(id.trim(), openId ?? undefined)
-      .then(() => bindLibrary(root, user, openId, `Created ${id.trim()}.`))
+    const parentFolderId = openId ? libraryOpenFolderId(openId) : null;
+    void createLibraryFolder(id.trim(), parentFolderId ?? undefined)
+      .then(() => getLibrary())
+      .then((fresh) => {
+        const browseId = libraryBrowseId(fresh.folders, id.trim());
+        return bindLibrary(root, user, browseId, `Created ${id.trim()}.`);
+      })
       .catch((err) => bindLibrary(root, user, openId, err instanceof Error ? err.message : "Could not create the folder."));
   });
   const deleteFolder = (id: string) => {
@@ -3875,7 +3890,7 @@ async function submitLibraryUpload(
   openId: string | null,
   dropped: { file: File; path: string }[],
 ): Promise<void> {
-  const dest = form.querySelector<HTMLInputElement>('input[name="dest"]:checked')?.value ?? "uploads";
+  const dest = form.querySelector<HTMLInputElement>('input[name="dest"]:checked')?.value ?? "choose";
   const body = new FormData();
   const files = form.querySelector<HTMLInputElement>("#library-files")?.files;
   const dir = form.querySelector<HTMLInputElement>("#library-dir")?.files;
@@ -3898,8 +3913,10 @@ async function submitLibraryUpload(
     body.append("path", item.path);
   }
   if (dest === "choose") {
-    const folderId = form.querySelector<HTMLSelectElement>("[name=folderId]")?.value;
-    if (folderId) body.append("folderId", folderId);
+    let folderId = form.querySelector<HTMLSelectElement>("[name=folderId]")?.value;
+    if (!folderId && openId) folderId = libraryOpenFolderId(openId) ?? undefined;
+    if (!folderId) folderId = "uploads";
+    body.append("folderId", folderId);
   } else if (dest === "new") {
     const title = form.querySelector<HTMLInputElement>("[name=folderTitle]")?.value ?? "";
     if (!title.trim()) {
@@ -3911,7 +3928,8 @@ async function submitLibraryUpload(
       return;
     }
     body.append("folderTitle", title.trim());
-    if (openId) body.append("parentId", openId);
+    const parentFolderId = openId ? libraryOpenFolderId(openId) : null;
+    if (parentFolderId) body.append("parentId", parentFolderId);
   } else body.append("folderId", "uploads");
   try {
     const result = await uploadLibrary(body);

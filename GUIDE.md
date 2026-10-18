@@ -91,7 +91,7 @@ Other binding kinds have **no** Compose section shortcut — configure them only
 - **Dated list** — Pages of a type with a date field. Upcoming, past, or all. Willow’s upcoming events list is one of these.
 - **People grid** — Pages of a type, using photo and role fields.
 - **Link group** — Titled links: this page’s children, every page of a type, or one menu heading.
-- **Reveal banner** — Cropped image panels (Miller’s Ark–style homepage hero): hover to grow on desktop, click or tap to reveal the full stage, then navigate after a short delay. Insert only; no Compose palette section.
+- **Reveal banner** — Grid of image panels (Miller’s Ark–style homepage hero): set banner width, height, and panels per row (2–6); up to six panels with image, title, and link. Each panel shows its slice of full-size artwork; hover to grow on desktop; click or tap to reveal the full banner, then navigate. Insert only; no Compose palette section.
 
 Create these from Records → Bindings (wizard) or edit the YAML. Unsupported components are edited as the raw file.
 

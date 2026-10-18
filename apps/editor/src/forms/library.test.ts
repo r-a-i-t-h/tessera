@@ -61,7 +61,8 @@ describe("library browser", () => {
     expect(html).toContain("<details");
     expect(html).toContain(" open");
     expect(html).toContain("Add files");
-    expect(html).toContain('value="uploads"');
+    expect(html).toContain('value="choose" checked');
+    expect(html).toContain('value="hall" selected');
     expect(html).toContain("New folder");
     expect(html).toContain('data-action="rescan"');
     expect(html).toContain(">Rescan<");

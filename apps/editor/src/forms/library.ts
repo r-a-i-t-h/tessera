@@ -202,7 +202,7 @@ export function renderLibrary(listing: LibraryListing, openId: string | null, no
       </li>`;
     }),
   ].join("");
-  const destination = folderOptions(listing.folders, openFolderId);
+  const destination = folderOptions(listing.folders, openFolderId ?? "uploads");
   const browse = empty
     ? `<p class="w3-text-grey">This folder is empty.</p>`
     : `<ul class="w3-ul editor-library">${rows}</ul>`;
@@ -230,9 +230,9 @@ export function renderLibrary(listing: LibraryListing, openId: string | null, no
             </p>
             <fieldset class="editor-fieldset">
               <legend>Put them in</legend>
-              <p class="editor-check"><label><input type="radio" name="dest" value="uploads" checked /> Uploads</label></p>
-              <p class="editor-check"><label><input type="radio" name="dest" value="choose"${listing.folders.length ? "" : " disabled"} /> Existing folder</label>
-                <select name="folderId" class="w3-select w3-border">${destination}</select></p>
+              <p class="editor-check"><label><input type="radio" name="dest" value="choose"${listing.folders.length ? " checked" : " disabled"} /> Existing folder</label>
+                <select name="folderId" class="w3-select w3-border"${listing.folders.length ? "" : " disabled"}>${destination}</select></p>
+              <p class="editor-check"><label><input type="radio" name="dest" value="uploads" /> Uploads</label></p>
               <p class="editor-check"><label><input type="radio" name="dest" value="new" /> New folder</label>
                 <input name="folderTitle" class="w3-input w3-border" placeholder="Folder id" spellcheck="false" autocomplete="off" /></p>
             </fieldset>

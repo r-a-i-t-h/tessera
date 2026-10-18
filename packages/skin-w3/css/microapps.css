@@ -101,14 +101,11 @@ tessera-image-reveal-gallery .tessera-irg-stage {
   overflow: visible;
 }
 
-tessera-image-reveal-gallery.tessera-irg--stack .tessera-irg-stage {
-  display: flex;
-  flex-direction: column;
-}
-
 tessera-image-reveal-gallery .tessera-irg-panel {
   position: absolute;
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   box-sizing: border-box;
   background-repeat: no-repeat;
   overflow: hidden;
@@ -121,11 +118,33 @@ tessera-image-reveal-gallery .tessera-irg-panel {
     width 0.25s ease-out,
     height 0.25s ease-out,
     background-position 0.25s ease-out,
+    background-size 0.25s ease-out,
     opacity 0.2s ease-out;
 }
 
-tessera-image-reveal-gallery.tessera-irg--stack .tessera-irg-panel {
+tessera-image-reveal-gallery .tessera-irg-panel-title {
   position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: 0.35rem 0.5rem;
+  max-width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  white-space: pre-line;
+  line-height: 1.25;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
+  pointer-events: none;
+}
+
+tessera-image-reveal-gallery .tessera-irg-panel-title[data-lines="2"] {
+  margin-top: -0.15em;
+}
+
+tessera-image-reveal-gallery .tessera-irg-panel-title[data-lines="3"],
+tessera-image-reveal-gallery .tessera-irg-panel-title[data-lines="4"] {
+  margin-top: -0.3em;
 }
 
 tessera-image-reveal-gallery .tessera-irg-panel:focus-visible {

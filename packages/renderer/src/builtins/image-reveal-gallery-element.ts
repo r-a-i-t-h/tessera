@@ -11,8 +11,7 @@ export type ImageRevealItem = {
   id: string;
   url: string;
   href: string;
-  alt?: string;
-  rect?: ImageRevealRect;
+  title?: string;
 };
 
 type PanelState = {
@@ -21,49 +20,67 @@ type PanelState = {
   href: string;
 };
 
-/** Legacy autoposition: evenly spaced horizontal tiles, vertically centered. */
-export function autopositionRects(
+/** Split integer span into `parts` lengths that sum to `total`. */
+export function splitSpan(total: number, parts: number): number[] {
+  if (parts <= 0) return [];
+  const base = Math.floor(total / parts);
+  const remainder = total - base * parts;
+  return Array.from({ length: parts }, (_, i) => base + (i < remainder ? 1 : 0));
+}
+
+export function clampPanelsPerRow(value: number, fallback = 3): number {
+  if (!Number.isFinite(value)) return fallback;
+  return Math.max(2, Math.min(6, Math.round(value)));
+}
+
+/** Grid slots for `count` panels; `panelsPerRow` sets columns per row (2–6). */
+export function gridPanelRects(
   count: number,
   stageW: number,
   stageH: number,
-  tileW: number,
-  tileH: number,
+  panelsPerRow: number,
 ): ImageRevealRect[] {
+  if (count <= 0) return [];
+  const ppr = clampPanelsPerRow(panelsPerRow);
+  const rows = Math.ceil(count / ppr);
+  const colWidths = splitSpan(stageW, ppr);
+  const rowHeights = splitSpan(stageH, rows);
   const rects: ImageRevealRect[] = [];
   for (let i = 0; i < count; i += 1) {
-    const x = Math.round(((stageW - tileW * count) / (count + 1)) * (i + 1) + tileW * i);
-    const y = Math.round((stageH - tileH) / 2);
-    rects.push({ left: x, top: y, width: tileW, height: tileH });
+    const col = i % ppr;
+    const row = Math.floor(i / ppr);
+    let left = 0;
+    for (let c = 0; c < col; c += 1) left += colWidths[c]!;
+    let top = 0;
+    for (let r = 0; r < row; r += 1) top += rowHeights[r]!;
+    rects.push({
+      left,
+      top,
+      width: colWidths[col]!,
+      height: rowHeights[row]!,
+    });
   }
   return rects;
 }
 
-function defaultTileSize(items: ImageRevealItem[], stageW: number, stageH: number): { w: number; h: number } {
-  for (const item of items) {
-    if (item.rect) {
-      return { w: item.rect.width, h: item.rect.height };
-    }
-  }
-  const side = Math.min(180, Math.round(Math.min(stageW, stageH) * 0.45));
-  return { w: side, h: side };
+/** @deprecated Use {@link gridPanelRects}. */
+export function autopositionRects(
+  count: number,
+  stageW: number,
+  stageH: number,
+  _tileW: number,
+  _tileH: number,
+): ImageRevealRect[] {
+  return gridPanelRects(count, stageW, stageH, count);
 }
 
 export function resolveItemRects(
   items: ImageRevealItem[],
   stageW: number,
   stageH: number,
-  autoposition: boolean,
+  panelsPerRow: number,
 ): ImageRevealRect[] {
-  const manual = items.every((item) => item.rect);
-  if (manual) {
-    return items.map((item) => item.rect!);
-  }
-  if (!autoposition) {
-    const { w, h } = defaultTileSize(items, stageW, stageH);
-    return autopositionRects(items.length, stageW, stageH, w, h);
-  }
-  const { w, h } = defaultTileSize(items, stageW, stageH);
-  return autopositionRects(items.length, stageW, stageH, w, h);
+  return gridPanelRects(items.length, stageW, stageH, panelsPerRow);
 }
 
 function parseItems(raw: string | null): ImageRevealItem[] {
@@ -75,25 +92,15 @@ function parseItems(raw: string | null): ImageRevealItem[] {
     for (const row of data) {
       if (!row || typeof row !== "object") continue;
       const o = row as Record<string, unknown>;
-      if (typeof o.url !== "string" || typeof o.href !== "string" || typeof o.id !== "string") continue;
-      const item: ImageRevealItem = {
-        id: o.id,
-        url: o.url,
-        href: o.href,
-        alt: typeof o.alt === "string" ? o.alt : undefined,
-      };
-      if (o.rect && typeof o.rect === "object") {
-        const r = o.rect as Record<string, unknown>;
-        if (
-          typeof r.left === "number" &&
-          typeof r.top === "number" &&
-          typeof r.width === "number" &&
-          typeof r.height === "number"
-        ) {
-          item.rect = { left: r.left, top: r.top, width: r.width, height: r.height };
-        }
-      }
-      items.push(item);
+      if (typeof o.url !== "string" || typeof o.href !== "string") continue;
+      const id = typeof o.id === "string" ? o.id : `panel-${items.length}`;
+      const title =
+        typeof o.title === "string"
+          ? o.title
+          : typeof o.alt === "string"
+            ? o.alt
+            : undefined;
+      items.push({ id, url: o.url, href: o.href, title });
     }
     return items;
   } catch {
@@ -116,6 +123,11 @@ function fineHover(): boolean {
   return typeof matchMedia === "function" && matchMedia("(hover: hover) and (pointer: fine)").matches;
 }
 
+function titleLineCount(title: string): number {
+  if (!title.trim()) return 0;
+  return title.split("\n").length;
+}
+
 /**
  * Cropped image panels: hover grow (fine pointer), click/tap reveal full stage then navigate.
  */
@@ -129,10 +141,9 @@ export class TesseraImageRevealGallery extends WCBase {
   #panels: PanelState[] = [];
   #designW = 700;
   #designH = 300;
-  #layout: "scale" | "stack" = "scale";
+  #panelsPerRow = 3;
   #hoverExpand = 30;
   #navigateDelay = 2500;
-  #autoposition = true;
   #scale = 1;
   #activeIndex = -1;
   #navigating = false;
@@ -154,8 +165,8 @@ export class TesseraImageRevealGallery extends WCBase {
       this.#designH = Number.isFinite(n) ? n : 300;
       if (this.isConnected) this.#rebuild();
     },
-    layout(this: TesseraImageRevealGallery, v: string | null) {
-      this.#layout = v === "stack" ? "stack" : "scale";
+    "panels-per-row"(this: TesseraImageRevealGallery, v: string | null) {
+      this.#panelsPerRow = clampPanelsPerRow(v === null || v === "" ? 3 : Number(v));
       if (this.isConnected) this.#rebuild();
     },
     "hover-expand"(this: TesseraImageRevealGallery, v: string | null) {
@@ -166,15 +177,11 @@ export class TesseraImageRevealGallery extends WCBase {
       const n = v === null || v === "" ? 2500 : Number(v);
       this.#navigateDelay = Number.isFinite(n) ? n : 2500;
     },
-    autoposition(this: TesseraImageRevealGallery, v: string | null) {
-      this.#autoposition = v !== "false";
-      if (this.isConnected) this.#rebuild();
-    },
   };
 
   b() {
     this.style.display = "block";
-    this.classList.add("tessera-irg", "tessera-block");
+    this.classList.add("tessera-irg", "tessera-block", "tessera-irg--scale");
     this.wrapEl.style.maxWidth = `${this.#designW}px`;
     return [this.wrapEl, [this.stageEl]];
   }
@@ -200,10 +207,9 @@ export class TesseraImageRevealGallery extends WCBase {
     this.#items = parseItems(this.getAttribute("items"));
     this.#designW = numAttr(this, "width", 700);
     this.#designH = numAttr(this, "height", 300);
-    this.#layout = this.getAttribute("layout") === "stack" ? "stack" : "scale";
+    this.#panelsPerRow = clampPanelsPerRow(numAttr(this, "panels-per-row", 3));
     this.#hoverExpand = numAttr(this, "hover-expand", 30);
     this.#navigateDelay = numAttr(this, "navigate-delay", 2500);
-    this.#autoposition = this.getAttribute("autoposition") !== "false";
     this.wrapEl.style.maxWidth = `${this.#designW}px`;
   }
 
@@ -212,8 +218,6 @@ export class TesseraImageRevealGallery extends WCBase {
     this.#activeIndex = -1;
     this.stageEl.replaceChildren();
     this.#panels = [];
-    this.classList.toggle("tessera-irg--stack", this.#layout === "stack");
-    this.classList.toggle("tessera-irg--scale", this.#layout !== "stack");
 
     if (!this.#items.length) {
       const empty = this.d({ className: "w3-text-grey w3-padding" });
@@ -222,10 +226,9 @@ export class TesseraImageRevealGallery extends WCBase {
       return;
     }
 
-    const rects = resolveItemRects(this.#items, this.#designW, this.#designH, this.#autoposition);
+    const rects = resolveItemRects(this.#items, this.#designW, this.#designH, this.#panelsPerRow);
 
-    this.stageEl.style.aspectRatio =
-      this.#layout === "stack" ? "" : `${this.#designW} / ${this.#designH}`;
+    this.stageEl.style.aspectRatio = `${this.#designW} / ${this.#designH}`;
 
     for (let i = 0; i < this.#items.length; i += 1) {
       const item = this.#items[i]!;
@@ -235,8 +238,17 @@ export class TesseraImageRevealGallery extends WCBase {
         href: item.href,
       });
       link.style.backgroundImage = `url("${item.url.replace(/"/g, "%22")}")`;
-      if (item.alt) link.setAttribute("aria-label", item.alt);
+      const label = item.title?.trim();
+      if (label) link.setAttribute("aria-label", label.replace(/\n/g, " "));
       link.tabIndex = 0;
+
+      if (label) {
+        const titleEl = this.d({ className: "tessera-irg-panel-title" });
+        titleEl.textContent = label;
+        const lines = titleLineCount(label);
+        if (lines > 1) titleEl.dataset.lines = String(lines);
+        link.append(titleEl);
+      }
 
       const idx = i;
       link.addEventListener("mouseenter", () => this.#onHoverEnter(idx));
@@ -257,13 +269,6 @@ export class TesseraImageRevealGallery extends WCBase {
   }
 
   #syncScale(): void {
-    if (this.#layout === "stack") {
-      this.#scale = 1;
-      for (let i = 0; i < this.#panels.length; i += 1) {
-        this.#applyStackRect(this.#panels[i]!, i);
-      }
-      return;
-    }
     const w = this.stageEl.clientWidth;
     this.#scale = w > 0 ? w / this.#designW : 1;
     for (let i = 0; i < this.#panels.length; i += 1) {
@@ -278,21 +283,6 @@ export class TesseraImageRevealGallery extends WCBase {
     }
   }
 
-  #applyStackRect(panel: PanelState, index: number): void {
-    const r = panel.orig;
-    const ratio = r.width > 0 ? r.height / r.width : 9 / 16;
-    panel.el.style.position = "relative";
-    panel.el.style.left = "";
-    panel.el.style.top = "";
-    panel.el.style.width = "100%";
-    panel.el.style.height = "";
-    panel.el.style.aspectRatio = `${r.width} / ${r.height}`;
-    panel.el.style.marginBottom = index < this.#panels.length - 1 ? "0.75rem" : "";
-    panel.el.style.backgroundPosition = `-${r.left}px -${r.top}px`;
-    panel.el.style.backgroundSize = `${this.#designW}px ${this.#designH}px`;
-    panel.el.style.zIndex = panel.el.classList.contains("is-revealed") ? "999" : String(991 + index);
-  }
-
   #applyRect(el: HTMLAnchorElement, rect: ImageRevealRect): void {
     const s = this.#scale;
     const left = rect.left * s;
@@ -303,6 +293,7 @@ export class TesseraImageRevealGallery extends WCBase {
     el.style.top = `${top}px`;
     el.style.width = `${width}px`;
     el.style.height = `${height}px`;
+    el.style.backgroundSize = `${this.#designW * s}px ${this.#designH * s}px`;
     el.style.backgroundPosition = `-${left}px -${top}px`;
   }
 
@@ -317,7 +308,7 @@ export class TesseraImageRevealGallery extends WCBase {
   }
 
   #onHoverEnter(index: number): void {
-    if (!this.#hoverCapable || this.#navigating || this.#layout === "stack") return;
+    if (!this.#hoverCapable || this.#navigating) return;
     this.#activeIndex = index;
     for (let i = 0; i < this.#panels.length; i += 1) {
       const panel = this.#panels[i]!;
@@ -332,7 +323,7 @@ export class TesseraImageRevealGallery extends WCBase {
   }
 
   #onHoverLeave(index: number): void {
-    if (!this.#hoverCapable || this.#navigating || this.#layout === "stack") return;
+    if (!this.#hoverCapable || this.#navigating) return;
     if (this.#activeIndex !== index) return;
     this.#activeIndex = -1;
     const panel = this.#panels[index];
@@ -358,14 +349,7 @@ export class TesseraImageRevealGallery extends WCBase {
       if (i === index) {
         panel.el.classList.add("is-revealed");
         panel.el.style.zIndex = "999";
-        if (this.#layout === "stack") {
-          panel.el.style.backgroundSize = "cover";
-          panel.el.style.backgroundPosition = "center";
-        } else if (prefersReducedMotion()) {
-          this.#applyRect(panel.el, { left: 0, top: 0, width: this.#designW, height: this.#designH });
-        } else {
-          this.#applyRect(panel.el, { left: 0, top: 0, width: this.#designW, height: this.#designH });
-        }
+        this.#applyRect(panel.el, { left: 0, top: 0, width: this.#designW, height: this.#designH });
       } else {
         panel.el.style.opacity = "0";
         panel.el.style.pointerEvents = "none";

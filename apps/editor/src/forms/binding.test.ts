@@ -114,7 +114,7 @@ describe("binding sentences", () => {
           ],
         },
       }),
-    ).toBe("Reveal banner with 2 panels (scaled).");
+    ).toBe("Reveal banner with 2 panels, 3 per row.");
   });
 });
 
@@ -143,7 +143,8 @@ describe("binding records", () => {
       props: {
         width: 700,
         height: 300,
-        items: [{ url: "./img1.jpg", href: "farm", alt: "Farm", left: 40, top: 60, width: 180, height: 180 }],
+        panelsPerRow: 4,
+        items: [{ url: "./img1.jpg", href: "farm", title: "Farm" }],
       },
     });
     expect(imageRevealRecord("home-hero", draft)).toMatchObject({
@@ -152,7 +153,8 @@ describe("binding records", () => {
       props: {
         width: 700,
         height: 300,
-        items: [{ url: "./img1.jpg", href: "farm", alt: "Farm", left: 40, top: 60, width: 180, height: 180 }],
+        panelsPerRow: 4,
+        items: [{ url: "./img1.jpg", href: "farm", title: "Farm" }],
       },
     });
   });
