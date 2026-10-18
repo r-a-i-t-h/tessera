@@ -398,10 +398,12 @@ body.footer-fixed .wh-main {
 }
 
 .tessera-pasted-sheet {
-  --tessera-rule: 1.85rem;
+  --tessera-rule: calc(round(1.875 * var(--tessera-font-size, 16px), 1px));
+  --tessera-sheet-inset: calc(round(0.45 * var(--tessera-font-size, 16px), 1px));
   position: relative;
   margin: 0;
-  padding: 0.45rem 1.2rem 0.2rem 2.9rem;
+  padding: var(--tessera-sheet-inset) 1.2rem 0.2rem 2.9rem;
+  font-size: var(--tessera-font-size);
   color: #1c2744;
   line-height: var(--tessera-rule);
   background-color: #fffdf6;
@@ -415,7 +417,7 @@ body.footer-fixed .wh-main {
     ),
     linear-gradient(to right, transparent 2.2rem, rgba(196, 74, 74, 0.75) 2.2rem, rgba(196, 74, 74, 0.75) 2.28rem, transparent 2.28rem);
   background-repeat: repeat, no-repeat;
-  background-position: 0 0.45rem, 0 0;
+  background-position: 0 var(--tessera-sheet-inset), 0 0;
   background-attachment: local, scroll;
   border-radius: 2px 4px 1px 3px;
   transform: rotate(-2deg);
@@ -424,9 +426,14 @@ body.footer-fixed .wh-main {
     8px 14px 18px rgba(0, 0, 0, 0.18);
 }
 
-.tessera-pasted-sheet :where(p, ul, ol, h2, h3, li) {
+.tessera-pasted-sheet :where(p, div, ul, ol, h2, h3, li) {
   margin: 0;
   line-height: var(--tessera-rule);
+}
+
+.tessera-pasted-sheet [contenteditable] {
+  margin: 0;
+  line-height: inherit;
 }
 
 .tessera-blog-hero img,

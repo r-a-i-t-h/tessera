@@ -1098,7 +1098,7 @@ img[data-hero-preview] {
 }
 
 .editor-section-body .tessera-pasted-sheet [contenteditable] {
-  min-height: 1.85rem;
+  min-height: var(--tessera-rule, 30px);
   outline: none;
 }
 
