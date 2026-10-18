@@ -110,6 +110,7 @@ const libraryMedia = z.object({
   sort: z.number().optional(),
   width: z.number().int().positive().optional(),
   height: z.number().int().positive().optional(),
+  addedAt: z.string().datetime().optional(),
 }).passthrough();
 
 const handMedia = z.object({

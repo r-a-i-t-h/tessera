@@ -33,6 +33,7 @@ export type LibraryAsset = {
   sort?: number;
   width?: number;
   height?: number;
+  addedAt?: string;
 };
 
 export type LibraryFolder = {
@@ -139,6 +140,7 @@ export function parseLibraryAsset(row: Record<string, unknown>): LibraryAsset | 
     ...(typeof row.sort === "number" ? { sort: row.sort } : {}),
     ...(pixelSize(row.width) !== undefined ? { width: pixelSize(row.width) } : {}),
     ...(pixelSize(row.height) !== undefined ? { height: pixelSize(row.height) } : {}),
+    ...(typeof row.addedAt === "string" && row.addedAt.trim() ? { addedAt: row.addedAt.trim() } : {}),
   };
 }
 

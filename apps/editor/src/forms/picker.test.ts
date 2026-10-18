@@ -30,6 +30,7 @@ describe("library picker", () => {
 
   it("lists assets vertically with a thumbnail and filename", () => {
     const images = renderPicker(listing, "image", null);
+    expect(images).toContain("library-picker-asset-list-order");
     expect(images).toContain("editor-picker-assets");
     expect(images).toContain("/api/library/assets/porch/thumb");
     expect(images).toContain("editor-picker-asset-name");
@@ -41,6 +42,26 @@ describe("library picker", () => {
     expect(docs).toContain("notes.pdf");
     expect(docs).toContain("editor-thumb-file");
     expect(docs).not.toContain("/thumb");
+  });
+
+  it("orders assets by addedAt when recently added is selected", () => {
+    const withDates: LibraryListing = {
+      ...listing,
+      assets: [
+        { ...listing.assets[0]!, addedAt: "2020-01-01T00:00:00.000Z" },
+        {
+          id: "fresh",
+          name: "fresh.svg",
+          kind: "image",
+          ext: "svg",
+          folderId: null,
+          url: "./media/fresh.svg",
+          addedAt: "2024-01-01T00:00:00.000Z",
+        },
+      ],
+    };
+    const html = renderPicker(withDates, "image", null, "added");
+    expect(html.indexOf("fresh.svg")).toBeLessThan(html.indexOf("porch.svg"));
   });
 
   it("lists folders vertically with Up when nested and Choose in folder mode", () => {

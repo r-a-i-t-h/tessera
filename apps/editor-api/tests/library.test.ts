@@ -203,6 +203,31 @@ describe("asset library", () => {
     expect(await response.json()).toMatchObject({ error: expect.stringContaining("total limit") });
   });
 
+  it("records addedAt on upload and keeps it when metadata changes", async () => {
+    const { library } = await setup();
+    const before = Date.now();
+    const uploaded = await library.upload({
+      files: [
+        {
+          filename: "mark.svg",
+          relativePath: "mark.svg",
+          bytes: new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"/>'),
+        },
+      ],
+    });
+    const id = uploaded.created[0]!.id;
+    const listed = await library.list();
+    const asset = listed.assets.find((item) => item.id === id);
+    expect(asset?.addedAt).toBeDefined();
+    const addedMs = Date.parse(asset!.addedAt!);
+    expect(addedMs).toBeGreaterThanOrEqual(before - 1000);
+    expect(addedMs).toBeLessThanOrEqual(Date.now() + 1000);
+
+    await library.patchAsset(id, { title: "Logo" });
+    const after = await library.list();
+    expect(after.assets.find((item) => item.id === id)?.addedAt).toBe(asset?.addedAt);
+  });
+
   it("rebuilds once for a direct library mutation", async () => {
     const { site, library } = await setup();
     const uploaded = await library.upload({

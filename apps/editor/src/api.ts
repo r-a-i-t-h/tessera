@@ -392,6 +392,7 @@ export type LibraryAsset = {
   sort?: number;
   width?: number;
   height?: number;
+  addedAt?: string;
   url: string;
 };
 export type LibraryListing = { ok: true; folders: LibraryFolder[]; assets: LibraryAsset[] };

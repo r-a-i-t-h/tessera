@@ -1,4 +1,9 @@
 import { escapeHtml } from "../dom.js";
+import {
+  libraryAssetListOrderSelect,
+  sortLibraryAssets,
+  type LibraryAssetListOrder,
+} from "../library-list-order.js";
 import type { AssetRow, FolderRow, LibraryListing } from "./library.js";
 
 export type PickerMode = "image" | "document" | "folder";
@@ -70,9 +75,19 @@ export function pickerUpload(status = ""): string {
   </form>`;
 }
 
-export function renderPicker(listing: LibraryListing, mode: PickerMode, openId: string | null): string {
-  const folders = listing.folders.filter((folder) => folder.parentId === openId);
-  const assets = listing.assets.filter((asset) => asset.folderId === openId && (mode === "folder" || asset.kind === mode));
+export function renderPicker(
+  listing: LibraryListing,
+  mode: PickerMode,
+  openId: string | null,
+  assetOrder: LibraryAssetListOrder = "alpha",
+): string {
+  const folders = listing.folders
+    .filter((folder) => folder.parentId === openId)
+    .sort((a, b) => a.id.localeCompare(b.id, undefined, { sensitivity: "base" }));
+  const assets = sortLibraryAssets(
+    listing.assets.filter((asset) => asset.folderId === openId && (mode === "folder" || asset.kind === mode)),
+    assetOrder,
+  );
   const upRow = openId
     ? `<li class="editor-picker-folder"><button type="button" class="w3-button w3-white editor-picker-folder-open" data-picker-up>Up</button></li>`
     : "";
@@ -101,6 +116,7 @@ export function renderPicker(listing: LibraryListing, mode: PickerMode, openId: 
     .join("");
   return `<div class="editor-picker" data-picker-open="${openId ?? ""}">
     <p class="editor-tabs">${tabs}</p>
+    ${libraryAssetListOrderSelect(assetOrder, "library-picker-asset-list-order")}
     ${folderList}
     ${assetList}
   </div>`;

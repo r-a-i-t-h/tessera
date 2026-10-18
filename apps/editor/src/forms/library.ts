@@ -1,4 +1,9 @@
 import { escapeHtml, noticePanel } from "../dom.js";
+import {
+  libraryAssetListOrderSelect,
+  sortLibraryAssets,
+  type LibraryAssetListOrder,
+} from "../library-list-order.js";
 
 export type FolderRow = {
   id: string;
@@ -19,6 +24,7 @@ export type AssetRow = {
   sort?: number;
   width?: number;
   height?: number;
+  addedAt?: string;
   url: string;
 };
 
@@ -111,21 +117,21 @@ export function breadcrumbForOpenId(folders: FolderRow[], openId: string | null)
   return trail;
 }
 
-function bySort(a: { sort?: number; name?: string; id?: string }, b: { sort?: number; name?: string; id?: string }): number {
-  const as = a.sort ?? Number.MAX_SAFE_INTEGER;
-  const bs = b.sort ?? Number.MAX_SAFE_INTEGER;
-  if (as !== bs) return as - bs;
-  const an = (a.name ?? a.id ?? "").toLowerCase();
-  const bn = (b.name ?? b.id ?? "").toLowerCase();
-  return an.localeCompare(bn);
-}
-
 export function childFolders(folders: FolderRow[], parentId: string | null): FolderRow[] {
-  return folders.filter((folder) => folder.parentId === parentId).sort(bySort);
+  return folders
+    .filter((folder) => folder.parentId === parentId)
+    .sort((a, b) => a.id.localeCompare(b.id, undefined, { sensitivity: "base" }));
 }
 
-export function childAssets(assets: AssetRow[], folderId: string | null): AssetRow[] {
-  return assets.filter((asset) => asset.folderId === folderId).sort(bySort);
+export function childAssets(
+  assets: AssetRow[],
+  folderId: string | null,
+  order: LibraryAssetListOrder = "alpha",
+): AssetRow[] {
+  return sortLibraryAssets(
+    assets.filter((asset) => asset.folderId === folderId),
+    order,
+  );
 }
 
 /** Every folder id nested under `rootId` (not including `rootId`). */
@@ -166,7 +172,13 @@ export function parentFolderOptions(folders: FolderRow[], folder: FolderRow): st
   return `${rootOption}${options}`;
 }
 
-export function renderLibrary(listing: LibraryListing, openId: string | null, notice = "", addOpen = true): string {
+export function renderLibrary(
+  listing: LibraryListing,
+  openId: string | null,
+  notice = "",
+  addOpen = true,
+  assetOrder: LibraryAssetListOrder = "alpha",
+): string {
   const trail = breadcrumbForOpenId(listing.folders, openId);
   const openFolderId = libraryOpenFolderId(openId);
   const here = openFolderId ? listing.folders.find((folder) => folder.id === openFolderId) : undefined;
@@ -179,7 +191,7 @@ export function renderLibrary(listing: LibraryListing, openId: string | null, no
     }),
   ].join(" / ");
   const folders = childFolders(listing.folders, openFolderId);
-  const assets = childAssets(listing.assets, openFolderId);
+  const assets = childAssets(listing.assets, openFolderId, assetOrder);
   const empty = !folders.length && !assets.length;
   const rows = [
     ...folders.map(
@@ -215,6 +227,7 @@ export function renderLibrary(listing: LibraryListing, openId: string | null, no
           <button type="button" class="w3-button w3-white" data-action="new-folder">New folder here</button>
           <button type="button" class="w3-button w3-white" data-action="rescan">Rescan</button>
         </p>
+        ${libraryAssetListOrderSelect(assetOrder)}
         ${browse}
       </section>
       <div class="editor-library-panels">
@@ -292,8 +305,13 @@ export function assetDetail(asset: AssetRow, folders: FolderRow[]): string {
         `<option value="${escapeHtml(folder.id)}"${folder.id === asset.folderId ? " selected" : ""}>${escapeHtml(folder.id)}</option>`,
     )
     .join("");
+  const added =
+    asset.addedAt && !Number.isNaN(Date.parse(asset.addedAt))
+      ? `<p><strong>Added</strong> ${escapeHtml(asset.addedAt.slice(0, 10))}</p>`
+      : "";
   return `<form id="asset-detail" data-asset="${escapeHtml(asset.id)}">
     <p><strong>Details</strong></p>
+    ${added}
     <p><label>Name <input name="name" class="w3-input w3-border" value="${escapeHtml(asset.name)}" /></label></p>
     <p><label>Title <input name="title" class="w3-input w3-border" value="${escapeHtml(asset.title ?? "")}" /></label></p>
     <p><label>Alt <input name="alt" class="w3-input w3-border" value="${escapeHtml(asset.alt ?? "")}" /></label></p>

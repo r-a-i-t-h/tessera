@@ -40,6 +40,7 @@ export type AssetView = {
   sort?: number;
   width?: number;
   height?: number;
+  addedAt?: string;
   url: string;
 };
 
@@ -347,11 +348,12 @@ export class AssetLibrary {
       if (kind === "image") await writeThumbnail(file.bytes, thumb);
       const size = kind === "image" ? await imageSize(file.bytes) : undefined;
       const sort = created.length + current.assets.filter((asset) => asset.folderId === parent).length;
+      const addedAt = new Date().toISOString();
       try {
         await this.site.writeLibraryRecord(
           "media",
           id,
-          { id, name, kind, ext, folderId: parent, sort, ...(size ?? {}) },
+          { id, name, kind, ext, folderId: parent, sort, addedAt, ...(size ?? {}) },
           { rebuild: false },
         );
       } catch (err) {
@@ -543,10 +545,11 @@ export class AssetLibrary {
               thumb = await writeThumbnail(bytes, join(this.filesDir, `${id}${THUMB_SUFFIX}`));
             }
             const size = bytes ? await imageSize(bytes) : undefined;
+            const addedAt = new Date().toISOString();
             await this.site.writeLibraryRecord(
               "media",
               id,
-              { id, name, kind, ext, folderId: SCANNED_ID, sort, ...(size ?? {}) },
+              { id, name, kind, ext, folderId: SCANNED_ID, sort, addedAt, ...(size ?? {}) },
               { rebuild: false },
             );
           } catch (err) {

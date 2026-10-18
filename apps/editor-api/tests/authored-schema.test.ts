@@ -54,7 +54,14 @@ describe("authored record validation", () => {
       kind: "image",
       ext: "webp",
       folderId: "photos",
+      addedAt: "2024-01-15T10:00:00.000Z",
     })).not.toThrow();
+    expect(() => validateAuthoredRecord("media", "upload", {
+      id: "upload",
+      kind: "image",
+      ext: "webp",
+      addedAt: "not-a-date",
+    })).toThrow(AuthoredRecordError);
     expect(() => validateAuthoredRecord("folders", "photos", {
       id: "photos",
       title: "Photos",

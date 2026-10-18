@@ -161,6 +161,10 @@ import {
   type ArticleListOrder,
 } from "./articles-list.js";
 import {
+  readLibraryAssetListOrder,
+  writeLibraryAssetListOrder,
+} from "./library-list-order.js";
+import {
   buildNavSortDocument,
   readPageListOrder,
   sortPages,
@@ -3650,6 +3654,7 @@ function openLibraryPicker(initial: PickerMode): Promise<PickedAsset | { id: str
         host.className = "editor-picker-host";
         let mode = initial;
         let openId: string | null = null;
+        let assetOrder = readLibraryAssetListOrder();
         let notice = "";
         let busy = false;
         let done = false;
@@ -3666,7 +3671,7 @@ function openLibraryPicker(initial: PickerMode): Promise<PickedAsset | { id: str
             <button type="button" class="editor-dialog-close" data-picker-close aria-label="Close">×</button>
             <h2 id="library-picker-title" class="w3-large editor-library-dialog-title">Choose from the library</h2>
             <div class="editor-picker-body">
-              ${renderPicker(listing, mode, openId)}
+              ${renderPicker(listing, mode, openId, assetOrder)}
               ${pickerUpload(notice)}
             </div>
           </div></div>`;
@@ -3729,7 +3734,15 @@ function openLibraryPicker(initial: PickerMode): Promise<PickedAsset | { id: str
           void uploadFile(files[0]);
         });
         host.addEventListener("change", (event) => {
-          const input = event.target;
+          const target = event.target;
+          if (target instanceof HTMLSelectElement && target.id === "library-picker-asset-list-order") {
+            assetOrder = target.value === "added" ? "added" : "alpha";
+            writeLibraryAssetListOrder(assetOrder);
+            paint();
+            dialog?.focus();
+            return;
+          }
+          const input = target;
           if (!(input instanceof HTMLInputElement) || !input.hasAttribute("data-picker-file")) return;
           if (busy || done) return;
           const files = input.files;
@@ -3795,9 +3808,16 @@ function commitLibraryBrowse(browseId: LibraryBrowseId): LibraryBrowseId {
 async function bindLibrary(root: HTMLElement, user: PublicUser, routeOpenId: string | null, notice = ""): Promise<void> {
   const listing = await getLibrary();
   const openId = libraryNormalizeBrowseId(listing.folders, routeOpenId);
+  const assetOrder = readLibraryAssetListOrder();
   commitLibraryBrowse(openId);
-  root.innerHTML = chrome(user, renderLibrary(listing, openId, notice, libraryAddOpen), true, "library");
+  root.innerHTML = chrome(user, renderLibrary(listing, openId, notice, libraryAddOpen, assetOrder), true, "library");
   bindChrome(root);
+  root.querySelector("#library-asset-list-order")?.addEventListener("change", (event) => {
+    const select = event.target;
+    if (!(select instanceof HTMLSelectElement)) return;
+    writeLibraryAssetListOrder(select.value === "added" ? "added" : "alpha");
+    void bindLibrary(root, user, openId, notice);
+  });
   const addPanel = root.querySelector<HTMLDetailsElement>("#library-add");
   addPanel?.addEventListener("toggle", () => {
     libraryAddOpen = addPanel.open;
