@@ -12,6 +12,7 @@ import { skinOverrideFile } from "./skin-override.js";
 import { writeTextAtomic } from "../store/fs.js";
 import { stylesheetsFromShell } from "./shell-stylesheets.js";
 import { writeSnapshotFiles } from "./snapshot.js";
+import { stripLegacyContentHeadingRules } from "./site-css.js";
 
 export class DistError extends Error {
   constructor(message: string) {
@@ -187,7 +188,13 @@ async function copyRuntime(target: DistTarget): Promise<void> {
 async function copySiteCss(target: DistTarget): Promise<void> {
   const from = join(dirname(target.shellIndex), "site.css");
   if (!existsSync(from)) return;
-  await copyFile(from, join(target.publishDir, "site.css"));
+  const raw = await readFile(from, "utf8");
+  const cleaned = stripLegacyContentHeadingRules(raw);
+  const out = cleaned.endsWith("\n") ? cleaned : `${cleaned}\n`;
+  await writeTextAtomic(join(target.publishDir, "site.css"), out);
+  if (cleaned !== raw) {
+    await writeTextAtomic(from, out);
+  }
 }
 
 async function removeSnapshotData(publishDir: string): Promise<void> {

@@ -8,6 +8,8 @@ export {
   columnWidths,
   imgboxClass,
   isColumnLayout,
+  isVideoWidth,
+  VIDEO_WIDTHS,
   paintSection,
   paintSections,
   parseSections,
@@ -17,4 +19,4 @@ export {
   youtubeVideoId,
 } from "./sections.js";
 export { renderMarkdownLinks, restoreMarkdownLinks } from "./html.js";
-export type { ColumnCell, ColumnLayoutId, GalleryMode, PaletteKind, Section, ToneId } from "./sections.js";
+export type { ColumnCell, ColumnLayoutId, GalleryMode, PaletteKind, Section, ToneId, VideoWidthId } from "./sections.js";

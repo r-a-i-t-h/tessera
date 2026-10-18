@@ -101,6 +101,17 @@ export const COLUMN_LAYOUTS = [
 
 export type ColumnLayoutId = (typeof COLUMN_LAYOUTS)[number]["id"];
 
+/** Width of a YouTube block relative to the content column. */
+export const VIDEO_WIDTHS = [
+  { id: "full", label: "Full width" },
+  { id: "threequarter", label: "Three quarters" },
+  { id: "twothird", label: "Two thirds" },
+  { id: "half", label: "Half" },
+  { id: "third", label: "One third" },
+] as const;
+
+export type VideoWidthId = (typeof VIDEO_WIDTHS)[number]["id"];
+
 const COLUMN_CHROME = new Set([
   ...COLUMN_LAYOUT,
   "w3-container",
@@ -128,7 +139,7 @@ export type Section =
   | { kind: "columns"; layout: ColumnLayoutId; cells: ColumnCell[] }
   | { kind: "insert"; id: string }
   | { kind: "subpages"; title: string }
-  | { kind: "youtube"; videoId: string; title: string }
+  | { kind: "youtube"; videoId: string; /** iframe `title` for accessibility */ title: string; width: VideoWidthId }
   | { kind: "gallery"; folder: string; mode: GalleryMode }
   | { kind: "pasted"; html: string }
   | { kind: "html"; html: string };
@@ -178,6 +189,10 @@ export function isColumnLayout(value: string): value is ColumnLayoutId {
   return COLUMN_LAYOUTS.some((item) => item.id === value);
 }
 
+export function isVideoWidth(value: string): value is VideoWidthId {
+  return VIDEO_WIDTHS.some((item) => item.id === value);
+}
+
 export function columnWidths(layout: ColumnLayoutId): readonly string[] {
   return COLUMN_LAYOUTS.find((item) => item.id === layout)?.widths ?? COLUMN_LAYOUTS[0].widths;
 }
@@ -223,7 +238,7 @@ export function blankSection(kind: PaletteKind): Section {
     case "subpages":
       return { kind: "subpages", title: "" };
     case "youtube":
-      return { kind: "youtube", videoId: "", title: "" };
+      return { kind: "youtube", videoId: "", title: "", width: "twothird" };
     case "gallery":
       return { kind: "gallery", folder: "", mode: "grid" };
     case "pasted":
@@ -299,7 +314,18 @@ export function parseSections(html: string): Section[] {
   return walk(root.children, true);
 }
 
+function isBlankTextHtml(html: string): boolean {
+  const compact = html.replace(/\s/g, "").toLowerCase();
+  if (!compact) return true;
+  return compact === "<p></p>" || compact === "<p><br></p>" || compact === "<p><br/></p>";
+}
+
+function textSectionHasContent(section: { heading: string; html: string }): boolean {
+  return section.heading.trim() !== "" || !isBlankTextHtml(section.html);
+}
+
 function paintText(section: Extract<Section, { kind: "text" }>): string {
+  if (!textSectionHasContent(section)) return "";
   const heading = section.heading.trim();
   const title = heading ? `<h${section.level}>${escapeText(heading)}</h${section.level}>` : "";
   return `<div class="${joinClass(BLOCK_CLASS, "tessera-text", section.loose ? "tessera-loose" : "")}">${title}${renderMarkdownLinks(section.html)}</div>`;
@@ -307,8 +333,9 @@ function paintText(section: Extract<Section, { kind: "text" }>): string {
 
 function paintYoutube(section: Extract<Section, { kind: "youtube" }>): string {
   const id = youtubeVideoId(section.videoId);
-  const src = id ? ` src="https://www.youtube-nocookie.com/embed/${escapeAttr(id)}"` : "";
-  return `<div class="${joinClass(BLOCK_CLASS, "tessera-video", "w3-card")}"><iframe${src} title="${escapeAttr(section.title)}" allow="${YOUTUBE_ALLOW}" allowfullscreen></iframe></div>`;
+  if (!id) return "";
+  const widthAttr = section.width === "full" ? "" : ` data-width="${section.width}"`;
+  return `<div class="${joinClass(BLOCK_CLASS, "tessera-youtube")}"${widthAttr}><div class="tessera-video"><iframe src="https://www.youtube-nocookie.com/embed/${escapeAttr(id)}" title="${escapeAttr(section.title)}" allow="${YOUTUBE_ALLOW}" allowfullscreen></iframe></div></div>`;
 }
 
 export type QuoteBlockOptions = {
@@ -347,7 +374,12 @@ function paintImgbox(section: Extract<Section, { kind: "imgbox" }>): string {
 }
 
 function paintCard(section: Extract<Section, { kind: "card" }>): string {
-  return `<div class="${joinClass(BLOCK_CLASS, "w3-card", "w3-padding", "w3-white")}"><h3 class="w3-text-theme">${escapeText(section.title)}</h3><div class="rt-card-body">${paintSections(section.sections)}</div></div>`;
+  const title = section.title.trim();
+  const titleHtml = title ? `<h3 class="w3-text-theme">${escapeText(title)}</h3>` : "";
+  const body = paintSections(section.sections).trim();
+  if (!titleHtml && !body) return "";
+  const bodyHtml = body ? `<div class="rt-card-body">${body}</div>` : "";
+  return `<div class="${joinClass(BLOCK_CLASS, "w3-card", "w3-padding", "w3-white")}">${titleHtml}${bodyHtml}</div>`;
 }
 
 function paintColumns(section: Extract<Section, { kind: "columns" }>): string {
@@ -395,7 +427,9 @@ function groupAtoms(atoms: Atom[]): Section[] {
       html += (atoms[i] as { type: "flow"; html: string }).html;
       i += 1;
     }
-    sections.push({ kind: "text", heading, level, html });
+    if (textSectionHasContent({ heading, html })) {
+      sections.push({ kind: "text", heading, level, html });
+    }
   }
   return sections;
 }
@@ -407,6 +441,7 @@ function atomsFrom(node: HtmlNode, allowColumns: boolean): Atom[] {
   }
   const textRun = asTextRun(node);
   if (textRun) return [{ type: "section", section: textRun }];
+  if (hasClass(node, "tessera-text")) return [];
   if (isBareDiv(node)) return node.children.flatMap((child) => atomsFrom(child, allowColumns));
   if (node.tag === "p" || node.tag === "ul" || node.tag === "ol") {
     const insert = onlyInsert(node);
@@ -447,14 +482,16 @@ function asTextRun(el: ElNode): Section | null {
     level = Number(first.tag[1]) as 1 | 2 | 3;
     start = 1;
   }
+  const html = serializeChildren(children.slice(start));
   const loose = hasClass(el, "tessera-loose");
-  return {
-    kind: "text",
+  const section = {
+    kind: "text" as const,
     heading,
     level,
-    html: serializeChildren(children.slice(start)),
+    html,
     ...(loose ? { loose: true } : {}),
   };
+  return textSectionHasContent(section) ? section : null;
 }
 
 function classify(el: ElNode, allowColumns: boolean): Section[] {
@@ -489,12 +526,16 @@ function asPageElement(el: ElNode): Section | null {
       mode: attr(el, "data-mode") === "slides" ? "slides" : "grid",
     };
   }
+  if (hasClass(el, "tessera-youtube")) {
+    return parseYoutubeBlock(el);
+  }
   if (hasClass(el, "tessera-video")) {
     const frame = findEl(el, (node) => node.tag === "iframe");
     return {
       kind: "youtube",
       videoId: frame ? youtubeVideoId(attr(frame, "src")) : "",
       title: frame ? attr(frame, "title") : "",
+      width: "full",
     };
   }
   if (hasClass(el, "tessera-pasted")) {
@@ -581,8 +622,26 @@ function asPanel(el: ElNode): Section | null {
   return { kind: "panel", tone: toneOf(el), html: serializeChildren(el.children) };
 }
 
+function parseYoutubeBlock(el: ElNode): Section {
+  const frame = findEl(el, (node) => node.tag === "iframe");
+  const widthRaw = attr(el, "data-width");
+  return {
+    kind: "youtube",
+    videoId: frame ? youtubeVideoId(attr(frame, "src")) : "",
+    title: frame ? attr(frame, "title") : "",
+    width: isVideoWidth(widthRaw) ? widthRaw : "full",
+  };
+}
+
 function asCard(el: ElNode): Section | null {
-  if (!hasClass(el, "w3-card") || hasClass(el, "w3-panel") || hasClass(el, "w3-display-container") || hasClass(el, "tessera-video")) return null;
+  if (
+    !hasClass(el, "w3-card") ||
+    hasClass(el, "w3-panel") ||
+    hasClass(el, "w3-display-container") ||
+    hasClass(el, "tessera-video") ||
+    hasClass(el, "tessera-youtube")
+  )
+    return null;
   const titleEl = directChild(el, (node) => node.tag === "h3");
   const body = directChild(el, (node) => hasClass(node, "rt-card-body"));
   const nodes = body ? body.children : el.children.filter((child) => !(child.type === "el" && child.tag === "h3"));

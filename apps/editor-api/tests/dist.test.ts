@@ -85,6 +85,25 @@ describe("emitDist", () => {
     };
   }
 
+  it("strips legacy #content heading rules from site.css on publish", async () => {
+    const fixture = await target("pages");
+    await writeFile(
+      join(fixture.root, "shell", "site.css"),
+      `#content h2 {
+  margin: 20px 0 8px;
+}
+body { margin: 0; }
+`,
+    );
+    await emitDist(fixture.document, fixture.target);
+    const published = await readFile(join(fixture.root, "publish", "site.css"), "utf8");
+    expect(published).not.toContain("#content h2");
+    expect(published).not.toContain("20px");
+    expect(published).toContain("body { margin: 0; }");
+    const shell = await readFile(join(fixture.root, "shell", "site.css"), "utf8");
+    expect(shell).toBe(published);
+  });
+
   it("writes one HTML file per page and drops a stale page", async () => {
     const fixture = await target("pages");
     const report = await emitDist(fixture.document, fixture.target);

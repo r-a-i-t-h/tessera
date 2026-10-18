@@ -7,6 +7,7 @@ import {
   columnWidths,
   imgboxClass,
   isColumnLayout,
+  isVideoWidth,
   paintSections,
   parseSections,
   quoteBlockHtml,
@@ -14,6 +15,7 @@ import {
   restoreMarkdownLinks,
   toneClass,
   toneLabel,
+  VIDEO_WIDTHS,
   youtubeVideoId,
   type ColumnLayoutId,
   type PaletteKind,
@@ -324,7 +326,7 @@ function propsFor(node: EditNode, choices: Choices, locked: boolean): string {
     case "subpages":
       return `<label class="editor-prop">Heading <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}" placeholder="Optional"></label>`;
     case "youtube":
-      return `<label class="editor-prop">Video <input data-field="video" class="w3-input" value="${escapeAttr(node.videoId)}" placeholder="YouTube address or id"></label><label class="editor-prop">Title <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}" placeholder="What the video shows"></label>`;
+      return youtubeProps(node);
     case "gallery":
       return `<label class="editor-prop">Folder <select data-field="folder">${folderOptions(choices.folders, node.folder)}</select></label><label class="editor-prop">Layout <select data-field="mode"><option value="grid"${node.mode === "grid" ? " selected" : ""}>Grid</option><option value="slides"${node.mode === "slides" ? " selected" : ""}>Slides</option></select></label>`;
     case "pasted":
@@ -350,7 +352,7 @@ function lockedProps(node: EditNode, choices: Choices): string {
     case "gallery":
       return `<label class="editor-prop">Folder <select data-field="folder">${folderOptions(choices.folders, node.folder)}</select></label>`;
     case "youtube":
-      return `<label class="editor-prop">Video <input data-field="video" class="w3-input" value="${escapeAttr(node.videoId)}" placeholder="YouTube address or id"></label><label class="editor-prop">Title <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}" placeholder="What the video shows"></label>`;
+      return youtubeProps(node);
     case "subpages":
       return `<label class="editor-prop">Heading <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}" placeholder="Optional"></label>`;
     default:
@@ -360,6 +362,13 @@ function lockedProps(node: EditNode, choices: Choices): string {
 
 function imgboxFields(node: Extract<EditLeaf, { kind: "imgbox" }>): string {
   return `<label class="editor-prop">Image <input data-field="src" class="w3-input" value="${escapeAttr(node.src)}" placeholder="Image address"></label><button type="button" class="w3-button w3-small w3-white" data-library="image">Library</button><label class="editor-prop">Alt <input data-field="alt" class="w3-input" value="${escapeAttr(node.alt)}"></label><label class="editor-prop">Caption <input data-field="caption" class="w3-input" value="${escapeAttr(node.caption)}"></label>`;
+}
+
+function youtubeProps(node: Extract<EditLeaf, { kind: "youtube" }>): string {
+  const widthOptions = VIDEO_WIDTHS.map(
+    (item) => `<option value="${item.id}"${item.id === node.width ? " selected" : ""}>${escapeText(item.label)}</option>`,
+  ).join("");
+  return `<label class="editor-prop">Video <input data-field="video" class="w3-input" value="${escapeAttr(node.videoId)}" placeholder="YouTube address or id"></label><label class="editor-prop">Video title <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}" placeholder="For screen readers"></label><label class="editor-prop">Width <select data-field="width">${widthOptions}</select></label>`;
 }
 
 function layoutSelect(layout: ColumnLayoutId): string {
@@ -477,8 +486,9 @@ function bodyFor(node: EditNode, choices: Choices, zone: string, locked: boolean
 
 function youtubeBody(node: Extract<EditLeaf, { kind: "youtube" }>): string {
   const id = youtubeVideoId(node.videoId);
+  const widthAttr = node.width === "full" ? "" : ` data-width="${node.width}"`;
   if (!id) return `<p class="w3-text-grey">Add a YouTube address.</p>`;
-  return `<div class="${joinClass(BLOCK_CLASS, "tessera-video", "w3-card")}"><iframe src="https://www.youtube-nocookie.com/embed/${escapeAttr(id)}" title="${escapeAttr(node.title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
+  return `<div class="${joinClass(BLOCK_CLASS, "tessera-youtube")}"${widthAttr}><div class="tessera-video"><iframe src="https://www.youtube-nocookie.com/embed/${escapeAttr(id)}" title="${escapeAttr(node.title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div></div>`;
 }
 
 function quoteBody(node: Extract<EditLeaf, { kind: "quote" }>): string {
@@ -624,16 +634,23 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
       if (fromChange) rerenderArticle(form, node.uid);
       return;
     }
-    if (node.kind === "youtube" && field === "video") {
-      const id = youtubeVideoId(value);
-      node.videoId = id || value.trim();
-      if (fromChange && id) rerenderArticle(form, node.uid);
-      return;
-    }
-    if (node.kind === "youtube" && field === "title") {
-      node.title = value;
-      if (fromChange) rerenderArticle(form, node.uid);
-      return;
+    if (node.kind === "youtube") {
+      if (field === "video") {
+        const id = youtubeVideoId(value);
+        node.videoId = id || value.trim();
+        if (fromChange && id) rerenderArticle(form, node.uid);
+        return;
+      }
+      if (field === "title") {
+        node.title = value;
+        if (fromChange) rerenderArticle(form, node.uid);
+        return;
+      }
+      if (field === "width") {
+        node.width = isVideoWidth(value) ? value : "twothird";
+        if (fromChange) rerenderArticle(form, node.uid);
+        return;
+      }
     }
     if (node.kind === "gallery" && field === "folder") {
       node.folder = value;
@@ -650,7 +667,8 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
 }
 
 function isDesignField(kind: EditNode["kind"], field: string): boolean {
-  if (field === "level" || field === "tone" || field === "mode" || field === "layout" || field === "plain") return true;
+  if (field === "level" || field === "tone" || field === "mode" || field === "layout" || field === "plain" || field === "width")
+    return true;
   return kind === "insert" && field === "id";
 }
 
@@ -1136,6 +1154,7 @@ function applyControl(node: EditLeaf | EditCard, field: string, value: string): 
     node.videoId = id || value.trim();
   }
   if (node.kind === "youtube" && field === "title") node.title = value;
+  if (node.kind === "youtube" && field === "width" && isVideoWidth(value)) node.width = value;
   if (node.kind === "gallery" && field === "folder") node.folder = value;
   if (node.kind === "gallery" && field === "mode") node.mode = value === "slides" ? "slides" : "grid";
 }

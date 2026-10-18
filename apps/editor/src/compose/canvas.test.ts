@@ -372,7 +372,7 @@ describe("text spacing", () => {
     body.innerHTML = "<p><br></p>";
     body.dispatchEvent(new dom.Event("input", { bubbles: true }));
     const html = readComposeHtml(form).main ?? "";
-    expect(html).toContain('class="tessera-block tessera-text"');
+    expect(html).not.toContain("tessera-text");
     expect(html).not.toContain("<p>");
   });
 
