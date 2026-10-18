@@ -1,12 +1,12 @@
 import { Hono } from "hono";
 import { apiError } from "../http.js";
-import { authenticatedSiteRoot } from "../middleware/editor-site.js";
+import { authenticatedEditor, authenticatedSiteRoot } from "../middleware/editor-site.js";
 import { applyThemeKit, listThemeKits, resetThemeDemo } from "../site/theme-kit.js";
 
 export const themeRoutes = new Hono();
-themeRoutes.use("*", authenticatedSiteRoot);
+themeRoutes.use("/themes/:id/*", authenticatedSiteRoot);
 
-themeRoutes.get("/themes", async (c) => {
+themeRoutes.get("/themes", authenticatedEditor, async (c) => {
   const seedDir = c.get("seedDir");
   if (!seedDir) return apiError(c, 404, "No theme seed directory configured.");
   const kits = await listThemeKits(seedDir);

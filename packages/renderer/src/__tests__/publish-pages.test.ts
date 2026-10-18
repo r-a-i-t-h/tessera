@@ -98,8 +98,8 @@ describe("publishPages", () => {
   it("writes one HTML file per page and a sitemap", () => {
     expect([...byPath.keys()].sort()).toEqual([
       "draft-hidden/index.html",
-      "events/index.html",
       "events/fair/index.html",
+      "events/index.html",
       "index.html",
       "sitemap.xml",
     ]);

@@ -174,7 +174,7 @@ describe("layout arrange tree", () => {
     const html = inspectorHtml(made.nodes[0], { layoutId: "sample", master: false, fallback: false, typeIds: [] }, false);
     expect(html).toContain('data-field="html"');
     expect(html).not.toContain('data-field="paragraph"');
-    expect(html).toContain("The list names this box from its id when set");
+    expect(html).toContain("The list names this box from its id.");
   });
 
   it("groups the frame palette", () => {
