@@ -379,7 +379,7 @@ export function resetThemeDemo(id: string): Promise<RestoreResult> {
   return request(`/api/themes/${encodeURIComponent(id)}/reset-demo`, { method: "POST" });
 }
 
-export type LibraryFolder = { id: string; parentId: string | null; sort?: number };
+export type LibraryFolder = { id: string; parentId: string | null; sort?: number; system?: boolean };
 export type LibraryAsset = {
   id: string;
   name: string;
@@ -407,7 +407,10 @@ export function createLibraryFolder(id: string, parentId?: string): Promise<{ ok
   });
 }
 
-export function updateLibraryFolder(id: string, patch: { parentId?: string | null }): Promise<{ ok: true }> {
+export function updateLibraryFolder(
+  id: string,
+  patch: { parentId?: string | null; nextId?: string },
+): Promise<{ ok: true }> {
   return request(`/api/library/folders/${encodeURIComponent(id)}`, {
     method: "PATCH",
     body: JSON.stringify(patch),

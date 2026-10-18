@@ -49,11 +49,13 @@ libraryRoutes.patch("/library/folders/:id", async (c) => {
   const body = (await c.req.json().catch(() => null)) as {
     parentId?: unknown;
     sort?: unknown;
+    nextId?: unknown;
   } | null;
   try {
     const updated = await libraryFor(site, c.get("requiredSiteRoot")).patchFolder(c.req.param("id"), {
       ...(body && "parentId" in body ? { parentId: typeof body.parentId === "string" ? body.parentId : null } : {}),
       ...(typeof body?.sort === "number" ? { sort: body.sort } : {}),
+      ...(typeof body?.nextId === "string" && body.nextId.trim() ? { nextId: body.nextId.trim() } : {}),
     });
     return c.json({ ok: true, ...updated });
   } catch (err) {

@@ -404,4 +404,69 @@ describe("asset library", () => {
     await expect(readFile(join(root, "records", "media", "fresh.yaml"))).rejects.toThrow();
     await expect(readFile(join(root, "records", "folders", "scanned.yaml"))).rejects.toThrow();
   });
+
+  it("reparents a folder and rejects cycles", async () => {
+    const { library } = await setup();
+    await library.createFolder("alpha", undefined, false);
+    await library.createFolder("beta", "alpha", false);
+    await library.createFolder("gamma", "beta", false);
+    await library.patchFolder("gamma", { parentId: null });
+    let listing = await library.list();
+    expect(listing.folders.find((folder) => folder.id === "gamma")?.parentId).toBeNull();
+    await library.patchFolder("gamma", { parentId: "alpha" });
+    listing = await library.list();
+    expect(listing.folders.find((folder) => folder.id === "gamma")?.parentId).toBe("alpha");
+    await expect(library.patchFolder("alpha", { parentId: "gamma" })).rejects.toThrow(/itself/i);
+  });
+
+  it("renames a folder and rewrites media and gallery bindings", async () => {
+    const { site, library } = await setup();
+    await library.createFolder("hall-gallery", undefined, false);
+    const uploaded = await library.upload({
+      folderId: "hall-gallery",
+      files: [
+        {
+          filename: "porch.png",
+          relativePath: "porch.png",
+          bytes: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64"),
+        },
+      ],
+    });
+    const assetId = uploaded.created[0]!.id;
+    await site.write("bindings", "hall-gallery", {
+      id: "hall-gallery",
+      component: "gallery",
+      props: { folders: ["hall-gallery"] },
+    });
+    await site.rebuild();
+
+    await library.patchFolder("hall-gallery", { nextId: "gallery-hall" });
+
+    const listing = await library.list();
+    expect(listing.folders.some((folder) => folder.id === "hall-gallery")).toBe(false);
+    expect(listing.folders.some((folder) => folder.id === "gallery-hall")).toBe(true);
+    expect(listing.assets.find((asset) => asset.id === assetId)?.folderId).toBe("gallery-hall");
+    const binding = await site.read("bindings", "hall-gallery");
+    expect(binding.props).toEqual({ folders: ["gallery-hall"] });
+    const doc = await site.flatten();
+    expect(doc?.folders.some((folder) => folder.id === "gallery-hall")).toBe(true);
+  });
+
+  it("marks system folders and blocks rename or reparent", async () => {
+    const { library } = await setup();
+    await library.upload({
+      files: [
+        {
+          filename: "a.png",
+          relativePath: "a.png",
+          bytes: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64"),
+        },
+      ],
+    });
+    const listing = await library.list();
+    const uploads = listing.folders.find((folder) => folder.id === "uploads");
+    expect(uploads?.system).toBe(true);
+    await expect(library.patchFolder("uploads", { parentId: "uploads" })).rejects.toThrow(/system folders/i);
+    await expect(library.patchFolder("uploads", { nextId: "inbox" })).rejects.toThrow(/system folders/i);
+  });
 });

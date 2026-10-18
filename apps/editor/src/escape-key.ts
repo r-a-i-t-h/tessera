@@ -48,7 +48,7 @@ function cancelBindingWizard(root: ParentNode): boolean {
 
 function cancelLibraryAssetDetail(root: ParentNode): boolean {
   const detail = root.querySelector<HTMLElement>("#library-detail");
-  if (!detail?.querySelector("#asset-detail")) return false;
+  if (!detail?.querySelector("#asset-detail, #folder-detail")) return false;
   detail.innerHTML = "<p><strong>Details</strong></p>";
   root.querySelectorAll(".editor-library-row-active").forEach((row) => row.classList.remove("editor-library-row-active"));
   return true;

@@ -37,6 +37,8 @@ import {
 } from "./document.js";
 import { DOCUMENT_KINDS, isRecordId, KIND_DIRS, RECORD_KINDS, type RecordKind } from "./kinds.js";
 import { validateAuthoredRecord } from "./authored-schema.js";
+import { isSystemLibraryFolder } from "./library.js";
+import { rewriteLibraryFolderRefs } from "./library-folder-refs.js";
 
 export type SnapshotRef = { hash: string; file: string };
 
@@ -731,6 +733,49 @@ export class SiteStore {
     throw new Error(
       action === "delete" ? `Delete the child pages first: ${names}.` : `Unpublish the child pages first: ${names}.`,
     );
+  }
+
+  /** Rename a library folder id and rewrite references. Does not rebuild. */
+  async renameLibraryFolderId(from: string, to: string): Promise<void> {
+    this.assertId(from);
+    this.assertId(to);
+    if (from === to) return;
+    if (isSystemLibraryFolder(from)) throw new Error("System folders cannot be moved or renamed.");
+    if (isSystemLibraryFolder(to)) throw new Error(`Folder "${to}" is reserved.`);
+    const record = await this.read("folders", from);
+    const folderIds = await this.listIds("folders");
+    if (folderIds.includes(to)) throw new Error(`Folder "${to}" already exists.`);
+
+    await this.commitRecord("folders", to, recordToYaml("folders", { ...record, id: to }), { rebuild: false });
+
+    for (const folderId of folderIds) {
+      if (folderId === from) continue;
+      const row = await this.read("folders", folderId);
+      if (row.parentId !== from) continue;
+      await this.writeLibraryRecord("folders", folderId, { ...row, parentId: to }, { rebuild: false });
+    }
+
+    for (const mediaId of await this.listIds("media")) {
+      const row = await this.read("media", mediaId);
+      if (row.folderId !== from) continue;
+      await this.writeLibraryRecord("media", mediaId, { ...row, folderId: to }, { rebuild: false });
+    }
+
+    for (const kind of ["bindings", "content", "layouts", "items", "templates"] as const) {
+      for (const recordId of await this.listIds(kind)) {
+        const row = await this.read(kind, recordId);
+        const { value, changed } = rewriteLibraryFolderRefs(row, from, to);
+        if (!changed) continue;
+        await this.commitRecord(
+          kind,
+          recordId,
+          recordToYaml(kind, { ...(value as Record<string, unknown>), id: recordId }),
+          { rebuild: false },
+        );
+      }
+    }
+
+    await this.removeRecord("folders", from);
   }
 
   /** Refused while a page, layout, template, or binding still names the item. */

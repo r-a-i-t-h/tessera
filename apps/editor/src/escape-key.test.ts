@@ -53,6 +53,14 @@ describe("handleEscape", () => {
     expect(root.querySelector("#asset-detail")).toBeNull();
     expect(window.location.hash).toBe("#/library/photos");
   });
+
+  it("clears library folder details", () => {
+    const root = document.createElement("div");
+    root.innerHTML = `<section id="library-detail"><form id="folder-detail"></form></section>`;
+
+    expect(handleEscape(root)).toBe(true);
+    expect(root.querySelector("#folder-detail")).toBeNull();
+  });
 });
 
 describe("libraryParentHash", () => {

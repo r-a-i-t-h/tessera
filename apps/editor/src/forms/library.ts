@@ -3,6 +3,8 @@ import { escapeHtml, noticePanel } from "../dom.js";
 export type FolderRow = {
   id: string;
   parentId: string | null;
+  sort?: number;
+  system?: boolean;
 };
 
 export type AssetRow = {
@@ -36,6 +38,51 @@ export function placement(relativePath: string): { folders: string[]; file: stri
   return { folders: parts, file };
 }
 
+/** `null` = library root; otherwise `/`-separated folder ids from root to the open folder. */
+export type LibraryBrowseId = string | null;
+
+export function libraryRouteHash(browseId: LibraryBrowseId): string {
+  if (!browseId) return "#/library";
+  return `#/library/${browseId.split("/").map(encodeURIComponent).join("/")}`;
+}
+
+/** Canonical browse id from a folder’s parent chain. */
+export function libraryBrowseId(folders: FolderRow[], folderId: string): string {
+  const trail = breadcrumb(folders, folderId);
+  if (!trail.length) return folderId;
+  return trail.map((folder) => folder.id).join("/");
+}
+
+export function libraryFolderHash(folders: FolderRow[], folderId: string): string {
+  if (!folders.some((folder) => folder.id === folderId)) return "#/library";
+  return libraryRouteHash(libraryBrowseId(folders, folderId));
+}
+
+/** Align route id with the folder tree (e.g. `hall` → `uploads/hall`). */
+export function libraryNormalizeBrowseId(folders: FolderRow[], openId: LibraryBrowseId): LibraryBrowseId {
+  if (!openId) return null;
+  const folderId = libraryOpenFolderId(openId);
+  if (!folderId || !folders.some((folder) => folder.id === folderId)) return openId;
+  return libraryBrowseId(folders, folderId);
+}
+
+export function libraryBrowseIdAfterDelete(
+  folders: FolderRow[],
+  openId: LibraryBrowseId,
+  deletedId: string,
+  parentId: string | null,
+): LibraryBrowseId {
+  if (libraryOpenFolderId(openId) !== deletedId) return openId;
+  return parentId ? libraryBrowseId(folders, parentId) : null;
+}
+
+/** Folder id from a library route segment (`hall` or `uploads/hall`). */
+export function libraryOpenFolderId(openId: string | null): string | null {
+  if (!openId) return null;
+  const parts = openId.split("/").filter((part) => part.length > 0);
+  return parts.length ? parts[parts.length - 1]! : null;
+}
+
 export function breadcrumb(folders: FolderRow[], openId: string | null): FolderRow[] {
   const trail: FolderRow[] = [];
   let cursor = openId;
@@ -47,6 +94,19 @@ export function breadcrumb(folders: FolderRow[], openId: string | null): FolderR
     if (!folder) break;
     trail.unshift(folder);
     cursor = folder.parentId;
+  }
+  return trail;
+}
+
+export function breadcrumbForOpenId(folders: FolderRow[], openId: string | null): FolderRow[] {
+  if (!openId) return [];
+  const parts = openId.split("/").filter((part) => part.length > 0);
+  if (parts.length <= 1) return breadcrumb(folders, openId);
+  const trail: FolderRow[] = [];
+  for (const part of parts) {
+    const folder = folders.find((item) => item.id === part);
+    if (!folder) break;
+    trail.push(folder);
   }
   return trail;
 }
@@ -68,26 +128,64 @@ export function childAssets(assets: AssetRow[], folderId: string | null): AssetR
   return assets.filter((asset) => asset.folderId === folderId).sort(bySort);
 }
 
+/** Every folder id nested under `rootId` (not including `rootId`). */
+export function descendantFolderIds(folders: FolderRow[], rootId: string): Set<string> {
+  const out = new Set<string>();
+  const walk = (parentId: string) => {
+    for (const folder of childFolders(folders, parentId)) {
+      if (out.has(folder.id)) continue;
+      out.add(folder.id);
+      walk(folder.id);
+    }
+  };
+  walk(rootId);
+  return out;
+}
+
+export function parentFolderLabel(folders: FolderRow[], folderId: string | null): string {
+  if (!folderId) return "Library root";
+  return breadcrumb(folders, folderId)
+    .map((folder) => folder.id)
+    .join(" / ");
+}
+
+export function parentFolderOptions(folders: FolderRow[], folder: FolderRow): string {
+  const blocked = descendantFolderIds(folders, folder.id);
+  blocked.add(folder.id);
+  const rootSelected = folder.parentId === null ? " selected" : "";
+  const rootOption = `<option value=""${rootSelected}>Library root</option>`;
+  const options = folders
+    .filter((item) => !blocked.has(item.id))
+    .map((item) => {
+      const depth = breadcrumb(folders, item.id).length - 1;
+      const label = `${"· ".repeat(Math.max(0, depth))}${item.id}`;
+      const selected = item.id === folder.parentId ? " selected" : "";
+      return `<option value="${escapeHtml(item.id)}"${selected}>${escapeHtml(label)}</option>`;
+    })
+    .join("");
+  return `${rootOption}${options}`;
+}
+
 export function renderLibrary(listing: LibraryListing, openId: string | null, notice = "", addOpen = true): string {
-  const trail = breadcrumb(listing.folders, openId);
-  const here = openId ? listing.folders.find((folder) => folder.id === openId) : undefined;
+  const trail = breadcrumbForOpenId(listing.folders, openId);
+  const openFolderId = libraryOpenFolderId(openId);
+  const here = openFolderId ? listing.folders.find((folder) => folder.id === openFolderId) : undefined;
   const crumbs = [
-    `<a href="#/library">Library</a>`,
-    ...trail.map((folder, index) =>
-      index === trail.length - 1
-        ? `<span>${escapeHtml(folder.id)}</span>`
-        : `<a href="#/library/${encodeURIComponent(folder.id)}">${escapeHtml(folder.id)}</a>`,
-    ),
+    `<a href="#/library">Library root</a>`,
+    ...trail.map((folder, index) => {
+      const href = libraryFolderHash(listing.folders, folder.id);
+      const current = index === trail.length - 1 ? ` data-library-crumb="current"` : "";
+      return `<a href="${href}"${current}>${escapeHtml(folder.id)}</a>`;
+    }),
   ].join(" / ");
-  const folders = childFolders(listing.folders, openId);
-  const assets = childAssets(listing.assets, openId);
+  const folders = childFolders(listing.folders, openFolderId);
+  const assets = childAssets(listing.assets, openFolderId);
   const empty = !folders.length && !assets.length;
   const rows = [
     ...folders.map(
       (folder) => `<li class="editor-library-row">
-        <a class="editor-library-name" href="#/library/${encodeURIComponent(folder.id)}">${escapeHtml(folder.id)}</a>
-        <span class="w3-text-grey w3-small">Folder</span>
-        <button type="button" class="w3-button w3-small w3-white" data-delete-folder="${escapeHtml(folder.id)}">Delete</button>
+        <a class="editor-library-name" href="${libraryFolderHash(listing.folders, folder.id)}">${escapeHtml(folder.id)}</a>
+        <span class="w3-text-grey w3-small">${folder.system ? "System folder" : "Folder"}</span>
       </li>`,
     ),
     ...assets.map((asset) => {
@@ -104,7 +202,7 @@ export function renderLibrary(listing: LibraryListing, openId: string | null, no
       </li>`;
     }),
   ].join("");
-  const destination = folderOptions(listing.folders, openId);
+  const destination = folderOptions(listing.folders, openFolderId);
   const browse = empty
     ? `<p class="w3-text-grey">This folder is empty.</p>`
     : `<ul class="w3-ul editor-library">${rows}</ul>`;
@@ -133,8 +231,7 @@ export function renderLibrary(listing: LibraryListing, openId: string | null, no
             <fieldset class="editor-fieldset">
               <legend>Put them in</legend>
               <p class="editor-check"><label><input type="radio" name="dest" value="uploads" checked /> Uploads</label></p>
-              <p class="editor-check"><label><input type="radio" name="dest" value="existing"${here ? "" : " disabled"} /> This folder${here ? ` (${escapeHtml(here.id)})` : ""}</label></p>
-              <p class="editor-check"><label><input type="radio" name="dest" value="choose" /> Existing folder</label>
+              <p class="editor-check"><label><input type="radio" name="dest" value="choose"${listing.folders.length ? "" : " disabled"} /> Existing folder</label>
                 <select name="folderId" class="w3-select w3-border">${destination}</select></p>
               <p class="editor-check"><label><input type="radio" name="dest" value="new" /> New folder</label>
                 <input name="folderTitle" class="w3-input w3-border" placeholder="Folder id" spellcheck="false" autocomplete="off" /></p>
@@ -166,6 +263,26 @@ function folderOptions(folders: FolderRow[], current: string | null): string {
     })
     .join("");
   return options || `<option value="">No folders yet</option>`;
+}
+
+export function folderDetail(folder: FolderRow, folders: FolderRow[]): string {
+  if (folder.system) {
+    return `<div id="folder-detail" data-folder="${escapeHtml(folder.id)}">
+    <p><strong>Details</strong></p>
+    <p><strong>Folder id</strong> ${escapeHtml(folder.id)}</p>
+    <p><strong>Parent</strong> ${escapeHtml(parentFolderLabel(folders, folder.parentId))}</p>
+    <p class="w3-text-grey w3-small">System folders cannot be moved or renamed.</p>
+  </div>`;
+  }
+  return `<form id="folder-detail" data-folder="${escapeHtml(folder.id)}">
+    <p><strong>Details</strong></p>
+    <p><label>Folder id <input name="nextId" class="w3-input w3-border" value="${escapeHtml(folder.id)}" autocomplete="off" spellcheck="false" /></label></p>
+    <p><label>Parent folder <select name="parentId" class="w3-select w3-border">${parentFolderOptions(folders, folder)}</select></label></p>
+    <p class="editor-actions">
+      <button type="submit" class="w3-button w3-theme">Save</button>
+      <button type="button" class="w3-button w3-white" data-delete-folder="${escapeHtml(folder.id)}">Delete</button>
+    </p>
+  </form>`;
 }
 
 export function assetDetail(asset: AssetRow, folders: FolderRow[]): string {

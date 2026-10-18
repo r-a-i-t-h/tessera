@@ -44,6 +44,7 @@ import {
   uploadLibrary,
   rescanLibrary,
   createLibraryFolder,
+  updateLibraryFolder,
   type BackupList,
   type ManagedUser,
   type PublicUser,
@@ -94,7 +95,18 @@ import {
 } from "./forms/type.js";
 import { authoredSchema, schemaFor, withFrameChoices, withTypeChoices } from "./forms/schema.js";
 import { readDataTransfer } from "./forms/drop.js";
-import { assetDetail, renderLibrary } from "./forms/library.js";
+import {
+  assetDetail,
+  folderDetail,
+  libraryBrowseId,
+  libraryBrowseIdAfterDelete,
+  libraryNormalizeBrowseId,
+  libraryOpenFolderId,
+  libraryRouteHash,
+  renderLibrary,
+  type FolderRow,
+  type LibraryBrowseId,
+} from "./forms/library.js";
 import {
   bindingIdError,
   bindingIdsIn,
@@ -191,7 +203,13 @@ export async function mount(root: HTMLElement): Promise<void> {
 
 function editingForm(form: HTMLFormElement | null): HTMLFormElement | null {
   if (!form) return null;
-  if (form.id === "record-form" || form.id === "style-form" || form.id === "asset-detail" || form.hasAttribute("data-sheet")) {
+  if (
+    form.id === "record-form" ||
+    form.id === "style-form" ||
+    form.id === "asset-detail" ||
+    form.id === "folder-detail" ||
+    form.hasAttribute("data-sheet")
+  ) {
     return form;
   }
   return null;
@@ -3653,8 +3671,19 @@ function openLibraryPicker(initial: PickerMode): Promise<PickedAsset | { id: str
   );
 }
 
-async function bindLibrary(root: HTMLElement, user: PublicUser, openId: string | null, notice = ""): Promise<void> {
+function commitLibraryBrowse(browseId: LibraryBrowseId): LibraryBrowseId {
+  const hash = libraryRouteHash(browseId);
+  if (window.location.hash !== hash) {
+    history.replaceState(null, "", hash);
+    lastAnnouncedHash = hash;
+  }
+  return browseId;
+}
+
+async function bindLibrary(root: HTMLElement, user: PublicUser, routeOpenId: string | null, notice = ""): Promise<void> {
   const listing = await getLibrary();
+  const openId = libraryNormalizeBrowseId(listing.folders, routeOpenId);
+  commitLibraryBrowse(openId);
   root.innerHTML = chrome(user, renderLibrary(listing, openId, notice, libraryAddOpen), true, "library");
   bindChrome(root);
   const addPanel = root.querySelector<HTMLDetailsElement>("#library-add");
@@ -3691,16 +3720,11 @@ async function bindLibrary(root: HTMLElement, user: PublicUser, openId: string |
       return;
     }
     void rescanLibrary()
-      .then((result) => {
+      .then((result) => getLibrary().then((fresh) => ({ result, fresh })))
+      .then(({ result, fresh }) => {
         const folderId = result.added[0]?.folderId;
-        if (folderId) {
-          const next = `#/library/${encodeURIComponent(folderId)}`;
-          if (window.location.hash !== next) {
-            history.replaceState(null, "", next);
-            lastAnnouncedHash = next;
-          }
-        }
-        return bindLibrary(root, user, folderId ?? openId, rescanNotice(result));
+        const browseId = folderId ? libraryBrowseId(fresh.folders, folderId) : openId;
+        return bindLibrary(root, user, browseId, rescanNotice(result));
       })
       .catch((err) => bindLibrary(root, user, openId, err instanceof Error ? err.message : "Could not rescan the library."));
   });
@@ -3711,14 +3735,58 @@ async function bindLibrary(root: HTMLElement, user: PublicUser, openId: string |
       .then(() => bindLibrary(root, user, openId, `Created ${id.trim()}.`))
       .catch((err) => bindLibrary(root, user, openId, err instanceof Error ? err.message : "Could not create the folder."));
   });
-  for (const button of root.querySelectorAll<HTMLButtonElement>("[data-delete-folder]")) {
-    button.addEventListener("click", () => {
-      const id = button.dataset.deleteFolder;
-      if (!id || !window.confirm("Delete this empty folder?")) return;
-      void deleteLibraryFolder(id)
-        .then(() => bindLibrary(root, user, openId, "Folder deleted."))
-        .catch((err) => bindLibrary(root, user, openId, err instanceof Error ? err.message : "Could not delete the folder."));
+  const deleteFolder = (id: string) => {
+    if (!window.confirm("Delete this empty folder?")) return;
+    const removed = listing.folders.find((folder) => folder.id === id);
+    const parentId = removed?.parentId ?? null;
+    void deleteLibraryFolder(id)
+      .then(() => getLibrary())
+      .then((fresh) => {
+        const browseId = libraryBrowseIdAfterDelete(fresh.folders, openId, id, parentId);
+        return bindLibrary(root, user, browseId, "Folder deleted.");
+      })
+      .catch((err) => bindLibrary(root, user, openId, err instanceof Error ? err.message : "Could not delete the folder."));
+  };
+  const openFolderId = libraryOpenFolderId(openId);
+  const openFolder = openFolderId ? listing.folders.find((item) => item.id === openFolderId) : undefined;
+
+  const showLibraryFolderDetail = (folder: FolderRow) => {
+    const slot = root.querySelector<HTMLElement>("#library-detail");
+    if (!slot) return;
+    root.querySelectorAll(".editor-library-row-active").forEach((row) => row.classList.remove("editor-library-row-active"));
+    slot.innerHTML = folderDetail(folder, listing.folders);
+    const form = slot.querySelector<HTMLFormElement>("#folder-detail");
+    form?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const nextId = form.querySelector<HTMLInputElement>("[name=nextId]")?.value.trim() ?? "";
+      const parentValue = form.querySelector<HTMLSelectElement>("[name=parentId]")?.value ?? "";
+      const parentId = parentValue ? parentValue : null;
+      const patch: { parentId: string | null; nextId?: string } = { parentId };
+      if (nextId && nextId !== folder.id) patch.nextId = nextId;
+      void updateLibraryFolder(folder.id, patch)
+        .then(() => getLibrary())
+        .then((fresh) => {
+          const folderId = nextId && nextId !== folder.id ? nextId : folder.id;
+          const browseId = libraryBrowseId(fresh.folders, folderId);
+          return bindLibrary(root, user, browseId, "Saved.");
+        })
+        .catch((err) => bindLibrary(root, user, openId, err instanceof Error ? err.message : "Could not update the folder."));
     });
+    slot.querySelector<HTMLButtonElement>("[data-delete-folder]")?.addEventListener("click", () => {
+      deleteFolder(folder.id);
+    });
+  };
+
+  root.querySelector<HTMLAnchorElement>('[data-library-crumb="current"]')?.addEventListener("click", (event) => {
+    if (!openFolder) return;
+    if (window.location.hash === libraryRouteHash(openId)) {
+      event.preventDefault();
+      showLibraryFolderDetail(openFolder);
+    }
+  });
+
+  if (openFolder) {
+    showLibraryFolderDetail(openFolder);
   }
   for (const button of root.querySelectorAll<HTMLButtonElement>("[data-edit-asset]")) {
     button.addEventListener("click", () => {
@@ -3829,8 +3897,7 @@ async function submitLibraryUpload(
     body.append("file", item.file);
     body.append("path", item.path);
   }
-  if (dest === "existing" && openId) body.append("folderId", openId);
-  else if (dest === "choose") {
+  if (dest === "choose") {
     const folderId = form.querySelector<HTMLSelectElement>("[name=folderId]")?.value;
     if (folderId) body.append("folderId", folderId);
   } else if (dest === "new") {
@@ -3849,8 +3916,20 @@ async function submitLibraryUpload(
   try {
     const result = await uploadLibrary(body);
     const skipped = result.skipped.length ? ` Skipped ${result.skipped.map((item) => item.name).join(", ")}.` : "";
-    const folderId = dest === "uploads" ? "uploads" : openId;
-    await bindLibrary(root, user, folderId, `Added ${result.created.length} file${result.created.length === 1 ? "" : "s"}.${skipped}`);
+    const fresh = await getLibrary();
+    let browseId: LibraryBrowseId = openId;
+    if (dest === "uploads") {
+      browseId = libraryBrowseId(fresh.folders, "uploads");
+    } else if (dest === "choose") {
+      const folderId = form.querySelector<HTMLSelectElement>("[name=folderId]")?.value;
+      if (folderId) browseId = libraryBrowseId(fresh.folders, folderId);
+    } else if (dest === "new") {
+      const title = form.querySelector<HTMLInputElement>("[name=folderTitle]")?.value.trim();
+      if (title && fresh.folders.some((folder) => folder.id === title)) {
+        browseId = libraryBrowseId(fresh.folders, title);
+      }
+    }
+    await bindLibrary(root, user, browseId, `Added ${result.created.length} file${result.created.length === 1 ? "" : "s"}.${skipped}`);
   } catch (err) {
     await bindLibrary(root, user, openId, err instanceof Error ? err.message : "Could not add those files.");
   }

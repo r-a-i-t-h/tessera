@@ -17,6 +17,7 @@ import {
   uniqueName,
   UPLOADS_ID,
   type AssetKind,
+  isSystemLibraryFolder,
 } from "./library.js";
 import type { SiteStore, SnapshotRef } from "./store.js";
 
@@ -24,6 +25,7 @@ export type FolderView = {
   id: string;
   parentId: string | null;
   sort?: number;
+  system?: boolean;
 };
 
 export type AssetView = {
@@ -119,10 +121,12 @@ export class AssetLibrary {
     for (const id of folderIds) {
       const row = await this.site.read("folders", id);
       // Hand-authored folder (`path` and `images`). Listed here, and copied through on flatten.
+      const system = isSystemLibraryFolder(id);
       if (typeof row.path === "string" && row.path.length > 0) {
         folders.push({
           id,
           parentId: null,
+          ...(system ? { system: true } : {}),
         });
         continue;
       }
@@ -130,6 +134,7 @@ export class AssetLibrary {
         id,
         parentId: typeof row.parentId === "string" ? row.parentId : null,
         ...(typeof row.sort === "number" ? { sort: row.sort } : {}),
+        ...(system ? { system: true } : {}),
       });
     }
     for (const id of mediaIds) {
@@ -182,25 +187,61 @@ export class AssetLibrary {
 
   async patchFolder(
     id: string,
-    patch: { parentId?: string | null; sort?: number },
+    patch: { parentId?: string | null; sort?: number; nextId?: string },
   ): Promise<MutationResult> {
-    if (id === UPLOADS_ID && patch.parentId) {
-      throw new Error("Uploads stays at the library root.");
-    }
     const listing = await this.list();
     const current = listing.folders.find((folder) => folder.id === id);
     if (!current) throw new Error(`Unknown folder "${id}".`);
-    if (patch.parentId) {
-      this.assertFolder(listing, patch.parentId);
-      if (this.wouldCycle(listing, id, patch.parentId)) {
-        throw new Error("A folder cannot be moved into itself.");
+
+    const nextId = typeof patch.nextId === "string" ? patch.nextId.trim() : "";
+    const renaming = Boolean(nextId && nextId !== id);
+    const parentInPatch = "parentId" in patch;
+    const parentChanging =
+      parentInPatch &&
+      (patch.parentId ?? null) !== current.parentId;
+    const sortChanging = patch.sort !== undefined && patch.sort !== current.sort;
+
+    if (isSystemLibraryFolder(id)) {
+      if (renaming || parentChanging || sortChanging) {
+        throw new Error("System folders cannot be moved or renamed.");
+      }
+      return {};
+    }
+
+    let folderId = id;
+    if (renaming) {
+      if (!isRecordId(nextId)) throw new Error(`Invalid record id "${nextId}".`);
+      if (this.takenIds(listing).has(nextId)) throw new Error(`Folder "${nextId}" already exists.`);
+      await this.site.renameLibraryFolderId(id, nextId);
+      folderId = nextId;
+    }
+
+    if (!parentChanging && !sortChanging) {
+      if (renaming) {
+        const rebuilt = await this.site.rebuild();
+        return rebuilt.snapshot ? { snapshot: rebuilt.snapshot } : {};
+      }
+      return {};
+    }
+
+    const fresh = await this.list();
+    const row = fresh.folders.find((folder) => folder.id === folderId);
+    if (!row) throw new Error(`Unknown folder "${folderId}".`);
+    if (parentChanging) {
+      if (patch.parentId) {
+        this.assertFolder(fresh, patch.parentId);
+        if (this.wouldCycle(fresh, folderId, patch.parentId)) {
+          throw new Error("A folder cannot be moved into itself.");
+        }
       }
     }
-    const record = await this.site.read("folders", id);
-    if (patch.parentId === null) delete record.parentId;
-    else if (patch.parentId) record.parentId = patch.parentId;
-    if (patch.sort !== undefined) record.sort = patch.sort;
-    const saved = await this.site.writeLibraryRecord("folders", id, record);
+    const record = await this.site.read("folders", folderId);
+    if (parentChanging) {
+      if (patch.parentId === null) delete record.parentId;
+      else if (patch.parentId) record.parentId = patch.parentId;
+    }
+    if (sortChanging) record.sort = patch.sort;
+    const saved = await this.site.writeLibraryRecord("folders", folderId, record);
     return saved.snapshot ? { snapshot: saved.snapshot } : {};
   }
 

@@ -10,6 +10,13 @@ export const SCANNED_ID = "scanned";
 /** Hero images uploaded from an article. Created on the first of those uploads. */
 export const ARTICLES_ID = "articles";
 
+/** Library folder ids fixed by upload, rescan, and article flows. */
+export const SYSTEM_LIBRARY_FOLDER_IDS = [UPLOADS_ID, SCANNED_ID, ARTICLES_ID] as const;
+
+export function isSystemLibraryFolder(id: string): boolean {
+  return (SYSTEM_LIBRARY_FOLDER_IDS as readonly string[]).includes(id);
+}
+
 export const ALLOWED_EXT = new Set(["jpg", "jpeg", "png", "gif", "webp", "svg", "pdf"]);
 
 export type AssetKind = "image" | "document";
