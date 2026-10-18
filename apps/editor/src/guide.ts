@@ -68,7 +68,7 @@ export function guideHtml(): string {
       <li><strong>Dated list</strong> — Dated pages by type. Willow’s upcoming events.</li>
       <li><strong>People grid</strong> — Pages of a type with photo and role.</li>
       <li><strong>Link group</strong> — Children, pages of a type, or a menu heading.</li>
-      <li><strong>Reveal banner</strong> — Cropped panels, hover grow, click-to-reveal, then link (Miller’s Ark homepage hero). Insert only.</li>
+      <li><strong>Reveal banner</strong> — Cropped panels, hover grow, click-to-reveal, then link (Miller’s Ark homepage hero). Panel image: site-relative path; panel link: page id or external URL (Choose page in the binding editor). Insert only.</li>
     </ul>
     <p>Menus, breadcrumbs, profile lines, and <strong>Subpages</strong> are not bindings. Unsupported components use the raw binding file.</p>
 

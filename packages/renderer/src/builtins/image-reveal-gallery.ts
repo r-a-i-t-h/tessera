@@ -3,6 +3,7 @@ import { hrefForPage } from "../page-href.js";
 import type { ComponentFn } from "../types.js";
 import {
   clampPanelsPerRow,
+  clampTitleSizeEm,
   registerImageRevealGalleryElement,
   type ImageRevealItem,
 } from "./image-reveal-gallery-element.js";
@@ -42,7 +43,7 @@ function itemsFromProps(props: Record<string, unknown>): ImageRevealItem[] {
  * Reveal banner: grid panels, hover grow, click to fill stage then navigate.
  *
  * Props: `items[]` ({ url, href, title? }), `width`, `height`, `panelsPerRow` (2–6),
- * `hoverExpand`, `navigateDelay`.
+ * `hoverExpand`, `hoverGap` (px left beside a grown panel, default 10), `navigateDelay`, `titleSize` (1–2 em).
  */
 export const imageRevealGallery: ComponentFn = (ctx, props = {}) => {
   registerImageRevealGalleryElement();
@@ -56,10 +57,15 @@ export const imageRevealGallery: ComponentFn = (ctx, props = {}) => {
     typeof props.hoverExpand === "number"
       ? props.hoverExpand
       : Number(props.hoverExpand) || 30;
+  const hoverGapRaw = typeof props.hoverGap === "number" ? props.hoverGap : Number(props.hoverGap);
+  const hoverGap = Number.isFinite(hoverGapRaw) ? Math.max(0, hoverGapRaw) : 10;
   const navigateDelay =
     typeof props.navigateDelay === "number"
       ? props.navigateDelay
       : Number(props.navigateDelay) || 2500;
+  const titleSize = clampTitleSizeEm(
+    typeof props.titleSize === "number" ? props.titleSize : Number(props.titleSize) || 1,
+  );
 
   const items = itemsFromProps(props).map((item) => ({
     ...item,
@@ -72,7 +78,7 @@ export const imageRevealGallery: ComponentFn = (ctx, props = {}) => {
   }
 
   const itemsAttr = ctx.escapeHtml(JSON.stringify(items));
-  return `<tessera-image-reveal-gallery width="${width}" height="${height}" panels-per-row="${panelsPerRow}" hover-expand="${hoverExpand}" navigate-delay="${navigateDelay}" items="${itemsAttr}"></tessera-image-reveal-gallery>`;
+  return `<tessera-image-reveal-gallery width="${width}" height="${height}" panels-per-row="${panelsPerRow}" hover-expand="${hoverExpand}" hover-gap="${hoverGap}" navigate-delay="${navigateDelay}" title-size="${titleSize}" items="${itemsAttr}"></tessera-image-reveal-gallery>`;
 };
 
 export function registerImageRevealGalleryComponents(

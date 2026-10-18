@@ -1,4 +1,6 @@
 import { escapeHtml, formErrorPanel } from "../dom.js";
+import type { PageTargetChoices } from "./page-target.js";
+import { serializePageTargetChoices } from "./page-target.js";
 import { pageIdError } from "./page.js";
 import { folderChecklist } from "./picker.js";
 import type { ControlValue } from "./nav.js";
@@ -18,7 +20,9 @@ export type ImageRevealDraft = {
   height: string;
   panelsPerRow: string;
   hoverExpand: string;
+  hoverGap: string;
   navigateDelay: string;
+  titleSize: string;
   panels: ImageRevealPanelDraft[];
   propsExtra: Record<string, unknown>;
   recordExtra: Record<string, unknown>;
@@ -70,6 +74,7 @@ export type BindingChoices = {
   folders: readonly { id: string }[];
   types: readonly string[];
   headings: readonly string[];
+  pageTargets?: PageTargetChoices;
 };
 
 export type NewBinding = {
@@ -248,7 +253,9 @@ export function imageRevealDraft(data: unknown): ImageRevealDraft {
   delete propsExtra.panelsPerRow;
   delete propsExtra.layout;
   delete propsExtra.hoverExpand;
+  delete propsExtra.hoverGap;
   delete propsExtra.navigateDelay;
+  delete propsExtra.titleSize;
   delete propsExtra.autoposition;
   const rawItems = Array.isArray(props.items) ? props.items : [];
   const panels: ImageRevealPanelDraft[] = rawItems.map((row) => panelDraftFromRow(row));
@@ -258,7 +265,9 @@ export function imageRevealDraft(data: unknown): ImageRevealDraft {
     height: numText(props.height, "300"),
     panelsPerRow: numText(props.panelsPerRow, "3"),
     hoverExpand: numText(props.hoverExpand, "30"),
+    hoverGap: nonNegText(props.hoverGap, 10),
     navigateDelay: numText(props.navigateDelay, "2500"),
+    titleSize: titleSizeText(props.titleSize ?? props["title-size"]),
     panels,
     propsExtra,
     recordExtra: recordExtra(record),
@@ -267,11 +276,15 @@ export function imageRevealDraft(data: unknown): ImageRevealDraft {
 
 export function imageRevealRecord(id: string, draft: ImageRevealDraft): Record<string, unknown> {
   const props: Record<string, unknown> = { ...draft.propsExtra };
+  delete props["title-size"];
+  delete props.titleSize;
   props.width = Number(draft.width.trim()) || 700;
   props.height = Number(draft.height.trim()) || 300;
   props.panelsPerRow = clampPanelsPerRowText(draft.panelsPerRow);
   props.hoverExpand = Number(draft.hoverExpand.trim()) || 30;
+  props.hoverGap = nonNegNumber(draft.hoverGap, 10);
   props.navigateDelay = Number(draft.navigateDelay.trim()) || 2500;
+  props.titleSize = titleSizeNumber(draft.titleSize);
   delete props.layout;
   delete props.autoposition;
   props.items = draft.panels
@@ -299,20 +312,22 @@ export function imageRevealDraftFromForm(controls: readonly ControlValue[]): Ima
     height: valueOf(controls, "ir-height").trim() || "300",
     panelsPerRow: valueOf(controls, "ir-panels-per-row").trim() || "3",
     hoverExpand: valueOf(controls, "ir-hover-expand").trim() || "30",
+    hoverGap: nonNegText(valueOf(controls, "ir-hover-gap"), 10),
     navigateDelay: valueOf(controls, "ir-navigate-delay").trim() || "2500",
+    titleSize: titleSizeText(controlValue(controls, "ir-title-size")),
     panels,
     propsExtra: parseObject(valueOf(controls, "ir-props-extra")),
     recordExtra: parseObject(valueOf(controls, "ir-record-extra")),
   };
 }
 
-export function renderImageRevealForm(id: string, draft: ImageRevealDraft): string {
-  return `${insertLine(id)}${hiddenExtra("ir", draft.propsExtra, draft.recordExtra)}
+export function renderImageRevealForm(id: string, draft: ImageRevealDraft, choices?: BindingChoices): string {
+  return `${pageTargetChoicesField(choices?.pageTargets)}${insertLine(id)}${hiddenExtra("ir", draft.propsExtra, draft.recordExtra)}
     <fieldset class="editor-fieldset"><legend>Banner</legend>
       ${imageRevealStageFields(draft)}
     </fieldset>
     <fieldset class="editor-fieldset"><legend>Panels</legend>
-      <p class="w3-small w3-text-grey">Up to six panels; blank slots are skipped. Images should match full banner size. Order fills left to right, then down.</p>
+      <p class="w3-small w3-text-grey">Up to six panels; blank slots are skipped. Images should match full banner size. Order fills left to right, then down. Link is a page id or external URL.</p>
       ${imageRevealPanelFields(draft.panels)}
     </fieldset>`;
 }
@@ -396,7 +411,7 @@ export function renderBindingForm(id: string, data: unknown, choices: BindingCho
   if (kind === "dated") return renderDatedForm(id, datedDraft(data), choices.types);
   if (kind === "people") return renderPeopleForm(id, peopleDraft(data), choices.types);
   if (kind === "links") return renderLinksForm(id, linksDraft(data), choices);
-  if (kind === "imageReveal") return renderImageRevealForm(id, imageRevealDraft(data));
+  if (kind === "imageReveal") return renderImageRevealForm(id, imageRevealDraft(data), choices);
   return "";
 }
 
@@ -470,7 +485,7 @@ export function linksDraftFromForm(controls: readonly ControlValue[]): LinksDraf
 
 export function renderNewBinding(state: NewBinding, choices: BindingChoices): string {
   if (state.kind === "gallery" && state.step > 1) return galleryWizard(state, choices);
-  if (state.kind === "imageReveal" && state.step > 1) return imageRevealWizard(state);
+  if (state.kind === "imageReveal" && state.step > 1) return imageRevealWizard(state, choices);
   const multiStep = state.kind === "gallery" || state.kind === "imageReveal";
   return `${kindField(state)}
     ${idField(state)}
@@ -533,9 +548,10 @@ export function newBindingError(state: NewBinding, existingIds: readonly string[
   return undefined;
 }
 
-function imageRevealWizard(state: NewBinding): string {
+function imageRevealWizard(state: NewBinding, choices: BindingChoices): string {
   const token = `{{${state.id.trim() || "id"}}}`;
   return `<p>Reveal banner <code>${escapeHtml(token)}</code></p>
+    ${pageTargetChoicesField(choices.pageTargets)}
     <input type="hidden" name="binding-kind" value="imageReveal" />
     <input type="hidden" name="binding-id" value="${escapeHtml(state.id)}" />
     <input type="hidden" name="binding-step" value="2" />
@@ -543,7 +559,7 @@ function imageRevealWizard(state: NewBinding): string {
       ${imageRevealStageFields(state.imageReveal, true)}
     </fieldset>
     <fieldset class="editor-fieldset"><legend>Panels</legend>
-      <p class="w3-small w3-text-grey">Up to six panels; blank slots are skipped. Use Library for each image.</p>
+      <p class="w3-small w3-text-grey">Up to six panels; blank slots are skipped. Use Library for each image. Link is a page id or external URL.</p>
       ${imageRevealPanelFields(state.imageReveal.panels, true)}
     </fieldset>
     ${formErrorPanel()}
@@ -801,8 +817,12 @@ function imageRevealStageFields(draft: ImageRevealDraft, focus = false): string 
       <select id="ir-panels-per-row" name="ir-panels-per-row" class="w3-select w3-border">${pprOptions}</select></p>
     <p><label for="ir-hover-expand">Hover grow (px)</label>
       <input id="ir-hover-expand" name="ir-hover-expand" class="w3-input w3-border" inputmode="numeric" value="${escapeHtml(draft.hoverExpand)}" /></p>
+    <p><label for="ir-hover-gap">Expanded gap (px)</label>
+      <input id="ir-hover-gap" name="ir-hover-gap" class="w3-input w3-border" inputmode="numeric" value="${escapeHtml(draft.hoverGap)}" /></p>
     <p><label for="ir-navigate-delay">Navigate delay (ms)</label>
       <input id="ir-navigate-delay" name="ir-navigate-delay" class="w3-input w3-border" inputmode="numeric" value="${escapeHtml(draft.navigateDelay)}" /></p>
+    <p><label for="ir-title-size">Title size</label>
+      <select id="ir-title-size" name="ir-title-size" class="w3-select w3-border">${titleSizeOptions(draft.titleSize)}</select></p>
     <p class="editor-prop-wide w3-small w3-text-grey">Width and height set aspect ratio and design coordinates; height on the page follows width.</p>
   </div>`;
 }
@@ -821,8 +841,11 @@ function imageRevealPanelFields(panels: ImageRevealPanelDraft[], focusFirst = fa
             </span></p>
           <p><label for="ir-panel-title-${index}">Title</label>
             <textarea id="ir-panel-title-${index}" name="ir-panel-title" class="w3-input w3-border" data-field="title" rows="2">${escapeHtml(panel.title)}</textarea></p>
-          <p><label for="ir-panel-href-${index}">URL</label>
-            <input id="ir-panel-href-${index}" name="ir-panel-href" class="w3-input w3-border" value="${escapeHtml(panel.href)}" /></p>
+          <p class="editor-prop-wide editor-irg-link-row"><label for="ir-panel-href-${index}">Link</label>
+            <span class="editor-irg-link-controls">
+              <input id="ir-panel-href-${index}" name="ir-panel-href" class="w3-input w3-border" value="${escapeHtml(panel.href)}" />
+              <button type="button" class="w3-button w3-small w3-white" data-page-target-pick>Choose page</button>
+            </span></p>
         </div>
       </div>`;
     })
@@ -867,10 +890,47 @@ function panelToItem(panel: ImageRevealPanelDraft): Record<string, unknown> | nu
   return item;
 }
 
+function pageTargetChoicesField(choices: PageTargetChoices | undefined): string {
+  if (!choices) return "";
+  return `<input type="hidden" data-page-target-choices="${escapeHtml(serializePageTargetChoices(choices))}" />`;
+}
+
 function clampPanelsPerRowText(value: string): number {
   const n = Number(value.trim());
   if (!Number.isFinite(n)) return 3;
   return Math.max(2, Math.min(6, Math.round(n)));
+}
+
+const TITLE_SIZE_CHOICES = ["1", "1.2", "1.4", "1.6", "1.8", "2"] as const;
+
+function titleSizeText(value: unknown): string {
+  const n = typeof value === "number" ? value : Number(String(value ?? "").trim());
+  if (!Number.isFinite(n)) return "1";
+  const step = Math.max(0, Math.min(5, Math.round((n - 1) / 0.2)));
+  return TITLE_SIZE_CHOICES[step] ?? "1";
+}
+
+function titleSizeNumber(text: string): number {
+  return Number(titleSizeText(text));
+}
+
+function titleSizeOptions(current: string): string {
+  const selected = titleSizeText(current);
+  return TITLE_SIZE_CHOICES.map(
+    (value) => `<option value="${value}"${value === selected ? " selected" : ""}>${value} em</option>`,
+  ).join("");
+}
+
+function nonNegText(value: unknown, fallback: number): string {
+  return String(nonNegNumber(value, fallback));
+}
+
+function nonNegNumber(value: unknown, fallback: number): number {
+  if (value === undefined || value === null) return fallback;
+  if (typeof value === "string" && !value.trim()) return fallback;
+  const n = typeof value === "number" ? value : Number(String(value).trim());
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(0, n);
 }
 
 function numText(value: unknown, fallback: string): string {
@@ -889,7 +949,9 @@ function blankImageReveal(): ImageRevealDraft {
     height: "300",
     panelsPerRow: "3",
     hoverExpand: "30",
+    hoverGap: "10",
     navigateDelay: "2500",
+    titleSize: "1",
     panels: Array.from({ length: IMAGE_REVEAL_SLOT_COUNT }, () => blankImageRevealPanel()),
     propsExtra: {},
     recordExtra: {},
@@ -1003,6 +1065,12 @@ function parseStep(value: string): 1 | 2 | 3 {
 
 function valueOf(controls: readonly ControlValue[], name: string): string {
   return controls.find((control) => control.name === name)?.value ?? "";
+}
+
+/** Last matching control wins (avoids stale hidden duplicates). */
+function controlValue(controls: readonly ControlValue[], name: string): string {
+  const matches = controls.filter((control) => control.name === name);
+  return matches.at(-1)?.value ?? "";
 }
 
 function valuesOf(controls: readonly ControlValue[], name: string): string[] {

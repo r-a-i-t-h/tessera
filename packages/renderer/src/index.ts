@@ -72,6 +72,7 @@ export {
   autopositionRects,
   gridPanelRects,
   clampPanelsPerRow,
+  clampTitleSizeEm,
   splitSpan,
   resolveItemRects,
   type ImageRevealItem,

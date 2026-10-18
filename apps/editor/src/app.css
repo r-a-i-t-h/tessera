@@ -679,6 +679,55 @@ img[data-hero-preview] {
   white-space: nowrap;
 }
 
+.editor-irg-link-controls {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.editor-irg-link-controls .w3-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-top: 0 !important;
+}
+
+.editor-irg-link-controls .w3-button {
+  flex: 0 0 auto;
+  margin-top: 0;
+  white-space: nowrap;
+}
+
+.editor-page-target-dialog {
+  max-width: 36rem;
+  max-height: min(85vh, 40rem);
+  overflow: auto;
+}
+
+.editor-page-target-section {
+  margin: 0 0 1rem;
+}
+
+.editor-page-target-section:last-child {
+  margin-bottom: 0;
+}
+
+.editor-page-target-list {
+  margin-top: 0.35rem;
+}
+
+.editor-page-target-row {
+  width: 100%;
+  text-align: left;
+  margin: 0.15rem 0;
+}
+
+.editor-page-target-external {
+  border-top: 1px solid #eee;
+  padding-top: 0.75rem;
+}
+
 .editor-record-note {
   margin: 0.15rem 0 0.35rem;
 }

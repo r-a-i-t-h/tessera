@@ -144,6 +144,12 @@ import {
   type PickerMode,
   type PickedAsset,
 } from "./forms/picker.js";
+import {
+  buildPageTargetChoices,
+  parsePageTargetChoices,
+  renderPageTargetPicker,
+  type PageTargetChoices,
+} from "./forms/page-target.js";
 import { editorMediaSrc } from "./forms/media-url.js";
 import { guideHtml } from "./guide.js";
 import { escapeHtml, fieldId, formErrorPanel, noticePanel, statusPanels } from "./dom.js";
@@ -1218,9 +1224,10 @@ async function loadBindingListInfo(listing: RecordList): Promise<{ notes: Map<st
       );
       notes.set(row.id, bindingSentence(bindingPayloads[index]?.data, used));
     });
+    const siteData = await loadSiteData(listing);
     return {
       notes,
-      choices: { folders: library.folders, types, headings: navHeadings(nav?.data) },
+      choices: bindingChoicesPayload(listing, library.folders, types, nav?.data, siteData),
     };
   } catch {
     return empty;
@@ -1240,14 +1247,38 @@ async function loadBindingChoices(): Promise<BindingChoices> {
   try {
     const listing = await listRecords();
     const types = listing.records.filter((row) => row.kind === "types").map((row) => row.id);
-    const [library, nav] = await Promise.all([
+    const [library, nav, siteData] = await Promise.all([
       getLibrary().catch(() => ({ folders: [], assets: [] })),
       getRecord("nav", "nav").catch(() => undefined),
+      loadSiteData(listing),
     ]);
-    return { folders: library.folders, types, headings: navHeadings(nav?.data) };
+    return bindingChoicesPayload(listing, library.folders, types, nav?.data, siteData);
   } catch {
     return { folders: [], types: [], headings: [] };
   }
+}
+
+function bindingChoicesPayload(
+  listing: RecordList,
+  folders: BindingChoices["folders"],
+  types: readonly string[],
+  navData: unknown,
+  siteData: Record<string, unknown> | undefined,
+): BindingChoices {
+  const navEntries = Array.isArray(navData) ? (navData as NavEntry[]) : [];
+  const site =
+    siteData ??
+    ({
+      id: "site",
+      title: "Site",
+      homePageId: "home",
+    } as Record<string, unknown>);
+  return {
+    folders,
+    types,
+    headings: navHeadings(navData),
+    pageTargets: buildPageTargetChoices(listing, site, navEntries),
+  };
 }
 
 function showFormError(form: HTMLFormElement, message: string): void {
@@ -3464,6 +3495,10 @@ function bindPickers(form: HTMLFormElement): void {
       event.preventDefault();
       void fillImageBox(button);
     }
+    if (button.hasAttribute("data-page-target-pick")) {
+      event.preventDefault();
+      void pickPageTarget(button);
+    }
     if (button.hasAttribute("data-hero-pick")) {
       event.preventDefault();
       void pickHero(form);
@@ -3538,6 +3573,72 @@ function insertAtCursor(el: HTMLTextAreaElement, text: string): void {
   const end = el.selectionEnd ?? start;
   el.value = `${el.value.slice(0, start)}${text}${el.value.slice(end)}`;
   el.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+function openPageTargetPicker(choices: PageTargetChoices, current: string): Promise<string | undefined> {
+  const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  return new Promise((resolve) => {
+    const host = document.createElement("div");
+    host.className = "editor-picker-host";
+    let done = false;
+    let dialog: DialogController | undefined;
+    const finish = (value: string | undefined) => {
+      if (done) return;
+      done = true;
+      host.remove();
+      dialog?.destroy();
+      resolve(value);
+    };
+    const paint = () => {
+      host.innerHTML = `<div class="editor-picker-backdrop" data-dialog-backdrop><div class="w3-card w3-white w3-padding editor-card editor-page-target-dialog" role="dialog" aria-modal="true" aria-labelledby="page-target-picker-title" tabindex="-1">
+        <h2 id="page-target-picker-title" class="w3-large">Choose page or URL</h2>
+        <p><button type="button" class="w3-button w3-white" data-picker-close>Close</button></p>
+        ${renderPageTargetPicker(choices, current)}
+      </div></div>`;
+    };
+    host.addEventListener("click", (event) => {
+      const button = (event.target as HTMLElement).closest("button");
+      if (!button) return;
+      if (button.hasAttribute("data-picker-close")) {
+        finish(undefined);
+        return;
+      }
+      if (button.dataset.pickPage) {
+        finish(button.dataset.pickPage);
+        return;
+      }
+      if (button.hasAttribute("data-page-target-use-url")) {
+        const field = host.querySelector<HTMLInputElement>("[data-page-target-external]");
+        const url = field?.value.trim() ?? "";
+        if (url) finish(url);
+      }
+    });
+    paint();
+    document.body.appendChild(host);
+    dialog = activateDialog(host, {
+      onCancel: () => finish(undefined),
+      returnFocus,
+      initialFocus: "[data-picker-close]",
+      closeOnBackdrop: false,
+    });
+  });
+}
+
+async function pickPageTarget(button: HTMLButtonElement): Promise<void> {
+  const form = button.closest("form");
+  if (!form) return;
+  const encoded = form.querySelector<HTMLInputElement>("[data-page-target-choices]")?.dataset.pageTargetChoices;
+  const choices = parsePageTargetChoices(encoded);
+  if (!choices) return;
+  const panel = button.closest(".editor-irg-panel");
+  const input = panel?.querySelector<HTMLInputElement>('input[name="ir-panel-href"]');
+  if (!input) return;
+  const picked = await openPageTargetPicker(choices, input.value);
+  if (picked === undefined) return;
+  input.value = picked;
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+  input.dispatchEvent(new Event("change", { bubbles: true }));
+  form.dataset.dirty = "true";
 }
 
 function openLibraryPicker(initial: PickerMode): Promise<PickedAsset | { id: string; kind: "folder" } | undefined> {

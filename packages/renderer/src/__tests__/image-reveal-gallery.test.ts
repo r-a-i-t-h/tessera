@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  clampTitleSizeEm,
   ComponentRegistry,
   gridPanelRects,
   imageRevealGallery,
@@ -8,6 +9,14 @@ import {
 } from "../index.js";
 import type { RenderContext } from "../types.js";
 import { makeFixtureDoc } from "./fixtures.js";
+
+describe("clampTitleSizeEm", () => {
+  it("snaps to 0.2 em steps including 1.2 and 1.4", () => {
+    expect(clampTitleSizeEm(1.19)).toBe(1.2);
+    expect(clampTitleSizeEm(1.21)).toBe(1.2);
+    expect(clampTitleSizeEm(1.41)).toBe(1.4);
+  });
+});
 
 describe("gridPanelRects", () => {
   it("places three panels in one row when ppr is 3", () => {
@@ -51,6 +60,24 @@ describe("resolveItemRects", () => {
     expect(rects[0]?.width).toBe(350);
     expect(rects[1]?.left).toBe(350);
   });
+
+  it("keeps one expansion plus the expanded gap between panels", () => {
+    const items: ImageRevealItem[] = [
+      { id: "a", url: "./a.jpg", href: "a" },
+      { id: "b", url: "./b.jpg", href: "b" },
+      { id: "c", url: "./c.jpg", href: "c" },
+    ];
+    const expand = 30;
+    const hoverGap = 10;
+    const rects = resolveItemRects(items, 700, 300, 3, expand, expand + hoverGap);
+    expect(rects).toHaveLength(3);
+    expect(rects[0]!.left - expand).toBe(0);
+    expect(rects[2]!.left + rects[2]!.width + expand).toBe(700);
+    const grownRight = rects[0]!.left + rects[0]!.width + expand;
+    expect(rects[1]!.left - grownRight).toBe(hoverGap);
+    expect(rects[0]!.top - expand).toBe(0);
+    expect(rects[0]!.top + rects[0]!.height + expand).toBe(300);
+  });
 });
 
 describe("imageRevealGallery component", () => {
@@ -93,6 +120,8 @@ describe("imageRevealGallery component", () => {
     expect(html).toContain('width="700"');
     expect(html).toContain('height="300"');
     expect(html).toContain('panels-per-row="3"');
+    expect(html).toContain('title-size="1"');
+    expect(html).toContain('hover-gap="10"');
     expect(html).toContain("./media/hero/img1.jpg");
     expect(html).toContain("/pages/mobile-farm.html");
     expect(html).toContain("Mobile farm");

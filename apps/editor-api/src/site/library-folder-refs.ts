@@ -34,9 +34,10 @@ export function rewriteLibraryFolderRefs(value: unknown, from: string, to: strin
         copy.folder = to;
         propsChanged = true;
       }
-      if (Array.isArray(copy.folders)) {
-        const folders = copy.folders.map((entry) => (entry === from ? to : entry));
-        if (folders.some((entry, index) => entry !== copy.folders![index])) {
+      const existingFolders = copy.folders;
+      if (Array.isArray(existingFolders)) {
+        const folders = existingFolders.map((entry) => (entry === from ? to : entry));
+        if (folders.some((entry, index) => entry !== existingFolders[index])) {
           copy.folders = folders;
           propsChanged = true;
         }

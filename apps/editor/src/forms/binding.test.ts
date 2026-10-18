@@ -137,6 +137,25 @@ describe("binding records", () => {
     expect(galleryRecord("hall-gallery", grid).props).not.toHaveProperty("autoplay");
   });
 
+  it("renders reveal banner panels with page picker and choices payload", () => {
+    const choices = {
+      folders: [],
+      types: [],
+      headings: [],
+      pageTargets: { nav: [{ id: "home", depth: 0, title: "Home" }], articles: [] },
+    };
+    const html = renderBindingForm(
+      "home-hero",
+      { component: "imageRevealGallery", props: { items: [{ url: "./a.jpg", href: "home" }] } },
+      choices,
+    );
+    expect(html).toContain("data-page-target-pick");
+    expect(html).toContain('name="ir-panel-href"');
+    expect(html).toContain("Choose page");
+    expect(html).toContain("data-page-target-choices");
+    expect(html).toContain("&quot;id&quot;:&quot;home&quot;");
+  });
+
   it("writes imageRevealGallery props from a reveal banner draft", () => {
     const draft = imageRevealDraft({
       component: "imageRevealGallery",
@@ -144,9 +163,12 @@ describe("binding records", () => {
         width: 700,
         height: 300,
         panelsPerRow: 4,
+        titleSize: 1.6,
         items: [{ url: "./img1.jpg", href: "farm", title: "Farm" }],
       },
     });
+    expect(draft.titleSize).toBe("1.6");
+    expect(draft.hoverGap).toBe("10");
     expect(imageRevealRecord("home-hero", draft)).toMatchObject({
       id: "home-hero",
       component: "imageRevealGallery",
@@ -154,9 +176,21 @@ describe("binding records", () => {
         width: 700,
         height: 300,
         panelsPerRow: 4,
+        titleSize: 1.6,
+        hoverGap: 10,
         items: [{ url: "./img1.jpg", href: "farm", title: "Farm" }],
       },
     });
+    expect(imageRevealDraft(imageRevealRecord("home-hero", draft)).titleSize).toBe("1.6");
+  });
+
+  it("round-trips title sizes 1.2 and 1.4 without float drift", () => {
+    for (const size of ["1.2", "1.4"] as const) {
+      const draft = { ...imageRevealDraft({ component: "imageRevealGallery", props: { items: [] } }), titleSize: size };
+      const record = imageRevealRecord("banner", draft);
+      expect(record.props).toMatchObject({ titleSize: Number(size) });
+      expect(imageRevealDraft(record).titleSize).toBe(size);
+    }
   });
 
   it("reads a single folder string and keeps item data", () => {
