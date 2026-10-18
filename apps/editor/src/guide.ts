@@ -46,15 +46,31 @@ export function guideHtml(): string {
     <p><a href="#/pages">Pages</a> are ordinary pages. <a href="#/articles">Articles</a> opens on the blog list, then that blog’s articles. A blog is one dated stream: path, frame, page size, hero, and lead. Hero is full, banner, or side. Blogs are edited under <a href="#/records/blogs">Records → Blogs</a>. Creating a blog also creates its index. Place each blog on the Nav record yourself. The menu can add the index when the blog asks for it. Articles are not menu items.</p>
 
     <h2>Bindings</h2>
-  <p>A binding is a named piece you can drop on any page. The choices live once, under <a href="#/records/bindings">Records → Bindings</a> (<code>records/bindings/&lt;id&gt;.yaml</code>). Compose → Insert writes <code>{{id}}</code> into the page.</p>
-  <p>A Gallery section in Compose is a different thing. That paints one folder into that page only. A gallery binding can combine folders, keep filenames that match a pattern, and play as slides.</p>
-  <ul>
-    <li><strong>Gallery</strong> shows pictures from library folders, as a grid or as slides.</li>
-    <li><strong>Dated list</strong> shows pages of a type that have a date field. Upcoming, past, or all. Precis is the line under the date. Willow’s upcoming events list is one of these.</li>
-    <li><strong>People grid</strong> shows pages of a type, using the photo and role fields.</li>
-    <li><strong>Link group</strong> shows a titled set of links: this page’s children, every page of a type, or one menu heading. Children follow the page the insert sits on.</li>
-  </ul>
-  <p>A list stored as JSON, and any other component, is edited as the raw file. Menus, breadcrumbs, and the profile lines (<code>articleByline</code>, <code>profileKicker</code>, <code>profilePhoto</code>, <code>profileFacts</code>) belong on a layout. Subpages is a Compose section.</p>
+    <p>A <strong>binding</strong> is a named configuration for a registry component. It lives once under <a href="#/records/bindings">Records → Bindings</a> (<code>records/bindings/&lt;id&gt;.yaml</code>): the component name and its props. Pages store a token <code>{{id}}</code> that Tessera expands when the page is rendered.</p>
+    <h3 class="w3-medium">Where bindings belong on a page</h3>
+    <p>Edit the page in <strong>Compose</strong>, inside a layout zone such as <code>main</code>. Add an <strong>Insert</strong> section and choose the binding id. That is one block among Text, Image box, and Side by side — not the Layout editor <strong>Component</strong> tile.</p>
+    <h3 class="w3-medium">Why use bindings</h3>
+    <ul>
+      <li><strong>Portable</strong> — Page restructure does not discard the widget; the binding record stays until you delete it.</li>
+      <li><strong>Reusable</strong> — Same <code>{{hall-gallery}}</code> on many pages; edit the binding once.</li>
+      <li><strong>Reviewable</strong> — Bindings are their own record, not buried in page HTML.</li>
+    </ul>
+    <p>Prefer <strong>Bindings + Insert</strong> for wizard-supported components. Page sections store settings in zone HTML — fine for simple blocks; risky for complex micro-apps.</p>
+    <h3 class="w3-medium">Gallery: binding vs Compose section</h3>
+    <ul>
+      <li><strong>Gallery binding</strong> — Primary: folders, filters, slides, reuse (Willow’s hall gallery).</li>
+      <li><strong>Gallery Compose section</strong> — Quick fix: one folder on this page only. Move to a binding when it matters.</li>
+    </ul>
+    <p>Other binding kinds are <strong>binding only</strong> (no Compose section).</p>
+    <h3 class="w3-medium">Binding kinds</h3>
+    <ul>
+      <li><strong>Gallery</strong> — Library folders as grid or slides.</li>
+      <li><strong>Dated list</strong> — Dated pages by type. Willow’s upcoming events.</li>
+      <li><strong>People grid</strong> — Pages of a type with photo and role.</li>
+      <li><strong>Link group</strong> — Children, pages of a type, or a menu heading.</li>
+      <li><strong>Reveal banner</strong> — Cropped panels, hover grow, click-to-reveal, then link (Miller’s Ark homepage hero). Insert only.</li>
+    </ul>
+    <p>Menus, breadcrumbs, profile lines, and <strong>Subpages</strong> are not bindings. Unsupported components use the raw binding file.</p>
 
   <h2>Four stylesheets</h2>
     <p>A class on a layout region is an ordinary CSS class. Four stylesheets supply them, and they do not stand in for each other.</p>

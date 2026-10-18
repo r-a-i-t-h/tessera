@@ -15,6 +15,7 @@ describe("default component registry", () => {
       "breadcrumbs",
       "linkCluster",
       "gallery",
+      "imageRevealGallery",
       "extraExample",
     ]) {
       expect(registry.hasFunction(name), name).toBe(true);

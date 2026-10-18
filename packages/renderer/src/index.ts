@@ -38,7 +38,6 @@ export {
 export {
   resolveNavTree,
   flattenNav,
-  collectNavPageOrder,
   type ResolvedNavNode,
 } from "./nav-expand.js";
 export {
@@ -63,6 +62,18 @@ export {
   TesseraGallery,
   type GalleryItem,
 } from "./builtins/gallery-element.js";
+export {
+  registerImageRevealGalleryComponents,
+  imageRevealGallery,
+} from "./builtins/image-reveal-gallery.js";
+export {
+  registerImageRevealGalleryElement,
+  TesseraImageRevealGallery,
+  autopositionRects,
+  resolveItemRects,
+  type ImageRevealItem,
+  type ImageRevealRect,
+} from "./builtins/image-reveal-gallery-element.js";
 export { normalizeSiteAssetUrl, isRootAbsoluteUrl } from "./assets.js";
 export { hrefForPage } from "./page-href.js";
 export {

@@ -3,7 +3,30 @@ import { pageIdError } from "./page.js";
 import { folderChecklist } from "./picker.js";
 import type { ControlValue } from "./nav.js";
 
-export type BindingKind = "gallery" | "dated" | "people" | "links" | "other";
+export type BindingKind = "gallery" | "dated" | "people" | "links" | "imageReveal" | "other";
+
+export type ImageRevealLayout = "scale" | "stack";
+
+export type ImageRevealPanelDraft = {
+  url: string;
+  href: string;
+  alt: string;
+  left: string;
+  top: string;
+  width: string;
+  height: string;
+};
+
+export type ImageRevealDraft = {
+  width: string;
+  height: string;
+  layout: ImageRevealLayout;
+  hoverExpand: string;
+  navigateDelay: string;
+  panels: ImageRevealPanelDraft[];
+  propsExtra: Record<string, unknown>;
+  recordExtra: Record<string, unknown>;
+};
 
 export type GalleryMode = "grid" | "slides";
 export type DateWindow = "upcoming" | "past" | "all";
@@ -62,6 +85,7 @@ export type NewBinding = {
   dated: DatedDraft;
   people: PeopleDraft;
   links: LinksDraft;
+  imageReveal: ImageRevealDraft;
 };
 
 const TOKEN = /\{\{([a-zA-Z0-9_-]+)\}\}/g;
@@ -72,6 +96,7 @@ export function bindingKind(data: unknown): BindingKind {
   if (data.component === "datedList") return "dated";
   if (data.component === "peopleGrid") return "people";
   if (data.component === "linkCluster") return "links";
+  if (data.component === "imageRevealGallery") return "imageReveal";
   return "other";
 }
 
@@ -85,6 +110,7 @@ export function blankNewBinding(): NewBinding {
     dated: blankDated(),
     people: blankPeople(),
     links: blankLinks(),
+    imageReveal: blankImageReveal(),
   };
 }
 
@@ -216,6 +242,86 @@ export function linksRecord(id: string, draft: LinksDraft): Record<string, unkno
   return { ...draft.recordExtra, id, component: "linkCluster", props };
 }
 
+export function imageRevealDraft(data: unknown): ImageRevealDraft {
+  const record = isRecord(data) ? data : {};
+  const props = isRecord(record.props) ? record.props : {};
+  const propsExtra = { ...props };
+  delete propsExtra.items;
+  delete propsExtra.width;
+  delete propsExtra.height;
+  delete propsExtra.layout;
+  delete propsExtra.hoverExpand;
+  delete propsExtra.navigateDelay;
+  const rawItems = Array.isArray(props.items) ? props.items : [];
+  const panels: ImageRevealPanelDraft[] = rawItems.map((row) => panelDraftFromRow(row));
+  while (panels.length < 3) panels.push(blankImageRevealPanel());
+  return {
+    width: numText(props.width, "700"),
+    height: numText(props.height, "300"),
+    layout: props.layout === "stack" ? "stack" : "scale",
+    hoverExpand: numText(props.hoverExpand, "30"),
+    navigateDelay: numText(props.navigateDelay, "2500"),
+    panels,
+    propsExtra,
+    recordExtra: recordExtra(record),
+  };
+}
+
+export function imageRevealRecord(id: string, draft: ImageRevealDraft): Record<string, unknown> {
+  const props: Record<string, unknown> = { ...draft.propsExtra };
+  props.width = Number(draft.width.trim()) || 700;
+  props.height = Number(draft.height.trim()) || 300;
+  props.layout = draft.layout;
+  props.hoverExpand = Number(draft.hoverExpand.trim()) || 30;
+  props.navigateDelay = Number(draft.navigateDelay.trim()) || 2500;
+  props.items = draft.panels
+    .map((panel) => panelToItem(panel))
+    .filter((item): item is Record<string, unknown> => item !== null);
+  return { ...draft.recordExtra, id, component: "imageRevealGallery", props };
+}
+
+export function imageRevealDraftFromForm(controls: readonly ControlValue[]): ImageRevealDraft {
+  const urls = valuesOf(controls, "ir-panel-url");
+  const hrefs = valuesOf(controls, "ir-panel-href");
+  const alts = valuesOf(controls, "ir-panel-alt");
+  const lefts = valuesOf(controls, "ir-panel-left");
+  const tops = valuesOf(controls, "ir-panel-top");
+  const widths = valuesOf(controls, "ir-panel-width");
+  const heights = valuesOf(controls, "ir-panel-height");
+  const count = Math.max(urls.length, hrefs.length, alts.length, 1);
+  const panels: ImageRevealPanelDraft[] = [];
+  for (let i = 0; i < count; i += 1) {
+    panels.push({
+      url: urls[i] ?? "",
+      href: hrefs[i] ?? "",
+      alt: alts[i] ?? "",
+      left: lefts[i] ?? "",
+      top: tops[i] ?? "",
+      width: widths[i] ?? "",
+      height: heights[i] ?? "",
+    });
+  }
+  const layout = valueOf(controls, "ir-layout") === "stack" ? "stack" : "scale";
+  return {
+    width: valueOf(controls, "ir-width").trim() || "700",
+    height: valueOf(controls, "ir-height").trim() || "300",
+    layout,
+    hoverExpand: valueOf(controls, "ir-hover-expand").trim() || "30",
+    navigateDelay: valueOf(controls, "ir-navigate-delay").trim() || "2500",
+    panels: panels.length ? panels : [blankImageRevealPanel()],
+    propsExtra: parseObject(valueOf(controls, "ir-props-extra")),
+    recordExtra: parseObject(valueOf(controls, "ir-record-extra")),
+  };
+}
+
+export function renderImageRevealForm(id: string, draft: ImageRevealDraft): string {
+  return `${insertLine(id)}${hiddenExtra("ir", draft.propsExtra, draft.recordExtra)}
+    ${imageRevealStageFields(draft)}
+    <fieldset class="editor-fieldset"><legend>Panels</legend>
+      ${imageRevealPanelFields(draft.panels)}
+    </fieldset>`;
+}
+
 /** Whole numbers only. A blank limit lists every match. */
 export function limitError(value: string): string | undefined {
   const trimmed = value.trim();
@@ -239,7 +345,9 @@ export function bindingSentence(data: unknown, pages: readonly PageUse[] = []): 
           ? peoplePhrase(peopleDraft(data))
           : kind === "links"
             ? linksPhrase(linksDraft(data))
-            : otherPhrase(data);
+            : kind === "imageReveal"
+              ? imageRevealPhrase(imageRevealDraft(data))
+              : otherPhrase(data);
   return `${detail}${usagePhrase(pages)}`;
 }
 
@@ -293,6 +401,7 @@ export function renderBindingForm(id: string, data: unknown, choices: BindingCho
   if (kind === "dated") return renderDatedForm(id, datedDraft(data), choices.types);
   if (kind === "people") return renderPeopleForm(id, peopleDraft(data), choices.types);
   if (kind === "links") return renderLinksForm(id, linksDraft(data), choices);
+  if (kind === "imageReveal") return renderImageRevealForm(id, imageRevealDraft(data));
   return "";
 }
 
@@ -366,11 +475,13 @@ export function linksDraftFromForm(controls: readonly ControlValue[]): LinksDraf
 
 export function renderNewBinding(state: NewBinding, choices: BindingChoices): string {
   if (state.kind === "gallery" && state.step > 1) return galleryWizard(state, choices);
+  if (state.kind === "imageReveal" && state.step > 1) return imageRevealWizard(state);
+  const multiStep = state.kind === "gallery" || state.kind === "imageReveal";
   return `${kindField(state)}
     ${idField(state)}
     ${state.kind === "gallery" ? `${carryPictures(state.gallery)}${carryLook(state.gallery)}` : kindBody(state, choices)}
     ${formErrorPanel()}
-    <p><button type="submit" class="w3-button w3-theme">${state.kind === "gallery" ? "Next" : "Create binding"}</button></p>`;
+    <p><button type="submit" class="w3-button w3-theme">${multiStep ? "Next" : "Create binding"}</button></p>`;
 }
 
 /**
@@ -399,6 +510,9 @@ export function readNewBinding(controls: readonly ControlValue[], folderIds?: re
       ? peopleDraftFromForm(controls)
       : blankPeople(),
     links: controls.some((control) => control.name === "links-source") ? linksDraftFromForm(controls) : blankLinks(),
+    imageReveal: controls.some((control) => control.name === "ir-width" || control.name === "ir-panel-url")
+      ? imageRevealDraftFromForm(controls)
+      : blankImageReveal(),
   };
 }
 
@@ -408,6 +522,7 @@ export function newBindingRecord(state: NewBinding): Record<string, unknown> {
   if (state.kind === "dated") return datedRecord(id, state.dated);
   if (state.kind === "people") return peopleRecord(id, state.people);
   if (state.kind === "links") return linksRecord(id, state.links);
+  if (state.kind === "imageReveal") return imageRevealRecord(id, state.imageReveal);
   return { id, component: state.component.trim() };
 }
 
@@ -418,8 +533,25 @@ export function newBindingError(state: NewBinding, existingIds: readonly string[
   if (state.kind === "people") return limitError(state.people.limit);
   if (state.kind === "links" && state.links.source === "type" && !state.links.type.trim()) return "Choose a type.";
   if (state.kind === "links" && state.links.source === "nav" && !state.links.heading.trim()) return "Enter a menu heading.";
+  if (state.kind === "imageReveal") return imageRevealError(state.imageReveal);
   if (state.kind === "other" && !state.component.trim()) return "Enter a component name.";
   return undefined;
+}
+
+function imageRevealWizard(state: NewBinding): string {
+  const token = `{{${state.id.trim() || "id"}}}`;
+  return `<p>Reveal banner <code>${escapeHtml(token)}</code></p>
+    <input type="hidden" name="binding-kind" value="imageReveal" />
+    <input type="hidden" name="binding-id" value="${escapeHtml(state.id)}" />
+    <input type="hidden" name="binding-step" value="2" />
+    ${imageRevealStageFields(state.imageReveal, true)}
+    <fieldset class="editor-fieldset"><legend>Panels</legend>
+      <p class="w3-small w3-text-grey">Leave layout blank to space panels automatically. Use Library for each image.</p>
+      ${imageRevealPanelFields(state.imageReveal.panels, true)}
+    </fieldset>
+    ${formErrorPanel()}
+    <p><button type="button" class="w3-button w3-white" data-binding-step="back">Back</button>
+      <button type="submit" class="w3-button w3-theme">Create binding</button></p>`;
 }
 
 function galleryWizard(state: NewBinding, choices: BindingChoices): string {
@@ -456,6 +588,7 @@ function kindField(state: NewBinding): string {
     { value: "dated", label: "Dated list" },
     { value: "people", label: "People grid" },
     { value: "links", label: "Link group" },
+    { value: "imageReveal", label: "Reveal banner" },
     { value: "other", label: "Something else" },
   ];
   return `<input type="hidden" name="binding-step" value="1" />
@@ -479,6 +612,9 @@ function kindBody(state: NewBinding, choices: BindingChoices): string {
   if (state.kind === "dated") return datedFields(state.dated, choices.types);
   if (state.kind === "people") return peopleFields(state.people, choices.types);
   if (state.kind === "links") return linksFields(state.links, choices);
+  if (state.kind === "imageReveal") {
+    return `<p class="w3-small w3-text-grey">Cropped image panels with hover and click-to-reveal. Configure panels on the next step, then insert with Compose → Insert.</p>`;
+  }
   return `<div class="editor-props"><p><label for="new-binding-component">Component</label>
     <input id="new-binding-component" name="binding-component" class="w3-input w3-border" spellcheck="false" autocomplete="off" value="${escapeHtml(state.component)}" /></p>
 </div>`;
@@ -651,6 +787,117 @@ function peoplePhrase(draft: PeopleDraft): string {
   return `Every ${names} page.`;
 }
 
+function imageRevealStageFields(draft: ImageRevealDraft, focus = false): string {
+  return `<div class="editor-props">
+    <p><label for="ir-width">Stage width</label>
+      <input id="ir-width" name="ir-width" class="w3-input w3-border" inputmode="numeric" value="${escapeHtml(draft.width)}"${focus ? " data-binding-focus" : ""} /></p>
+    <p><label for="ir-height">Stage height</label>
+      <input id="ir-height" name="ir-height" class="w3-input w3-border" inputmode="numeric" value="${escapeHtml(draft.height)}" /></p>
+    <p><label for="ir-layout">Layout</label>
+      <select id="ir-layout" name="ir-layout" class="w3-select w3-border">
+        <option value="scale"${draft.layout === "scale" ? " selected" : ""}>Scale to fit (default)</option>
+        <option value="stack"${draft.layout === "stack" ? " selected" : ""}>Stack on narrow viewports</option>
+      </select></p>
+    <p><label for="ir-hover-expand">Hover grow (px)</label>
+      <input id="ir-hover-expand" name="ir-hover-expand" class="w3-input w3-border" inputmode="numeric" value="${escapeHtml(draft.hoverExpand)}" /></p>
+    <p><label for="ir-navigate-delay">Navigate delay (ms)</label>
+      <input id="ir-navigate-delay" name="ir-navigate-delay" class="w3-input w3-border" inputmode="numeric" value="${escapeHtml(draft.navigateDelay)}" /></p>
+  </div>`;
+}
+
+function imageRevealPanelFields(panels: ImageRevealPanelDraft[], focusFirst = false): string {
+  return panels
+    .map((panel, index) => {
+      const focus = focusFirst && index === 0 ? " data-binding-focus" : "";
+      return `<div class="editor-props editor-irg-panel" data-item-id="${index}">
+        <p class="w3-medium">Panel ${index + 1}</p>
+        <p><label>Image URL <input name="ir-panel-url" class="w3-input w3-border" data-field="url" value="${escapeHtml(panel.url)}"${focus} /></label>
+          <button type="button" class="w3-button w3-small w3-white" data-library="image">Library</button></p>
+        <p><label>Link (page id or URL) <input name="ir-panel-href" class="w3-input w3-border" value="${escapeHtml(panel.href)}" /></label></p>
+        <p><label>Alt text <input name="ir-panel-alt" class="w3-input w3-border" data-field="alt" value="${escapeHtml(panel.alt)}" /></label></p>
+        <p class="w3-small w3-text-grey">Optional layout (design pixels):</p>
+        <p><label>Left <input name="ir-panel-left" class="w3-input w3-border" value="${escapeHtml(panel.left)}" /></label>
+          <label>Top <input name="ir-panel-top" class="w3-input w3-border" value="${escapeHtml(panel.top)}" /></label></p>
+        <p><label>Width <input name="ir-panel-width" class="w3-input w3-border" value="${escapeHtml(panel.width)}" /></label>
+          <label>Height <input name="ir-panel-height" class="w3-input w3-border" value="${escapeHtml(panel.height)}" /></label></p>
+      </div>`;
+    })
+    .join("");
+}
+
+function imageRevealPhrase(draft: ImageRevealDraft): string {
+  const count = draft.panels.filter((panel) => panel.url.trim() && panel.href.trim()).length;
+  if (!count) return "A reveal banner with no panels yet.";
+  const layout = draft.layout === "stack" ? "stacked" : "scaled";
+  return `Reveal banner with ${count} panel${count === 1 ? "" : "s"} (${layout}).`;
+}
+
+function imageRevealError(draft: ImageRevealDraft): string | undefined {
+  const filled = draft.panels.filter((panel) => panel.url.trim() || panel.href.trim());
+  if (!filled.length) return "Add at least one panel with an image and a link.";
+  for (const panel of filled) {
+    if (!panel.url.trim()) return "Each panel needs an image.";
+    if (!panel.href.trim()) return "Each panel needs a link.";
+  }
+  return undefined;
+}
+
+function panelDraftFromRow(row: unknown): ImageRevealPanelDraft {
+  if (!isRecord(row)) return blankImageRevealPanel();
+  return {
+    url: typeof row.url === "string" ? row.url : "",
+    href: typeof row.href === "string" ? row.href : "",
+    alt: typeof row.alt === "string" ? row.alt : "",
+    left: typeof row.left === "number" ? String(row.left) : "",
+    top: typeof row.top === "number" ? String(row.top) : "",
+    width: typeof row.width === "number" ? String(row.width) : "",
+    height: typeof row.height === "number" ? String(row.height) : "",
+  };
+}
+
+function panelToItem(panel: ImageRevealPanelDraft): Record<string, unknown> | null {
+  const url = panel.url.trim();
+  const href = panel.href.trim();
+  if (!url || !href) return null;
+  const item: Record<string, unknown> = { url, href };
+  const alt = panel.alt.trim();
+  if (alt) item.alt = alt;
+  const left = panel.left.trim();
+  const top = panel.top.trim();
+  const width = panel.width.trim();
+  const height = panel.height.trim();
+  if (left && top && width && height) {
+    item.left = Number(left);
+    item.top = Number(top);
+    item.width = Number(width);
+    item.height = Number(height);
+  }
+  return item;
+}
+
+function numText(value: unknown, fallback: string): string {
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  if (typeof value === "string" && value.trim()) return value.trim();
+  return fallback;
+}
+
+function blankImageRevealPanel(): ImageRevealPanelDraft {
+  return { url: "", href: "", alt: "", left: "", top: "", width: "", height: "" };
+}
+
+function blankImageReveal(): ImageRevealDraft {
+  return {
+    width: "700",
+    height: "300",
+    layout: "scale",
+    hoverExpand: "30",
+    navigateDelay: "2500",
+    panels: [blankImageRevealPanel(), blankImageRevealPanel(), blankImageRevealPanel()],
+    propsExtra: {},
+    recordExtra: {},
+  };
+}
+
 function linksPhrase(draft: LinksDraft): string {
   const look = draft.variant === "pills" ? "Pills" : draft.variant === "cards" ? "Cards" : "A list";
   if (draft.source === "type") {
@@ -737,7 +984,16 @@ function recordExtra(record: Record<string, unknown>): Record<string, unknown> {
 }
 
 function parseKind(value: string): BindingKind {
-  if (value === "gallery" || value === "dated" || value === "people" || value === "links" || value === "other") return value;
+  if (
+    value === "gallery" ||
+    value === "dated" ||
+    value === "people" ||
+    value === "links" ||
+    value === "imageReveal" ||
+    value === "other"
+  ) {
+    return value;
+  }
   return "gallery";
 }
 

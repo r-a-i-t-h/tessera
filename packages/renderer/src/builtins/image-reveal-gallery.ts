@@ -1,0 +1,100 @@
+import { normalizeSiteAssetUrl } from "../assets.js";
+import { hrefForPage } from "../page-href.js";
+import type { ComponentFn } from "../types.js";
+import {
+  registerImageRevealGalleryElement,
+  type ImageRevealItem,
+  type ImageRevealRect,
+} from "./image-reveal-gallery-element.js";
+
+function isExternalHref(href: string): boolean {
+  return /^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("//");
+}
+
+function resolveHref(ctx: Parameters<ComponentFn>[0], href: string): string {
+  const trimmed = href.trim();
+  if (!trimmed || isExternalHref(trimmed)) return trimmed;
+  return hrefForPage(ctx, trimmed);
+}
+
+function parseItemRow(row: unknown, index: number): ImageRevealItem | null {
+  if (!row || typeof row !== "object") return null;
+  const o = row as Record<string, unknown>;
+  if (typeof o.url !== "string" || typeof o.href !== "string") return null;
+  const id = typeof o.id === "string" ? o.id : `panel-${index}`;
+  const item: ImageRevealItem = {
+    id,
+    url: o.url,
+    href: o.href,
+    alt: typeof o.alt === "string" ? o.alt : undefined,
+  };
+  const hasLayout =
+    typeof o.left === "number" &&
+    typeof o.top === "number" &&
+    typeof o.width === "number" &&
+    typeof o.height === "number";
+  if (hasLayout) {
+    item.rect = {
+      left: o.left,
+      top: o.top,
+      width: o.width,
+      height: o.height,
+    } as ImageRevealRect;
+  }
+  return item;
+}
+
+function itemsFromProps(props: Record<string, unknown>): ImageRevealItem[] {
+  const raw = props.items;
+  if (!Array.isArray(raw)) return [];
+  const items: ImageRevealItem[] = [];
+  for (let i = 0; i < raw.length; i += 1) {
+    const parsed = parseItemRow(raw[i], i);
+    if (parsed) items.push(parsed);
+  }
+  return items;
+}
+
+/**
+ * Reveal banner: cropped panels, hover grow, click to fill stage then navigate.
+ *
+ * Props: `items[]` ({ url, href, alt?, left?, top?, width?, height? }), `width`, `height`,
+ * `layout` (`scale` | `stack`), `hoverExpand`, `navigateDelay`, `autoposition`.
+ */
+export const imageRevealGallery: ComponentFn = (ctx, props = {}) => {
+  registerImageRevealGalleryElement();
+
+  const width = typeof props.width === "number" ? props.width : Number(props.width) || 700;
+  const height = typeof props.height === "number" ? props.height : Number(props.height) || 300;
+  const layout = props.layout === "stack" ? "stack" : "scale";
+  const hoverExpand =
+    typeof props.hoverExpand === "number"
+      ? props.hoverExpand
+      : Number(props.hoverExpand) || 30;
+  const navigateDelay =
+    typeof props.navigateDelay === "number"
+      ? props.navigateDelay
+      : Number(props.navigateDelay) || 2500;
+  const autoposition = props.autoposition !== false && props.autoposition !== "false";
+
+  const items = itemsFromProps(props).map((item) => ({
+    ...item,
+    url: ctx.assetUrl ? ctx.assetUrl(normalizeSiteAssetUrl(item.url)) : normalizeSiteAssetUrl(item.url),
+    href: resolveHref(ctx, item.href),
+  }));
+
+  if (!items.length) {
+    return `<p class="w3-text-grey"><em>No reveal banner panels.</em></p>`;
+  }
+
+  const itemsAttr = ctx.escapeHtml(JSON.stringify(items));
+  const autopositionAttr = autoposition ? "" : ` autoposition="false"`;
+  return `<tessera-image-reveal-gallery width="${width}" height="${height}" layout="${layout}" hover-expand="${hoverExpand}" navigate-delay="${navigateDelay}" items="${itemsAttr}"${autopositionAttr}></tessera-image-reveal-gallery>`;
+};
+
+export function registerImageRevealGalleryComponents(
+  define: (name: string, fn: ComponentFn) => unknown,
+): void {
+  registerImageRevealGalleryElement();
+  define("imageRevealGallery", imageRevealGallery);
+}

@@ -7,6 +7,8 @@ import {
   galleryDraft,
   galleryDraftFromForm,
   galleryRecord,
+  imageRevealDraft,
+  imageRevealRecord,
   limitError,
   linksRecord,
   navHeadings,
@@ -100,6 +102,20 @@ describe("binding sentences", () => {
     ).toBe("Cards for the What's on menu.");
     expect(bindingSentence({ component: "eventList" })).toBe("eventList. Edit the raw file.");
   });
+
+  it("describes a reveal banner binding", () => {
+    expect(
+      bindingSentence({
+        component: "imageRevealGallery",
+        props: {
+          items: [
+            { url: "./a.jpg", href: "home" },
+            { url: "./b.jpg", href: "about" },
+          ],
+        },
+      }),
+    ).toBe("Reveal banner with 2 panels (scaled).");
+  });
 });
 
 describe("binding records", () => {
@@ -119,6 +135,26 @@ describe("binding records", () => {
     const grid = galleryDraft(slides);
     grid.mode = "grid";
     expect(galleryRecord("hall-gallery", grid).props).not.toHaveProperty("autoplay");
+  });
+
+  it("writes imageRevealGallery props from a reveal banner draft", () => {
+    const draft = imageRevealDraft({
+      component: "imageRevealGallery",
+      props: {
+        width: 700,
+        height: 300,
+        items: [{ url: "./img1.jpg", href: "farm", alt: "Farm", left: 40, top: 60, width: 180, height: 180 }],
+      },
+    });
+    expect(imageRevealRecord("home-hero", draft)).toMatchObject({
+      id: "home-hero",
+      component: "imageRevealGallery",
+      props: {
+        width: 700,
+        height: 300,
+        items: [{ url: "./img1.jpg", href: "farm", alt: "Farm", left: 40, top: 60, width: 180, height: 180 }],
+      },
+    });
   });
 
   it("reads a single folder string and keeps item data", () => {

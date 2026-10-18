@@ -82,3 +82,59 @@ tessera-gallery .tessera-gallery-slides .w3-display-left {
 tessera-gallery .tessera-gallery-slides .w3-display-right {
   right: 0;
 }
+
+/* Reveal banner (imageRevealGallery) */
+
+tessera-image-reveal-gallery.tessera-irg {
+  width: 100%;
+  margin-inline: auto;
+}
+
+tessera-image-reveal-gallery .tessera-irg-wrap {
+  width: 100%;
+  margin-inline: auto;
+}
+
+tessera-image-reveal-gallery .tessera-irg-stage {
+  position: relative;
+  width: 100%;
+  overflow: visible;
+}
+
+tessera-image-reveal-gallery.tessera-irg--stack .tessera-irg-stage {
+  display: flex;
+  flex-direction: column;
+}
+
+tessera-image-reveal-gallery .tessera-irg-panel {
+  position: absolute;
+  display: block;
+  box-sizing: border-box;
+  background-repeat: no-repeat;
+  overflow: hidden;
+  border-radius: 10px;
+  box-shadow: 4px 8px 8px rgba(0, 0, 0, 0.2);
+  text-decoration: none;
+  transition:
+    left 0.25s ease-out,
+    top 0.25s ease-out,
+    width 0.25s ease-out,
+    height 0.25s ease-out,
+    background-position 0.25s ease-out,
+    opacity 0.2s ease-out;
+}
+
+tessera-image-reveal-gallery.tessera-irg--stack .tessera-irg-panel {
+  position: relative;
+}
+
+tessera-image-reveal-gallery .tessera-irg-panel:focus-visible {
+  outline: 2px solid #009688;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  tessera-image-reveal-gallery .tessera-irg-panel {
+    transition-duration: 0.01ms;
+  }
+}

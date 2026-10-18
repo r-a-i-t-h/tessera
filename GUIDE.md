@@ -62,16 +62,42 @@ Pages are ordinary pages. Articles opens on the blog list, then that blog’s ar
 
 ## Bindings
 
-A binding is a named piece you can drop on any page. The choices live once, under Records → Bindings (`records/bindings/<id>.yaml`). Compose → Insert writes `{{id}}` into the page.
+A **binding** is a named configuration for a registry component. It lives once under Records → Bindings (`records/bindings/<id>.yaml`): the component name (for example `gallery`, `imageRevealGallery`) and its props. Pages do not store that configuration — they store a token **`{{id}}`** that Tessera expands when the page is rendered.
 
-A Gallery section in Compose is a different thing. That paints one folder into that page only. A gallery binding can combine folders, keep filenames that match a pattern, and play as slides.
+### Where bindings belong on a page
 
-- **Gallery** shows pictures from library folders, as a grid or as slides.
-- **Dated list** shows pages of a type that have a date field. Upcoming, past, or all. Precis is the line under the date. Willow’s upcoming events list is one of these.
-- **People grid** shows pages of a type, using the photo and role fields.
-- **Link group** shows a titled set of links: this page’s children, every page of a type, or one menu heading. Children follow the page the insert sits on.
+Edit the page (or template) in **Compose**, inside a layout **zone** such as `main`. Add an **Insert** section and choose the binding id. The insert is one block among Text, Image box, Side by side, and the rest. It is **not** the Layout editor **Component** tile (that attaches nav helpers to the layout tree shared by every page on that layout).
 
-A list stored as JSON, and any other component, is edited as the raw file. Menus, breadcrumbs, and the profile lines (`articleByline`, `profileKicker`, `profilePhoto`, `profileFacts`) belong on a layout. Subpages is a Compose section.
+### Why use bindings
+
+- **Portable** — Restructuring page Compose or retemplating does not discard a complex widget; the binding record stays under Records → Bindings until you delete it.
+- **Reusable** — The same `{{hall-gallery}}` or `{{home-hero}}` on many pages; change the binding once and every insert updates.
+- **Reviewable** — Bindings are first-class records with their own file, not buried in page HTML.
+
+Use **Bindings + Insert** for any component Tessera offers through the binding wizard (below). Page **sections** store settings in that page’s zone HTML. That is fine for simple blocks; for invested micro-apps, prefer a binding so configuration is not lost when page content changes.
+
+### Gallery: binding vs Compose section
+
+| Approach | When to use |
+|----------|-------------|
+| **Gallery binding** | Primary — multiple folders, filename filter, slides, reuse across pages (Willow’s hall gallery). |
+| **Gallery Compose section** | Quick fix — one folder on **this page only**. Migrate to a binding when the gallery matters. |
+
+Other binding kinds have **no** Compose section shortcut — configure them only as bindings.
+
+### Binding kinds
+
+- **Gallery** — Pictures from library folders, as a grid or slides.
+- **Dated list** — Pages of a type with a date field. Upcoming, past, or all. Willow’s upcoming events list is one of these.
+- **People grid** — Pages of a type, using photo and role fields.
+- **Link group** — Titled links: this page’s children, every page of a type, or one menu heading.
+- **Reveal banner** — Cropped image panels (Miller’s Ark–style homepage hero): hover to grow on desktop, click or tap to reveal the full stage, then navigate after a short delay. Insert only; no Compose palette section.
+
+Create these from Records → Bindings (wizard) or edit the YAML. Unsupported components are edited as the raw file.
+
+### What is not a binding
+
+Menus, breadcrumbs, and profile lines (`articleByline`, `profileKicker`, `profilePhoto`, `profileFacts`) belong on a **layout**. **Subpages** is a Compose section. A list stored as JSON in a zone is page content, not a binding.
 
 ## Four stylesheets
 

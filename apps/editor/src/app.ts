@@ -105,6 +105,8 @@ import {
   datedRecord,
   galleryDraftFromForm,
   galleryRecord,
+  imageRevealDraftFromForm,
+  imageRevealRecord,
   limitError,
   linksDraftFromForm,
   linksRecord,
@@ -1105,6 +1107,16 @@ function bindNewBinding(root: HTMLElement, listing: RecordList, choices: Binding
         return;
       }
       state = { ...state, step: state.step === 1 ? 2 : 3 };
+      paint();
+      return;
+    }
+    if (state.kind === "imageReveal" && state.step < 2) {
+      const problem = bindingIdError(state.id, existing);
+      if (problem) {
+        showFormError(form, problem);
+        return;
+      }
+      state = { ...state, step: 2 };
       paint();
       return;
     }
@@ -3355,6 +3367,7 @@ function bindingBody(id: string, form: HTMLFormElement, original: unknown): unkn
     if (draft.source === "nav" && !draft.heading.trim()) throw new Error("Enter a menu heading.");
     return linksRecord(id, draft);
   }
+  if (kind === "imageReveal") return imageRevealRecord(id, imageRevealDraftFromForm(controls));
   return saveRecordBody("bindings", form, original);
 }
 
@@ -3477,7 +3490,9 @@ async function fillImageBox(button: HTMLButtonElement): Promise<void> {
   const picked = await openLibraryPicker("image");
   if (!picked || !("url" in picked)) return;
   const scope = button.closest("[data-item-id]") ?? button.parentElement;
-  const src = scope?.querySelector<HTMLInputElement>('[data-field="src"]');
+  const src =
+    scope?.querySelector<HTMLInputElement>('[data-field="src"]') ??
+    scope?.querySelector<HTMLInputElement>('[data-field="url"]');
   const alt = scope?.querySelector<HTMLInputElement>('[data-field="alt"]');
   if (src) {
     src.value = picked.url;
