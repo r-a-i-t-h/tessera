@@ -9,4 +9,8 @@ export {
   restoreFontChoice,
   wireSidebarToggle,
 } from "./chrome.js";
+export {
+  isEditorPreviewHost,
+  updatePreviewDiagnostics,
+} from "./preview-diagnostics.js";
 

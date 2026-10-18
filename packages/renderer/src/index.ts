@@ -78,6 +78,19 @@ export {
   type ImageRevealItem,
   type ImageRevealRect,
 } from "./builtins/image-reveal-gallery-element.js";
+export {
+  analyzePageDiagnostics,
+  collectPageItems,
+  editorUrl,
+  masterLayoutSourceLabel,
+  type BindingOnPage,
+  type EditorRecordKind,
+  type ItemIncludeSource,
+  type PageDiagnostics,
+  type PageDiagnosticsBlog,
+  type PageDiagnosticsPage,
+  type PageItemRef,
+} from "./page-diagnostics.js";
 export { normalizeSiteAssetUrl, isRootAbsoluteUrl } from "./assets.js";
 export { hrefForPage } from "./page-href.js";
 export {
