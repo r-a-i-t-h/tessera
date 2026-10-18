@@ -3662,12 +3662,13 @@ function openLibraryPicker(initial: PickerMode): Promise<PickedAsset | { id: str
           resolve(value);
         };
         const paint = () => {
-          host.innerHTML = `<div class="editor-picker-backdrop" data-dialog-backdrop><div class="w3-card w3-white w3-padding editor-card" role="dialog" aria-modal="true" aria-labelledby="library-picker-title" tabindex="-1">
-            <h2 id="library-picker-title" class="w3-large">Choose from the library</h2>
-            <p><button type="button" class="w3-button w3-white" data-picker-close>Close</button>
-            ${openId ? `<button type="button" class="w3-button w3-white" data-picker-up>Up</button>` : ""}</p>
-            ${pickerUpload(notice)}
-            ${renderPicker(listing, mode, openId)}
+          host.innerHTML = `<div class="editor-picker-backdrop" data-dialog-backdrop><div class="w3-card w3-white w3-padding editor-card editor-library-dialog" role="dialog" aria-modal="true" aria-labelledby="library-picker-title" tabindex="-1">
+            <button type="button" class="editor-dialog-close" data-picker-close aria-label="Close">×</button>
+            <h2 id="library-picker-title" class="w3-large editor-library-dialog-title">Choose from the library</h2>
+            <div class="editor-picker-body">
+              ${renderPicker(listing, mode, openId)}
+              ${pickerUpload(notice)}
+            </div>
           </div></div>`;
         };
         const fail = (message: string) => {

@@ -37,6 +37,28 @@ export function imageSlideSnippet(asset: PickedAsset): string {
 
 const PICKER_ACCEPT = ".jpg,.jpeg,.png,.gif,.webp,.svg,.pdf";
 
+function pickerAssetThumb(asset: AssetRow): string {
+  if (asset.kind === "image") {
+    return `<img class="editor-thumb" src="/api/library/assets/${encodeURIComponent(asset.id)}/thumb" alt="" />`;
+  }
+  return `<span class="editor-thumb editor-thumb-file">PDF</span>`;
+}
+
+function pickerAssetList(assets: AssetRow[]): string {
+  if (!assets.length) return "";
+  const rows = assets
+    .map(
+      (asset) => `<li class="editor-picker-file-row">
+        <button type="button" class="editor-picker-asset" data-pick-asset="${escapeHtml(asset.id)}">
+          ${pickerAssetThumb(asset)}
+          <span class="editor-picker-asset-name">${escapeHtml(asset.name)}</span>
+        </button>
+      </li>`,
+    )
+    .join("");
+  return `<ul class="w3-ul editor-picker-assets">${rows}</ul>`;
+}
+
 export function pickerUpload(status = ""): string {
   const note = status
     ? `<p data-picker-upload-status class="w3-text-grey">${escapeHtml(status)}</p>`
@@ -51,32 +73,26 @@ export function pickerUpload(status = ""): string {
 export function renderPicker(listing: LibraryListing, mode: PickerMode, openId: string | null): string {
   const folders = listing.folders.filter((folder) => folder.parentId === openId);
   const assets = listing.assets.filter((asset) => asset.folderId === openId && (mode === "folder" || asset.kind === mode));
-  const folderButtons = folders
-    .map(
-      (folder) =>
-        `<button type="button" class="w3-button w3-white" data-open-folder="${escapeHtml(folder.id)}">${escapeHtml(folder.id)}</button>${
-          mode === "folder"
-            ? `<button type="button" class="w3-button w3-theme" data-pick-folder="${escapeHtml(folder.id)}">Choose</button>`
-            : ""
-        }`,
-    )
+  const upRow = openId
+    ? `<li class="editor-picker-folder"><button type="button" class="w3-button w3-white editor-picker-folder-open" data-picker-up>Up</button></li>`
+    : "";
+  const folderRows = folders
+    .map((folder) => {
+      const choose =
+        mode === "folder"
+          ? `<button type="button" class="w3-button w3-theme" data-pick-folder="${escapeHtml(folder.id)}">Choose</button>`
+          : "";
+      return `<li class="editor-picker-folder">
+        <button type="button" class="w3-button w3-white editor-picker-folder-open" data-open-folder="${escapeHtml(folder.id)}">${escapeHtml(folder.id)}</button>
+        ${choose}
+      </li>`;
+    })
     .join("");
-  const cells =
-    mode === "image"
-      ? assets
-          .map(
-            (asset) => `<button type="button" class="editor-pick-cell" data-pick-asset="${escapeHtml(asset.id)}">
-              <img src="/api/library/assets/${encodeURIComponent(asset.id)}/thumb" alt="" />
-              <span>${escapeHtml(asset.name)}</span>
-            </button>`,
-          )
-          .join("")
-      : assets
-          .map(
-            (asset) =>
-              `<button type="button" class="w3-button w3-white" data-pick-asset="${escapeHtml(asset.id)}">${escapeHtml(asset.name)}</button>`,
-          )
-          .join("");
+  const folderList =
+    upRow || folderRows
+      ? `<ul class="w3-ul editor-picker-folders">${upRow}${folderRows}</ul>`
+      : "";
+  const assetList = pickerAssetList(assets);
   const tabs = (["image", "document", "folder"] as const)
     .map(
       (item) =>
@@ -85,8 +101,8 @@ export function renderPicker(listing: LibraryListing, mode: PickerMode, openId: 
     .join("");
   return `<div class="editor-picker" data-picker-open="${openId ?? ""}">
     <p class="editor-tabs">${tabs}</p>
-    <p>${folderButtons || ""}</p>
-    <div class="${mode === "image" ? "editor-pick-grid" : "editor-pick-list"}">${cells}</div>
+    ${folderList}
+    ${assetList}
   </div>`;
 }
 

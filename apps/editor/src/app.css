@@ -1397,6 +1397,123 @@ button.editor-library-row:hover,
   overflow: auto;
 }
 
+.editor-picker-backdrop .editor-library-dialog {
+  position: relative;
+  width: min(68rem, calc(100% - 2rem));
+}
+
+.editor-library-dialog-title {
+  padding-right: 2.25rem;
+  margin-top: 0;
+}
+
+.editor-dialog-close {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  z-index: 1;
+  margin: 0;
+  padding: 0.15rem 0.45rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.editor-dialog-close:hover {
+  background: #f4f4f4;
+}
+
+.editor-picker-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 13.5rem;
+  gap: 1rem;
+  align-items: start;
+}
+
+.editor-picker-body > .editor-picker {
+  min-width: 0;
+}
+
+.editor-picker-body > .editor-drop {
+  position: sticky;
+  top: 0;
+  margin: 0;
+}
+
+.editor-picker-folders {
+  margin: 0 0 0.75rem;
+}
+
+.editor-picker-folder {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.35rem 0;
+}
+
+.editor-picker-folder-open {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.editor-picker-folder .w3-button:not(.editor-picker-folder-open) {
+  flex: none;
+  margin: 0;
+}
+
+.editor-picker-assets {
+  margin: 0;
+}
+
+.editor-picker-file-row {
+  padding: 0;
+}
+
+button.editor-picker-asset {
+  display: flex;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+  width: 100%;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  padding: 0.55rem 0.35rem;
+}
+
+button.editor-picker-asset:hover {
+  background: #f3faf9;
+}
+
+.editor-picker-asset-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .editor-picker-body {
+    grid-template-columns: 1fr;
+  }
+
+  .editor-picker-body > .editor-drop {
+    position: static;
+  }
+}
+
 .editor-drop {
   border: 1px dashed #888;
 }

@@ -3,7 +3,10 @@ import { checkedFolderIds, documentLink, foldersValue, imageSlideSnippet, imageT
 import type { LibraryListing } from "./library.js";
 
 const listing: LibraryListing = {
-  folders: [{ id: "hall", parentId: null }],
+  folders: [
+    { id: "hall", parentId: null },
+    { id: "attic", parentId: "hall" },
+  ],
   assets: [
     { id: "porch", name: "porch.svg", kind: "image", ext: "svg", folderId: null, url: "./media/porch.svg", alt: "The porch" },
     { id: "notes", name: "notes.pdf", kind: "document", ext: "pdf", folderId: null, url: "./media/notes.pdf", title: "Notes" },
@@ -25,13 +28,34 @@ describe("library picker", () => {
     expect(shown).not.toContain("hidden");
   });
 
-  it("shows image thumbnails and document names", () => {
+  it("lists assets vertically with a thumbnail and filename", () => {
     const images = renderPicker(listing, "image", null);
+    expect(images).toContain("editor-picker-assets");
     expect(images).toContain("/api/library/assets/porch/thumb");
+    expect(images).toContain("editor-picker-asset-name");
+    expect(images).toContain("porch.svg");
     expect(images).not.toContain("notes.pdf");
+    expect(images).not.toContain("editor-pick-grid");
     const docs = renderPicker(listing, "document", null);
+    expect(docs).toContain("editor-picker-assets");
     expect(docs).toContain("notes.pdf");
+    expect(docs).toContain("editor-thumb-file");
     expect(docs).not.toContain("/thumb");
+  });
+
+  it("lists folders vertically with Up when nested and Choose in folder mode", () => {
+    const root = renderPicker(listing, "image", null);
+    expect(root).not.toContain("data-picker-up");
+    expect(root).toContain("editor-picker-folders");
+    expect(root).toContain('data-open-folder="hall"');
+
+    const nested = renderPicker(listing, "image", "hall");
+    expect(nested).toContain('data-picker-up');
+    expect(nested.indexOf("data-picker-up")).toBeLessThan(nested.indexOf('data-open-folder="attic"'));
+
+    const folderMode = renderPicker(listing, "folder", null);
+    expect(folderMode).toContain('class="editor-picker-folder"');
+    expect(folderMode).toContain('data-pick-folder="hall"');
   });
 
   it("inserts an image tag, a document link, a media block, and a slide", () => {
