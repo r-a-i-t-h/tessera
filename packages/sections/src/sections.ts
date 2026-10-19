@@ -128,8 +128,8 @@ export const COLUMN_LAYOUTS = [
 
 export type ColumnLayoutId = (typeof COLUMN_LAYOUTS)[number]["id"];
 
-/** Width of a YouTube block relative to the content column. */
-export const VIDEO_WIDTHS = [
+/** Proportional width of a Card or ImgBox relative to its containing block. */
+export const BLOCK_WIDTHS = [
   { id: "full", label: "Full width" },
   { id: "threequarter", label: "Three quarters" },
   { id: "twothird", label: "Two thirds" },
@@ -137,7 +137,7 @@ export const VIDEO_WIDTHS = [
   { id: "third", label: "One third" },
 ] as const;
 
-export type VideoWidthId = (typeof VIDEO_WIDTHS)[number]["id"];
+export type BlockWidthId = (typeof BLOCK_WIDTHS)[number]["id"];
 
 const COLUMN_CHROME = new Set([
   ...COLUMN_LAYOUT,
@@ -173,12 +173,12 @@ export type Section =
   | { kind: "text"; heading: string; level: HeadingLevel; html: string; loose?: boolean }
   | { kind: "panel"; tone: ToneId; sections: Section[] }
   | { kind: "quote"; tone: ToneId; text: string; attribution: string }
-  | { kind: "imgbox"; src: string; alt: string; caption: string; plain: boolean }
-  | { kind: "card"; title: string; sections: Section[] }
+  | { kind: "imgbox"; src: string; alt: string; caption: string; plain: boolean; width: BlockWidthId }
+  | { kind: "card"; title: string; width: BlockWidthId; plain: boolean; sections: Section[] }
   | { kind: "columns"; layout: ColumnLayoutId; cells: ColumnCell[] }
   | { kind: "insert"; id: string }
   | { kind: "subpages"; title: string }
-  | { kind: "youtube"; videoId: string; /** iframe `title` for accessibility */ title: string; width: VideoWidthId }
+  | { kind: "youtube"; videoId: string; /** iframe `title` for accessibility */ title: string }
   | { kind: "gallery"; folder: string; mode: GalleryMode }
   | { kind: "pasted"; html: string }
   | { kind: "html"; html: string };
@@ -244,25 +244,39 @@ export function isColumnLayout(value: string): value is ColumnLayoutId {
   return COLUMN_LAYOUTS.some((item) => item.id === value);
 }
 
-export function isVideoWidth(value: string): value is VideoWidthId {
-  return VIDEO_WIDTHS.some((item) => item.id === value);
+export function isBlockWidth(value: string): value is BlockWidthId {
+  return BLOCK_WIDTHS.some((item) => item.id === value);
 }
 
 export function columnWidths(layout: ColumnLayoutId): readonly string[] {
   return COLUMN_LAYOUTS.find((item) => item.id === layout)?.widths ?? COLUMN_LAYOUTS[0].widths;
 }
 
-/** Image box frame. Padding stays; `plain` drops the card shadow. */
+function widthAttr(width: BlockWidthId): string {
+  return width === "full" ? "" : ` data-width="${width}"`;
+}
+
+function parseBlockWidth(el: ElNode): BlockWidthId {
+  const raw = attr(el, "data-width");
+  return isBlockWidth(raw) ? raw : "full";
+}
+
+/** Image box frame. `plain` drops the card chrome and padding so width applies to the raw image. */
 export function imgboxClass(plain: boolean): string {
   return joinClass(
     BLOCK_CLASS,
     "tessera-imgbox",
     "w3-display-container",
-    "w3-container",
-    "w3-padding-16",
+    plain ? "" : "w3-container",
+    plain ? "" : "w3-padding-16",
     plain ? "" : "w3-card",
     "w3-center",
   );
+}
+
+/** Card shell. `plain` drops chrome and padding so width applies to the raw body. */
+export function cardClass(plain: boolean): string {
+  return joinClass(BLOCK_CLASS, "tessera-card", plain ? "" : "w3-card", plain ? "" : "w3-padding", plain ? "" : "w3-white");
 }
 
 export function blankSection(kind: PaletteKind): Section {
@@ -276,9 +290,9 @@ export function blankSection(kind: PaletteKind): Section {
     case "quote":
       return { kind: "quote", tone: "sand", text: "", attribution: "" };
     case "imgbox":
-      return { kind: "imgbox", src: "", alt: "", caption: "", plain: false };
+      return { kind: "imgbox", src: "", alt: "", caption: "", plain: false, width: "twothird" };
     case "card":
-      return { kind: "card", title: "", sections: [] };
+      return { kind: "card", title: "", width: "full", plain: false, sections: [] };
     case "columns":
       return {
         kind: "columns",
@@ -293,7 +307,7 @@ export function blankSection(kind: PaletteKind): Section {
     case "subpages":
       return { kind: "subpages", title: "" };
     case "youtube":
-      return { kind: "youtube", videoId: "", title: "", width: "twothird" };
+      return { kind: "youtube", videoId: "", title: "" };
     case "gallery":
       return { kind: "gallery", folder: "", mode: "grid" };
     case "pasted":
@@ -389,8 +403,7 @@ function paintText(section: Extract<Section, { kind: "text" }>): string {
 function paintYoutube(section: Extract<Section, { kind: "youtube" }>): string {
   const id = youtubeVideoId(section.videoId);
   if (!id) return "";
-  const widthAttr = section.width === "full" ? "" : ` data-width="${section.width}"`;
-  return `<div class="${joinClass(BLOCK_CLASS, "tessera-youtube")}"${widthAttr}><div class="tessera-video"><iframe src="https://www.youtube-nocookie.com/embed/${escapeAttr(id)}" title="${escapeAttr(section.title)}" allow="${YOUTUBE_ALLOW}" allowfullscreen></iframe></div></div>`;
+  return `<div class="${joinClass(BLOCK_CLASS, "tessera-youtube")}"><div class="tessera-video"><iframe src="https://www.youtube-nocookie.com/embed/${escapeAttr(id)}" title="${escapeAttr(section.title)}" allow="${YOUTUBE_ALLOW}" allowfullscreen></iframe></div></div>`;
 }
 
 export type QuoteBlockOptions = {
@@ -444,7 +457,7 @@ function paintImgbox(section: Extract<Section, { kind: "imgbox" }>): string {
   const caption = section.caption
     ? `<div class="w3-display-middle w3-container w3-padding-16 w3-display-hover w3-normal w3-round-large w3-opacity-min w3-white">${escapeText(section.caption)}</div>`
     : "";
-  return `<div class="${imgboxClass(section.plain)}"><img src="${escapeAttr(section.src)}" class="w3-image" alt="${escapeAttr(section.alt)}">${caption}</div>`;
+  return `<div class="${imgboxClass(section.plain)}"${widthAttr(section.width)}><img src="${escapeAttr(section.src)}" class="w3-image" alt="${escapeAttr(section.alt)}">${caption}</div>`;
 }
 
 function paintPanel(section: Extract<Section, { kind: "panel" }>, lookup: ToneLookup): string {
@@ -460,7 +473,7 @@ function paintCard(section: Extract<Section, { kind: "card" }>, lookup: ToneLook
   const body = section.sections.map((item) => paintSection(item, lookup)).filter(Boolean).join("\n").trim();
   if (!titleHtml && !body) return "";
   const bodyHtml = body ? `<div class="rt-card-body">${body}</div>` : "";
-  return `<div class="${joinClass(BLOCK_CLASS, "w3-card", "w3-padding", "w3-white")}">${titleHtml}${bodyHtml}</div>`;
+  return `<div class="${cardClass(section.plain)}"${widthAttr(section.width)}>${titleHtml}${bodyHtml}</div>`;
 }
 
 function paintColumns(section: Extract<Section, { kind: "columns" }>, lookup: ToneLookup): string {
@@ -622,7 +635,6 @@ function asPageElement(el: ElNode): Section | null {
       kind: "youtube",
       videoId: frame ? youtubeVideoId(attr(frame, "src")) : "",
       title: frame ? attr(frame, "title") : "",
-      width: "full",
     };
   }
   if (hasClass(el, "tessera-pasted")) {
@@ -676,6 +688,7 @@ function asImgbox(el: ElNode): Section | null {
     alt: attr(img, "alt"),
     caption: captionEl ? textContent(captionEl).trim() : "",
     plain: !hasClass(el, "w3-card"),
+    width: parseBlockWidth(el),
   };
 }
 
@@ -713,20 +726,21 @@ function asPanel(el: ElNode, lookup: ToneLookup): Section | null {
 
 function parseYoutubeBlock(el: ElNode): Section {
   const frame = findEl(el, (node) => node.tag === "iframe");
-  const widthRaw = attr(el, "data-width");
   return {
     kind: "youtube",
     videoId: frame ? youtubeVideoId(attr(frame, "src")) : "",
     title: frame ? attr(frame, "title") : "",
-    width: isVideoWidth(widthRaw) ? widthRaw : "full",
   };
 }
 
 function asCard(el: ElNode, lookup: ToneLookup): Section | null {
+  const marked = hasClass(el, "tessera-card");
+  const chrome = hasClass(el, "w3-card");
+  if (!marked && !chrome) return null;
   if (
-    !hasClass(el, "w3-card") ||
     hasClass(el, "w3-panel") ||
     hasClass(el, "w3-display-container") ||
+    hasClass(el, "tessera-imgbox") ||
     hasClass(el, "tessera-video") ||
     hasClass(el, "tessera-youtube")
   )
@@ -737,6 +751,8 @@ function asCard(el: ElNode, lookup: ToneLookup): Section | null {
   return {
     kind: "card",
     title: titleEl ? textContent(titleEl).trim() : "",
+    width: parseBlockWidth(el),
+    plain: marked ? !chrome : false,
     sections: walk(nodes, true, lookup),
   };
 }

@@ -1,15 +1,16 @@
 export {
+  BLOCK_WIDTHS,
   COLUMN_LAYOUTS,
   PALETTE,
   PALETTE_TONES,
   TONES,
   BLOCK_CLASS,
   blankSection,
+  cardClass,
   columnWidths,
   imgboxClass,
+  isBlockWidth,
   isColumnLayout,
-  isVideoWidth,
-  VIDEO_WIDTHS,
   paintSection,
   paintSections,
   parseSections,
@@ -22,6 +23,7 @@ export {
 } from "./sections.js";
 export { renderMarkdownLinks, restoreMarkdownLinks } from "./html.js";
 export type {
+  BlockWidthId,
   ColumnCell,
   ColumnLayoutId,
   GalleryMode,
@@ -30,5 +32,4 @@ export type {
   PanelToneDef,
   Section,
   ToneId,
-  VideoWidthId,
 } from "./sections.js";

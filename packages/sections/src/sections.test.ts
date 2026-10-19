@@ -108,7 +108,7 @@ describe("parseSections", () => {
         tone: "pale-blue",
         sections: [{ kind: "text", heading: "", level: 2, html: "<p>Gallery</p>" }],
       },
-      { kind: "imgbox", src: "photo.jpg", alt: "Sheep", caption: "Open days", plain: false },
+      { kind: "imgbox", src: "photo.jpg", alt: "Sheep", caption: "Open days", plain: false, width: "full" },
     ]);
   });
 });
@@ -184,10 +184,12 @@ describe("paintSections", () => {
         sections: [{ kind: "text", heading: "", level: 2, html: "<p>Note</p>" }],
       },
       { kind: "quote", tone: "pale", text: "Stay curious", attribution: "Ada" },
-      { kind: "imgbox", src: "a.jpg", alt: "Alt", caption: "Caption", plain: false },
+      { kind: "imgbox", src: "a.jpg", alt: "Alt", caption: "Caption", plain: false, width: "twothird" },
       {
         kind: "card",
         title: "Card",
+        width: "full",
+        plain: false,
         sections: [{ kind: "text", heading: "", level: 2, html: "<p>Body</p>" }],
       },
       {
@@ -201,7 +203,7 @@ describe("paintSections", () => {
       },
       { kind: "insert", id: "people-preview" },
       { kind: "subpages", title: "In this section" },
-      { kind: "youtube", videoId: "QvAdmE0vPW0", title: "Lambs in the barn", width: "twothird" },
+      { kind: "youtube", videoId: "QvAdmE0vPW0", title: "Lambs in the barn" },
       { kind: "gallery", folder: "lambs", mode: "slides" },
       { kind: "pasted", html: "<p>A short line.</p><p>And another paragraph that the sheet grows to fit.</p>" },
       { kind: "html", html: `<div class="wh-hero"><p>Keep</p></div>` },
@@ -217,7 +219,7 @@ describe("paintSections", () => {
         tone: "theme",
         sections: [{ kind: "text", heading: "", level: 2, html: "<p>Panel</p>" }],
       },
-      { kind: "imgbox", src: "a.jpg", alt: "", caption: "Cap", plain: false },
+      { kind: "imgbox", src: "a.jpg", alt: "", caption: "Cap", plain: false, width: "full" },
       blankSection("columns"),
     ]);
     expect(html).toContain("w3-panel");
@@ -255,26 +257,30 @@ describe("paintSections", () => {
     ]);
   });
 
-  it("drops the image frame when asked and keeps the padding", () => {
-    const plain = paintSections([{ kind: "imgbox", src: "a.jpg", alt: "Alt", caption: "Cap", plain: true }]);
-    expect(plain).toContain("w3-padding-16");
-    expect(plain).toContain("tessera-imgbox");
+  it("drops the image frame and padding when asked so width applies to the raw image", () => {
+    const plain = paintSections([{ kind: "imgbox", src: "a.jpg", alt: "Alt", caption: "Cap", plain: true, width: "half" }]);
+    expect(plain).toMatch(/^<div class="tessera-block tessera-imgbox w3-display-container w3-center"/);
     expect(plain).not.toContain("w3-card");
-    expect(parseSections(plain)).toEqual([{ kind: "imgbox", src: "a.jpg", alt: "Alt", caption: "Cap", plain: true }]);
+    expect(plain).toContain('data-width="half"');
+    expect(parseSections(plain)).toEqual([
+      { kind: "imgbox", src: "a.jpg", alt: "Alt", caption: "Cap", plain: true, width: "half" },
+    ]);
   });
 
   it("does not paint empty text, video, or card shells", () => {
     expect(paintSections([{ kind: "text", heading: "", level: 2, html: "" }])).toBe("");
     expect(paintSections([{ kind: "text", heading: "", level: 2, html: "<p><br></p>" }])).toBe("");
-    expect(paintSections([{ kind: "youtube", videoId: "", title: "", width: "half" }])).toBe("");
+    expect(paintSections([{ kind: "youtube", videoId: "", title: "" }])).toBe("");
     expect(
       paintSections([
         {
           kind: "card",
           title: "",
+          width: "full",
+          plain: false,
           sections: [
             { kind: "text", heading: "", level: 2, html: "" },
-            { kind: "youtube", videoId: "QvAdmE0vPW0", title: "Farm", width: "half" },
+            { kind: "youtube", videoId: "QvAdmE0vPW0", title: "Farm" },
           ],
         },
       ]),
@@ -284,6 +290,8 @@ describe("paintSections", () => {
         {
           kind: "card",
           title: "",
+          width: "full",
+          plain: false,
           sections: [{ kind: "text", heading: "", level: 2, html: "" }],
         },
       ]),
@@ -296,12 +304,16 @@ describe("paintSections", () => {
       {
         kind: "card",
         title: "",
-        sections: [{ kind: "youtube", videoId: "QvAdmE0vPW0", title: "Farm", width: "half" }],
+        width: "twothird",
+        plain: false,
+        sections: [{ kind: "youtube", videoId: "QvAdmE0vPW0", title: "Farm" }],
       },
     ];
     const html = paintSections(sections);
     expect(html).not.toMatch(/<h3[^>]*>\s*<\/h3>/);
     expect(html).toContain("rt-card-body");
+    expect(html).toContain('data-width="twothird"');
+    expect(html).toContain("tessera-card");
     expect(parseSections(html)).toEqual(sections);
   });
 
@@ -313,6 +325,8 @@ describe("paintSections", () => {
       {
         kind: "card",
         title: "Card",
+        width: "full",
+        plain: false,
         sections: [{ kind: "text", heading: "", level: 2, html: "<p>Body</p>" }],
       },
     ]);
@@ -323,6 +337,8 @@ describe("paintSections", () => {
       {
         kind: "card",
         title: "Visit",
+        width: "full",
+        plain: false,
         sections: [
           { kind: "text", heading: "Hours", level: 2, html: "<p>Open at nine.</p>" },
           {
@@ -339,6 +355,31 @@ describe("paintSections", () => {
     const html = paintSections(sections);
     expect(html).toContain("w3-twothird");
     expect(html).toContain("w3-third");
+    expect(parseSections(html)).toEqual(sections);
+  });
+
+  it("paints a plain sized card and nested sized cards keep their own data-width", () => {
+    const sections: Section[] = [
+      {
+        kind: "card",
+        title: "Outer",
+        width: "twothird",
+        plain: true,
+        sections: [
+          {
+            kind: "card",
+            title: "Inner",
+            width: "twothird",
+            plain: false,
+            sections: [{ kind: "youtube", videoId: "QvAdmE0vPW0", title: "Farm" }],
+          },
+        ],
+      },
+    ];
+    const html = paintSections(sections);
+    expect(html).toContain('class="tessera-block tessera-card" data-width="twothird"');
+    expect(html).toContain('class="tessera-block tessera-card w3-card w3-padding w3-white" data-width="twothird"');
+    expect(html.match(/data-width="twothird"/g)?.length).toBe(2);
     expect(parseSections(html)).toEqual(sections);
   });
 
@@ -371,7 +412,7 @@ describe("paintSections", () => {
   it("paints subpages, youtube, gallery, and a pasted note with stable markers", () => {
     const html = paintSections([
       { kind: "subpages", title: "Visit" },
-      { kind: "youtube", videoId: "https://www.youtube.com/watch?v=QvAdmE0vPW0", title: "Farm", width: "twothird" },
+      { kind: "youtube", videoId: "https://www.youtube.com/watch?v=QvAdmE0vPW0", title: "Farm" },
       { kind: "gallery", folder: "lambs", mode: "grid" },
       { kind: "pasted", html: "<p>Author text</p>" },
     ]);
@@ -379,7 +420,7 @@ describe("paintSections", () => {
     expect(html).toContain('data-title="Visit"');
     expect(html).toContain("https://www.youtube-nocookie.com/embed/QvAdmE0vPW0");
     expect(html).toContain("tessera-youtube");
-    expect(html).toContain('data-width="twothird"');
+    expect(html).not.toContain("data-width");
     expect(html).toContain("tessera-video");
     expect(html).toContain('data-tessera="gallery"');
     expect(html).toContain('data-mode="grid"');
@@ -388,15 +429,18 @@ describe("paintSections", () => {
     expect(html).not.toContain("BABIES");
   });
 
-  it("reads legacy YouTube markup and keeps width on repaint", () => {
+  it("reads legacy YouTube markup and ignores leftover data-width", () => {
     const legacy = parseSections(
       `<div class="tessera-block tessera-video w3-card"><iframe src="https://www.youtube-nocookie.com/embed/QvAdmE0vPW0" title="Farm"></iframe></div>`,
     );
-    expect(legacy).toEqual([{ kind: "youtube", videoId: "QvAdmE0vPW0", title: "Farm", width: "full" }]);
-    const sized = paintSections([{ kind: "youtube", videoId: "QvAdmE0vPW0", title: "Farm", width: "half" }]);
-    expect(sized).toContain('data-width="half"');
-    expect(sized).not.toContain("w3-card");
-    expect(parseSections(sized)).toEqual([{ kind: "youtube", videoId: "QvAdmE0vPW0", title: "Farm", width: "half" }]);
+    expect(legacy).toEqual([{ kind: "youtube", videoId: "QvAdmE0vPW0", title: "Farm" }]);
+    const sized = parseSections(
+      `<div class="tessera-block tessera-youtube" data-width="half"><div class="tessera-video"><iframe src="https://www.youtube-nocookie.com/embed/QvAdmE0vPW0" title="Farm"></iframe></div></div>`,
+    );
+    expect(sized).toEqual([{ kind: "youtube", videoId: "QvAdmE0vPW0", title: "Farm" }]);
+    const painted = paintSections(sized);
+    expect(painted).not.toContain("data-width");
+    expect(painted).not.toContain("w3-card");
   });
 
   it("reads a YouTube id from a watch, share, or embed address", () => {

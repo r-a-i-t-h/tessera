@@ -1,12 +1,14 @@
 import {
   BLOCK_CLASS,
+  BLOCK_WIDTHS,
   COLUMN_LAYOUTS,
   PALETTE,
   blankSection,
+  cardClass,
   columnWidths,
   imgboxClass,
+  isBlockWidth,
   isColumnLayout,
-  isVideoWidth,
   paintSections,
   parseHeadingLevel,
   parseSections,
@@ -16,8 +18,8 @@ import {
   restoreMarkdownLinks,
   toneClass,
   toneLabel,
-  VIDEO_WIDTHS,
   youtubeVideoId,
+  type BlockWidthId,
   type ColumnLayoutId,
   type HeadingLevel,
   type PaletteKind,
@@ -45,6 +47,8 @@ type EditCard = {
   uid: string;
   kind: "card";
   title: string;
+  width: BlockWidthId;
+  plain: boolean;
   items: EditNode[];
 };
 
@@ -206,6 +210,8 @@ function toEdit(section: Section): EditNode {
       uid: nextId(),
       kind: "card",
       title: section.title,
+      width: section.width,
+      plain: section.plain,
       items: section.sections.map(toEdit),
     };
   }
@@ -232,7 +238,13 @@ function toSection(node: EditNode): Section {
     };
   }
   if (node.kind === "card") {
-    return { kind: "card", title: node.title, sections: node.items.map(toSection) };
+    return {
+      kind: "card",
+      title: node.title,
+      width: node.width,
+      plain: node.plain,
+      sections: node.items.map(toSection),
+    };
   }
   if (node.kind === "panel") {
     return { kind: "panel", tone: node.tone, sections: node.items.map(toSection) };
@@ -345,9 +357,9 @@ function propsFor(node: EditNode, choices: Choices, locked: boolean): string {
     case "quote":
       return `<label class="editor-prop">Tone <select data-field="tone">${toneOptions(node.tone, choices.panelTones)}</select></label><label class="editor-prop">Attribution <input data-field="attribution" class="w3-input" value="${escapeAttr(node.attribution)}"></label>`;
     case "imgbox":
-      return `${imgboxFields(node)}<label class="editor-prop">Hide frame <input type="checkbox" data-field="plain"${node.plain ? " checked" : ""}></label>`;
+      return `${imgboxFields(node)}${widthSelect(node.width)}<label class="editor-prop">Hide frame <input type="checkbox" data-field="plain"${node.plain ? " checked" : ""}></label>`;
     case "card":
-      return `<label class="editor-prop">Title <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}"></label>`;
+      return `<label class="editor-prop">Title <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}"></label>${widthSelect(node.width)}<label class="editor-prop">Hide frame <input type="checkbox" data-field="plain"${node.plain ? " checked" : ""}></label>`;
     case "columns":
       return layoutSelect(node.layout);
     case "insert":
@@ -394,11 +406,15 @@ function imgboxFields(node: Extract<EditLeaf, { kind: "imgbox" }>): string {
   return `<label class="editor-prop">Image <input data-field="src" class="w3-input" value="${escapeAttr(node.src)}" placeholder="Image address"></label><button type="button" class="w3-button w3-small w3-white" data-library="image">Library</button><label class="editor-prop">Alt <input data-field="alt" class="w3-input" value="${escapeAttr(node.alt)}"></label><label class="editor-prop">Caption <input data-field="caption" class="w3-input" value="${escapeAttr(node.caption)}"></label>`;
 }
 
-function youtubeProps(node: Extract<EditLeaf, { kind: "youtube" }>): string {
-  const widthOptions = VIDEO_WIDTHS.map(
-    (item) => `<option value="${item.id}"${item.id === node.width ? " selected" : ""}>${escapeText(item.label)}</option>`,
+function widthSelect(width: BlockWidthId): string {
+  const options = BLOCK_WIDTHS.map(
+    (item) => `<option value="${item.id}"${item.id === width ? " selected" : ""}>${escapeText(item.label)}</option>`,
   ).join("");
-  return `<label class="editor-prop">Video <input data-field="video" class="w3-input" value="${escapeAttr(node.videoId)}" placeholder="YouTube address or id"></label><label class="editor-prop">Video title <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}" placeholder="For screen readers"></label><label class="editor-prop">Width <select data-field="width">${widthOptions}</select></label>`;
+  return `<label class="editor-prop">Width <select data-field="width">${options}</select></label>`;
+}
+
+function youtubeProps(node: Extract<EditLeaf, { kind: "youtube" }>): string {
+  return `<label class="editor-prop">Video <input data-field="video" class="w3-input" value="${escapeAttr(node.videoId)}" placeholder="YouTube address or id"></label><label class="editor-prop">Video title <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}" placeholder="For screen readers"></label>`;
 }
 
 function layoutSelect(layout: ColumnLayoutId): string {
@@ -511,9 +527,12 @@ function bodyFor(node: EditNode, choices: Choices, zone: string, locked: boolean
 
 function youtubeBody(node: Extract<EditLeaf, { kind: "youtube" }>): string {
   const id = youtubeVideoId(node.videoId);
-  const widthAttr = node.width === "full" ? "" : ` data-width="${node.width}"`;
   if (!id) return `<p class="w3-text-grey">Add a YouTube address.</p>`;
-  return `<div class="${joinClass(BLOCK_CLASS, "tessera-youtube")}"${widthAttr}><div class="tessera-video"><iframe src="https://www.youtube-nocookie.com/embed/${escapeAttr(id)}" title="${escapeAttr(node.title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div></div>`;
+  return `<div class="${joinClass(BLOCK_CLASS, "tessera-youtube")}"><div class="tessera-video"><iframe src="https://www.youtube-nocookie.com/embed/${escapeAttr(id)}" title="${escapeAttr(node.title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div></div>`;
+}
+
+function blockWidthAttr(width: BlockWidthId): string {
+  return width === "full" ? "" : ` data-width="${width}"`;
 }
 
 function quoteBody(node: Extract<EditLeaf, { kind: "quote" }>, panelTones: PanelToneDef[]): string {
@@ -534,7 +553,7 @@ function imgboxBody(node: Extract<EditLeaf, { kind: "imgbox" }>): string {
     ? `<div class="w3-display-middle w3-container w3-padding-16 w3-round-large w3-white" data-caption>${escapeText(node.caption)}</div>`
     : `<div class="w3-display-middle w3-hide" data-caption></div>`;
   const src = node.src ? editorMediaSrc(node.src) : "";
-  return `<div class="${imgboxClass(node.plain)}">${src ? `<img src="${escapeAttr(src)}" class="w3-image" alt="${escapeAttr(node.alt)}">` : `<p class="w3-text-grey">Add an image address.</p>`}${caption}</div>`;
+  return `<div class="${imgboxClass(node.plain)}"${blockWidthAttr(node.width)}>${src ? `<img src="${escapeAttr(src)}" class="w3-image" alt="${escapeAttr(node.alt)}">` : `<p class="w3-text-grey">Add an image address.</p>`}${caption}</div>`;
 }
 
 function panelBody(node: EditPanel, choices: Choices, zone: string, locked: boolean): string {
@@ -544,7 +563,7 @@ function panelBody(node: EditPanel, choices: Choices, zone: string, locked: bool
 
 function cardBody(node: EditCard, choices: Choices, zone: string, locked: boolean): string {
   const inner = nestedItems(node.items, choices, zone, locked, node.uid, "");
-  return `<div class="${joinClass(BLOCK_CLASS, "w3-card", "w3-padding", "w3-white")}"><h3 class="w3-text-theme" data-card-title>${escapeText(node.title)}</h3><div class="rt-card-body editor-cell">${inner}</div></div>`;
+  return `<div class="${cardClass(node.plain)}"${blockWidthAttr(node.width)}><h3 class="w3-text-theme" data-card-title>${escapeText(node.title)}</h3><div class="rt-card-body editor-cell">${inner}</div></div>`;
 }
 
 function columnsBody(node: EditColumns, choices: Choices, zone: string, locked: boolean): string {
@@ -651,14 +670,27 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
       if (field === "alt") node.alt = value;
       if (field === "caption") node.caption = value;
       if (field === "plain" && target instanceof HTMLInputElement) node.plain = target.checked;
+      if (field === "width") node.width = isBlockWidth(value) ? value : "twothird";
       if (fromChange) rerenderArticle(form, node.uid);
       return;
     }
-    if (node.kind === "card" && field === "title") {
-      node.title = value;
-      const title = article?.querySelector("[data-card-title]");
-      if (title) title.textContent = value;
-      return;
+    if (node.kind === "card") {
+      if (field === "title") {
+        node.title = value;
+        const title = article?.querySelector("[data-card-title]");
+        if (title) title.textContent = value;
+        return;
+      }
+      if (field === "width") {
+        node.width = isBlockWidth(value) ? value : "full";
+        if (fromChange) rerenderArticle(form, node.uid);
+        return;
+      }
+      if (field === "plain" && target instanceof HTMLInputElement) {
+        node.plain = target.checked;
+        if (fromChange) rerenderArticle(form, node.uid);
+        return;
+      }
     }
     if (node.kind === "insert" && field === "id") {
       node.id = value.trim();
@@ -679,11 +711,6 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
       }
       if (field === "title") {
         node.title = value;
-        if (fromChange) rerenderArticle(form, node.uid);
-        return;
-      }
-      if (field === "width") {
-        node.width = isVideoWidth(value) ? value : "twothird";
         if (fromChange) rerenderArticle(form, node.uid);
         return;
       }
@@ -1181,8 +1208,11 @@ function applyControl(node: EditLeaf | EditCard | EditPanel, field: string, valu
   if (node.kind === "imgbox" && field === "alt") node.alt = value;
   if (node.kind === "imgbox" && field === "caption") node.caption = value;
   if (node.kind === "imgbox" && field === "plain") node.plain = value === "true";
+  if (node.kind === "imgbox" && field === "width" && isBlockWidth(value)) node.width = value;
   if (node.kind === "text" && field === "loose") node.loose = value === "true";
   if (node.kind === "card" && field === "title") node.title = value;
+  if (node.kind === "card" && field === "plain") node.plain = value === "true";
+  if (node.kind === "card" && field === "width" && isBlockWidth(value)) node.width = value;
   if (node.kind === "insert" && field === "id") node.id = value.trim();
   if (node.kind === "subpages" && field === "title") node.title = value;
   if (node.kind === "youtube" && field === "video") {
@@ -1190,7 +1220,6 @@ function applyControl(node: EditLeaf | EditCard | EditPanel, field: string, valu
     node.videoId = id || value.trim();
   }
   if (node.kind === "youtube" && field === "title") node.title = value;
-  if (node.kind === "youtube" && field === "width" && isVideoWidth(value)) node.width = value;
   if (node.kind === "gallery" && field === "folder") node.folder = value;
   if (node.kind === "gallery" && field === "mode") node.mode = value === "slides" ? "slides" : "grid";
 }

@@ -308,7 +308,7 @@ describe("section actions", () => {
 });
 
 describe("image frame", () => {
-  it("hides the frame and keeps the padding", () => {
+  it("hides the frame and padding so width applies to the raw image", () => {
     const form = mountZone(
       `<div class="tessera-imgbox w3-display-container w3-container w3-padding-16 w3-card w3-center"><img src="./media/porch.svg" class="w3-image" alt="Porch"></div>`,
     );
@@ -321,9 +321,10 @@ describe("image frame", () => {
     hide.dispatchEvent(new dom.Event("change", { bubbles: true }));
     const next = form.querySelector(".tessera-imgbox");
     expect(next?.classList.contains("w3-card")).toBe(false);
-    expect(next?.classList.contains("w3-padding-16")).toBe(true);
+    expect(next?.classList.contains("w3-padding-16")).toBe(false);
+    expect(next?.classList.contains("w3-container")).toBe(false);
     const html = readComposeHtml(form).main ?? "";
-    expect(html).toContain("w3-padding-16");
+    expect(html).toMatch(/class="[^"]*tessera-imgbox[^"]*"/);
     expect(html).not.toContain("w3-card");
   });
 });
