@@ -171,7 +171,7 @@ function isHeadingTag(tag: string): tag is `h${HeadingLevel}` {
 export type Section =
   | { kind: "heading"; level: HeadingLevel; text: string }
   | { kind: "text"; heading: string; level: HeadingLevel; html: string; loose?: boolean }
-  | { kind: "panel"; tone: ToneId; html: string }
+  | { kind: "panel"; tone: ToneId; sections: Section[] }
   | { kind: "quote"; tone: ToneId; text: string; attribution: string }
   | { kind: "imgbox"; src: string; alt: string; caption: string; plain: boolean }
   | { kind: "card"; title: string; sections: Section[] }
@@ -272,7 +272,7 @@ export function blankSection(kind: PaletteKind): Section {
     case "text":
       return { kind: "text", heading: "", level: 2, html: "" };
     case "panel":
-      return { kind: "panel", tone: "sand", html: "" };
+      return { kind: "panel", tone: "sand", sections: [] };
     case "quote":
       return { kind: "quote", tone: "sand", text: "", attribution: "" };
     case "imgbox":
@@ -338,10 +338,8 @@ export function paintSection(section: Section, lookup: ToneLookup = EMPTY_LOOKUP
       return `<h${section.level} class="${BLOCK_CLASS}">${escapeText(section.text)}</h${section.level}>`;
     case "text":
       return paintText(section);
-    case "panel": {
-      const cls = joinClass(BLOCK_CLASS, "w3-panel", "w3-padding", resolveToneClass(section.tone, lookup));
-      return `<div class="${cls}">${renderMarkdownLinks(section.html)}</div>`;
-    }
+    case "panel":
+      return paintPanel(section, lookup);
     case "quote":
       return paintQuote(section, lookup);
     case "imgbox":
@@ -447,6 +445,13 @@ function paintImgbox(section: Extract<Section, { kind: "imgbox" }>): string {
     ? `<div class="w3-display-middle w3-container w3-padding-16 w3-display-hover w3-normal w3-round-large w3-opacity-min w3-white">${escapeText(section.caption)}</div>`
     : "";
   return `<div class="${imgboxClass(section.plain)}"><img src="${escapeAttr(section.src)}" class="w3-image" alt="${escapeAttr(section.alt)}">${caption}</div>`;
+}
+
+function paintPanel(section: Extract<Section, { kind: "panel" }>, lookup: ToneLookup): string {
+  const body = section.sections.map((item) => paintSection(item, lookup)).filter(Boolean).join("\n").trim();
+  if (!body) return "";
+  const cls = joinClass(BLOCK_CLASS, "w3-panel", "w3-padding", resolveToneClass(section.tone, lookup));
+  return `<div class="${cls}"><div class="rt-panel-body">${body}</div></div>`;
 }
 
 function paintCard(section: Extract<Section, { kind: "card" }>, lookup: ToneLookup): string {
@@ -701,7 +706,9 @@ function asQuote(el: ElNode, lookup: ToneLookup): Section | null {
 function asPanel(el: ElNode, lookup: ToneLookup): Section | null {
   if (!hasClass(el, "w3-panel")) return null;
   if (!classesArePanel(el, lookup)) return null;
-  return { kind: "panel", tone: toneOf(el, lookup), html: serializeChildren(el.children) };
+  const body = directChild(el, (node) => hasClass(node, "rt-panel-body"));
+  const nodes = body ? body.children : el.children;
+  return { kind: "panel", tone: toneOf(el, lookup), sections: walk(nodes, true, lookup) };
 }
 
 function parseYoutubeBlock(el: ElNode): Section {

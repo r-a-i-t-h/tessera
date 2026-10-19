@@ -103,7 +103,11 @@ describe("parseSections", () => {
   it("unwraps a bare div and recognizes a panel and an image box", () => {
     const html = `<div><div class="w3-panel w3-pale-blue w3-padding"><p>Gallery</p></div><div class="w3-display-container w3-container w3-padding-16 w3-card w3-center"><img src="photo.jpg" class="w3-image" style="width: 100%" alt="Sheep"><div class="w3-display-middle w3-container w3-padding-16 w3-display-hover w3-normal w3-round-large w3-opacity-min w3-white">Open days</div></div></div>`;
     expect(parseSections(html)).toEqual([
-      { kind: "panel", tone: "pale-blue", html: "<p>Gallery</p>" },
+      {
+        kind: "panel",
+        tone: "pale-blue",
+        sections: [{ kind: "text", heading: "", level: 2, html: "<p>Gallery</p>" }],
+      },
       { kind: "imgbox", src: "photo.jpg", alt: "Sheep", caption: "Open days", plain: false },
     ]);
   });
@@ -174,7 +178,11 @@ describe("paintSections", () => {
         level: 3,
         html: "<p>A <strong>line</strong>.</p><ul><li>One</li><li>Two</li></ul>",
       },
-      { kind: "panel", tone: "sand", html: "<p>Note</p>" },
+      {
+        kind: "panel",
+        tone: "sand",
+        sections: [{ kind: "text", heading: "", level: 2, html: "<p>Note</p>" }],
+      },
       { kind: "quote", tone: "pale", text: "Stay curious", attribution: "Ada" },
       { kind: "imgbox", src: "a.jpg", alt: "Alt", caption: "Caption", plain: false },
       {
@@ -204,7 +212,11 @@ describe("paintSections", () => {
   it("paints quote, panel, image box, and columns with W3 classes", () => {
     const html = paintSections([
       { kind: "quote", tone: "sand", text: "Words", attribution: "" },
-      { kind: "panel", tone: "theme", html: "<p>Panel</p>" },
+      {
+        kind: "panel",
+        tone: "theme",
+        sections: [{ kind: "text", heading: "", level: 2, html: "<p>Panel</p>" }],
+      },
       { kind: "imgbox", src: "a.jpg", alt: "", caption: "Cap", plain: false },
       blankSection("columns"),
     ]);
@@ -221,13 +233,26 @@ describe("paintSections", () => {
 
   it("round-trips a site panel tone through paint and parse", () => {
     const tones = [{ id: "ma-blue", label: "School blue", className: "ma-panel-blue" }];
-    const sections = [{ kind: "panel" as const, tone: "ma-blue", html: "<p>Schools</p>" }];
+    const nested = { kind: "text" as const, heading: "", level: 2 as const, html: "<p>Schools</p>" };
+    const sections = [{ kind: "panel" as const, tone: "ma-blue", sections: [nested] }];
     const html = paintSections(sections, tones);
     expect(html).toContain("ma-panel-blue");
+    expect(html).toContain("rt-panel-body");
     expect(parseSections(html, tones)).toEqual(sections);
     // Without the catalog, keep the class as an opaque tone id.
-    expect(parseSections(html)).toEqual([{ kind: "panel", tone: "ma-panel-blue", html: "<p>Schools</p>" }]);
+    expect(parseSections(html)).toEqual([{ kind: "panel", tone: "ma-panel-blue", sections: [nested] }]);
     expect(paintSections(parseSections(html))).toContain("ma-panel-blue");
+  });
+
+  it("parses a legacy panel without rt-panel-body into nested text", () => {
+    const html = `<div class="w3-panel w3-sand w3-padding"><p>Photos</p></div>`;
+    expect(parseSections(html)).toEqual([
+      {
+        kind: "panel",
+        tone: "sand",
+        sections: [{ kind: "text", heading: "", level: 2, html: "<p>Photos</p>" }],
+      },
+    ]);
   });
 
   it("drops the image frame when asked and keeps the padding", () => {
@@ -395,7 +420,11 @@ describe("paintSections", () => {
         html: "<p>Opens at nine.</p><ul><li>Bread</li></ul><p>Closes at one.</p>",
       },
       { kind: "heading", level: 2, text: "Gallery" },
-      { kind: "panel", tone: "sand", html: "<p>Photos</p>" },
+      {
+        kind: "panel",
+        tone: "sand",
+        sections: [{ kind: "text", heading: "", level: 2, html: "<p>Photos</p>" }],
+      },
     ]);
     expect(parseSections(paintSections(sections))).toEqual(sections);
   });

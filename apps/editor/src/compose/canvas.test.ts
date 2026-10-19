@@ -419,6 +419,31 @@ describe("card container", () => {
   });
 });
 
+describe("panel container", () => {
+  it("holds text and side by side", () => {
+    const form = mountZone(
+      `<div class="w3-panel w3-sand w3-padding"><div class="rt-panel-body"><div class="tessera-text"><p>Note.</p></div></div></div>`,
+    );
+    const panel = form.querySelector(".w3-panel");
+    const slot = panel?.querySelector<HTMLElement>("[data-drop]");
+    if (!panel || !slot) throw new Error("panel");
+    expect(panel.querySelector(".editor-section-kind")?.textContent).toBe("Text");
+    dropPalette(slot, "columns");
+    const html = readComposeHtml(form).main ?? "";
+    const sections = parseSections(html);
+    expect(sections).toMatchObject([
+      {
+        kind: "panel",
+        tone: "sand",
+        sections: [
+          { kind: "columns", layout: "1:1" },
+          { kind: "text", html: "<p>Note.</p>" },
+        ],
+      },
+    ]);
+  });
+});
+
 describe("image preview", () => {
   it("shows a library image from the preview and keeps the published address", () => {
     dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;

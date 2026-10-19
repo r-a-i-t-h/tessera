@@ -48,8 +48,15 @@ type EditCard = {
   items: EditNode[];
 };
 
-type EditLeaf = { uid: string } & Exclude<Section, { kind: "columns" } | { kind: "card" }>;
-type EditNode = EditLeaf | EditColumns | EditCard;
+type EditPanel = {
+  uid: string;
+  kind: "panel";
+  tone: ToneId;
+  items: EditNode[];
+};
+
+type EditLeaf = { uid: string } & Exclude<Section, { kind: "columns" } | { kind: "card" } | { kind: "panel" }>;
+type EditNode = EditLeaf | EditColumns | EditCard | EditPanel;
 
 type ZoneState = {
   name: string;
@@ -202,6 +209,14 @@ function toEdit(section: Section): EditNode {
       items: section.sections.map(toEdit),
     };
   }
+  if (section.kind === "panel") {
+    return {
+      uid: nextId(),
+      kind: "panel",
+      tone: section.tone,
+      items: section.sections.map(toEdit),
+    };
+  }
   return { uid: nextId(), ...section };
 }
 
@@ -218,6 +233,9 @@ function toSection(node: EditNode): Section {
   }
   if (node.kind === "card") {
     return { kind: "card", title: node.title, sections: node.items.map(toSection) };
+  }
+  if (node.kind === "panel") {
+    return { kind: "panel", tone: node.tone, sections: node.items.map(toSection) };
   }
   const { uid: _uid, ...section } = node;
   if (section.kind === "text") {
@@ -323,7 +341,7 @@ function propsFor(node: EditNode, choices: Choices, locked: boolean): string {
     case "text":
       return `${levelSelect(node.level)}${superSpaceCheck(node)}${editingToolbar(inlineTools(), listTools())}`;
     case "panel":
-      return `<label class="editor-prop">Tone <select data-field="tone">${toneOptions(node.tone, choices.panelTones)}</select></label>${editingToolbar(inlineTools())}`;
+      return `<label class="editor-prop">Tone <select data-field="tone">${toneOptions(node.tone, choices.panelTones)}</select></label>`;
     case "quote":
       return `<label class="editor-prop">Tone <select data-field="tone">${toneOptions(node.tone, choices.panelTones)}</select></label><label class="editor-prop">Attribution <input data-field="attribution" class="w3-input" value="${escapeAttr(node.attribution)}"></label>`;
     case "imgbox":
@@ -353,7 +371,6 @@ function lockedProps(node: EditNode, choices: Choices): string {
   switch (node.kind) {
     case "text":
       return `${superSpaceCheck(node)}${editingToolbar(inlineTools(), listTools())}`;
-    case "panel":
     case "pasted":
       return editingToolbar(inlineTools());
     case "quote":
@@ -463,7 +480,7 @@ function bodyFor(node: EditNode, choices: Choices, zone: string, locked: boolean
     case "text":
       return `<div class="${joinClass(BLOCK_CLASS, "editor-text", node.loose ? "tessera-loose" : "")}"><h${node.level} contenteditable="true" data-field="heading" data-plain="true" data-placeholder="Heading">${escapeText(node.heading)}</h${node.level}><div class="editor-text-body" contenteditable="true" data-field="html" data-blocks="true" data-placeholder="Write…">${htmlForEditing(node.html)}</div></div>`;
     case "panel":
-      return `<div class="${joinClass(BLOCK_CLASS, "w3-panel", "w3-padding", toneClass(node.tone, choices.panelTones))}"><div contenteditable="true" data-field="html" data-placeholder="Panel">${htmlForEditing(node.html)}</div></div>`;
+      return panelBody(node, choices, zone, locked);
     case "quote":
       return quoteBody(node, choices.panelTones);
     case "imgbox":
@@ -518,6 +535,11 @@ function imgboxBody(node: Extract<EditLeaf, { kind: "imgbox" }>): string {
     : `<div class="w3-display-middle w3-hide" data-caption></div>`;
   const src = node.src ? editorMediaSrc(node.src) : "";
   return `<div class="${imgboxClass(node.plain)}">${src ? `<img src="${escapeAttr(src)}" class="w3-image" alt="${escapeAttr(node.alt)}">` : `<p class="w3-text-grey">Add an image address.</p>`}${caption}</div>`;
+}
+
+function panelBody(node: EditPanel, choices: Choices, zone: string, locked: boolean): string {
+  const inner = nestedItems(node.items, choices, zone, locked, node.uid, "");
+  return `<div class="${joinClass(BLOCK_CLASS, "w3-panel", "w3-padding", toneClass(node.tone, choices.panelTones))}"><div class="rt-panel-body editor-cell">${inner}</div></div>`;
 }
 
 function cardBody(node: EditCard, choices: Choices, zone: string, locked: boolean): string {
@@ -588,7 +610,7 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
       node.html = htmlFromEditing(target.innerHTML, true);
       return;
     }
-    if (field === "html" && target.isContentEditable && (node.kind === "panel" || node.kind === "pasted")) {
+    if (field === "html" && target.isContentEditable && node.kind === "pasted") {
       node.html = htmlFromEditing(target.innerHTML, false);
       return;
     }
@@ -1042,7 +1064,7 @@ function listFor(state: Mounted, zoneName: string, parent: string, cell: number)
   if (!zone) return;
   if (!parent) return zone.items;
   const host = findNode(zone.items, parent);
-  if (host?.kind === "card") return host.items;
+  if (host?.kind === "card" || host?.kind === "panel") return host.items;
   if (host?.kind === "columns") return host.cells[cell]?.items;
   return;
 }
@@ -1092,7 +1114,7 @@ function findNode(list: EditNode[], uid: string): EditNode | undefined {
 
 function childLists(node: EditNode): EditNode[][] {
   if (node.kind === "columns") return node.cells.map((cell) => cell.items);
-  if (node.kind === "card") return [node.items];
+  if (node.kind === "card" || node.kind === "panel") return [node.items];
   return [];
 }
 
@@ -1136,7 +1158,7 @@ function syncAll(state: Mounted): void {
       if (field.dataset.field === "heading" && field.isContentEditable && node.kind === "text") {
         node.heading = (field.textContent ?? "").replace(/\n+/g, " ");
       }
-      if (field.dataset.field === "html" && field.isContentEditable && (node.kind === "panel" || node.kind === "pasted")) {
+      if (field.dataset.field === "html" && field.isContentEditable && node.kind === "pasted") {
         node.html = htmlFromEditing(field.innerHTML, false);
       }
       if (field.dataset.field === "text" && field.isContentEditable && (node.kind === "heading" || node.kind === "quote")) {
@@ -1151,7 +1173,7 @@ function syncAll(state: Mounted): void {
   }
 }
 
-function applyControl(node: EditLeaf | EditCard, field: string, value: string): void {
+function applyControl(node: EditLeaf | EditCard | EditPanel, field: string, value: string): void {
   if ((node.kind === "heading" || node.kind === "text") && field === "level") node.level = parseHeadingLevel(value);
   if ((node.kind === "panel" || node.kind === "quote") && field === "tone" && isTone(value)) node.tone = value;
   if (node.kind === "quote" && field === "attribution") node.attribution = value;

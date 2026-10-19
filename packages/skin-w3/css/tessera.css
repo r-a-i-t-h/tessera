@@ -159,11 +159,13 @@ body.fontD h6 {
   margin-bottom: 2.5rem !important;
 }
 
-.rt-card-body > .tessera-block:last-child {
+.rt-card-body > .tessera-block:last-child,
+.rt-panel-body > .tessera-block:last-child {
   margin-bottom: 0;
 }
 
-.rt-card-body > .tessera-block:first-child {
+.rt-card-body > .tessera-block:first-child,
+.rt-panel-body > .tessera-block:first-child {
   margin-top: 0;
 }
 
@@ -234,12 +236,15 @@ body.fontD h6 {
 }
 
 .rt-card-body .tessera-text > :is(h1, h2, h3, h4):first-child,
-.rt-card-body .tessera-text > :not(:is(h1, h2, h3, h4)):first-child > :is(h1, h2, h3, h4):first-child {
+.rt-card-body .tessera-text > :not(:is(h1, h2, h3, h4)):first-child > :is(h1, h2, h3, h4):first-child,
+.rt-panel-body .tessera-text > :is(h1, h2, h3, h4):first-child,
+.rt-panel-body .tessera-text > :not(:is(h1, h2, h3, h4)):first-child > :is(h1, h2, h3, h4):first-child {
   margin-top: 0;
 }
 
 .tessera-block.w3-card > :is(h1, h2, h3, h4).w3-text-theme:first-child,
-.rt-card-body > :is(h1, h2, h3, h4).tessera-block:first-child {
+.rt-card-body > :is(h1, h2, h3, h4).tessera-block:first-child,
+.rt-panel-body > :is(h1, h2, h3, h4).tessera-block:first-child {
   margin-top: 0;
 }
 
