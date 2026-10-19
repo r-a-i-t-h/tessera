@@ -10,6 +10,7 @@ import {
   schemaFor,
   withAspectChoices,
   withFrameChoices,
+  withParentChoices,
   withTypeChoices,
 } from "../forms/schema.js";
 
@@ -48,12 +49,13 @@ export function composeFormInner(
   layout?: PageLayoutHint,
   types?: readonly string[],
   options?: { heroUrl?: string },
+  pageIds?: readonly string[],
 ): string {
   const zoneLayout =
     kind === "content" && record.type === "article" && layout
       ? { ...layout, declaredZones: ["main"], offLayoutZones: [] }
       : layout;
-  const schema = contentSchema(kind, record, zoneLayout, types);
+  const schema = contentSchema(kind, record, zoneLayout, types, pageIds);
   const authoredNames = new Set((authoredSchema(kind)?.fields ?? []).map((field) => field.name));
   const base = schema?.fields.filter((field) => authoredNames.has(field.name)) ?? [];
   const extras =
@@ -79,8 +81,9 @@ export function composeFormInner(
     kind === "content" && record.type === "article"
       ? heroField(stringField(record, "hero"), options?.heroUrl)
       : "";
+  const pageInline = kind === "content" ? { inline: true } : undefined;
   return `${prefix}
-    ${renderForm({ fields: base }, record)}
+    ${renderForm({ fields: base }, record, pageInline)}
     ${hero}
     ${layoutBanner(record, zoneLayout)}
     ${frameNote(zoneLayout)}
@@ -220,11 +223,17 @@ function contentSchema(
   record: Record<string, unknown>,
   layout?: PageLayoutHint,
   types?: readonly string[],
+  pageIds?: readonly string[],
 ) {
   let schema = schemaFor(kind, record);
   if (!schema) return schema;
   if ((kind === "content" || kind === "templates") && types) {
     schema = withTypeChoices(schema, types, typeof record.type === "string" ? record.type : undefined);
+  }
+  if (kind === "content" && pageIds) {
+    const excludeId = typeof record.id === "string" ? record.id : undefined;
+    const current = typeof record.parentId === "string" ? record.parentId : undefined;
+    schema = withParentChoices(schema, pageIds, excludeId, current);
   }
   if (kind === "content" && layout?.frames) {
     const current = typeof record.masterLayoutId === "string" ? record.masterLayoutId : undefined;

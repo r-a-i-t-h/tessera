@@ -5,9 +5,23 @@ import { ASPECT_NO_CHANGE, type FieldSchema, type FormSchema } from "./schema.js
 
 export type SubmittedValue = string | boolean;
 
+export type RenderFormOptions = {
+  /** Side labels with a fixed width — used for the page form meta block. */
+  inline?: boolean;
+};
+
 /** Draw every schema field, including ones with no stored value. */
-export function renderForm(schema: FormSchema, values: Record<string, unknown>): string {
-  return `<div class="editor-props">${schema.fields.map((field) => renderField(field, values[field.name])).join("")}</div>`;
+export function renderForm(
+  schema: FormSchema,
+  values: Record<string, unknown>,
+  options?: RenderFormOptions,
+): string {
+  const classes = options?.inline ? "editor-props editor-props-inline" : "editor-props";
+  return `<div class="${classes}">${schema.fields.map((field) => renderField(field, values[field.name])).join("")}</div>`;
+}
+
+function control(inner: string): string {
+  return `<span class="editor-prop-control">${inner}</span>`;
 }
 
 export function renderField(field: FieldSchema, value: unknown): string {
@@ -37,7 +51,7 @@ export function renderField(field: FieldSchema, value: unknown): string {
       )
       .join("");
     return `<p><label for="${id}">${escapeHtml(field.label)}</label>
-    <select id="${id}" name="${escapeHtml(field.name)}" data-kind="select" class="w3-select w3-border">${choices}</select></p>`;
+    ${control(`<select id="${id}" name="${escapeHtml(field.name)}" data-kind="select" class="w3-select w3-border">${choices}</select>`)}</p>`;
   }
   if (field.type === "yaml") {
     const text = stringifyYaml(value ?? "", { indent: 2, lineWidth: 0 }).trimEnd();
@@ -46,15 +60,14 @@ export function renderField(field: FieldSchema, value: unknown): string {
   const text = displayString(field, value);
   if (field.readOnly) {
     return `<p><label for="${id}">${escapeHtml(field.label)}</label>
-    <input id="${id}" class="w3-input w3-border" value="${escapeHtml(text)}" disabled />
-    <input type="hidden" name="${escapeHtml(field.name)}" value="${escapeHtml(text)}" /></p>`;
+    ${control(`<input id="${id}" class="w3-input w3-border" value="${escapeHtml(text)}" disabled /><input type="hidden" name="${escapeHtml(field.name)}" value="${escapeHtml(text)}" />`)}</p>`;
   }
   if (field.rows && field.rows > 1) return textarea(field, id, text, "text");
   const inputType =
     field.type === "number" ? "number" : field.type === "date" ? "date" : (field.inputType ?? "text");
   const kind = field.list ? "csv" : field.type === "number" ? "number" : field.type === "date" ? "date" : "text";
   return `<p><label for="${id}">${escapeHtml(field.label)}</label>
-    <input id="${id}" name="${escapeHtml(field.name)}" type="${inputType}" data-kind="${kind}" class="w3-input w3-border" value="${escapeHtml(text)}" /></p>`;
+    ${control(`<input id="${id}" name="${escapeHtml(field.name)}" type="${inputType}" data-kind="${kind}" class="w3-input w3-border" value="${escapeHtml(text)}" />`)}</p>`;
 }
 
 function textarea(field: FieldSchema, id: string, text: string, kind: string): string {
@@ -63,7 +76,7 @@ function textarea(field: FieldSchema, id: string, text: string, kind: string): s
   const extra = yaml ? " editor-yaml" : rows >= 14 ? " editor-body" : "";
   const spell = yaml ? ` spellcheck="false"` : "";
   return `<p class="editor-prop-wide"><label for="${id}">${escapeHtml(field.label)}</label>
-    <textarea id="${id}" name="${escapeHtml(field.name)}" data-kind="${kind}" rows="${rows}"${spell} class="w3-input w3-border${extra}">${escapeHtml(text)}</textarea></p>`;
+    ${control(`<textarea id="${id}" name="${escapeHtml(field.name)}" data-kind="${kind}" rows="${rows}"${spell} class="w3-input w3-border${extra}">${escapeHtml(text)}</textarea>`)}</p>`;
 }
 
 function displayString(field: FieldSchema, value: unknown): string {

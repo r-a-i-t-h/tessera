@@ -624,6 +624,42 @@ img[data-hero-preview] {
   padding: 0.35rem 0.5rem;
 }
 
+.editor-prop-control {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.editor-prop-control > .w3-input,
+.editor-prop-control > .w3-select,
+.editor-prop-control > textarea {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.editor-props-inline > p:not(.editor-check):not(.editor-prop-wide) {
+  display: grid;
+  grid-template-columns: 6.75rem minmax(0, 1fr);
+  column-gap: 0.5rem;
+  align-items: center;
+}
+
+.editor-props-inline > p:not(.editor-check):not(.editor-prop-wide) > label {
+  display: block;
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.editor-props-inline > .editor-check:not([hidden]) {
+  align-items: center;
+  padding-bottom: 0;
+}
+
 .editor-props > .editor-check:not([hidden]) {
   display: flex;
   align-items: flex-end;

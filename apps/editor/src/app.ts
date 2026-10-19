@@ -99,6 +99,7 @@ import {
   withAspectChoices,
   withDefaultAspectChoices,
   withFrameChoices,
+  withParentChoices,
   withTypeChoices,
   type AspectChoice,
 } from "./forms/schema.js";
@@ -1250,6 +1251,18 @@ async function loadTypeIds(): Promise<string[]> {
   try {
     const listing = await listRecords();
     return listing.records.filter((row) => row.kind === "types").map((row) => row.id);
+  } catch {
+    return [];
+  }
+}
+
+async function loadContentPageIds(): Promise<string[]> {
+  try {
+    const listing = await listRecords();
+    return listing.records
+      .filter((row) => row.kind === "content")
+      .map((row) => row.id)
+      .sort((a, b) => a.localeCompare(b));
   } catch {
     return [];
   }
@@ -2711,6 +2724,10 @@ async function bindEdit(
   const typeLayouts = typeEditor ? await typeLayoutChoices(typeof record.layoutId === "string" ? record.layoutId : "") : [];
   const typeIds =
     editsBody(kind) && (editMode === "compose" || editMode === "fields") ? await loadTypeIds() : undefined;
+  const pageIds =
+    kind === "content" && (editMode === "compose" || editMode === "fields")
+      ? await loadContentPageIds()
+      : undefined;
   const heroUrl =
     record?.type === "article" ? await heroPreviewUrl(stringField(record, "hero")) : undefined;
   const contentExtras = heroUrl ? { heroUrl } : undefined;
@@ -2723,14 +2740,14 @@ async function bindEdit(
       ? `<p><label for="raw-file">Raw YAML</label>
          <textarea id="raw-file" name="raw" rows="24" spellcheck="false" class="w3-input w3-border w3-margin-top editor-raw">${escapeHtml(rawShown)}</textarea></p>`
       : editMode === "compose" && record
-        ? composeFormInner(kind, record, bodyLayout, typeIds, contentExtras)
+        ? composeFormInner(kind, record, bodyLayout, typeIds, contentExtras, pageIds)
       : navList
         ? `<div id="nav-editor">${renderNavList(navRows(payload.data), pages)}</div>`
         : typeEditor
           ? `<div id="type-editor">${renderTypeForm(typeDraft(record), typeLayouts)}</div>`
           : assisted && record && bindingChoices
             ? renderBindingForm(id, record, bindingChoices)
-            : `${navNote}${fieldsHtml(kind, record ?? payload.data, payload.layout, typeIds, contentExtras)}`;
+            : `${navNote}${fieldsHtml(kind, record ?? payload.data, payload.layout, typeIds, contentExtras, pageIds)}`;
   const place = editPlace(kind, id, record);
   const homeId = kind === "content" ? await loadHomePageId() : "";
   const pageHost = host === "page";
@@ -3148,6 +3165,7 @@ function fieldsHtml(
   layout?: PageLayoutHint,
   types?: readonly string[],
   options?: { heroUrl?: string },
+  pageIds?: readonly string[],
 ): string {
   if (Array.isArray(data) || !data || typeof data !== "object") {
     return renderForm(
@@ -3156,15 +3174,16 @@ function fieldsHtml(
     );
   }
   const record = data as Record<string, unknown>;
+  const pageInline = kind === "content" ? { inline: true } : undefined;
   if (kind === "content" && record.type === "blog-index") return indexNote(record);
   if (kind === "content" && record.type === "article") {
-    return `${articleMeta(record)}${renderForm(recordSchema(kind, record, layout, types) ?? { fields: [] }, record)}${heroField(stringField(record, "hero"), options?.heroUrl)}${frameNote(layout)}`;
+    return `${articleMeta(record)}${renderForm(recordSchema(kind, record, layout, types, pageIds) ?? { fields: [] }, record, pageInline)}${heroField(stringField(record, "hero"), options?.heroUrl)}${frameNote(layout)}`;
   }
   if (kind === "content" && record.type === "blog") {
-    return `${blogMeta(record)}${renderForm(recordSchema(kind, record, layout, types) ?? { fields: [] }, record)}${frameNote(layout)}${zoneFields(zonesOf(record), layout)}`;
+    return `${blogMeta(record)}${renderForm(recordSchema(kind, record, layout, types, pageIds) ?? { fields: [] }, record, pageInline)}${frameNote(layout)}${zoneFields(zonesOf(record), layout)}`;
   }
   if (kind === "bindings") return bindingFields(record);
-  const schema = recordSchema(kind, record, layout, types);
+  const schema = recordSchema(kind, record, layout, types, pageIds);
   if (!schema) {
     return renderForm({ fields: [{ name: "_yaml", label: "Data", type: "yaml", rows: 12 }] }, { _yaml: data });
   }
@@ -3177,7 +3196,7 @@ function fieldsHtml(
       : kind === "items"
         ? zoneFields(zonesOf(record), undefined, true)
         : "";
-  return `${renderForm({ fields: base }, record)}${zones}${extras.length ? renderForm({ fields: extras }, record) : ""}`;
+  return `${renderForm({ fields: base }, record, pageInline)}${zones}${extras.length ? renderForm({ fields: extras }, record) : ""}`;
 }
 
 function recordSchema(
@@ -3185,10 +3204,16 @@ function recordSchema(
   record: Record<string, unknown>,
   layout?: PageLayoutHint,
   types?: readonly string[],
+  pageIds?: readonly string[],
 ) {
   let schema = schemaFor(kind, record);
   if (schema && (kind === "content" || kind === "templates") && types) {
     schema = withTypeChoices(schema, types, typeof record.type === "string" ? record.type : undefined);
+  }
+  if (schema && kind === "content" && pageIds) {
+    const excludeId = typeof record.id === "string" ? record.id : undefined;
+    const current = typeof record.parentId === "string" ? record.parentId : undefined;
+    schema = withParentChoices(schema, pageIds, excludeId, current);
   }
   if (schema && kind === "content" && layout?.frames) {
     schema = withFrameChoices(

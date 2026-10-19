@@ -72,8 +72,8 @@ export const BLOG_FORM: FormSchema = {
   fields: [
     { name: "id", label: "Id", type: "string", readOnly: true, required: true },
     { name: "title", label: "Title", type: "string", required: true },
-    { name: "description", label: "Description", type: "string" },
     { name: "parentId", label: "Parent", type: "string" },
+    { name: "description", label: "Description", type: "string" },
     { name: "masterLayoutId", label: "Frame", type: "string" },
     { name: "aspectId", label: "Aspect", type: "string" },
   ],
@@ -83,14 +83,14 @@ export const CONTENT_FORM: FormSchema = {
   fields: [
     { name: "id", label: "Id", type: "string", readOnly: true, required: true },
     { name: "title", label: "Title", type: "string", required: true },
-    { name: "description", label: "Description", type: "string" },
     { name: "parentId", label: "Parent", type: "string" },
+    { name: "description", label: "Description", type: "string" },
+    { name: "type", label: "Type", type: "string" },
+    { name: "tags", label: "Tags", type: "string", list: true },
     { name: "masterLayoutId", label: "Frame", type: "string" },
     { name: "aspectId", label: "Aspect", type: "string" },
-    { name: "type", label: "Type", type: "string" },
     { name: "showInNav", label: "Show in nav", type: "Checkbox", defaultChecked: true },
     { name: "published", label: "Published", type: "Checkbox", defaultChecked: true },
-    { name: "tags", label: "Tags", type: "string", list: true },
   ],
 };
 
@@ -153,6 +153,31 @@ export function withTypeChoices(schema: FormSchema, types: readonly string[], cu
   return {
     fields: schema.fields.map((field) =>
       field.name === "type"
+        ? {
+            ...field,
+            type: "SingleSelect",
+            options: [{ value: "", label: "None" }, ...ids.map((id) => ({ value: id, label: id }))],
+          }
+        : field,
+    ),
+  };
+}
+
+/**
+ * Replace the Parent text field with None plus other page ids.
+ * `excludeId` is the current page (no self-parent). An orphan current parent is kept in the list.
+ */
+export function withParentChoices(
+  schema: FormSchema,
+  pageIds: readonly string[],
+  excludeId?: string,
+  current?: string,
+): FormSchema {
+  const ids = pageIds.filter((id) => id && id !== excludeId);
+  if (current && current !== excludeId && !ids.includes(current)) ids.push(current);
+  return {
+    fields: schema.fields.map((field) =>
+      field.name === "parentId"
         ? {
             ...field,
             type: "SingleSelect",

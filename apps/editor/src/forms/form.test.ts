@@ -8,6 +8,7 @@ import {
   withAspectChoices,
   withDefaultAspectChoices,
   withFrameChoices,
+  withParentChoices,
   withTypeChoices,
 } from "./schema.js";
 
@@ -35,15 +36,56 @@ describe("schema forms", () => {
     expect(next.id).toBe("hall");
   });
 
+  it("orders content fields as id/title, parent/description, type/tags, frame/aspect, nav/published", () => {
+    expect(CONTENT_FORM.fields.map((field) => field.name)).toEqual([
+      "id",
+      "title",
+      "parentId",
+      "description",
+      "type",
+      "tags",
+      "masterLayoutId",
+      "aspectId",
+      "showInNav",
+      "published",
+    ]);
+  });
+
   it("lays short content fields, including description, in two columns", () => {
     const html = renderForm(CONTENT_FORM, { id: "home", title: "Home", description: "A hall" });
     expect(html.startsWith(`<div class="editor-props">`)).toBe(true);
+    expect(html).not.toContain("editor-props-inline");
     expect(html).toContain(`<p><label for="f-description">Description</label>`);
     expect(html).toContain(`<input id="f-description" name="description" type="text"`);
     expect(html).not.toContain(`<textarea id="f-description"`);
     expect(html).toContain(`<p><label for="f-title">Title</label>`);
     expect(html).not.toContain(`editor-prop-wide"><label for="f-title"`);
     expect(html).not.toContain(`editor-prop-wide"><label for="f-description"`);
+  });
+
+  it("opts into side labels for the page form", () => {
+    const html = renderForm(CONTENT_FORM, { id: "home", title: "Home" }, { inline: true });
+    expect(html.startsWith(`<div class="editor-props editor-props-inline">`)).toBe(true);
+    expect(html).toContain("editor-prop-control");
+  });
+
+  it("offers other page ids as the parent and clears None", () => {
+    const schema = withParentChoices(CONTENT_FORM, ["home", "about", "events"], "about", "gone");
+    const html = renderForm(schema, { id: "about", title: "About", parentId: "gone" });
+    expect(html).toContain('name="parentId"');
+    expect(html).toContain('data-kind="select"');
+    expect(html).toContain(">None</option>");
+    expect(html).toContain('value="home"');
+    expect(html).toContain('value="events"');
+    expect(html).toContain('value="gone"');
+    expect(html).not.toContain('<option value="about"');
+    const cleared = applySubmitted(schema, { id: "about", title: "About", parentId: "home" }, {
+      title: "About",
+      parentId: "",
+    });
+    expect(cleared).not.toHaveProperty("parentId");
+    const set = applySubmitted(schema, { id: "about", title: "About" }, { title: "About", parentId: "events" });
+    expect(set.parentId).toBe("events");
   });
 
   it("shows showInNav checked when the key is missing and omits it when checked", () => {

@@ -29,6 +29,7 @@ describe("composeFormInner", () => {
     );
     expect(html).toContain('name="title"');
     expect(html).toContain("Summer fair");
+    expect(html).toContain("editor-props-inline");
     expect(html).toContain('data-zone="main"');
     expect(html).not.toContain("Off layout");
     expect(html).not.toContain('data-zone="title"');
