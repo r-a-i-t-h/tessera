@@ -1,4 +1,4 @@
-import { appendFile, mkdir, readFile } from "node:fs/promises";
+import { appendFile, mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 /**
@@ -7,6 +7,7 @@ import { dirname, join } from "node:path";
  * save time so a later migration can tell which shape the raw YAML had.
  */
 const MARKER = "# tessera-history 1";
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export type HistoryEntry = {
   savedAt: string;
@@ -20,6 +21,17 @@ export type HistorySummary = {
   savedAt: string;
   schemaVersion: number;
   bytes: number;
+};
+
+/** Site retention knobs. Unset fields are off; both unset means no prune. */
+export type HistoryRetention = {
+  maxEntries?: number;
+  maxAgeDays?: number;
+};
+
+export type PruneResult = {
+  kept: number;
+  dropped: number;
 };
 
 export function pageHistoryPath(recordsDir: string, id: string): string {
@@ -89,6 +101,81 @@ export async function readPageHistoryEntry(
     i += 1;
   }
   return undefined;
+}
+
+/**
+ * Drop entries that fail either configured limit (too old, or outside the
+ * newest N). When both limits are unset, leaves the file untouched.
+ */
+export async function prunePageHistory(
+  file: string,
+  retention: HistoryRetention,
+  now = new Date(),
+): Promise<PruneResult> {
+  const maxEntries = positiveInt(retention.maxEntries);
+  const maxAgeDays = positiveInt(retention.maxAgeDays);
+  if (maxEntries === undefined && maxAgeDays === undefined) {
+    return { kept: 0, dropped: 0 };
+  }
+
+  const entries = await readAllEntries(file);
+  if (entries.length === 0) return { kept: 0, dropped: 0 };
+
+  const cutoffMs =
+    maxAgeDays !== undefined ? now.getTime() - maxAgeDays * MS_PER_DAY : undefined;
+  const countStart =
+    maxEntries !== undefined ? Math.max(0, entries.length - maxEntries) : 0;
+
+  const kept = entries.filter((entry, index) => {
+    if (cutoffMs !== undefined) {
+      const t = Date.parse(entry.savedAt);
+      if (!Number.isNaN(t) && t < cutoffMs) return false;
+    }
+    if (maxEntries !== undefined && index < countStart) return false;
+    return true;
+  });
+
+  const dropped = entries.length - kept.length;
+  if (dropped === 0) return { kept: kept.length, dropped: 0 };
+
+  if (kept.length === 0) {
+    await unlink(file).catch(() => undefined);
+    return { kept: 0, dropped };
+  }
+
+  await writeFile(file, Buffer.concat(kept.map(encodeEntry)));
+  return { kept: kept.length, dropped };
+}
+
+function positiveInt(value: number | undefined): number | undefined {
+  if (value === undefined) return undefined;
+  if (!Number.isInteger(value) || value < 1) return undefined;
+  return value;
+}
+
+function encodeEntry(entry: HistoryEntry): Buffer {
+  const body = Buffer.from(entry.raw, "utf8");
+  const header = `${MARKER}\nsavedAt: ${entry.savedAt}\nschemaVersion: ${entry.schemaVersion}\nbytes: ${body.length}\n---\n`;
+  return Buffer.concat([Buffer.from(header, "utf8"), body]);
+}
+
+async function readAllEntries(file: string): Promise<HistoryEntry[]> {
+  const buf = await readHistory(file);
+  if (!buf || buf.length === 0) return [];
+  const entries: HistoryEntry[] = [];
+  let offset = 0;
+  while (offset < buf.length) {
+    const header = readHeader(buf, offset);
+    const bodyEnd = header.bodyStart + header.bytes;
+    if (bodyEnd > buf.length) throw new Error("Page history entry is truncated.");
+    entries.push({
+      savedAt: header.savedAt,
+      schemaVersion: header.schemaVersion,
+      raw: buf.subarray(header.bodyStart, bodyEnd).toString("utf8"),
+    });
+    offset = bodyEnd;
+  }
+  return entries;
 }
 
 async function readHistory(file: string): Promise<Buffer | undefined> {

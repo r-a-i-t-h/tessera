@@ -129,7 +129,9 @@ An **aspect** is optional. A theme that lists looks in its manifest writes `site
 
 Saving a content page writes the new YAML, then appends the **previous raw file** to `$TESSERA_DATA/history/content/<id>.history` (one append-only file per page, outside the web root). An unchanged file does not append. A publish failure restores the previous file and does not append. History is not a field on the published page and is not copied into `site.json`.
 
-The editor can open that raw YAML, save it, and read earlier copies back. The save response names the new `site.<hash>.json`. That filename is the browser cache key: `rev.json` changes with it, and an open snapshot tab picks the new file up on its next poll.
+**Retention** is optional on `site.yaml`: `historyMaxEntries` and/or `historyMaxAgeDays`. There are no defaults — history is never pruned until a site manager sets at least one. When either is set, an entry is dropped if it is older than the age limit **or** outside the newest N entries (OR). Prune runs after a content history append, and a site save with a limit set sweeps every history file. Clearing both limits leaves existing files alone.
+
+The editor History panel lists earlier copies; clicking a time views that raw YAML (no restore). The save response names the new `site.<hash>.json`. That filename is the browser cache key: `rev.json` changes with it, and an open snapshot tab picks the new file up on its next poll.
 
 **Authoring schema** is `schemaVersion` in `$TESSERA_DATA/meta.json`. It is not `SiteDocument.version` (the number the renderer validates). The process reads `schemaVersion` and stamps it on each history entry. It does not bump the counter. Missing or non-numeric means **0**.
 

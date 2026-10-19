@@ -52,6 +52,8 @@ export const SITE_FORM: FormSchema = {
     },
     { name: "origin", label: "Origin", type: "string", inputType: "url" },
     { name: "publishTo", label: "Publish to", type: "string" },
+    { name: "historyMaxEntries", label: "History max entries", type: "number" },
+    { name: "historyMaxAgeDays", label: "History max age (days)", type: "number" },
   ],
 };
 

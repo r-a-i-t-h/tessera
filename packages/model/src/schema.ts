@@ -392,6 +392,13 @@ export const SiteMetaSchema = z.object({
   publishTo: z.string().optional(),
   /** Chrome tokens. Missing fields use the defaults in `style.ts`. */
   style: SiteStyleSchema.optional(),
+  /**
+   * Page history retention. Unset means no prune for that limit.
+   * When either is set, an entry is dropped if it is too old or outside the newest N.
+   * Neither set means history is never pruned.
+   */
+  historyMaxEntries: z.number().int().positive().optional(),
+  historyMaxAgeDays: z.number().int().positive().optional(),
   settings: z.record(z.unknown()).optional(),
 });
 

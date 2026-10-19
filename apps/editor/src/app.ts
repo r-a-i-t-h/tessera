@@ -3110,6 +3110,7 @@ function historyHtml(payload: RecordPayload): string {
   return `<section class="editor-history">
     <details>
       <summary class="w3-medium">History (${rows.length})</summary>
+      <p class="w3-text-grey w3-small">Click a time to view that earlier YAML.</p>
       ${list}
       <pre id="history-view" class="w3-code editor-history-raw" hidden></pre>
     </details>

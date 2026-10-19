@@ -18,8 +18,10 @@ import {
   appendPageHistory,
   listPageHistory,
   pageHistoryPath,
+  prunePageHistory,
   readPageHistoryEntry,
   type HistoryEntry,
+  type HistoryRetention,
   type HistorySummary,
 } from "./history.js";
 import { writeSnapshotFiles } from "./snapshot.js";
@@ -386,6 +388,7 @@ export class SiteStore {
   async writeSite(data: Record<string, unknown>): Promise<SaveResult> {
     validateAuthoredRecord("site", typeof data.id === "string" ? data.id : "site", data);
     const saved = await this.commitText(this.siteFile(), toYaml(data));
+    await this.sweepPageHistory(retentionFromSite(data));
     return { historyAppended: false, historyCount: 0, ...outputFields(saved) };
   }
 
@@ -478,6 +481,7 @@ export class SiteStore {
     const saved = await this.commitText(this.recordFile(kind, id), nextText, options);
     await this.ensureOrdered(kind, id);
     const historyAppended = await this.maybeAppendHistory(kind, id, saved.previous, nextText);
+    if (historyAppended) await this.pruneHistoryFor(id);
     const historyCount = kind === "content" ? (await this.pageHistory(id)).length : 0;
     return { historyAppended, historyCount, ...outputFields(saved) };
   }
@@ -519,6 +523,37 @@ export class SiteStore {
     if (kind !== "content" || previous === undefined || previous === nextText) return false;
     await appendPageHistory(pageHistoryPath(dirname(this.historyDir), id), previous, await this.schemaVersion());
     return true;
+  }
+
+  private historyFile(id: string): string {
+    return pageHistoryPath(dirname(this.historyDir), id);
+  }
+
+  private async pruneHistoryFor(id: string): Promise<void> {
+    let retention: HistoryRetention = {};
+    try {
+      retention = retentionFromSite(await this.readSite());
+    } catch {
+      return;
+    }
+    await prunePageHistory(this.historyFile(id), retention);
+  }
+
+  /** Apply retention to every content history file. No-op when both limits are unset. */
+  private async sweepPageHistory(retention: HistoryRetention): Promise<void> {
+    if (retention.maxEntries === undefined && retention.maxAgeDays === undefined) return;
+    const dir = join(this.historyDir, "content");
+    let names: string[];
+    try {
+      names = await readdir(dir);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") return;
+      throw err;
+    }
+    for (const name of names) {
+      if (!name.endsWith(".history")) continue;
+      await prunePageHistory(join(dir, name), retention);
+    }
   }
 
   private async writeOutputs(doc: SiteDocument): Promise<{ snapshot?: SnapshotRef }> {
@@ -1068,6 +1103,13 @@ function documentBody(doc: SiteDocument): string {
 
 function outputFields(saved: { snapshot?: SnapshotRef }): Pick<SaveResult, "snapshot"> {
   return saved.snapshot ? { snapshot: saved.snapshot } : {};
+}
+
+function retentionFromSite(site: Record<string, unknown>): HistoryRetention {
+  return {
+    maxEntries: typeof site.historyMaxEntries === "number" ? site.historyMaxEntries : undefined,
+    maxAgeDays: typeof site.historyMaxAgeDays === "number" ? site.historyMaxAgeDays : undefined,
+  };
 }
 
 function normalizeRaw(raw: string): string {
