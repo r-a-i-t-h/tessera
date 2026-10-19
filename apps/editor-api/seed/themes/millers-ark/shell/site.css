@@ -35,6 +35,30 @@ body.nature2 {
   background-attachment: scroll, fixed;
 }
 
+/* Christmas and night swap chrome artwork. Summer is the base rules above. */
+html.aspect-xmas body.nature2 {
+  background-image: url("./img/xmas/grass-bg.jpg");
+}
+
+html.aspect-xmas #ma-top-band {
+  background-color: #a8adc3;
+  background-image:
+    url("./img/xmas/grass-top.gif"),
+    url("./img/xmas/xmas-bg2.jpg");
+  background-size: auto, 2000px auto;
+}
+
+html.aspect-night body.nature2 {
+  background-image: url("./img/night/grass-bg.jpg");
+}
+
+html.aspect-night #ma-top-band {
+  background-color: #000;
+  background-image:
+    url("./img/night/grass-top.gif"),
+    url("./img/night/sky-bg-with-sun.jpg");
+}
+
 #ma-top-inner,
 #ma-footer-inner {
   position: relative;

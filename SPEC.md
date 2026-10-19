@@ -355,6 +355,7 @@ Criteria define “done enough,” not a build order (see [ROADMAP.md](./ROADMAP
 - [x] Zone naming convention is documented (core `main`, common optional ids, unlimited custom ids).
 - [x] At least two W3 kits (`tessera-w3-starter`, `tessera-w3-alt`) share zone ids on the standard page layout so existing **`main`** content still paints after switching kits.
 - [x] Optional demo import and **`POST /api/themes/:id/reset-demo`** remove only kit demo paths.
+- [x] Optional **aspects**: theme manifest lists `{ id, label }` looks; apply replaces `site.aspects` / `defaultAspectId`; pages inherit `aspectId` like the frame; publish and preview put `aspect-{id}` on `<html>` for theme CSS only.
 
 ### Explicitly later / soft
 

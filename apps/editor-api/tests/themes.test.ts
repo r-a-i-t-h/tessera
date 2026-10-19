@@ -126,4 +126,55 @@ zones:
       code: "ENOENT",
     });
   });
+
+  it("apply replaces the aspect catalog and leaves page aspectId alone", async () => {
+    const fixtureSeed = join(root, "fixture-seed");
+    const kitRoot = join(fixtureSeed, "themes", "aspect-kit");
+    await mkdir(join(kitRoot, "shell"), { recursive: true });
+    await writeFile(
+      join(kitRoot, "manifest.yaml"),
+      `id: aspect-kit
+name: Aspect kit
+version: 1
+stack: custom
+aspects:
+  - id: day
+    label: Day
+  - id: night
+    label: Night
+defaultAspectId: day
+patch:
+  layouts: skip
+  shell: skip
+  site: merge-keys
+  types: skip
+  items: skip
+  nav: skip
+`,
+    );
+
+    await writeFile(
+      join(root, "records", "content", "about.yaml"),
+      `id: about
+title: About
+aspectId: night
+zones:
+  main:
+    html: '<p>About</p>'
+`,
+    );
+
+    await applyThemeKit(root, backupDir, fixtureSeed, "aspect-kit");
+    const siteYaml = await readFile(join(root, "records", "site.yaml"), "utf8");
+    expect(siteYaml).toContain("defaultAspectId: day");
+    expect(siteYaml).toContain("id: day");
+    expect(siteYaml).toContain("id: night");
+    expect(await readFile(join(root, "records", "content", "about.yaml"), "utf8")).toContain("aspectId: night");
+
+    await applyThemeKit(root, backupDir, seedDir, "tessera-w3-starter");
+    const cleared = await readFile(join(root, "records", "site.yaml"), "utf8");
+    expect(cleared).not.toContain("defaultAspectId");
+    expect(cleared).not.toMatch(/^aspects:/m);
+    expect(await readFile(join(root, "records", "content", "about.yaml"), "utf8")).toContain("aspectId: night");
+  });
 });

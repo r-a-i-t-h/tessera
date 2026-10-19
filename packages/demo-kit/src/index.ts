@@ -1,5 +1,6 @@
 export { w3 } from "./w3.js";
 export {
+  applyAspectClass,
   applySiteChrome,
   bodySwitch,
   installChromeGlobals,

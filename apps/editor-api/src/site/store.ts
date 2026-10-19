@@ -7,6 +7,7 @@ import {
   layoutHasPageSlot,
   markBlogLinks,
   placeArticles,
+  resolveAspect,
   resolveMasterLayout,
   resolvePageProfile,
   SITE_REVISION_FILE,
@@ -84,6 +85,13 @@ export type PageLayoutHint = {
   masterSource?: "page" | "ancestor" | "site";
   /** Page that set the frame, when `masterSource` is `page` or `ancestor`. */
   masterFromPageId?: string;
+  /** Looks the current theme offers. */
+  aspects?: { id: string; label: string }[];
+  /** Resolved aspect, when the site or a page in the chain names one. */
+  aspectId?: string;
+  aspectSource?: "page" | "ancestor" | "site";
+  /** Page that set the aspect, when `aspectSource` is `page` or `ancestor`. */
+  aspectFromPageId?: string;
 };
 
 /** These records are named by id. A title on them is not public content. */
@@ -193,7 +201,9 @@ export class SiteStore {
     const present = Object.keys(authored.zones ?? {});
     const type = doc.types?.find((item) => item.id === profile.typeId);
     const master = resolveMasterLayout(doc, resolved);
+    const aspect = resolveAspect(doc, resolved);
     const frames = doc.layouts.filter((layout) => layoutHasPageSlot(layout.root)).map((layout) => layout.id);
+    const aspects = (doc.site.aspects ?? []).map((item) => ({ id: item.id, label: item.label }));
     return {
       layoutId: profile.layoutId,
       layoutSource: profile.layoutSource,
@@ -209,6 +219,10 @@ export class SiteStore {
       ...(master.layoutId ? { masterLayoutId: master.layoutId } : {}),
       masterSource: master.source,
       ...(master.fromPageId ? { masterFromPageId: master.fromPageId } : {}),
+      aspects,
+      ...(aspect.aspectId ? { aspectId: aspect.aspectId } : {}),
+      aspectSource: aspect.source,
+      ...(aspect.fromPageId ? { aspectFromPageId: aspect.fromPageId } : {}),
     };
   }
 

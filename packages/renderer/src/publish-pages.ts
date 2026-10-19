@@ -1,7 +1,9 @@
 import type { SiteDocument } from "@r-a-i-t-h/tessera-model";
 import {
+  aspectClassName,
   flattenPageTree,
   publishedPageTree,
+  resolveAspect,
   resolveSiteStyle,
   siteBodyClass,
   siteStyleOverrideCss,
@@ -115,8 +117,10 @@ function pageHtml(input: {
     : "";
   const scriptTag = `\n    <script type="module" src="${escapeHtml(assetHref(node.path, script))}"></script>`;
   const bodyClass = document.site.style ? ` class="${siteBodyClass(document.site.style)}"` : "";
+  const aspect = resolveAspect(document, node.page);
+  const htmlClass = aspect.aspectId ? ` class="${aspectClassName(aspect.aspectId)}"` : "";
   return `<!DOCTYPE html>
-<html lang="${escapeHtml(lang)}">
+<html lang="${escapeHtml(lang)}"${htmlClass}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />

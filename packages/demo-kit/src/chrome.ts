@@ -1,5 +1,11 @@
 
-import { resolveSiteStyle, siteBodyClass, siteStyleOverrideCss, type SiteStyle } from "@r-a-i-t-h/tessera-model";
+import {
+  aspectClassName,
+  resolveSiteStyle,
+  siteBodyClass,
+  siteStyleOverrideCss,
+  type SiteStyle,
+} from "@r-a-i-t-h/tessera-model";
 import { escapeHtml } from "@r-a-i-t-h/tessera-renderer";
 
 const FONT_STORAGE_KEY = "tessera-font";
@@ -65,6 +71,15 @@ export function flipNavSide(): boolean {
   cl.remove("leftnav", "rightnav");
   cl.add(next);
   return false;
+}
+
+/** Put the resolved aspect class on `<html>`, removing any previous `aspect-*`. */
+export function applyAspectClass(aspectId: string | undefined): void {
+  if (typeof document === "undefined" || !document.documentElement) return;
+  const root = document.documentElement;
+  const stale = Array.from(root.classList).filter((token) => token.startsWith("aspect-"));
+  if (stale.length) root.classList.remove(...stale);
+  if (aspectId) root.classList.add(aspectClassName(aspectId));
 }
 
 /** Write chrome tokens onto the document and re-bind the sidebar toggle. */

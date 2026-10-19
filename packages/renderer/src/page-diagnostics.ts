@@ -319,3 +319,8 @@ export function masterLayoutSourceLabel(source: MasterLayoutSource): string {
     }
   }
 }
+
+/** Same wording as the master layout source line. */
+export function aspectSourceLabel(source: "page" | "ancestor" | "site"): string {
+  return masterLayoutSourceLabel(source);
+}

@@ -93,7 +93,15 @@ import {
   typeRecord,
   type LayoutChoice,
 } from "./forms/type.js";
-import { authoredSchema, schemaFor, withFrameChoices, withTypeChoices } from "./forms/schema.js";
+import {
+  authoredSchema,
+  schemaFor,
+  withAspectChoices,
+  withDefaultAspectChoices,
+  withFrameChoices,
+  withTypeChoices,
+  type AspectChoice,
+} from "./forms/schema.js";
 import { readDataTransfer } from "./forms/drop.js";
 import {
   assetDetail,
@@ -3148,7 +3156,7 @@ function fieldsHtml(
   const record = data as Record<string, unknown>;
   if (kind === "content" && record.type === "blog-index") return indexNote(record);
   if (kind === "content" && record.type === "article") {
-    return `${articleMeta(record)}${renderForm(schemaFor(kind, record) ?? { fields: [] }, record)}${heroField(stringField(record, "hero"), options?.heroUrl)}${frameNote(layout)}`;
+    return `${articleMeta(record)}${renderForm(recordSchema(kind, record, layout, types) ?? { fields: [] }, record)}${heroField(stringField(record, "hero"), options?.heroUrl)}${frameNote(layout)}`;
   }
   if (kind === "content" && record.type === "blog") {
     return `${blogMeta(record)}${renderForm(recordSchema(kind, record, layout, types) ?? { fields: [] }, record)}${frameNote(layout)}${zoneFields(zonesOf(record), layout)}`;
@@ -3187,7 +3195,32 @@ function recordSchema(
       typeof record.masterLayoutId === "string" ? record.masterLayoutId : undefined,
     );
   }
+  if (schema && kind === "content" && layout?.aspects !== undefined) {
+    schema = withAspectChoices(
+      schema,
+      layout.aspects,
+      typeof record.aspectId === "string" ? record.aspectId : undefined,
+    );
+  }
+  if (schema && kind === "site") {
+    const aspects = siteAspectChoices(record);
+    schema = withDefaultAspectChoices(schema, aspects);
+  }
   return schema;
+}
+
+function siteAspectChoices(record: Record<string, unknown>): AspectChoice[] {
+  const raw = record.aspects;
+  if (!Array.isArray(raw)) return [];
+  const out: AspectChoice[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+    const row = item as Record<string, unknown>;
+    if (typeof row.id === "string" && typeof row.label === "string") {
+      out.push({ id: row.id, label: row.label });
+    }
+  }
+  return out;
 }
 
 function zonesOf(record: Record<string, unknown>): Record<string, unknown> {

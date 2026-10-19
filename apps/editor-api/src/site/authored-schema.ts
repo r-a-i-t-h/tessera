@@ -1,4 +1,5 @@
 import {
+  AspectIdSchema,
   BindingSchema,
   BlockSchema,
   FolderSchema,
@@ -71,6 +72,7 @@ const authoredPage = z.object({
   description: z.string().optional(),
   parentId: id.optional(),
   masterLayoutId: id.optional(),
+  aspectId: AspectIdSchema.optional(),
   showInNav: z.boolean().optional(),
   /** Absent means published. `false` keeps the file and leaves the page out of the site. */
   published: z.boolean().optional(),

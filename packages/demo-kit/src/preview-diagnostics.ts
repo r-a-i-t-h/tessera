@@ -1,6 +1,7 @@
-import type { SiteDocument } from "@r-a-i-t-h/tessera-model";
+import { resolveAspect, type SiteDocument } from "@r-a-i-t-h/tessera-model";
 import {
   analyzePageDiagnostics,
+  aspectSourceLabel,
   editorUrl,
   escapeHtml,
   masterLayoutSourceLabel,
@@ -52,7 +53,7 @@ function detailsSection(title: string, body: string, open = true): string {
   return `<details class="tessera-preview-diag-section" ${open ? "open" : ""}><summary>${escapeHtml(title)}</summary>${body}</details>`;
 }
 
-function renderPanelContent(info: PageDiagnostics): string {
+function renderPanelContent(info: PageDiagnostics, document: SiteDocument): string {
   const { page, profile, master, items, bindings, blog } = info;
 
   const pageBits: string[] = [
@@ -94,6 +95,17 @@ function renderPanelContent(info: PageDiagnostics): string {
     );
   } else {
     layoutBits.push(`<li><span class="tessera-preview-diag-meta">No separate master frame</span></li>`);
+  }
+  const fullPage = document.pages.find((item) => item.id === page.id);
+  if (fullPage) {
+    const aspect = resolveAspect(document, fullPage);
+    if (aspect.aspectId) {
+      const label =
+        document.site.aspects?.find((item) => item.id === aspect.aspectId)?.label ?? aspect.aspectId;
+      layoutBits.push(
+        `<li><strong>Aspect</strong> <code>${escapeHtml(aspect.aspectId)}</code> <span class="tessera-preview-diag-meta">${escapeHtml(label)} · ${escapeHtml(aspectSourceLabel(aspect.source))}${aspect.fromPageId ? ` (${escapeHtml(aspect.fromPageId)})` : ""}</span></li>`,
+      );
+    }
   }
 
   let blogHtml = "";
@@ -281,5 +293,5 @@ export function updatePreviewDiagnostics(
   const info = analyzePageDiagnostics(siteDoc, pageId);
   ensureRoot();
   const body = document.getElementById("tessera-preview-diagnostics-body");
-  if (body) body.innerHTML = renderPanelContent(info);
+  if (body) body.innerHTML = renderPanelContent(info, siteDoc);
 }

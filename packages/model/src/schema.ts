@@ -153,6 +153,17 @@ export const LayoutSchema = z.object({
   includes: z.array(z.string()).optional(),
 });
 
+/** Theme-declared look id. Becomes the class token after `aspect-`. */
+export const AspectIdSchema = z.string().regex(/^[a-z][a-z0-9-]*$/);
+
+/** One look a theme offers. The editor lists these; CSS styles `html.aspect-{id}`. */
+export const AspectSchema = z.object({
+  id: AspectIdSchema,
+  label: z.string().min(1),
+});
+
+export type Aspect = z.infer<typeof AspectSchema>;
+
 export const PageSchema = z.object({
   id: z.string().min(1),
   title: z.string(),
@@ -170,6 +181,13 @@ export const PageSchema = z.object({
    * The home page does not inherit: its `parentId` is ignored.
    */
   masterLayoutId: z.string().min(1).optional(),
+  /**
+   * Aspect for this page and its descendants.
+   * Omitted means the nearest ancestor that sets one, or `site.defaultAspectId`.
+   * The home page does not inherit: its `parentId` is ignored.
+   * Becomes `aspect-{id}` on the document element; layouts ignore it.
+   */
+  aspectId: AspectIdSchema.optional(),
   /**
    * When `false`, the page still has a URL and an HTML file, and is omitted from nav.
    * Omitted means the page appears in nav. History is not stored here.
@@ -318,6 +336,15 @@ export const SiteMetaSchema = z.object({
   /** Outer page. Its `page` node is replaced by the resolved page layout. */
   masterLayoutId: z.string().min(1).optional(),
   /**
+   * Looks the current theme offers. Written by theme apply; empty or omitted means none.
+   * Ids must be unique. `defaultAspectId` must name one of them when set.
+   */
+  aspects: z.array(AspectSchema).optional(),
+  /**
+   * Aspect when no page in the chain sets one. Must be an id in `aspects` when set.
+   */
+  defaultAspectId: AspectIdSchema.optional(),
+  /**
    * Copyable dist. `pages` is one HTML file per page.
    * `snapshot` is the single-index SPA. Omitted means `pages`.
    * The editing preview is always the snapshot and ignores this.
@@ -335,22 +362,44 @@ export const SiteMetaSchema = z.object({
   settings: z.record(z.unknown()).optional(),
 });
 
-export const SiteDocumentSchema = z.object({
-  version: z.literal(SITE_DOCUMENT_SCHEMA_VERSION),
-  site: SiteMetaSchema,
-  layouts: z.array(LayoutSchema).min(1),
-  pages: z.array(PageSchema).min(1),
-  items: z.array(ItemSchema).default([]),
-  media: z.array(MediaSchema).default([]),
-  /** Scanned image folders — first-class gallery sources. */
-  folders: z.array(FolderSchema).default([]),
-  /** Designed nav (perma). Page existence does not imply a nav entry. */
-  nav: z.array(NavEntrySchema).default([]),
-  /** Named bindings of data → component for insertion in content. */
-  bindings: z.array(BindingSchema).default([]),
-  /** Site-defined types. An entry's `type` picks one. Layout comes from that record. */
-  types: z.array(TypeSchema).default([]),
-});
+export const SiteDocumentSchema = z
+  .object({
+    version: z.literal(SITE_DOCUMENT_SCHEMA_VERSION),
+    site: SiteMetaSchema,
+    layouts: z.array(LayoutSchema).min(1),
+    pages: z.array(PageSchema).min(1),
+    items: z.array(ItemSchema).default([]),
+    media: z.array(MediaSchema).default([]),
+    /** Scanned image folders — first-class gallery sources. */
+    folders: z.array(FolderSchema).default([]),
+    /** Designed nav (perma). Page existence does not imply a nav entry. */
+    nav: z.array(NavEntrySchema).default([]),
+    /** Named bindings of data → component for insertion in content. */
+    bindings: z.array(BindingSchema).default([]),
+    /** Site-defined types. An entry's `type` picks one. Layout comes from that record. */
+    types: z.array(TypeSchema).default([]),
+  })
+  .superRefine((doc, ctx) => {
+    const aspects = doc.site.aspects ?? [];
+    const seen = new Set<string>();
+    for (const aspect of aspects) {
+      if (seen.has(aspect.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Duplicate aspect id: ${aspect.id}`,
+          path: ["site", "aspects"],
+        });
+      }
+      seen.add(aspect.id);
+    }
+    if (doc.site.defaultAspectId && !seen.has(doc.site.defaultAspectId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `defaultAspectId ${doc.site.defaultAspectId} is not in aspects`,
+        path: ["site", "defaultAspectId"],
+      });
+    }
+  });
 
 export type Layout = z.infer<typeof LayoutSchema>;
 export type Page = z.infer<typeof PageSchema>;
@@ -446,6 +495,59 @@ function requireFrame(document: SiteDocument, layoutId: string): void {
   const layout = document.layouts.find((item) => item.id === layoutId);
   if (!layout) throw new Error(`Unknown master layout: ${layoutId}`);
   if (!layoutHasPageSlot(layout.root)) throw new Error(`Layout ${layoutId} is not a frame`);
+}
+
+/** Where the aspect id came from. */
+export type AspectSource = "page" | "ancestor" | "site";
+
+/**
+ * Aspect for a page. `aspectId` is absent when the site names no default
+ * and no page in the chain sets one.
+ */
+export type ResolvedAspect = {
+  aspectId?: string;
+  source: AspectSource;
+  /** Page that set `aspectId`, when `source` is `page` or `ancestor`. */
+  fromPageId?: string;
+};
+
+/**
+ * Aspect for a page: its own `aspectId`, otherwise the nearest ancestor's,
+ * otherwise `site.defaultAspectId`. The home page's `parentId` is ignored.
+ * A cycle or a missing parent is an error. A stored id is always returned,
+ * including when it is absent from `site.aspects`.
+ */
+export function resolveAspect(document: SiteDocument, page: Page): ResolvedAspect {
+  const byId = new Map(document.pages.map((item) => [item.id, item]));
+  const homeId = document.site.homePageId;
+  const seen: string[] = [];
+  let current: Page | undefined = page;
+  let atStart = true;
+
+  while (current) {
+    if (seen.includes(current.id)) throw new Error(`Page cycle at ${current.id}`);
+    seen.push(current.id);
+    if (current.aspectId) {
+      return {
+        aspectId: current.aspectId,
+        source: atStart ? "page" : "ancestor",
+        fromPageId: current.id,
+      };
+    }
+    atStart = false;
+    if (current.id === homeId || !current.parentId) break;
+    const parent = byId.get(current.parentId);
+    if (!parent) throw new Error(`Page ${current.id} parent ${current.parentId} not found`);
+    current = parent;
+  }
+
+  const aspectId = document.site.defaultAspectId;
+  return { source: "site", ...(aspectId ? { aspectId } : {}) };
+}
+
+/** Class token for a resolved aspect id. */
+export function aspectClassName(aspectId: string): string {
+  return `aspect-${aspectId}`;
 }
 
 /**

@@ -82,6 +82,7 @@ export {
   analyzePageDiagnostics,
   collectPageItems,
   editorUrl,
+  aspectSourceLabel,
   masterLayoutSourceLabel,
   type BindingOnPage,
   type EditorRecordKind,

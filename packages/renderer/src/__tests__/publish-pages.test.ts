@@ -217,6 +217,55 @@ describe("publishPages section frame", () => {
   });
 });
 
+describe("publishPages aspects", () => {
+  it("writes aspect class on html for a nested page and the site default for a sibling", () => {
+    const withAspects = parseSiteDocument({
+      version: 2,
+      site: {
+        id: "hall",
+        title: "Willow Hall",
+        homePageId: "home",
+        masterLayoutId: "master",
+        defaultLayoutId: "L",
+        aspects: [
+          { id: "summer", label: "Summer" },
+          { id: "night", label: "Night" },
+        ],
+        defaultAspectId: "summer",
+      },
+      layouts: [
+        {
+          id: "master",
+          root: { type: "region", children: [{ type: "page" }] },
+        },
+        { id: "L", root: { type: "zone", id: "main" } },
+      ],
+      pages: [
+        { id: "home", title: "Home", zones: { main: [{ type: "text", html: "<p>Welcome</p>" }] } },
+        {
+          id: "events",
+          title: "Events",
+          parentId: "home",
+          aspectId: "night",
+          zones: { main: [{ type: "text", html: "<p>List</p>" }] },
+        },
+        {
+          id: "fair",
+          title: "Fair",
+          parentId: "events",
+          zones: { main: [{ type: "text", html: "<p>On the green</p>" }] },
+        },
+        { id: "about", title: "About", zones: { main: [{ type: "text", html: "<p>About</p>" }] } },
+      ],
+    });
+    const files = publishPages(withAspects, { origin: "https://example.test" });
+    const byPath = new Map(files.map((file) => [file.path, file.contents]));
+    expect(byPath.get("events/fair/index.html")).toContain('<html lang="en" class="aspect-night">');
+    expect(byPath.get("about/index.html")).toContain('<html lang="en" class="aspect-summer">');
+    expect(byPath.get("index.html")).toContain('<html lang="en" class="aspect-summer">');
+  });
+});
+
 describe("publishPages style", () => {
   it("writes chrome tokens and body classes when the site has a style", () => {
     const styled = parseSiteDocument({

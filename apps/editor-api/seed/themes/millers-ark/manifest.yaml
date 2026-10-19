@@ -4,6 +4,14 @@ version: 1
 stack: custom
 masterLayoutId: master
 defaultLayoutId: standard
+aspects:
+  - id: summer
+    label: Summer
+  - id: xmas
+    label: Christmas
+  - id: night
+    label: Night
+defaultAspectId: summer
 patch:
   layouts: replace-listed
   layoutIds:

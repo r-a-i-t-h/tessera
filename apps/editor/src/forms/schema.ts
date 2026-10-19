@@ -30,6 +30,7 @@ export const SITE_FORM: FormSchema = {
     { name: "homePageId", label: "Home page", type: "string", required: true },
     { name: "defaultLayoutId", label: "Default layout", type: "string" },
     { name: "masterLayoutId", label: "Master layout", type: "string" },
+    { name: "defaultAspectId", label: "Default aspect", type: "string" },
     {
       name: "delivery",
       label: "Flavour",
@@ -51,6 +52,7 @@ export const ARTICLE_FORM: FormSchema = {
     { name: "id", label: "Id", type: "string", readOnly: true, required: true },
     { name: "title", label: "Title", type: "string", required: true },
     { name: "description", label: "Description", type: "string" },
+    { name: "aspectId", label: "Aspect", type: "string" },
     { name: "published", label: "Published", type: "Checkbox", defaultChecked: true },
     { name: "tags", label: "Tags", type: "string", list: true },
   ],
@@ -63,6 +65,7 @@ export const BLOG_FORM: FormSchema = {
     { name: "description", label: "Description", type: "string" },
     { name: "parentId", label: "Parent", type: "string" },
     { name: "masterLayoutId", label: "Frame", type: "string" },
+    { name: "aspectId", label: "Aspect", type: "string" },
   ],
 };
 
@@ -73,12 +76,15 @@ export const CONTENT_FORM: FormSchema = {
     { name: "description", label: "Description", type: "string" },
     { name: "parentId", label: "Parent", type: "string" },
     { name: "masterLayoutId", label: "Frame", type: "string" },
+    { name: "aspectId", label: "Aspect", type: "string" },
     { name: "type", label: "Type", type: "string" },
     { name: "showInNav", label: "Show in nav", type: "Checkbox", defaultChecked: true },
     { name: "published", label: "Published", type: "Checkbox", defaultChecked: true },
     { name: "tags", label: "Tags", type: "string", list: true },
   ],
 };
+
+export type AspectChoice = { id: string; label: string };
 
 export const TEMPLATE_FORM: FormSchema = {
   fields: [
@@ -154,6 +160,56 @@ export function frameWhere(source: "page" | "ancestor" | "site" | undefined, fro
   return "the site frame";
 }
 
+/**
+ * Replace the Aspect text field with Inherit plus the theme's aspects.
+ * Drops the field when the catalog is empty and the page has no stored id.
+ */
+export function withAspectChoices(
+  schema: FormSchema,
+  aspects: readonly AspectChoice[],
+  current?: string,
+): FormSchema {
+  if (!aspects.length && !current) {
+    return { fields: schema.fields.filter((field) => field.name !== "aspectId") };
+  }
+  const options = [
+    { value: "", label: "Inherit" },
+    ...aspects.map((item) => ({ value: item.id, label: item.label })),
+  ];
+  if (current && !aspects.some((item) => item.id === current)) {
+    options.push({ value: current, label: current });
+  }
+  return {
+    fields: schema.fields.map((field) =>
+      field.name === "aspectId" ? { ...field, type: "SingleSelect", options } : field,
+    ),
+  };
+}
+
+/**
+ * Replace Default aspect with None plus the theme's aspects.
+ * Drops the field when the catalog is empty.
+ */
+export function withDefaultAspectChoices(schema: FormSchema, aspects: readonly AspectChoice[]): FormSchema {
+  if (!aspects.length) {
+    return { fields: schema.fields.filter((field) => field.name !== "defaultAspectId") };
+  }
+  return {
+    fields: schema.fields.map((field) =>
+      field.name === "defaultAspectId"
+        ? {
+            ...field,
+            type: "SingleSelect",
+            options: [
+              { value: "", label: "None" },
+              ...aspects.map((item) => ({ value: item.id, label: item.label })),
+            ],
+          }
+        : field,
+    ),
+  };
+}
+
 /** Fields for keys the authored schema does not name, so extra data stays editable. */
 export function fieldsFromRecord(record: Record<string, unknown>, skip = new Set<string>()): FieldSchema[] {
   return Object.entries(record)
@@ -177,6 +233,8 @@ export function schemaFor(kind: string, data: unknown): FormSchema | undefined {
     skip.add("fields");
   }
   if (kind === "items") skip.add("zones");
+  // Theme owns the aspect catalog; keep it off the site form.
+  if (kind === "site") skip.add("aspects");
   return { fields: [...authored.fields, ...fieldsFromRecord(record, skip)] };
 }
 

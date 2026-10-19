@@ -163,6 +163,13 @@ export type PageLayoutHint = {
   masterSource?: "page" | "ancestor" | "site";
   /** Page that set the frame, when `masterSource` is `page` or `ancestor`. */
   masterFromPageId?: string;
+  /** Looks the current theme offers. */
+  aspects?: { id: string; label: string }[];
+  /** Resolved aspect, when the site or a page in the chain names one. */
+  aspectId?: string;
+  aspectSource?: "page" | "ancestor" | "site";
+  /** Page that set the aspect, when `aspectSource` is `page` or `ancestor`. */
+  aspectFromPageId?: string;
 };
 
 export type SnapshotRef = {

@@ -16,6 +16,11 @@ export type ThemeKitPatch = {
   nav?: "replace" | "skip";
 };
 
+export type ThemeKitAspect = {
+  id: string;
+  label: string;
+};
+
 export type ThemeKitManifest = {
   id: string;
   name: string;
@@ -23,6 +28,9 @@ export type ThemeKitManifest = {
   stack: "w3" | "custom";
   masterLayoutId?: string;
   defaultLayoutId?: string;
+  /** Looks this kit offers. Absent means clear the site catalog on apply. */
+  aspects?: ThemeKitAspect[];
+  defaultAspectId?: string;
   patch: ThemeKitPatch;
   zonesDeclared?: Record<string, string[]>;
   site?: Record<string, unknown>;
@@ -31,6 +39,8 @@ export type ThemeKitManifest = {
     paths?: string[];
   };
 };
+
+const ASPECT_ID = /^[a-z][a-z0-9-]*$/;
 
 export type ThemeKitInfo = {
   id: string;
@@ -103,7 +113,42 @@ export async function loadThemeManifest(seedDir: string, kitId: string): Promise
   if (!raw.name || !raw.version || !raw.stack || !raw.patch) {
     throw new Error(`Theme kit ${kitId} has an invalid manifest.`);
   }
+  validateThemeAspects(kitId, raw);
   return raw;
+}
+
+function validateThemeAspects(kitId: string, manifest: ThemeKitManifest): void {
+  const aspects = manifest.aspects;
+  if (aspects === undefined) {
+    if (manifest.defaultAspectId !== undefined) {
+      throw new Error(`Theme kit ${kitId} sets defaultAspectId without aspects.`);
+    }
+    return;
+  }
+  if (!Array.isArray(aspects)) {
+    throw new Error(`Theme kit ${kitId} aspects must be a list.`);
+  }
+  const seen = new Set<string>();
+  for (const aspect of aspects) {
+    if (!aspect || typeof aspect !== "object") {
+      throw new Error(`Theme kit ${kitId} has an invalid aspect entry.`);
+    }
+    if (typeof aspect.id !== "string" || !ASPECT_ID.test(aspect.id)) {
+      throw new Error(`Theme kit ${kitId} has an invalid aspect id.`);
+    }
+    if (typeof aspect.label !== "string" || !aspect.label.trim()) {
+      throw new Error(`Theme kit ${kitId} aspect ${aspect.id} needs a label.`);
+    }
+    if (seen.has(aspect.id)) {
+      throw new Error(`Theme kit ${kitId} has a duplicate aspect id: ${aspect.id}`);
+    }
+    seen.add(aspect.id);
+  }
+  if (manifest.defaultAspectId !== undefined) {
+    if (typeof manifest.defaultAspectId !== "string" || !seen.has(manifest.defaultAspectId)) {
+      throw new Error(`Theme kit ${kitId} defaultAspectId is not in aspects.`);
+    }
+  }
 }
 
 async function copyKitFile(
@@ -140,6 +185,18 @@ async function mergeSiteYaml(siteRoot: string, manifest: ThemeKitManifest): Prom
         existing[key] = value;
       }
     }
+  }
+
+  // Theme owns the aspect catalog. Absent means clear.
+  if (manifest.aspects?.length) {
+    existing.aspects = manifest.aspects.map((item) => ({ id: item.id, label: item.label }));
+  } else {
+    delete existing.aspects;
+  }
+  if (manifest.defaultAspectId) {
+    existing.defaultAspectId = manifest.defaultAspectId;
+  } else {
+    delete existing.defaultAspectId;
   }
 
   await writeTextAtomic(sitePath, stringifyYaml(existing));

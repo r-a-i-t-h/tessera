@@ -121,6 +121,8 @@ Compose (`@r-a-i-t-h/tessera-sections`) parses a zone’s HTML into sections and
 
 There is **no** recursive `parentId` template chain and **no** inventing zones from inside page HTML. A type chooses the layout for every entry of that type. The one value that follows `parentId` is the frame: a page's `masterLayoutId`, otherwise the nearest ancestor's, otherwise the site master. The home page does not inherit.
 
+An **aspect** is optional. A theme that lists looks in its manifest writes `site.aspects` and may set `site.defaultAspectId`. A page's `aspectId`, otherwise the nearest ancestor's, otherwise that default, becomes the class `aspect-{id}` on the document element. Layouts and the frame ignore it. The theme's `shell/site.css` styles those classes. A theme that omits the list clears the catalog on apply.
+
 ## Page history and authoring schema
 
 Saving a content page writes the new YAML, then appends the **previous raw file** to `$TESSERA_DATA/history/content/<id>.history` (one append-only file per page, outside the web root). An unchanged file does not append. A publish failure restores the previous file and does not append. History is not a field on the published page and is not copied into `site.json`.

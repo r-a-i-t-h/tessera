@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { applySubmitted, renderForm } from "./form.js";
-import { CONTENT_FORM, SITE_FORM, frameWhere, schemaFor, withFrameChoices, withTypeChoices } from "./schema.js";
+import {
+  CONTENT_FORM,
+  SITE_FORM,
+  frameWhere,
+  schemaFor,
+  withAspectChoices,
+  withDefaultAspectChoices,
+  withFrameChoices,
+  withTypeChoices,
+} from "./schema.js";
 
 describe("schema forms", () => {
   it("offers flavour and origin on a site that has neither", () => {
@@ -73,6 +82,34 @@ describe("schema forms", () => {
     expect(frameWhere("ancestor", "events")).toBe("set on events");
     expect(frameWhere("page")).toBe("set on this page");
     expect(frameWhere("site")).toBe("the site frame");
+  });
+
+  it("offers inherit for the page aspect and omits it when blank", () => {
+    const aspects = [
+      { id: "summer", label: "Summer" },
+      { id: "night", label: "Night" },
+    ];
+    const schema = withAspectChoices(CONTENT_FORM, aspects);
+    const html = renderForm(schema, { id: "fair", title: "Fair" });
+    expect(html).toContain("Aspect");
+    expect(html).toContain(">Inherit</option>");
+    expect(html).toContain(">Summer</option>");
+    expect(html).toContain(">Night</option>");
+    const cleared = applySubmitted(schema, { id: "fair", title: "Fair", aspectId: "night" }, {
+      title: "Fair",
+      aspectId: "",
+    });
+    expect(cleared).not.toHaveProperty("aspectId");
+    const set = applySubmitted(schema, { id: "events", title: "Events" }, { title: "Events", aspectId: "night" });
+    expect(set.aspectId).toBe("night");
+    const hidden = withAspectChoices(CONTENT_FORM, []);
+    expect(hidden.fields.find((field) => field.name === "aspectId")).toBeUndefined();
+    const kept = withAspectChoices(CONTENT_FORM, [], "legacy");
+    expect(renderForm(kept, { id: "fair", title: "Fair", aspectId: "legacy" })).toContain('value="legacy" selected');
+    const siteSchema = withDefaultAspectChoices(SITE_FORM, aspects);
+    expect(renderForm(siteSchema, { id: "s", title: "S", homePageId: "home" })).toContain(">None</option>");
+    expect(withDefaultAspectChoices(SITE_FORM, []).fields.find((field) => field.name === "defaultAspectId")).toBeUndefined();
+    expect(schemaFor("site", { id: "s", title: "S", homePageId: "home", aspects: aspects })?.fields.find((f) => f.name === "aspects")).toBeUndefined();
   });
 
   it("offers none for the page type and keeps an unknown id", () => {

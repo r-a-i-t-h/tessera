@@ -5,7 +5,13 @@ import { draftYaml, parsePageYaml, withZoneHtml } from "./draft.js";
 import { readComposeHtml } from "./canvas.js";
 import { readFormValues, renderForm } from "../forms/form.js";
 import { articleMeta, blogMeta, heroField } from "../forms/article.js";
-import { authoredSchema, schemaFor, withFrameChoices, withTypeChoices } from "../forms/schema.js";
+import {
+  authoredSchema,
+  schemaFor,
+  withAspectChoices,
+  withFrameChoices,
+  withTypeChoices,
+} from "../forms/schema.js";
 
 export type ContentMode = "compose" | "fields" | "raw";
 
@@ -29,8 +35,11 @@ export function templateBodyLayout(): PageLayoutHint {
   };
 }
 
-export function frameNote(_layout?: PageLayoutHint): string {
-  return "";
+export function frameNote(layout?: PageLayoutHint): string {
+  if (layout?.aspectSource !== "ancestor" || !layout.aspectFromPageId) return "";
+  const label =
+    layout.aspects?.find((item) => item.id === layout.aspectId)?.label ?? layout.aspectId ?? "aspect";
+  return `<p class="w3-small w3-text-grey">Aspect ${escapeHtml(label)} is set on ${escapeHtml(layout.aspectFromPageId)}.</p>`;
 }
 
 export function composeFormInner(
@@ -212,15 +221,23 @@ function contentSchema(
   layout?: PageLayoutHint,
   types?: readonly string[],
 ) {
-  const schema = schemaFor(kind, record);
+  let schema = schemaFor(kind, record);
   if (!schema) return schema;
-  const withTypes =
-    (kind === "content" || kind === "templates") && types
-      ? withTypeChoices(schema, types, typeof record.type === "string" ? record.type : undefined)
-      : schema;
-  if (kind !== "content" || !layout?.frames) return withTypes;
-  const current = typeof record.masterLayoutId === "string" ? record.masterLayoutId : undefined;
-  return withFrameChoices(withTypes, layout.frames, current);
+  if ((kind === "content" || kind === "templates") && types) {
+    schema = withTypeChoices(schema, types, typeof record.type === "string" ? record.type : undefined);
+  }
+  if (kind === "content" && layout?.frames) {
+    const current = typeof record.masterLayoutId === "string" ? record.masterLayoutId : undefined;
+    schema = withFrameChoices(schema, layout.frames, current);
+  }
+  if (kind === "content" && layout?.aspects !== undefined) {
+    schema = withAspectChoices(
+      schema,
+      layout.aspects,
+      typeof record.aspectId === "string" ? record.aspectId : undefined,
+    );
+  }
+  return schema;
 }
 
 function stringField(record: Record<string, unknown>, id: string): string {

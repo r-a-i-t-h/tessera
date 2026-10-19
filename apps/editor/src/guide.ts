@@ -120,5 +120,8 @@ export function guideHtml(): string {
     <p>The site record names the frame every page uses until a page names another. On that page, <strong>Frame</strong> is the layout. Leave it as <strong>Inherit</strong> on the children: they use the nearest parent that set one. A page further down can name its own, and that starts again. Naming the site's frame on a nested page steps that subtree back to the site frame.</p>
     <p>The parent is the same parent that builds the URL. A winter fair whose parent is Events publishes at <code>/events/event-winter-fair</code> and wears the Events frame. A page that is not under Events keeps the site frame, even when it uses the same page layout. The home page does not inherit from a parent.</p>
     <p>The page layout does not follow the frame. Style tokens stay on the site. Both frames' classes live in <code>shell/site.css</code>. Each frame places its own menu components, and those components still read the one Nav record.</p>
+
+    <h2>Aspects</h2>
+    <p>A theme that offers more than one look lists those looks as aspects. On a page, <strong>Aspect</strong> picks one. Leave it as <strong>Inherit</strong> and the page uses the nearest parent that set one, or the site default. The home page does not inherit from a parent. Choosing an aspect only adds a class on the document root for that theme's CSS. It does not change the layout or the frame.</p>
   </article>`;
 }

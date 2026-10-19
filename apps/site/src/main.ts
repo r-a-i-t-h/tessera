@@ -5,12 +5,14 @@ import {
 } from "@r-a-i-t-h/tessera-renderer";
 import { w3Skin } from "@r-a-i-t-h/tessera-skin-w3";
 import {
+  applyAspectClass,
   applySiteChrome,
   insertHeadingsMenu,
   installChromeGlobals,
   renderStaleBanner,
   updatePreviewDiagnostics,
 } from "@r-a-i-t-h/tessera-demo-kit";
+import { resolveAspect } from "@r-a-i-t-h/tessera-model";
 import { bootBlog, registerExtras } from "@r-a-i-t-h/tessera-extras";
 
 installChromeGlobals();
@@ -28,6 +30,7 @@ const renderer = await SiteRenderer.create({
   onAfterRender: (pageId, doc) => {
     applySiteChrome(doc.site.style);
     const page = doc.pages.find((p) => p.id === pageId);
+    applyAspectClass(page ? resolveAspect(doc, page).aspectId : undefined);
     document.title = page ? `${page.title} · ${doc.site.title}` : doc.site.title;
     insertHeadingsMenu(document.getElementById("app") ?? document);
     bootBlog(document);
