@@ -719,10 +719,9 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
       return;
     }
     if (node.kind === "quote" && field === "attribution") {
-      const had = node.attribution;
       node.attribution = value;
-      if (!had !== !value) rerenderArticle(form, node.uid);
-      else article?.querySelector("[data-quote-by]")?.replaceChildren(document.createTextNode(value));
+      syncQuoteAttribution(article, value);
+      refreshKindLabel(article, node);
       return;
     }
     if (node.kind === "imgbox") {
@@ -1236,6 +1235,25 @@ function rerenderArticle(form: HTMLFormElement, uid: string): void {
   if (!state) return;
   const zone = zoneOf(state, uid);
   if (zone) renderZone(form, zone);
+}
+
+function syncQuoteAttribution(article: HTMLElement | null | undefined, value: string): void {
+  const quote = article?.querySelector(".tessera-quote");
+  if (!quote) return;
+  const existing = quote.querySelector("[data-quote-by]");
+  if (!value) {
+    existing?.remove();
+    return;
+  }
+  const by = existing ?? document.createElement("p");
+  if (!existing) {
+    by.className = "w3-right-align";
+    by.setAttribute("data-quote-by", "");
+    const close = quote.querySelector(".tessera-quote-close");
+    if (close) quote.insertBefore(by, close);
+    else quote.append(by);
+  }
+  by.textContent = value;
 }
 
 function syncAll(state: Mounted): void {

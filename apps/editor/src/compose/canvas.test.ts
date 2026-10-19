@@ -459,6 +459,34 @@ describe("panel container", () => {
   });
 });
 
+describe("quote attribution", () => {
+  it("updates the byline without replacing the attribution field", () => {
+    const quote = `<div class="tessera-block w3-content w3-padding-16" style="max-width: 70%"><div class="w3-panel w3-card-4 w3-round-large tessera-quote w3-sand"><span class="tessera-quote-mark tessera-quote-open" aria-hidden="true">“</span><p class="w3-xlarge w3-serif w3-center">Stay curious</p><span class="tessera-quote-mark tessera-quote-close" aria-hidden="true">”</span></div></div>`;
+    const form = mountZone(quote);
+    const input = form.querySelector<HTMLInputElement>("[data-field=attribution]");
+    if (!input) throw new Error("attribution");
+    input.focus();
+    input.value = "A";
+    input.dispatchEvent(new dom.Event("input", { bubbles: true }));
+    expect(form.querySelector("[data-field=attribution]")).toBe(input);
+    expect(dom.document.activeElement).toBe(input);
+    expect(form.querySelector("[data-quote-by]")?.textContent).toBe("A");
+    expect(form.querySelector("[data-quote-by]")?.nextElementSibling?.classList.contains("tessera-quote-close")).toBe(true);
+
+    input.value = "Ada";
+    input.dispatchEvent(new dom.Event("input", { bubbles: true }));
+    expect(form.querySelector("[data-field=attribution]")).toBe(input);
+    expect(form.querySelector("[data-quote-by]")?.textContent).toBe("Ada");
+    expect(readComposeHtml(form).main ?? "").toContain("Ada");
+
+    input.value = "";
+    input.dispatchEvent(new dom.Event("input", { bubbles: true }));
+    expect(form.querySelector("[data-field=attribution]")).toBe(input);
+    expect(form.querySelector("[data-quote-by]")).toBeNull();
+    expect(readComposeHtml(form).main ?? "").not.toContain("Ada");
+  });
+});
+
 describe("image preview", () => {
   it("shows a library image from the preview and keeps the published address", () => {
     dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;

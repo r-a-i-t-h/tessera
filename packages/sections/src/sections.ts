@@ -419,10 +419,8 @@ function quoteMark(role: "open" | "close"): string {
 function quoteInnerHtml(text: string, attribution: string, options: QuoteBlockOptions = {}): string {
   const textAttrs = options.textAttributes ? ` ${options.textAttributes}` : "";
   const byAttrs = options.attributionAttributes ? ` ${options.attributionAttributes}` : "";
-  const close = attribution
-    ? `<p class="w3-right-align"${byAttrs}>${escapeText(attribution)}</p>`
-    : quoteMark("close");
-  return `${quoteMark("open")}<p class="w3-xlarge w3-serif w3-center"${textAttrs}>${escapeText(text)}</p>${close}`;
+  const by = attribution ? `<p class="w3-right-align"${byAttrs}>${escapeText(attribution)}</p>` : "";
+  return `${quoteMark("open")}<p class="w3-xlarge w3-serif w3-center"${textAttrs}>${escapeText(text)}</p>${by}${quoteMark("close")}`;
 }
 
 export function quoteBlockHtml(
