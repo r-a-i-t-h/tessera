@@ -28,6 +28,7 @@ import {
   type ToneId,
 } from "@r-a-i-t-h/tessera-sections";
 import { setDragGhost } from "../drag-ghost.js";
+import { startDragScroll, type DragScroll } from "../drag-scroll.js";
 import { REORDER_ICONS } from "../editor-icons.js";
 import { editorMediaHtml, editorMediaSrc } from "../forms/media-url.js";
 
@@ -80,6 +81,8 @@ type Mounted = {
   active: string;
   locked: boolean;
   drag?: ComposeDrag;
+  dragScroll?: DragScroll;
+  onDocDragOver?: (event: DragEvent) => void;
   onEdit?: (burstId?: string) => void;
 };
 
@@ -154,8 +157,7 @@ export function mountComposeCanvases(
   form.addEventListener("dragover", (event) => onDragOver(form, event));
   form.addEventListener("drop", (event) => onDrop(form, event));
   form.addEventListener("dragend", () => {
-    state.drag = undefined;
-    clearDrop(form);
+    endComposeDrag(form, state);
     window.setTimeout(() => {
       suppressClick = false;
     }, 0);
@@ -306,7 +308,7 @@ function renderItem(node: EditNode, choices: Choices, zone: string, locked: bool
   return `<article class="editor-section" data-item-id="${node.uid}" data-zone="${escapeAttr(zone)}">
     <div class="editor-section-bar">
       ${drag}
-      <span class="editor-section-kind">${escapeText(labelFor(node))}</span>
+      <span class="editor-section-kind">${escapeText(labelFor(node, choices))}</span>
       ${propsFor(node, choices, locked)}
       ${actions}
     </div>
@@ -314,7 +316,7 @@ function renderItem(node: EditNode, choices: Choices, zone: string, locked: bool
   </article>`;
 }
 
-function labelFor(node: EditNode): string {
+function kindName(node: EditNode): string {
   switch (node.kind) {
     case "heading":
       return "Heading";
@@ -343,6 +345,64 @@ function labelFor(node: EditNode): string {
     case "html":
       return "Custom HTML";
   }
+}
+
+function labelFor(node: EditNode, choices?: Choices): string {
+  const kind = kindName(node);
+  const hint = labelHint(node, choices);
+  return hint ? `${kind} · ${hint}` : kind;
+}
+
+function labelHint(node: EditNode, choices?: Choices): string {
+  switch (node.kind) {
+    case "heading":
+      return clipLabel(node.text);
+    case "text":
+      return clipLabel(node.heading) || clipLabel(plainFromHtml(node.html));
+    case "quote":
+      return clipLabel(node.text) || clipLabel(node.attribution);
+    case "imgbox":
+      return clipLabel(node.alt) || clipLabel(node.caption) || clipLabel(fileNameHint(node.src));
+    case "card":
+      return clipLabel(node.title);
+    case "insert": {
+      const title = choices?.bindings.find((binding) => binding.id === node.id)?.title;
+      return clipLabel(title && title !== node.id ? title : node.id);
+    }
+    case "subpages":
+      return clipLabel(node.title);
+    case "youtube":
+      return clipLabel(node.title) || clipLabel(youtubeVideoId(node.videoId) || node.videoId);
+    case "gallery":
+      return clipLabel(node.folder);
+    case "pasted":
+      return clipLabel(plainFromHtml(node.html));
+    default:
+      return "";
+  }
+}
+
+function clipLabel(value: string, max = 36): string {
+  const text = value.replace(/\s+/g, " ").trim();
+  if (!text) return "";
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
+
+function plainFromHtml(html: string): string {
+  return html.replace(/<[^>]+>/g, " ").replace(/&nbsp;/gi, " ");
+}
+
+function fileNameHint(src: string): string {
+  const trimmed = src.trim();
+  if (!trimmed) return "";
+  const base = trimmed.split(/[?#]/)[0] ?? trimmed;
+  const name = base.split("/").pop() ?? base;
+  return name;
+}
+
+function refreshKindLabel(article: HTMLElement | null | undefined, node: EditNode, choices?: Choices): void {
+  const kind = article?.querySelector(".editor-section-kind");
+  if (kind) kind.textContent = labelFor(node, choices);
 }
 
 function propsFor(node: EditNode, choices: Choices, locked: boolean): string {
@@ -725,6 +785,11 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
       if (fromChange) rerenderArticle(form, node.uid);
     }
   } finally {
+    refreshKindLabel(article, node, {
+      bindings: state.bindings,
+      folders: state.folders,
+      panelTones: state.panelTones,
+    });
     notifyField(form, target, fromChange);
   }
 }
@@ -1000,7 +1065,7 @@ function onDragStart(form: HTMLFormElement, event: DragEvent): void {
     event.dataTransfer.setData("text/plain", palette.dataset.palette);
     event.dataTransfer.effectAllowed = "copy";
     setDragGhost(event.dataTransfer, palette.textContent ?? "");
-    beginDropPreview(form);
+    beginComposeDrag(form, state);
     return;
   }
   const handle = target.closest<HTMLElement>("[data-drag]");
@@ -1013,13 +1078,14 @@ function onDragStart(form: HTMLFormElement, event: DragEvent): void {
   event.dataTransfer.setData("text/plain", uid);
   event.dataTransfer.effectAllowed = "move";
   setDragGhost(event.dataTransfer, article.querySelector(".editor-section-kind")?.textContent ?? "");
-  beginDropPreview(form);
+  beginComposeDrag(form, state);
   event.stopPropagation();
 }
 
 function onDragOver(form: HTMLFormElement, event: DragEvent): void {
   const state = mounted.get(form);
   if (state?.locked) return;
+  state?.dragScroll?.update(event.clientY);
   const slot = resolveSlot(event.target, form);
   if (!slot) return;
   event.preventDefault();
@@ -1036,9 +1102,8 @@ function onDrop(form: HTMLFormElement, event: DragEvent): void {
   const slot = resolveSlot(event.target, form);
   if (!slot || !state || !event.dataTransfer) return;
   event.preventDefault();
-  clearDrop(form);
   const drag = state.drag;
-  state.drag = undefined;
+  endComposeDrag(form, state);
   syncAll(state);
   const zoneName = slot.dataset.dropZone ?? "";
   const index = Number(slot.dataset.dropIndex ?? "0");
@@ -1224,8 +1289,26 @@ function applyControl(node: EditLeaf | EditCard | EditPanel, field: string, valu
   if (node.kind === "gallery" && field === "mode") node.mode = value === "slides" ? "slides" : "grid";
 }
 
-function beginDropPreview(form: HTMLFormElement): void {
+function beginComposeDrag(form: HTMLFormElement, state: Mounted): void {
   form.classList.add("editor-dragging");
+  state.dragScroll?.stop();
+  state.dragScroll = startDragScroll(form);
+  if (state.onDocDragOver) document.removeEventListener("dragover", state.onDocDragOver);
+  state.onDocDragOver = (event) => {
+    state.dragScroll?.update(event.clientY);
+  };
+  document.addEventListener("dragover", state.onDocDragOver);
+}
+
+function endComposeDrag(form: HTMLFormElement, state: Mounted): void {
+  state.drag = undefined;
+  state.dragScroll?.stop();
+  state.dragScroll = undefined;
+  if (state.onDocDragOver) {
+    document.removeEventListener("dragover", state.onDocDragOver);
+    state.onDocDragOver = undefined;
+  }
+  clearDrop(form);
 }
 
 function clearDropActive(form: HTMLElement): void {

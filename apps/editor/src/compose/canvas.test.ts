@@ -246,7 +246,21 @@ describe("compose drag ghost", () => {
     });
     const handle = form.querySelector("[data-drag]");
     if (!handle) throw new Error("handle");
-    expect(dragGhost(handle).textContent).toBe("Text");
+    expect(dragGhost(handle).textContent).toBe("Text · Market");
+  });
+});
+
+describe("section kind labels", () => {
+  it("shows a content hint so list mode can tell sections apart", () => {
+    const form = mountZone(`<h2>Market</h2><p>Opens at nine.</p><h2>Hours</h2>`);
+    const kinds = [...form.querySelectorAll(".editor-section-kind")].map((node) => node.textContent);
+    expect(kinds).toEqual(["Text · Market", "Heading · Hours"]);
+
+    const heading = form.querySelector<HTMLElement>("[data-field=heading]");
+    if (!heading) throw new Error("heading");
+    heading.textContent = "Saturday market";
+    heading.dispatchEvent(new dom.Event("input", { bubbles: true }));
+    expect(form.querySelector(".editor-section-kind")?.textContent).toBe("Text · Saturday market");
   });
 });
 
@@ -301,7 +315,7 @@ describe("section actions", () => {
     icon.dispatchEvent(new dom.MouseEvent("click", { bubbles: true }));
 
     const kinds = [...form.querySelectorAll(".editor-section-kind")].map((node) => node.textContent);
-    expect(kinds[0]).toBe("Heading");
+    expect(kinds[0]).toBe("Heading · Second");
     const headings = [...form.querySelectorAll("[data-field=text]")].map((node) => node.textContent);
     expect(headings).toEqual(["Second", "First"]);
   });
@@ -403,7 +417,7 @@ describe("card container", () => {
     const card = form.querySelector(".w3-card");
     const slot = card?.querySelector<HTMLElement>("[data-drop]");
     if (!card || !slot) throw new Error("card");
-    expect(card.querySelector(".editor-section-kind")?.textContent).toBe("Text");
+    expect(card.querySelector(".editor-section-kind")?.textContent).toBe("Text · Open at nine.");
     dropPalette(slot, "columns");
     const html = readComposeHtml(form).main ?? "";
     const sections = parseSections(html);
@@ -428,7 +442,7 @@ describe("panel container", () => {
     const panel = form.querySelector(".w3-panel");
     const slot = panel?.querySelector<HTMLElement>("[data-drop]");
     if (!panel || !slot) throw new Error("panel");
-    expect(panel.querySelector(".editor-section-kind")?.textContent).toBe("Text");
+    expect(panel.querySelector(".editor-section-kind")?.textContent).toBe("Text · Note.");
     dropPalette(slot, "columns");
     const html = readComposeHtml(form).main ?? "";
     const sections = parseSections(html);

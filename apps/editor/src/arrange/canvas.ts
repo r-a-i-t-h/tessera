@@ -21,6 +21,7 @@ import {
   type PaletteId,
 } from "./tree.js";
 import { setDragGhost } from "../drag-ghost.js";
+import { startDragScroll, type DragScroll } from "../drag-scroll.js";
 import { arrangeShell, inspectorHtml, paletteHtml, treeHtml, type ArrangeInfo } from "./view.js";
 
 type Drag =
@@ -64,6 +65,20 @@ export function readArrangeRoot(form: HTMLFormElement): LayoutNode | undefined {
 
 function bind(form: HTMLFormElement, state: State, onEdit?: (burstId?: string) => void): void {
   let drag: Drag | undefined;
+  let dragScroll: DragScroll | undefined;
+  let onDocDragOver: ((event: DragEvent) => void) | undefined;
+
+  const endDrag = () => {
+    form.querySelectorAll(".is-over").forEach((el) => el.classList.remove("is-over"));
+    form.classList.remove("editor-dragging");
+    dragScroll?.stop();
+    dragScroll = undefined;
+    if (onDocDragOver) {
+      document.removeEventListener("dragover", onDocDragOver);
+      onDocDragOver = undefined;
+    }
+    drag = undefined;
+  };
 
   form.addEventListener("click", (event) => {
     const target = event.target as HTMLElement;
@@ -156,15 +171,21 @@ function bind(form: HTMLFormElement, state: State, onEdit?: (burstId?: string) =
       setDragGhost(event.dataTransfer, label);
     }
     form.classList.add("editor-dragging");
+    dragScroll?.stop();
+    dragScroll = startDragScroll(form);
+    if (onDocDragOver) document.removeEventListener("dragover", onDocDragOver);
+    onDocDragOver = (over) => {
+      dragScroll?.update(over.clientY);
+    };
+    document.addEventListener("dragover", onDocDragOver);
   });
 
   form.addEventListener("dragend", () => {
-    form.querySelectorAll(".is-over").forEach((el) => el.classList.remove("is-over"));
-    form.classList.remove("editor-dragging");
-    drag = undefined;
+    endDrag();
   });
 
   form.addEventListener("dragover", (event) => {
+    dragScroll?.update(event.clientY);
     const drop = (event.target as HTMLElement).closest<HTMLElement>("[data-drop-parent]");
     if (!drop || !drag) return;
     event.preventDefault();
@@ -178,20 +199,20 @@ function bind(form: HTMLFormElement, state: State, onEdit?: (burstId?: string) =
 
   form.addEventListener("drop", (event) => {
     const drop = (event.target as HTMLElement).closest<HTMLElement>("[data-drop-parent]");
-    form.querySelectorAll(".is-over").forEach((el) => el.classList.remove("is-over"));
-    if (!drop || !drag || drop.dataset.dropParent === undefined) return;
+    const active = drag;
+    endDrag();
+    if (!drop || !active || drop.dataset.dropParent === undefined) return;
     event.preventDefault();
     const parent = parsePath(drop.dataset.dropParent);
     const index = Number(drop.dataset.dropIndex ?? "0");
-    if (drag.kind === "palette") addPalette(form, state, drag.id, parent, index);
+    if (active.kind === "palette") addPalette(form, state, active.id, parent, index);
     else {
-      state.root = relocate(state.root, drag.path, parent, index);
+      state.root = relocate(state.root, active.path, parent, index);
       state.selected = parent;
       showMessage(form, "");
       paint(form, state, true, true);
     }
     onEdit?.();
-    drag = undefined;
   });
 }
 
