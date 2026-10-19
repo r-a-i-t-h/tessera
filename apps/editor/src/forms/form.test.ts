@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { applySubmitted, renderForm } from "./form.js";
 import {
+  ARTICLE_FORM,
   CONTENT_FORM,
   SITE_FORM,
   frameWhere,
@@ -47,6 +48,17 @@ describe("schema forms", () => {
       "description",
       "showInNav",
       "tags",
+      "published",
+    ]);
+  });
+
+  it("orders article fields as id/tags, title/aspect, description/published", () => {
+    expect(ARTICLE_FORM.fields.map((field) => field.name)).toEqual([
+      "id",
+      "tags",
+      "title",
+      "aspectId",
+      "description",
       "published",
     ]);
   });

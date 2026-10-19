@@ -16,12 +16,14 @@ export function articleMeta(record: Record<string, unknown>): string {
     : "";
   return `<fieldset class="editor-fieldset"><legend>Article</legend>
     ${blogLine}
-    <p><label for="fields.date">Date</label>
-      <input id="fields.date" name="fields.date" type="date" class="w3-input w3-border w3-margin-top" required value="${escapeHtml(date)}" /></p>
-    <p><label for="fields.precis">Precis</label>
-      <input id="fields.precis" name="fields.precis" class="w3-input w3-border w3-margin-top" value="${escapeHtml(fieldValue(record, "precis"))}" /></p>
-    <p><label for="fields.author">Author</label>
-      <input id="fields.author" name="fields.author" class="w3-input w3-border w3-margin-top" value="${escapeHtml(fieldValue(record, "author"))}" /></p>
+    <div class="editor-props editor-props-inline">
+      <p><label for="fields.date">Date</label>
+        <span class="editor-prop-control"><input id="fields.date" name="fields.date" type="date" class="w3-input w3-border" required value="${escapeHtml(date)}" /></span></p>
+      <p><label for="fields.precis">Precis</label>
+        <span class="editor-prop-control"><input id="fields.precis" name="fields.precis" class="w3-input w3-border" value="${escapeHtml(fieldValue(record, "precis"))}" /></span></p>
+      <p><label for="fields.author">Author</label>
+        <span class="editor-prop-control"><input id="fields.author" name="fields.author" class="w3-input w3-border" value="${escapeHtml(fieldValue(record, "author"))}" /></span></p>
+    </div>
   </fieldset>`;
 }
 

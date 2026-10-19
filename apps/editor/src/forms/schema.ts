@@ -60,11 +60,11 @@ export const SITE_FORM: FormSchema = {
 export const ARTICLE_FORM: FormSchema = {
   fields: [
     { name: "id", label: "Id", type: "string", readOnly: true, required: true },
-    { name: "title", label: "Title", type: "string", required: true },
-    { name: "description", label: "Description", type: "string" },
-    { name: "aspectId", label: "Aspect", type: "string" },
-    { name: "published", label: "Published", type: "Checkbox", defaultChecked: true },
     { name: "tags", label: "Tags", type: "string", list: true },
+    { name: "title", label: "Title", type: "string", required: true },
+    { name: "aspectId", label: "Aspect", type: "string" },
+    { name: "description", label: "Description", type: "string" },
+    { name: "published", label: "Published", type: "Checkbox", defaultChecked: true },
   ],
 };
 
