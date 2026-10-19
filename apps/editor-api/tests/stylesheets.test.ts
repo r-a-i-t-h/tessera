@@ -47,12 +47,12 @@ describe("stylesheets", () => {
     return { app, token, siteRoot, skinDir };
   }
 
-  it("lists the four roles and the linked theme", async () => {
+  it("lists the skin roles, linked theme, site layout, and site local", async () => {
     const { app, token } = await fixture();
     const res = await app.request("/api/stylesheets", { headers: { Authorization: `Bearer ${token}` } });
     expect(res.status).toBe(200);
     const body = (await res.json()) as { sheets: { id: string; overridden: boolean; text: string }[] };
-    expect(body.sheets.map((sheet) => sheet.id)).toEqual(["w3", "theme", "tessera", "microapps", "site"]);
+    expect(body.sheets.map((sheet) => sheet.id)).toEqual(["w3", "theme", "tessera", "microapps", "site", "local"]);
     expect(body.sheets.every((sheet) => sheet.overridden === false)).toBe(true);
     expect(body.sheets.find((sheet) => sheet.id === "site")?.text).toContain("color:site");
   });
@@ -80,7 +80,7 @@ describe("stylesheets", () => {
     await expect(readFile(join(siteRoot, "shell", "css", "w3.css"), "utf8")).rejects.toThrow();
   });
 
-  it("writes site layout in place and rejects an oversized sheet", async () => {
+  it("writes site layout and site local in place and rejects an oversized sheet", async () => {
     const { app, token, siteRoot } = await fixture();
     const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
     const saved = await app.request("/api/stylesheets/site", {
@@ -90,6 +90,14 @@ describe("stylesheets", () => {
     });
     expect(saved.status).toBe(200);
     expect(await readFile(join(siteRoot, "shell", "site.css"), "utf8")).toContain("margin:0");
+
+    const local = await app.request("/api/stylesheets/local", {
+      method: "PUT",
+      headers,
+      body: JSON.stringify({ text: ".tone{color:red}\n" }),
+    });
+    expect(local.status).toBe(200);
+    expect(await readFile(join(siteRoot, "shell", "local.css"), "utf8")).toContain("color:red");
 
     const huge = await app.request("/api/stylesheets/site", {
       method: "PUT",

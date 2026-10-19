@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { cp, mkdir, readFile, readdir, rm, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
@@ -21,12 +22,6 @@ export type ThemeKitAspect = {
   label: string;
 };
 
-export type ThemeKitPanelTone = {
-  id: string;
-  label: string;
-  className: string;
-};
-
 export type ThemeKitManifest = {
   id: string;
   name: string;
@@ -37,8 +32,6 @@ export type ThemeKitManifest = {
   /** Looks this kit offers. Absent means clear the site catalog on apply. */
   aspects?: ThemeKitAspect[];
   defaultAspectId?: string;
-  /** Extra Compose panel tones. Absent means clear on apply. */
-  panelTones?: ThemeKitPanelTone[];
   patch: ThemeKitPatch;
   zonesDeclared?: Record<string, string[]>;
   site?: Record<string, unknown>;
@@ -49,21 +42,6 @@ export type ThemeKitManifest = {
 };
 
 const ASPECT_ID = /^[a-z][a-z0-9-]*$/;
-
-/** Keep in sync with `@r-a-i-t-h/tessera-model` CORE_PANEL_TONE_IDS. */
-const CORE_PANEL_TONE_IDS = new Set([
-  "plain",
-  "sand",
-  "pale",
-  "pale-blue",
-  "pale-green",
-  "pale-red",
-  "theme",
-  "light-grey",
-  "white",
-  "orange",
-  "teal",
-]);
 
 export type ThemeKitInfo = {
   id: string;
@@ -137,7 +115,9 @@ export async function loadThemeManifest(seedDir: string, kitId: string): Promise
     throw new Error(`Theme kit ${kitId} has an invalid manifest.`);
   }
   validateThemeAspects(kitId, raw);
-  validateThemePanelTones(kitId, raw);
+  if ("panelTones" in (raw as object)) {
+    throw new Error(`Theme kit ${kitId} must not declare panelTones; tones are site-owned.`);
+  }
   return raw;
 }
 
@@ -175,41 +155,6 @@ function validateThemeAspects(kitId: string, manifest: ThemeKitManifest): void {
   }
 }
 
-function validateThemePanelTones(kitId: string, manifest: ThemeKitManifest): void {
-  const tones = manifest.panelTones;
-  if (tones === undefined) return;
-  if (!Array.isArray(tones)) {
-    throw new Error(`Theme kit ${kitId} panelTones must be a list.`);
-  }
-  const seenIds = new Set<string>();
-  const seenClasses = new Set<string>();
-  for (const tone of tones) {
-    if (!tone || typeof tone !== "object") {
-      throw new Error(`Theme kit ${kitId} has an invalid panelTone entry.`);
-    }
-    if (typeof tone.id !== "string" || !ASPECT_ID.test(tone.id)) {
-      throw new Error(`Theme kit ${kitId} has an invalid panelTone id.`);
-    }
-    if (CORE_PANEL_TONE_IDS.has(tone.id)) {
-      throw new Error(`Theme kit ${kitId} panelTone id ${tone.id} collides with a built-in tone.`);
-    }
-    if (typeof tone.label !== "string" || !tone.label.trim()) {
-      throw new Error(`Theme kit ${kitId} panelTone ${tone.id} needs a label.`);
-    }
-    if (typeof tone.className !== "string" || !ASPECT_ID.test(tone.className)) {
-      throw new Error(`Theme kit ${kitId} panelTone ${tone.id} has an invalid className.`);
-    }
-    if (seenIds.has(tone.id)) {
-      throw new Error(`Theme kit ${kitId} has a duplicate panelTone id: ${tone.id}`);
-    }
-    if (seenClasses.has(tone.className)) {
-      throw new Error(`Theme kit ${kitId} has a duplicate panelTone className: ${tone.className}`);
-    }
-    seenIds.add(tone.id);
-    seenClasses.add(tone.className);
-  }
-}
-
 async function copyKitFile(
   seedDir: string,
   kitId: string,
@@ -233,10 +178,14 @@ async function mergeSiteYaml(siteRoot: string, manifest: ThemeKitManifest): Prom
     if (code !== "ENOENT") throw err;
   }
 
+  // Panel tones are site-owned; theme apply never writes or clears them.
+  const keptPanelTones = existing.panelTones;
+
   if (manifest.masterLayoutId) existing.masterLayoutId = manifest.masterLayoutId;
   if (manifest.defaultLayoutId) existing.defaultLayoutId = manifest.defaultLayoutId;
   if (manifest.site && typeof manifest.site === "object") {
     for (const [key, value] of Object.entries(manifest.site)) {
+      if (key === "panelTones") continue;
       if (key === "style" && value && typeof value === "object" && !Array.isArray(value)) {
         const prev = isRecord(existing.style) ? existing.style : {};
         existing.style = { ...prev, ...(value as Record<string, unknown>) };
@@ -258,16 +207,8 @@ async function mergeSiteYaml(siteRoot: string, manifest: ThemeKitManifest): Prom
     delete existing.defaultAspectId;
   }
 
-  // Theme owns panel tones. Absent means clear.
-  if (manifest.panelTones?.length) {
-    existing.panelTones = manifest.panelTones.map((item) => ({
-      id: item.id,
-      label: item.label,
-      className: item.className,
-    }));
-  } else {
-    delete existing.panelTones;
-  }
+  if (keptPanelTones !== undefined) existing.panelTones = keptPanelTones;
+  else delete existing.panelTones;
 
   await writeTextAtomic(sitePath, stringifyYaml(existing));
 }
@@ -304,6 +245,72 @@ async function copyShellAssets(seedDir: string, kitId: string, siteRoot: string)
   await cp(imgSrc, imgDest, { recursive: true });
 }
 
+const LOCAL_CSS_LINK = '<link rel="stylesheet" href="./local.css" />';
+const LOCAL_CSS_PLACEHOLDER = "/* Site-owned rules. Theme apply does not overwrite this file. */\n";
+
+/** Ensure the durable site sheet is linked after site.css. Theme apply never overwrites local.css. */
+export function ensureLocalCssLink(html: string): string {
+  if (/href\s*=\s*["']\.\/local\.css["']/i.test(html)) return html;
+  if (/href\s*=\s*["']\.\/site\.css["']/i.test(html)) {
+    return html.replace(
+      /(<link\b[^>]*href\s*=\s*["']\.\/site\.css["'][^>]*>)/i,
+      `$1\n    ${LOCAL_CSS_LINK}`,
+    );
+  }
+  if (/<\/head>/i.test(html)) {
+    return html.replace(/<\/head>/i, `    ${LOCAL_CSS_LINK}\n  </head>`);
+  }
+  return `${html}\n${LOCAL_CSS_LINK}\n`;
+}
+
+function isLocalCssPlaceholder(text: string): boolean {
+  return text.replace(/\r\n/g, "\n").trim() === LOCAL_CSS_PLACEHOLDER.trim();
+}
+
+async function seedDurableLocalShell(seedDir: string, kitId: string, siteRoot: string): Promise<void> {
+  const kitShell = join(kitRoot(seedDir, kitId), "shell");
+  const siteShell = join(siteRoot, "shell");
+  await mkdir(siteShell, { recursive: true });
+  const localCssDest = join(siteShell, "local.css");
+  const localCssSrc = join(kitShell, "local.css");
+  const destMissing = !existsSync(localCssDest);
+  const destPlaceholder =
+    !destMissing && isLocalCssPlaceholder(await readFile(localCssDest, "utf8"));
+  if (destMissing || destPlaceholder) {
+    if (existsSync(localCssSrc)) await cp(localCssSrc, localCssDest);
+    else if (destMissing) await writeTextAtomic(localCssDest, LOCAL_CSS_PLACEHOLDER);
+  }
+  const localDirSrc = join(kitShell, "local");
+  const localDirDest = join(siteShell, "local");
+  if (!existsSync(localDirDest) && existsSync(localDirSrc)) {
+    await cp(localDirSrc, localDirDest, { recursive: true });
+  }
+  const indexPath = join(siteShell, "index.html");
+  if (existsSync(indexPath)) {
+    const html = await readFile(indexPath, "utf8");
+    const next = ensureLocalCssLink(html);
+    if (next !== html) await writeTextAtomic(indexPath, next);
+  }
+}
+
+async function seedPanelTonesIfAbsent(seedDir: string, kitId: string, siteRoot: string): Promise<void> {
+  const seedPath = join(kitRoot(seedDir, kitId), "panelTones.yaml");
+  if (!existsSync(seedPath)) return;
+  const sitePath = join(siteRoot, "records", "site.yaml");
+  let existing: Record<string, unknown> = {};
+  try {
+    existing = parseYaml(await readFile(sitePath, "utf8")) as Record<string, unknown>;
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code !== "ENOENT") throw err;
+  }
+  if (Array.isArray(existing.panelTones) && existing.panelTones.length) return;
+  const tones = parseYaml(await readFile(seedPath, "utf8"));
+  if (!Array.isArray(tones) || !tones.length) return;
+  existing.panelTones = tones;
+  await writeTextAtomic(sitePath, stringifyYaml(existing));
+}
+
 async function importDemoContent(seedDir: string, kitId: string, siteRoot: string, paths: string[]): Promise<void> {
   for (const rel of paths) {
     assertSafeRelative(rel);
@@ -331,7 +338,10 @@ export async function applyThemeKit(
       await copyKitFile(seedDir, kitId, join("shell", "index.html"), siteRoot);
       await copyKitFile(seedDir, kitId, join("shell", "site.css"), siteRoot);
       await copyShellAssets(seedDir, kitId, siteRoot);
+      await seedDurableLocalShell(seedDir, kitId, siteRoot);
     }
+
+    await seedPanelTonesIfAbsent(seedDir, kitId, siteRoot);
 
     if (patch.layouts === "replace-listed") {
       await applyListedRecords(seedDir, kitId, siteRoot, "layouts", patch.layoutIds);

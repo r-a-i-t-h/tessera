@@ -28,11 +28,14 @@ export const TONES: readonly PanelToneDef[] = [
   { id: "teal", label: "Teal", className: "w3-teal" },
 ];
 
-/** Any built-in or theme-declared tone id. */
+/** Any built-in, site-catalog, or opaque (class-as-id) tone. */
 export type ToneId = string;
 
 /** Tones offered when inserting a panel or quote. Parsed pages may still use the full list. */
 export const PALETTE_TONES: ToneId[] = ["plain", "sand", "pale", "pale-blue", "theme"];
+
+/** Class token usable as an opaque tone id when the catalog is missing. */
+const TONE_CLASS_ID = /^[a-z][a-z0-9-]*$/;
 
 const CORE_TONE_CLASS = new Map<string, ToneId>([
   ["w3-sand", "sand"],
@@ -214,18 +217,27 @@ const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
 const YOUTUBE_ALLOW = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
 
 export function toneClass(tone: ToneId, extras?: readonly PanelToneDef[]): string {
-  return buildToneLookup(extras).byId.get(tone)?.className ?? "";
+  const known = buildToneLookup(extras).byId.get(tone);
+  if (known) return known.className;
+  // Opaque: keep the class painted into content when the catalog is absent.
+  return TONE_CLASS_ID.test(tone) ? tone : "";
 }
 
 export function toneLabel(tone: ToneId, extras?: readonly PanelToneDef[]): string {
   return buildToneLookup(extras).byId.get(tone)?.label ?? tone;
 }
 
-/** Built-in palette ids plus theme tones, keeping an unknown current id on the list. */
+/** Built-in palette ids plus site tones, keeping an unknown current id on the list. */
 export function paletteToneIds(extras?: readonly PanelToneDef[], current?: string): ToneId[] {
   const ids = [...PALETTE_TONES, ...(extras ?? []).map((tone) => tone.id)];
   if (current && !ids.includes(current)) ids.push(current);
   return ids;
+}
+
+function resolveToneClass(tone: ToneId, lookup: ToneLookup): string {
+  const known = lookup.byId.get(tone);
+  if (known) return known.className;
+  return TONE_CLASS_ID.test(tone) ? tone : "";
 }
 
 export function isColumnLayout(value: string): value is ColumnLayoutId {
@@ -327,7 +339,7 @@ export function paintSection(section: Section, lookup: ToneLookup = EMPTY_LOOKUP
     case "text":
       return paintText(section);
     case "panel": {
-      const cls = joinClass(BLOCK_CLASS, "w3-panel", "w3-padding", lookup.byId.get(section.tone)?.className ?? "");
+      const cls = joinClass(BLOCK_CLASS, "w3-panel", "w3-padding", resolveToneClass(section.tone, lookup));
       return `<div class="${cls}">${renderMarkdownLinks(section.html)}</div>`;
     }
     case "quote":
@@ -425,7 +437,7 @@ function paintQuote(section: Extract<Section, { kind: "quote" }>, lookup: ToneLo
     "w3-card-4",
     "w3-round-large",
     "tessera-quote",
-    lookup.byId.get(section.tone)?.className ?? "",
+    resolveToneClass(section.tone, lookup),
   );
   return `<div class="${joinClass(BLOCK_CLASS, "w3-content", "w3-padding-16")}" style="max-width: 70%"><div class="${cls}">${quoteInnerHtml(section.text, section.attribution)}</div></div>`;
 }
@@ -739,6 +751,10 @@ function toneOf(el: ElNode, lookup: ToneLookup): ToneId {
   for (const name of classList(el)) {
     const tone = lookup.byClass.get(name);
     if (tone) return tone;
+  }
+  // Opaque: retain an unknown tone class so a theme swap cannot strip it on save.
+  for (const name of classList(el)) {
+    if (!PANEL_STRUCTURAL.has(name) && TONE_CLASS_ID.test(name)) return name;
   }
   return "plain";
 }

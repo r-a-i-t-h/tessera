@@ -53,7 +53,7 @@ Dated site archives live in the sibling `backup/` directory (`TESSERA_BACKUP` ov
 
 - **Layout** — tree of `region` | `zone` | `static` | `component` | `page`. **Only layouts declare zones** (and where they appear). `site.masterLayoutId` is the default outer page. `resolveMasterLayout` may name a different frame for a page subtree. Its `page` node is replaced by the resolved page layout.
 - **Page** — `id`, `title`, optional `description`, optional `parentId` (published tree; ignored on the home page), optional `masterLayoutId` (frame for this page and its descendants), optional `showInNav` (`false` keeps the URL and drops the nav link), optional `type`, optional `fields`, optional subject `tags`, optional `includes` (shared items), and `zones` contributions. There is no draft flag: every content page is in the flattened document. `locked` and `templateId` may sit on the YAML file and are omitted when the page is assembled. History is not a field on the page.
-- **Style** — optional `site.style` tokens (sidebar width, bar, colours, fonts, nav side). Missing fields use the defaults in `style.ts`. The editor’s Styles page writes this object. A pages build writes tokens that differ from those defaults into a style element after the stylesheet links. That element overrides those variables in `skin/tessera.css`. Defaults stay in the stylesheet, so editing them there changes the preview. The same page can edit the linked stylesheets. Saving W3, Tessera, micro-apps, or a theme file stores a copy in `shell/css/` for this site. `site.css` stays in the shell.
+- **Style** — optional `site.style` tokens (sidebar width, bar, colours, fonts, nav side). Missing fields use the defaults in `style.ts`. The editor’s Styles page writes this object. A pages build writes tokens that differ from those defaults into a style element after the stylesheet links. That element overrides those variables in `skin/tessera.css`. Defaults stay in the stylesheet, so editing them there changes the preview. The same page can edit the linked stylesheets. Saving W3, Tessera, micro-apps, or a theme file stores a copy in `shell/css/` for this site. `site.css` and durable `local.css` stay in the shell.
 - **Type** — site-defined `{ id, layoutId?, fields[] }`. `resolvePageProfile` uses that layout, otherwise `site.defaultLayoutId`. A type does not invent zones. Subject tags do not select it.
 - **Item** — reusable zone contributions (footer, promo, …), pulled in via `page.includes` or a layout's `includes`.
 - **Blocks** inside a zone: `text` | `json` | `media` | `component`.
@@ -75,7 +75,7 @@ sites/willow/
     content/ templates/ items/ layouts/ bindings/ types/ media/ folders/
   files/                    # flat asset blobs and editor thumbnails, not on the web path
   shell/                    # document shell, no TypeScript and no frame
-    index.html  site.css
+    index.html  site.css  local.css
     css/                  # optional copies of skin stylesheets for this site
   preview/                  # SPA snapshot for editing; the editor serves it at /preview/
     data/site.json  site.<hash>.json  rev.json
@@ -123,7 +123,7 @@ There is **no** recursive `parentId` template chain and **no** inventing zones f
 
 An **aspect** is optional. A theme that lists looks in its manifest writes `site.aspects` and may set `site.defaultAspectId`. A page's `aspectId`, otherwise the nearest ancestor's, otherwise that default, becomes the class `aspect-{id}` on the document element. Layouts and the frame ignore it. The theme's `shell/site.css` styles those classes. A theme that omits the list clears the catalog on apply.
 
-A theme may also declare **panel tones** (`site.panelTones`: id, label, className). Compose adds them to the Panel and Quote Tone dropdown. Painted HTML uses the className on that block only. They are not inherited and do not change page chrome.
+**Panel tones** are site-owned (`site.panelTones`: id, label, className). Compose adds them to the Panel and Quote Tone dropdown. Painted HTML uses the className on that block only. They are not inherited and do not change page chrome. Theme apply does not write or clear them. A kit may ship `panelTones.yaml` and `shell/local.css` (plus `shell/local/` assets) as a one-time seed when those are absent. `shell/site.css` is replaced with the theme; `shell/local.css` is not.
 
 ## Page history and authoring schema
 

@@ -154,6 +154,7 @@ describe("publishPages", () => {
     expect(fair).toContain('href="../../skin/tessera.css"');
     expect(fair).toContain('href="../../skin/microapps.css"');
     expect(fair).toContain('href="../../site.css"');
+    expect(fair).toContain('href="../../local.css"');
     expect(fair).toContain('src="../../tessera-pages.js"');
     expect(byPath.get("index.html")).toContain('href="./skin/w3.css"');
   });

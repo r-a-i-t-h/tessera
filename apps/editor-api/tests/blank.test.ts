@@ -51,11 +51,13 @@ describe("blank site", () => {
     expect(shell).toContain("./skin/tessera.css");
     expect(shell).toContain("./skin/microapps.css");
     expect(shell).toContain("./skin/w3-theme-teal.css");
+    expect(shell).toContain("./local.css");
     expect(shell).not.toContain("chrome.css");
     expect(shell).toContain('class="leftnav fontA"');
     const siteCss = await readFile(join(root, "shell", "site.css"), "utf8");
     expect(siteCss).toContain("max-width: 992px");
     expect(siteCss).toContain("right: 0");
+    expect(await readFile(join(root, "shell", "local.css"), "utf8")).toContain("Theme apply does not overwrite");
     expect(shell).not.toContain("<header");
     const snapshot = await readFile(join(root, "publish", "data", "site.json"), "utf8");
     expect(snapshot).toContain('"type": "page"');

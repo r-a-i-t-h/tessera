@@ -178,7 +178,32 @@ zones:
     expect(await readFile(join(root, "records", "content", "about.yaml"), "utf8")).toContain("aspectId: night");
   });
 
-  it("apply replaces panelTones and leaves content alone", async () => {
+  it("seeds panel tones and local.css once, then leaves them across theme apply", async () => {
+    const homeBefore = await readFile(join(root, "records", "content", "home.yaml"), "utf8");
+    await applyThemeKit(root, backupDir, seedDir, "millers-ark");
+    const siteYaml = await readFile(join(root, "records", "site.yaml"), "utf8");
+    expect(siteYaml).toContain("id: ma-blue");
+    expect(siteYaml).toContain("className: ma-panel-blue");
+    expect(siteYaml).toContain("id: ma-straw");
+    const localCss = await readFile(join(root, "shell", "local.css"), "utf8");
+    expect(localCss).toContain(".ma-panel-blue");
+    expect(await readFile(join(root, "shell", "index.html"), "utf8")).toContain("./local.css");
+    expect(await readFile(join(root, "records", "content", "home.yaml"), "utf8")).toBe(homeBefore);
+
+    await writeFile(join(root, "shell", "local.css"), "/* designer tweak */\n.ma-panel-blue{outline:1px solid red}\n");
+    await applyThemeKit(root, backupDir, seedDir, "tessera-w3-starter");
+    const kept = await readFile(join(root, "records", "site.yaml"), "utf8");
+    expect(kept).toContain("id: ma-blue");
+    expect(kept).toContain("id: ma-straw");
+    expect(await readFile(join(root, "shell", "local.css"), "utf8")).toContain("designer tweak");
+    expect(await readFile(join(root, "records", "content", "home.yaml"), "utf8")).toBe(homeBefore);
+
+    await applyThemeKit(root, backupDir, seedDir, "millers-ark");
+    expect(await readFile(join(root, "shell", "local.css"), "utf8")).toContain("designer tweak");
+    expect(await readFile(join(root, "records", "site.yaml"), "utf8")).toContain("id: ma-blue");
+  });
+
+  it("rejects a kit that declares panelTones on the manifest", async () => {
     const fixtureSeed = join(root, "fixture-seed-tones");
     const kitRoot = join(fixtureSeed, "themes", "tone-kit");
     await mkdir(join(kitRoot, "shell"), { recursive: true });
@@ -192,9 +217,6 @@ panelTones:
   - id: ma-blue
     label: School blue
     className: ma-panel-blue
-  - id: ma-straw
-    label: Straw
-    className: ma-panel-straw
 patch:
   layouts: skip
   shell: skip
@@ -204,18 +226,6 @@ patch:
   nav: skip
 `,
     );
-
-    const homeBefore = await readFile(join(root, "records", "content", "home.yaml"), "utf8");
-    await applyThemeKit(root, backupDir, fixtureSeed, "tone-kit");
-    const siteYaml = await readFile(join(root, "records", "site.yaml"), "utf8");
-    expect(siteYaml).toContain("id: ma-blue");
-    expect(siteYaml).toContain("className: ma-panel-blue");
-    expect(siteYaml).toContain("id: ma-straw");
-    expect(await readFile(join(root, "records", "content", "home.yaml"), "utf8")).toBe(homeBefore);
-
-    await applyThemeKit(root, backupDir, seedDir, "tessera-w3-starter");
-    const cleared = await readFile(join(root, "records", "site.yaml"), "utf8");
-    expect(cleared).not.toMatch(/^panelTones:/m);
-    expect(await readFile(join(root, "records", "content", "home.yaml"), "utf8")).toBe(homeBefore);
+    await expect(applyThemeKit(root, backupDir, fixtureSeed, "tone-kit")).rejects.toThrow(/panelTones/);
   });
 });

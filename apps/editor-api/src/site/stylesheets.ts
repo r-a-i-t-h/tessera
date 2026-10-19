@@ -49,6 +49,12 @@ export async function listStylesheets(siteRoot: string, skinDir: string): Promis
     text: await readOptional(sitePath),
     overridden: false,
   });
+  sheets.push({
+    id: "local",
+    label: "Site local",
+    text: await readOptional(join(siteRoot, "shell", "local.css")),
+    overridden: false,
+  });
   return sheets;
 }
 
@@ -60,6 +66,10 @@ export async function saveStylesheet(siteRoot: string, skinDir: string, id: stri
   const withNewline = stored.endsWith("\n") ? stored : `${stored}\n`;
   if (id === "site") {
     await writeTextAtomic(join(siteRoot, "shell", "site.css"), withNewline);
+    return;
+  }
+  if (id === "local") {
+    await writeTextAtomic(join(siteRoot, "shell", "local.css"), withNewline);
     return;
   }
   const file = await skinFileFor(siteRoot, id);

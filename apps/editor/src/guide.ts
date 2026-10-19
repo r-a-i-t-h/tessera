@@ -72,16 +72,17 @@ export function guideHtml(): string {
     </ul>
     <p>Menus, breadcrumbs, profile lines, and <strong>Subpages</strong> are not bindings. Unsupported components use the raw binding file.</p>
 
-  <h2>Four stylesheets</h2>
-    <p>A class on a layout region is an ordinary CSS class. Four stylesheets supply them, and they do not stand in for each other.</p>
+  <h2>Stylesheets</h2>
+    <p>A class on a layout region is an ordinary CSS class. These stylesheets supply them, and they do not stand in for each other.</p>
     <ul>
       <li><strong>W3.CSS</strong> (<code>skin/w3.css</code>), linked by every shell. Examples: <code>w3-sidebar</code>, <code>w3-bar-block</code>, <code>w3-collapse</code>, <code>w3-hide-large</code>, <code>w3-row</code>, <code>w3-col</code>. <code>w3-collapse</code> on a <code>w3-sidebar</code> shows that sidebar from 993px up and hides it below that, where the Menu button opens it. <code>w3-hide-large</code> hides an element from 993px up.</li>
       <li><strong>Tessera</strong> (<code>skin/tessera.css</code>), linked by every shell. The default frame and shared widgets: <code>tessera-sidebar</code>, <code>tessera-bar</code>, <code>tessera-main</code>, <code>tessera-content</code>, <code>tessera-footer</code>, link clusters, video, pasted notes, and <code>tessera-imgbox</code>. Tokens changed on the <a href="#/styles">Styles</a> page override <code>:root</code> in this file. Defaults stay here.</li>
       <li><strong>Micro-apps</strong> (<code>skin/microapps.css</code>). The gallery lives here.</li>
-      <li><strong>Site CSS</strong> (<code>shell/site.css</code>). This site’s layout. Willow’s look is here: <code>wh-header</code>, <code>wh-topnav</code>, <code>wh-drawer</code>, <code>wh-main</code>, and the colours under <code>--wh-</code>. <code>.wh-drawer</code> is <code>display: none</code> until Menu runs.</li>
+      <li><strong>Site CSS</strong> (<code>shell/site.css</code>). Theme / frame layout for this site. Willow’s look is here: <code>wh-header</code>, <code>wh-topnav</code>, <code>wh-drawer</code>, <code>wh-main</code>, and the colours under <code>--wh-</code>. <code>.wh-drawer</code> is <code>display: none</code> until Menu runs. Theme apply may replace this file.</li>
+      <li><strong>Site local</strong> (<code>shell/local.css</code>). Durable site-owned rules (panel tones, local tweaks). Theme apply does not overwrite it. Linked after <code>site.css</code>.</li>
     </ul>
     <p>A shell that links a W3 theme, such as <code>skin/w3-theme-teal.css</code>, keeps that file between W3 and Tessera. Willow paints those colours in <code>site.css</code> instead. The fonts link is a URL, not one of these files.</p>
-    <p>The Styles page can open each of these files. Saving W3, Tessera, micro-apps, or the theme stores a copy for this site and leaves the shared file alone. Saving site layout writes <code>shell/site.css</code>. The preview uses a save immediately. Publish updates the published copy.</p>
+    <p>The Styles page can open each of these files. Saving W3, Tessera, micro-apps, or the theme stores a copy for this site and leaves the shared file alone. Saving site layout writes <code>shell/site.css</code>; saving site local writes <code>shell/local.css</code>. The preview uses a save immediately. Publish updates the published copy.</p>
 
     <h2>What the Styles page changes</h2>
     <p>Styles saves <code>site.style</code>. A pages build writes tokens that differ from the Tessera defaults into a style element after the stylesheet links, and adds <code>leftnav</code> or <code>rightnav</code> on the body. That style element overrides those variables in <code>tessera.css</code>. A token left at its default stays in the stylesheet, so editing it there shows in the preview. Editing a stylesheet does not change this form. Willow’s master layout uses <code>wh-</code> classes, so saving the tokens leaves the hall looking the same. The specimen on the Styles page is the default frame, which is the frame a blank site starts with.</p>
@@ -125,6 +126,6 @@ export function guideHtml(): string {
     <p>A theme that offers more than one look lists those looks as aspects. On a page, <strong>Aspect</strong> picks one. Leave it as <strong>Inherit</strong> and the page uses the nearest parent that set one, or the site default. The home page does not inherit from a parent. Choosing an aspect only adds a class on the document root for that theme's CSS. It does not change the layout or the frame.</p>
 
     <h2>Panel tones</h2>
-    <p>A theme may also add tones for Compose <strong>Panel</strong> and <strong>Quote</strong> sections. Those tones appear in the Tone dropdown after you apply the theme. They style that block only; they are not aspects and do not change the page chrome.</p>
+    <p>The site record may list extra tones for Compose <strong>Panel</strong> and <strong>Quote</strong> sections (<code>panelTones</code> on the Site form). They appear in the Tone dropdown and style that block only; they are not aspects and do not change the page chrome. Put their CSS in <code>shell/local.css</code> so a theme reinstall does not wipe it. Theme apply does not clear the catalog.</p>
   </article>`;
 }

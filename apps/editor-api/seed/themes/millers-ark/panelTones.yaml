@@ -1,0 +1,7 @@
+# Site-owned Compose tones. Copied into site.yaml only when the site has none.
+- id: ma-blue
+  label: School blue
+  className: ma-panel-blue
+- id: ma-straw
+  label: Straw
+  className: ma-panel-straw

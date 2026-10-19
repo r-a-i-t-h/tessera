@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readdir, readFile, rm, unlink } from "node:fs/promises";
+import { copyFile, cp, mkdir, readdir, readFile, rm, unlink } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { existsSync } from "node:fs";
 import type { SiteDocument } from "@r-a-i-t-h/tessera-model";
@@ -186,14 +186,24 @@ async function copyRuntime(target: DistTarget): Promise<void> {
 }
 
 async function copySiteCss(target: DistTarget): Promise<void> {
-  const from = join(dirname(target.shellIndex), "site.css");
-  if (!existsSync(from)) return;
-  const raw = await readFile(from, "utf8");
-  const cleaned = stripLegacyContentHeadingRules(raw);
-  const out = cleaned.endsWith("\n") ? cleaned : `${cleaned}\n`;
-  await writeTextAtomic(join(target.publishDir, "site.css"), out);
-  if (cleaned !== raw) {
-    await writeTextAtomic(from, out);
+  const shellDir = dirname(target.shellIndex);
+  const from = join(shellDir, "site.css");
+  if (existsSync(from)) {
+    const raw = await readFile(from, "utf8");
+    const cleaned = stripLegacyContentHeadingRules(raw);
+    const out = cleaned.endsWith("\n") ? cleaned : `${cleaned}\n`;
+    await writeTextAtomic(join(target.publishDir, "site.css"), out);
+    if (cleaned !== raw) {
+      await writeTextAtomic(from, out);
+    }
+  }
+  const localCss = join(shellDir, "local.css");
+  if (existsSync(localCss)) {
+    await copyFile(localCss, join(target.publishDir, "local.css"));
+  }
+  const localDir = join(shellDir, "local");
+  if (existsSync(localDir)) {
+    await cp(localDir, join(target.publishDir, "local"), { recursive: true });
   }
 }
 

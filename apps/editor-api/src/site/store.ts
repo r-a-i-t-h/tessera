@@ -92,7 +92,7 @@ export type PageLayoutHint = {
   aspectSource?: "page" | "ancestor" | "site";
   /** Page that set the aspect, when `aspectSource` is `page` or `ancestor`. */
   aspectFromPageId?: string;
-  /** Extra Compose panel/quote tones from the current theme. */
+  /** Extra Compose panel/quote tones from the site catalog. */
   panelTones?: { id: string; label: string; className: string }[];
 };
 

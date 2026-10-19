@@ -99,18 +99,19 @@ Create these from Records → Bindings (wizard) or edit the YAML. Unsupported co
 
 Menus, breadcrumbs, and profile lines (`articleByline`, `profileKicker`, `profilePhoto`, `profileFacts`) belong on a **layout**. **Subpages** is a Compose section. A list stored as JSON in a zone is page content, not a binding.
 
-## Four stylesheets
+## Stylesheets
 
-A class on a layout region is an ordinary CSS class. Four stylesheets supply them, and they do not stand in for each other.
+A class on a layout region is an ordinary CSS class. These stylesheets supply them, and they do not stand in for each other.
 
 - **W3.CSS** (`skin/w3.css`), linked by every shell. Examples: `w3-sidebar`, `w3-bar-block`, `w3-collapse`, `w3-hide-large`, `w3-row`, `w3-col`. `w3-collapse` on a `w3-sidebar` shows that sidebar from 993px up and hides it below that, where the Menu button opens it. `w3-hide-large` hides an element from 993px up.
 - **Tessera** (`skin/tessera.css`), linked by every shell. The default frame and shared widgets: `tessera-sidebar`, `tessera-bar`, `tessera-main`, `tessera-content`, `tessera-footer`, link clusters, video, pasted notes, and `tessera-imgbox`. Tokens changed on the Styles page override `:root` in this file. Defaults stay here.
 - **Micro-apps** (`skin/microapps.css`). The gallery lives here.
-- **Site CSS** (`shell/site.css`). This site’s layout. Willow’s look is here: `wh-header`, `wh-topnav`, `wh-drawer`, `wh-main`, and the colours under `--wh-`. `.wh-drawer` is `display: none` until Menu runs.
+- **Site CSS** (`shell/site.css`). Theme / frame layout for this site. Willow’s look is here: `wh-header`, `wh-topnav`, `wh-drawer`, `wh-main`, and the colours under `--wh-`. `.wh-drawer` is `display: none` until Menu runs. Theme apply may replace this file.
+- **Site local** (`shell/local.css`). Durable site-owned rules (panel tones, local tweaks). Theme apply does not overwrite it. Linked after `site.css`.
 
 A shell that links a W3 theme, such as `skin/w3-theme-teal.css`, keeps that file between W3 and Tessera. Willow paints those colours in `site.css` instead. The fonts link is a URL, not one of these files.
 
-The Styles page can open each of these files. Saving W3, Tessera, micro-apps, or the theme stores a copy for this site and leaves the shared file alone. Saving site layout writes `shell/site.css`. The preview uses a save immediately. Publish updates the published copy.
+The Styles page can open each of these files. Saving W3, Tessera, micro-apps, or the theme stores a copy for this site and leaves the shared file alone. Saving site layout writes `shell/site.css`; saving site local writes `shell/local.css`. The preview uses a save immediately. Publish updates the published copy.
 
 ## What the Styles page changes
 

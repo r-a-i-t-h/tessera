@@ -165,7 +165,7 @@ export const AspectSchema = z.object({
 export type Aspect = z.infer<typeof AspectSchema>;
 
 /**
- * Theme-declared Compose panel/quote tone.
+ * Site-owned Compose panel/quote tone.
  * Painted as a CSS class on the panel; not an aspect and not inherited.
  */
 export const PanelToneSchema = z.object({
@@ -176,7 +176,7 @@ export const PanelToneSchema = z.object({
 
 export type PanelTone = z.infer<typeof PanelToneSchema>;
 
-/** Built-in Compose tone ids. Theme `panelTones` must not reuse these. */
+/** Built-in Compose tone ids. Site `panelTones` must not reuse these. */
 export const CORE_PANEL_TONE_IDS = [
   "plain",
   "sand",
@@ -373,8 +373,8 @@ export const SiteMetaSchema = z.object({
    */
   defaultAspectId: AspectIdSchema.optional(),
   /**
-   * Extra Panel/Quote tones the current theme offers. Written by theme apply.
-   * Empty or omitted means only the built-in Compose tones.
+   * Extra Panel/Quote tones this site offers in Compose. Site-owned; theme apply
+   * does not write or clear them. Empty or omitted means only the built-in tones.
    */
   panelTones: z.array(PanelToneSchema).optional(),
   /**

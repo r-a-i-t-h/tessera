@@ -143,7 +143,7 @@ describe("schema forms", () => {
         homePageId: "home",
         panelTones: [{ id: "ma-blue", label: "School blue", className: "ma-panel-blue" }],
       })?.fields.find((f) => f.name === "panelTones"),
-    ).toBeUndefined();
+    ).toMatchObject({ name: "panelTones", type: "yaml" });
   });
 
   it("offers none for the page type and keeps an unknown id", () => {

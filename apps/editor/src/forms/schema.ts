@@ -250,10 +250,10 @@ export function schemaFor(kind: string, data: unknown): FormSchema | undefined {
     skip.add("fields");
   }
   if (kind === "items") skip.add("zones");
-  // Theme owns aspect and panel-tone catalogs; keep them off the site form.
+  // Theme owns the aspect catalog; keep it off the site form.
+  // Panel tones are site-owned and stay editable on the site form.
   if (kind === "site") {
     skip.add("aspects");
-    skip.add("panelTones");
   }
   return { fields: [...authored.fields, ...fieldsFromRecord(record, skip)] };
 }

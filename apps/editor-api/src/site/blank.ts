@@ -13,6 +13,7 @@ const SHELL_HTML = `<!DOCTYPE html>
     <link rel="stylesheet" href="./skin/tessera.css" />
     <link rel="stylesheet" href="./skin/microapps.css" />
     <link rel="stylesheet" href="./site.css" />
+    <link rel="stylesheet" href="./local.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lekton|Roboto|Orbitron|Thasadith" />
   </head>
   <body class="leftnav fontA">
@@ -22,7 +23,10 @@ const SHELL_HTML = `<!DOCTYPE html>
 </html>
 `;
 
-const SITE_CSS = `/* Site-specific rules. Shared frame tokens live in skin/tessera.css. */
+const LOCAL_CSS = `/* Site-owned rules. Theme apply does not overwrite this file. */
+`;
+
+const SITE_CSS = `/* Theme / frame layout. Shared frame tokens live in skin/tessera.css. */
 
 /* The column stays on the left from 993px up. Below that it is a flyout
    from the right, so the title and the left of the page stay in view. */
@@ -196,6 +200,7 @@ export async function writeSeedFiles(siteRoot: string): Promise<void> {
   const records = join(siteRoot, "records");
   await writeTextAtomic(join(siteRoot, "shell", "index.html"), SHELL_HTML);
   await writeTextAtomic(join(siteRoot, "shell", "site.css"), SITE_CSS);
+  await writeTextAtomic(join(siteRoot, "shell", "local.css"), LOCAL_CSS);
   await writeTextAtomic(join(records, "site.yaml"), SITE_YAML);
   await writeTextAtomic(join(records, "layouts", "master.yaml"), MASTER_YAML);
   await writeTextAtomic(join(records, "layouts", "standard.yaml"), STANDARD_YAML);

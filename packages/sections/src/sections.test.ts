@@ -219,13 +219,15 @@ describe("paintSections", () => {
     expect(html).toContain("w3-half");
   });
 
-  it("round-trips a theme panel tone through paint and parse", () => {
+  it("round-trips a site panel tone through paint and parse", () => {
     const tones = [{ id: "ma-blue", label: "School blue", className: "ma-panel-blue" }];
     const sections = [{ kind: "panel" as const, tone: "ma-blue", html: "<p>Schools</p>" }];
     const html = paintSections(sections, tones);
     expect(html).toContain("ma-panel-blue");
     expect(parseSections(html, tones)).toEqual(sections);
-    expect(parseSections(html)).toEqual([{ kind: "panel", tone: "plain", html: "<p>Schools</p>" }]);
+    // Without the catalog, keep the class as an opaque tone id.
+    expect(parseSections(html)).toEqual([{ kind: "panel", tone: "ma-panel-blue", html: "<p>Schools</p>" }]);
+    expect(paintSections(parseSections(html))).toContain("ma-panel-blue");
   });
 
   it("drops the image frame when asked and keeps the padding", () => {

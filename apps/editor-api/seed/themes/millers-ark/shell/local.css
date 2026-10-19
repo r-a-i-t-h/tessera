@@ -1,0 +1,26 @@
+/* Site-owned panel tones. Theme apply does not overwrite this file. */
+
+.ma-panel-blue {
+  background-color: #0260fe;
+  color: #ff0;
+}
+
+.ma-panel-blue :is(h1, h2, h3, h4, h5, h6),
+.ma-panel-blue a,
+.ma-panel-blue a:visited {
+  color: #ff0;
+}
+
+.ma-panel-straw {
+  background-color: rgb(51, 40, 0);
+  background-image: url("./local/img/panels/straw-bg-dark5.jpg");
+  background-position: center top;
+  background-repeat: repeat;
+  color: #fff;
+}
+
+.ma-panel-straw :is(h1, h2, h3, h4, h5, h6),
+.ma-panel-straw a,
+.ma-panel-straw a:visited {
+  color: #fff;
+}

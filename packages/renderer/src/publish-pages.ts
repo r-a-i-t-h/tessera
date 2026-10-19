@@ -38,6 +38,7 @@ export const DEFAULT_PAGE_STYLESHEETS = [
   "./skin/tessera.css",
   "./skin/microapps.css",
   "./site.css",
+  "./local.css",
 ];
 
 /**
