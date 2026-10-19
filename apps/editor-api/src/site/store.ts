@@ -92,6 +92,8 @@ export type PageLayoutHint = {
   aspectSource?: "page" | "ancestor" | "site";
   /** Page that set the aspect, when `aspectSource` is `page` or `ancestor`. */
   aspectFromPageId?: string;
+  /** Extra Compose panel/quote tones from the current theme. */
+  panelTones?: { id: string; label: string; className: string }[];
 };
 
 /** These records are named by id. A title on them is not public content. */
@@ -204,6 +206,11 @@ export class SiteStore {
     const aspect = resolveAspect(doc, resolved);
     const frames = doc.layouts.filter((layout) => layoutHasPageSlot(layout.root)).map((layout) => layout.id);
     const aspects = (doc.site.aspects ?? []).map((item) => ({ id: item.id, label: item.label }));
+    const panelTones = (doc.site.panelTones ?? []).map((item) => ({
+      id: item.id,
+      label: item.label,
+      className: item.className,
+    }));
     return {
       layoutId: profile.layoutId,
       layoutSource: profile.layoutSource,
@@ -223,6 +230,7 @@ export class SiteStore {
       ...(aspect.aspectId ? { aspectId: aspect.aspectId } : {}),
       aspectSource: aspect.source,
       ...(aspect.fromPageId ? { aspectFromPageId: aspect.fromPageId } : {}),
+      panelTones,
     };
   }
 

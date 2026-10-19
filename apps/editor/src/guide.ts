@@ -123,5 +123,8 @@ export function guideHtml(): string {
 
     <h2>Aspects</h2>
     <p>A theme that offers more than one look lists those looks as aspects. On a page, <strong>Aspect</strong> picks one. Leave it as <strong>Inherit</strong> and the page uses the nearest parent that set one, or the site default. The home page does not inherit from a parent. Choosing an aspect only adds a class on the document root for that theme's CSS. It does not change the layout or the frame.</p>
+
+    <h2>Panel tones</h2>
+    <p>A theme may also add tones for Compose <strong>Panel</strong> and <strong>Quote</strong> sections. Those tones appear in the Tone dropdown after you apply the theme. They style that block only; they are not aspects and do not change the page chrome.</p>
   </article>`;
 }

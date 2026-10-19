@@ -3044,6 +3044,7 @@ async function mountPageCanvas(
   mountComposeCanvases(form, {
     bindings,
     folders,
+    panelTones: layout?.panelTones ?? [],
     htmlByZone: htmlByZone(record, layout),
     locked: record.locked === true,
     onEdit,

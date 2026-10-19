@@ -12,7 +12,9 @@ import {
   type HtmlNode,
 } from "./html.js";
 
-export const TONES = [
+export type PanelToneDef = { id: string; label: string; className: string };
+
+export const TONES: readonly PanelToneDef[] = [
   { id: "plain", label: "Plain", className: "" },
   { id: "sand", label: "Sand", className: "w3-sand" },
   { id: "pale", label: "Pale", className: "w3-pale-yellow" },
@@ -24,14 +26,15 @@ export const TONES = [
   { id: "white", label: "White", className: "w3-white" },
   { id: "orange", label: "Orange", className: "w3-orange" },
   { id: "teal", label: "Teal", className: "w3-teal" },
-] as const;
+];
 
-export type ToneId = (typeof TONES)[number]["id"];
+/** Any built-in or theme-declared tone id. */
+export type ToneId = string;
 
 /** Tones offered when inserting a panel or quote. Parsed pages may still use the full list. */
 export const PALETTE_TONES: ToneId[] = ["plain", "sand", "pale", "pale-blue", "theme"];
 
-const TONE_CLASS = new Map<string, ToneId>([
+const CORE_TONE_CLASS = new Map<string, ToneId>([
   ["w3-sand", "sand"],
   ["w3-pale-yellow", "pale"],
   ["w3-pale-blue", "pale-blue"],
@@ -49,6 +52,27 @@ const TONE_CLASS = new Map<string, ToneId>([
   ["w3-orange", "orange"],
   ["w3-teal", "teal"],
 ]);
+
+type ToneLookup = {
+  byId: Map<string, PanelToneDef>;
+  byClass: Map<string, ToneId>;
+};
+
+function buildToneLookup(extras?: readonly PanelToneDef[]): ToneLookup {
+  const byId = new Map<string, PanelToneDef>();
+  const byClass = new Map<string, ToneId>(CORE_TONE_CLASS);
+  for (const tone of TONES) {
+    byId.set(tone.id, tone);
+    if (tone.className) byClass.set(tone.className, tone.id);
+  }
+  for (const tone of extras ?? []) {
+    byId.set(tone.id, tone);
+    if (tone.className) byClass.set(tone.className, tone.id);
+  }
+  return { byId, byClass };
+}
+
+const EMPTY_LOOKUP = buildToneLookup();
 
 /** Vertical rhythm between composed blocks on a page. */
 export const BLOCK_CLASS = "tessera-block";
@@ -189,12 +213,19 @@ const INSERT_ID = /^[A-Za-z0-9_-]+$/;
 const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
 const YOUTUBE_ALLOW = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
 
-export function toneClass(tone: ToneId): string {
-  return TONES.find((item) => item.id === tone)?.className ?? "";
+export function toneClass(tone: ToneId, extras?: readonly PanelToneDef[]): string {
+  return buildToneLookup(extras).byId.get(tone)?.className ?? "";
 }
 
-export function toneLabel(tone: ToneId): string {
-  return TONES.find((item) => item.id === tone)?.label ?? tone;
+export function toneLabel(tone: ToneId, extras?: readonly PanelToneDef[]): string {
+  return buildToneLookup(extras).byId.get(tone)?.label ?? tone;
+}
+
+/** Built-in palette ids plus theme tones, keeping an unknown current id on the list. */
+export function paletteToneIds(extras?: readonly PanelToneDef[], current?: string): ToneId[] {
+  const ids = [...PALETTE_TONES, ...(extras ?? []).map((tone) => tone.id)];
+  if (current && !ids.includes(current)) ids.push(current);
+  return ids;
 }
 
 export function isColumnLayout(value: string): value is ColumnLayoutId {
@@ -284,28 +315,29 @@ export function youtubeVideoId(value: string): string {
   return "";
 }
 
-export function paintSections(sections: Section[]): string {
-  return sections.map((section) => paintSection(section)).filter(Boolean).join("\n");
+export function paintSections(sections: Section[], tones?: readonly PanelToneDef[]): string {
+  const lookup = buildToneLookup(tones);
+  return sections.map((section) => paintSection(section, lookup)).filter(Boolean).join("\n");
 }
 
-export function paintSection(section: Section): string {
+export function paintSection(section: Section, lookup: ToneLookup = EMPTY_LOOKUP): string {
   switch (section.kind) {
     case "heading":
       return `<h${section.level} class="${BLOCK_CLASS}">${escapeText(section.text)}</h${section.level}>`;
     case "text":
       return paintText(section);
     case "panel": {
-      const cls = joinClass(BLOCK_CLASS, "w3-panel", "w3-padding", toneClass(section.tone));
+      const cls = joinClass(BLOCK_CLASS, "w3-panel", "w3-padding", lookup.byId.get(section.tone)?.className ?? "");
       return `<div class="${cls}">${renderMarkdownLinks(section.html)}</div>`;
     }
     case "quote":
-      return paintQuote(section);
+      return paintQuote(section, lookup);
     case "imgbox":
       return paintImgbox(section);
     case "card":
-      return paintCard(section);
+      return paintCard(section, lookup);
     case "columns":
-      return paintColumns(section);
+      return paintColumns(section, lookup);
     case "insert":
       return INSERT_ID.test(section.id) ? `{{${section.id}}}` : "";
     case "subpages":
@@ -321,9 +353,10 @@ export function paintSection(section: Section): string {
   }
 }
 
-export function parseSections(html: string): Section[] {
+export function parseSections(html: string, tones?: readonly PanelToneDef[]): Section[] {
+  const lookup = buildToneLookup(tones);
   const root = parseFragment(html);
-  return walk(root.children, true);
+  return walk(root.children, true, lookup);
 }
 
 function isBlankTextHtml(html: string): boolean {
@@ -369,13 +402,32 @@ function quoteInnerHtml(text: string, attribution: string, options: QuoteBlockOp
   return `${quoteMark("open")}<p class="w3-xlarge w3-serif w3-center"${textAttrs}>${escapeText(text)}</p>${close}`;
 }
 
-export function quoteBlockHtml(text: string, attribution: string, tone: ToneId, options: QuoteBlockOptions = {}): string {
-  const cls = joinClass("w3-panel", "w3-card-4", "w3-round-large", "tessera-quote", toneClass(tone));
+export function quoteBlockHtml(
+  text: string,
+  attribution: string,
+  tone: ToneId,
+  options: QuoteBlockOptions = {},
+  extras?: readonly PanelToneDef[],
+): string {
+  const cls = joinClass(
+    "w3-panel",
+    "w3-card-4",
+    "w3-round-large",
+    "tessera-quote",
+    toneClass(tone, extras),
+  );
   return `<div class="${joinClass(BLOCK_CLASS, "w3-content", "w3-padding-16")}" style="max-width: 70%"><div class="${cls}">${quoteInnerHtml(text, attribution, options)}</div></div>`;
 }
 
-function paintQuote(section: Extract<Section, { kind: "quote" }>): string {
-  return quoteBlockHtml(section.text, section.attribution, section.tone);
+function paintQuote(section: Extract<Section, { kind: "quote" }>, lookup: ToneLookup): string {
+  const cls = joinClass(
+    "w3-panel",
+    "w3-card-4",
+    "w3-round-large",
+    "tessera-quote",
+    lookup.byId.get(section.tone)?.className ?? "",
+  );
+  return `<div class="${joinClass(BLOCK_CLASS, "w3-content", "w3-padding-16")}" style="max-width: 70%"><div class="${cls}">${quoteInnerHtml(section.text, section.attribution)}</div></div>`;
 }
 
 function paintImgbox(section: Extract<Section, { kind: "imgbox" }>): string {
@@ -385,19 +437,25 @@ function paintImgbox(section: Extract<Section, { kind: "imgbox" }>): string {
   return `<div class="${imgboxClass(section.plain)}"><img src="${escapeAttr(section.src)}" class="w3-image" alt="${escapeAttr(section.alt)}">${caption}</div>`;
 }
 
-function paintCard(section: Extract<Section, { kind: "card" }>): string {
+function paintCard(section: Extract<Section, { kind: "card" }>, lookup: ToneLookup): string {
   const title = section.title.trim();
   const titleHtml = title ? `<h3 class="w3-text-theme">${escapeText(title)}</h3>` : "";
-  const body = paintSections(section.sections).trim();
+  const body = section.sections.map((item) => paintSection(item, lookup)).filter(Boolean).join("\n").trim();
   if (!titleHtml && !body) return "";
   const bodyHtml = body ? `<div class="rt-card-body">${body}</div>` : "";
   return `<div class="${joinClass(BLOCK_CLASS, "w3-card", "w3-padding", "w3-white")}">${titleHtml}${bodyHtml}</div>`;
 }
 
-function paintColumns(section: Extract<Section, { kind: "columns" }>): string {
+function paintColumns(section: Extract<Section, { kind: "columns" }>, lookup: ToneLookup): string {
   const widths = columnWidths(section.layout);
   const inner = section.cells
-    .map((cell, index) => `<div class="${joinClass(widths[index] ?? "", cell.className)}">${paintSections(cell.sections)}</div>`)
+    .map(
+      (cell, index) =>
+        `<div class="${joinClass(widths[index] ?? "", cell.className)}">${cell.sections
+          .map((item) => paintSection(item, lookup))
+          .filter(Boolean)
+          .join("\n")}</div>`,
+    )
     .join("");
   return `<div class="${joinClass(BLOCK_CLASS, "w3-row-padding", "w3-stretch")}">${inner}</div>`;
 }
@@ -407,8 +465,8 @@ type Atom =
   | { type: "heading"; level: HeadingLevel; text: string }
   | { type: "section"; section: Section };
 
-function walk(nodes: HtmlNode[], allowColumns: boolean): Section[] {
-  return groupAtoms(nodes.flatMap((node) => atomsFrom(node, allowColumns)));
+function walk(nodes: HtmlNode[], allowColumns: boolean, lookup: ToneLookup): Section[] {
+  return groupAtoms(nodes.flatMap((node) => atomsFrom(node, allowColumns, lookup)));
 }
 
 /** A heading followed by paragraphs or lists is one text run. A heading before anything else stays a heading. */
@@ -446,7 +504,7 @@ function groupAtoms(atoms: Atom[]): Section[] {
   return sections;
 }
 
-function atomsFrom(node: HtmlNode, allowColumns: boolean): Atom[] {
+function atomsFrom(node: HtmlNode, allowColumns: boolean, lookup: ToneLookup): Atom[] {
   if (node.type === "text") {
     if (!node.text.trim()) return [];
     return splitTextAtoms(node.text);
@@ -454,7 +512,7 @@ function atomsFrom(node: HtmlNode, allowColumns: boolean): Atom[] {
   const textRun = asTextRun(node);
   if (textRun) return [{ type: "section", section: textRun }];
   if (hasClass(node, "tessera-text")) return [];
-  if (isBareDiv(node)) return node.children.flatMap((child) => atomsFrom(child, allowColumns));
+  if (isBareDiv(node)) return node.children.flatMap((child) => atomsFrom(child, allowColumns, lookup));
   if (node.tag === "p" || node.tag === "ul" || node.tag === "ol") {
     const insert = onlyInsert(node);
     if (insert) return [{ type: "section", section: insert }];
@@ -463,7 +521,7 @@ function atomsFrom(node: HtmlNode, allowColumns: boolean): Atom[] {
   if (isHeadingTag(node.tag)) {
     return [{ type: "heading", level: parseHeadingLevel(node.tag[1]!), text: textContent(node).trim() }];
   }
-  return classify(node, allowColumns).map((section) => ({ type: "section", section }));
+  return classify(node, allowColumns, lookup).map((section) => ({ type: "section", section }));
 }
 
 function splitTextAtoms(text: string): Atom[] {
@@ -506,21 +564,21 @@ function asTextRun(el: ElNode): Section | null {
   return textSectionHasContent(section) ? section : null;
 }
 
-function classify(el: ElNode, allowColumns: boolean): Section[] {
+function classify(el: ElNode, allowColumns: boolean, lookup: ToneLookup): Section[] {
   const pageElement = asPageElement(el);
   if (pageElement) return [pageElement];
-  if (isBareDiv(el)) return walk(el.children, allowColumns);
+  if (isBareDiv(el)) return walk(el.children, allowColumns, lookup);
   if (allowColumns) {
-    const columns = asColumns(el);
+    const columns = asColumns(el, lookup);
     if (columns) return [columns];
   }
   const imgbox = asImgbox(el);
   if (imgbox) return [imgbox];
-  const quote = asQuote(el);
+  const quote = asQuote(el, lookup);
   if (quote) return [quote];
-  const panel = asPanel(el);
+  const panel = asPanel(el, lookup);
   if (panel) return [panel];
-  const card = asCard(el);
+  const card = asCard(el, lookup);
   if (card) return [card];
   if (!el.raw.trim()) return [];
   return [{ kind: "html", html: el.raw }];
@@ -561,7 +619,7 @@ function isBareDiv(el: ElNode): boolean {
   return el.tag === "div" && classList(el).length === 0 && !el.attrs.some((attr) => attr.name === "id" || attr.name === "style");
 }
 
-function asColumns(el: ElNode): Section | null {
+function asColumns(el: ElNode, lookup: ToneLookup): Section | null {
   const tokens = classList(el);
   const row = tokens.includes("w3-row-padding") || tokens.includes("w3-cell-row") || tokens.includes("w3-row");
   if (!row) return null;
@@ -576,7 +634,7 @@ function asColumns(el: ElNode): Section | null {
       className: classList(cell)
         .filter((name) => !COLUMN_CHROME.has(name))
         .join(" "),
-      sections: walk(cell.children, false),
+      sections: walk(cell.children, false, lookup),
     })),
   };
 }
@@ -609,7 +667,7 @@ function isQuoteDecoration(para: ElNode): boolean {
   return findEl(para, (node) => hasClass(node, "tessera-quote-mark")) !== null;
 }
 
-function asQuote(el: ElNode): Section | null {
+function asQuote(el: ElNode, lookup: ToneLookup): Section | null {
   const panel = findEl(el, (node) => hasClass(node, "w3-panel")) ?? el;
   const marked = hasClass(panel, "tessera-quote");
   if (el.tag !== "blockquote" && !marked && !hasIcon(el, "fa-quote-left") && !hasIcon(el, "fa-quote-right")) return null;
@@ -625,13 +683,13 @@ function asQuote(el: ElNode): Section | null {
     if (!text && words) text = words;
   }
   if (el.tag === "blockquote" && !text) text = textContent(el).trim();
-  return { kind: "quote", tone: toneOf(panel), text, attribution };
+  return { kind: "quote", tone: toneOf(panel, lookup), text, attribution };
 }
 
-function asPanel(el: ElNode): Section | null {
+function asPanel(el: ElNode, lookup: ToneLookup): Section | null {
   if (!hasClass(el, "w3-panel")) return null;
-  if (!classesArePanel(el)) return null;
-  return { kind: "panel", tone: toneOf(el), html: serializeChildren(el.children) };
+  if (!classesArePanel(el, lookup)) return null;
+  return { kind: "panel", tone: toneOf(el, lookup), html: serializeChildren(el.children) };
 }
 
 function parseYoutubeBlock(el: ElNode): Section {
@@ -645,7 +703,7 @@ function parseYoutubeBlock(el: ElNode): Section {
   };
 }
 
-function asCard(el: ElNode): Section | null {
+function asCard(el: ElNode, lookup: ToneLookup): Section | null {
   if (
     !hasClass(el, "w3-card") ||
     hasClass(el, "w3-panel") ||
@@ -657,7 +715,11 @@ function asCard(el: ElNode): Section | null {
   const titleEl = directChild(el, (node) => node.tag === "h3");
   const body = directChild(el, (node) => hasClass(node, "rt-card-body"));
   const nodes = body ? body.children : el.children.filter((child) => !(child.type === "el" && child.tag === "h3"));
-  return { kind: "card", title: titleEl ? textContent(titleEl).trim() : "", sections: walk(nodes, true) };
+  return {
+    kind: "card",
+    title: titleEl ? textContent(titleEl).trim() : "",
+    sections: walk(nodes, true, lookup),
+  };
 }
 
 function directChild(el: ElNode, pred: (node: ElNode) => boolean): ElNode | null {
@@ -667,13 +729,15 @@ function directChild(el: ElNode, pred: (node: ElNode) => boolean): ElNode | null
   return null;
 }
 
-function classesArePanel(el: ElNode): boolean {
-  return classList(el).every((name) => PANEL_STRUCTURAL.has(name) || TONE_CLASS.has(name) || !name.startsWith("w3-"));
+function classesArePanel(el: ElNode, lookup: ToneLookup): boolean {
+  return classList(el).every(
+    (name) => PANEL_STRUCTURAL.has(name) || lookup.byClass.has(name) || !name.startsWith("w3-"),
+  );
 }
 
-function toneOf(el: ElNode): ToneId {
+function toneOf(el: ElNode, lookup: ToneLookup): ToneId {
   for (const name of classList(el)) {
-    const tone = TONE_CLASS.get(name);
+    const tone = lookup.byClass.get(name);
     if (tone) return tone;
   }
   return "plain";

@@ -219,6 +219,15 @@ describe("paintSections", () => {
     expect(html).toContain("w3-half");
   });
 
+  it("round-trips a theme panel tone through paint and parse", () => {
+    const tones = [{ id: "ma-blue", label: "School blue", className: "ma-panel-blue" }];
+    const sections = [{ kind: "panel" as const, tone: "ma-blue", html: "<p>Schools</p>" }];
+    const html = paintSections(sections, tones);
+    expect(html).toContain("ma-panel-blue");
+    expect(parseSections(html, tones)).toEqual(sections);
+    expect(parseSections(html)).toEqual([{ kind: "panel", tone: "plain", html: "<p>Schools</p>" }]);
+  });
+
   it("drops the image frame when asked and keeps the padding", () => {
     const plain = paintSections([{ kind: "imgbox", src: "a.jpg", alt: "Alt", caption: "Cap", plain: true }]);
     expect(plain).toContain("w3-padding-16");

@@ -12,6 +12,13 @@ aspects:
   - id: night
     label: Night
 defaultAspectId: summer
+panelTones:
+  - id: ma-blue
+    label: School blue
+    className: ma-panel-blue
+  - id: ma-straw
+    label: Straw
+    className: ma-panel-straw
 patch:
   layouts: replace-listed
   layoutIds:

@@ -123,6 +123,8 @@ There is **no** recursive `parentId` template chain and **no** inventing zones f
 
 An **aspect** is optional. A theme that lists looks in its manifest writes `site.aspects` and may set `site.defaultAspectId`. A page's `aspectId`, otherwise the nearest ancestor's, otherwise that default, becomes the class `aspect-{id}` on the document element. Layouts and the frame ignore it. The theme's `shell/site.css` styles those classes. A theme that omits the list clears the catalog on apply.
 
+A theme may also declare **panel tones** (`site.panelTones`: id, label, className). Compose adds them to the Panel and Quote Tone dropdown. Painted HTML uses the className on that block only. They are not inherited and do not change page chrome.
+
 ## Page history and authoring schema
 
 Saving a content page writes the new YAML, then appends the **previous raw file** to `$TESSERA_DATA/history/content/<id>.history` (one append-only file per page, outside the web root). An unchanged file does not append. A publish failure restores the previous file and does not append. History is not a field on the published page and is not copied into `site.json`.

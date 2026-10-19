@@ -177,4 +177,45 @@ zones:
     expect(cleared).not.toMatch(/^aspects:/m);
     expect(await readFile(join(root, "records", "content", "about.yaml"), "utf8")).toContain("aspectId: night");
   });
+
+  it("apply replaces panelTones and leaves content alone", async () => {
+    const fixtureSeed = join(root, "fixture-seed-tones");
+    const kitRoot = join(fixtureSeed, "themes", "tone-kit");
+    await mkdir(join(kitRoot, "shell"), { recursive: true });
+    await writeFile(
+      join(kitRoot, "manifest.yaml"),
+      `id: tone-kit
+name: Tone kit
+version: 1
+stack: custom
+panelTones:
+  - id: ma-blue
+    label: School blue
+    className: ma-panel-blue
+  - id: ma-straw
+    label: Straw
+    className: ma-panel-straw
+patch:
+  layouts: skip
+  shell: skip
+  site: merge-keys
+  types: skip
+  items: skip
+  nav: skip
+`,
+    );
+
+    const homeBefore = await readFile(join(root, "records", "content", "home.yaml"), "utf8");
+    await applyThemeKit(root, backupDir, fixtureSeed, "tone-kit");
+    const siteYaml = await readFile(join(root, "records", "site.yaml"), "utf8");
+    expect(siteYaml).toContain("id: ma-blue");
+    expect(siteYaml).toContain("className: ma-panel-blue");
+    expect(siteYaml).toContain("id: ma-straw");
+    expect(await readFile(join(root, "records", "content", "home.yaml"), "utf8")).toBe(homeBefore);
+
+    await applyThemeKit(root, backupDir, seedDir, "tessera-w3-starter");
+    const cleared = await readFile(join(root, "records", "site.yaml"), "utf8");
+    expect(cleared).not.toMatch(/^panelTones:/m);
+    expect(await readFile(join(root, "records", "content", "home.yaml"), "utf8")).toBe(homeBefore);
+  });
 });

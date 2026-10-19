@@ -21,6 +21,12 @@ export type ThemeKitAspect = {
   label: string;
 };
 
+export type ThemeKitPanelTone = {
+  id: string;
+  label: string;
+  className: string;
+};
+
 export type ThemeKitManifest = {
   id: string;
   name: string;
@@ -31,6 +37,8 @@ export type ThemeKitManifest = {
   /** Looks this kit offers. Absent means clear the site catalog on apply. */
   aspects?: ThemeKitAspect[];
   defaultAspectId?: string;
+  /** Extra Compose panel tones. Absent means clear on apply. */
+  panelTones?: ThemeKitPanelTone[];
   patch: ThemeKitPatch;
   zonesDeclared?: Record<string, string[]>;
   site?: Record<string, unknown>;
@@ -41,6 +49,21 @@ export type ThemeKitManifest = {
 };
 
 const ASPECT_ID = /^[a-z][a-z0-9-]*$/;
+
+/** Keep in sync with `@r-a-i-t-h/tessera-model` CORE_PANEL_TONE_IDS. */
+const CORE_PANEL_TONE_IDS = new Set([
+  "plain",
+  "sand",
+  "pale",
+  "pale-blue",
+  "pale-green",
+  "pale-red",
+  "theme",
+  "light-grey",
+  "white",
+  "orange",
+  "teal",
+]);
 
 export type ThemeKitInfo = {
   id: string;
@@ -114,6 +137,7 @@ export async function loadThemeManifest(seedDir: string, kitId: string): Promise
     throw new Error(`Theme kit ${kitId} has an invalid manifest.`);
   }
   validateThemeAspects(kitId, raw);
+  validateThemePanelTones(kitId, raw);
   return raw;
 }
 
@@ -148,6 +172,41 @@ function validateThemeAspects(kitId: string, manifest: ThemeKitManifest): void {
     if (typeof manifest.defaultAspectId !== "string" || !seen.has(manifest.defaultAspectId)) {
       throw new Error(`Theme kit ${kitId} defaultAspectId is not in aspects.`);
     }
+  }
+}
+
+function validateThemePanelTones(kitId: string, manifest: ThemeKitManifest): void {
+  const tones = manifest.panelTones;
+  if (tones === undefined) return;
+  if (!Array.isArray(tones)) {
+    throw new Error(`Theme kit ${kitId} panelTones must be a list.`);
+  }
+  const seenIds = new Set<string>();
+  const seenClasses = new Set<string>();
+  for (const tone of tones) {
+    if (!tone || typeof tone !== "object") {
+      throw new Error(`Theme kit ${kitId} has an invalid panelTone entry.`);
+    }
+    if (typeof tone.id !== "string" || !ASPECT_ID.test(tone.id)) {
+      throw new Error(`Theme kit ${kitId} has an invalid panelTone id.`);
+    }
+    if (CORE_PANEL_TONE_IDS.has(tone.id)) {
+      throw new Error(`Theme kit ${kitId} panelTone id ${tone.id} collides with a built-in tone.`);
+    }
+    if (typeof tone.label !== "string" || !tone.label.trim()) {
+      throw new Error(`Theme kit ${kitId} panelTone ${tone.id} needs a label.`);
+    }
+    if (typeof tone.className !== "string" || !ASPECT_ID.test(tone.className)) {
+      throw new Error(`Theme kit ${kitId} panelTone ${tone.id} has an invalid className.`);
+    }
+    if (seenIds.has(tone.id)) {
+      throw new Error(`Theme kit ${kitId} has a duplicate panelTone id: ${tone.id}`);
+    }
+    if (seenClasses.has(tone.className)) {
+      throw new Error(`Theme kit ${kitId} has a duplicate panelTone className: ${tone.className}`);
+    }
+    seenIds.add(tone.id);
+    seenClasses.add(tone.className);
   }
 }
 
@@ -197,6 +256,17 @@ async function mergeSiteYaml(siteRoot: string, manifest: ThemeKitManifest): Prom
     existing.defaultAspectId = manifest.defaultAspectId;
   } else {
     delete existing.defaultAspectId;
+  }
+
+  // Theme owns panel tones. Absent means clear.
+  if (manifest.panelTones?.length) {
+    existing.panelTones = manifest.panelTones.map((item) => ({
+      id: item.id,
+      label: item.label,
+      className: item.className,
+    }));
+  } else {
+    delete existing.panelTones;
   }
 
   await writeTextAtomic(sitePath, stringifyYaml(existing));

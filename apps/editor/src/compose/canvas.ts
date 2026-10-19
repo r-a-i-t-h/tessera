@@ -2,7 +2,6 @@ import {
   BLOCK_CLASS,
   COLUMN_LAYOUTS,
   PALETTE,
-  PALETTE_TONES,
   blankSection,
   columnWidths,
   imgboxClass,
@@ -11,6 +10,7 @@ import {
   paintSections,
   parseHeadingLevel,
   parseSections,
+  paletteToneIds,
   quoteBlockHtml,
   renderMarkdownLinks,
   restoreMarkdownLinks,
@@ -21,6 +21,7 @@ import {
   type ColumnLayoutId,
   type HeadingLevel,
   type PaletteKind,
+  type PanelToneDef,
   type Section,
   type ToneId,
 } from "@r-a-i-t-h/tessera-sections";
@@ -31,7 +32,7 @@ import { editorMediaHtml, editorMediaSrc } from "../forms/media-url.js";
 export type BindingChoice = { id: string; title?: string };
 export type FolderChoice = { id: string };
 
-type Choices = { bindings: BindingChoice[]; folders: FolderChoice[] };
+type Choices = { bindings: BindingChoice[]; folders: FolderChoice[]; panelTones: PanelToneDef[] };
 
 type EditColumns = {
   uid: string;
@@ -64,6 +65,7 @@ type Mounted = {
   zones: ZoneState[];
   bindings: BindingChoice[];
   folders: FolderChoice[];
+  panelTones: PanelToneDef[];
   active: string;
   locked: boolean;
   drag?: ComposeDrag;
@@ -84,24 +86,27 @@ export function mountComposeCanvases(
   options: {
     bindings: BindingChoice[];
     folders?: FolderChoice[];
+    panelTones?: PanelToneDef[];
     htmlByZone: Record<string, string>;
     locked?: boolean;
     onEdit?: (burstId?: string) => void;
   },
 ): void {
+  const panelTones = options.panelTones ?? [];
   const zones: ZoneState[] = [];
   for (const host of form.querySelectorAll<HTMLElement>("[data-canvas]")) {
     const name = host.dataset.zone ?? "";
     zones.push({
       name,
       host,
-      items: parseSections(options.htmlByZone[name] ?? "").map(toEdit),
+      items: parseSections(options.htmlByZone[name] ?? "", panelTones).map(toEdit),
     });
   }
   const state: Mounted = {
     zones,
     bindings: options.bindings,
     folders: options.folders ?? [],
+    panelTones,
     active: zones.find((zone) => zone.name === "main")?.name ?? zones[0]?.name ?? "",
     locked: options.locked === true,
     onEdit: options.onEdit,
@@ -151,7 +156,9 @@ export function readComposeHtml(form: HTMLElement): Record<string, string> {
   if (!state) return {};
   syncAll(state);
   const html: Record<string, string> = {};
-  for (const zone of state.zones) html[zone.name] = paintSections(zone.items.map(toSection));
+  for (const zone of state.zones) {
+    html[zone.name] = paintSections(zone.items.map(toSection), state.panelTones);
+  }
   return html;
 }
 
@@ -256,7 +263,11 @@ function sectionIcon(label: string, icon: string, attributes: string): string {
 function choicesFor(host: HTMLElement): Choices {
   const form = host.closest("form");
   const state = form ? mounted.get(form) : undefined;
-  return { bindings: state?.bindings ?? [], folders: state?.folders ?? [] };
+  return {
+    bindings: state?.bindings ?? [],
+    folders: state?.folders ?? [],
+    panelTones: state?.panelTones ?? [],
+  };
 }
 
 function renderItem(node: EditNode, choices: Choices, zone: string, locked: boolean, index = 0, count = 1): string {
@@ -312,9 +323,9 @@ function propsFor(node: EditNode, choices: Choices, locked: boolean): string {
     case "text":
       return `${levelSelect(node.level)}${superSpaceCheck(node)}${editingToolbar(inlineTools(), listTools())}`;
     case "panel":
-      return `<label class="editor-prop">Tone <select data-field="tone">${toneOptions(node.tone)}</select></label>${editingToolbar(inlineTools())}`;
+      return `<label class="editor-prop">Tone <select data-field="tone">${toneOptions(node.tone, choices.panelTones)}</select></label>${editingToolbar(inlineTools())}`;
     case "quote":
-      return `<label class="editor-prop">Tone <select data-field="tone">${toneOptions(node.tone)}</select></label><label class="editor-prop">Attribution <input data-field="attribution" class="w3-input" value="${escapeAttr(node.attribution)}"></label>`;
+      return `<label class="editor-prop">Tone <select data-field="tone">${toneOptions(node.tone, choices.panelTones)}</select></label><label class="editor-prop">Attribution <input data-field="attribution" class="w3-input" value="${escapeAttr(node.attribution)}"></label>`;
     case "imgbox":
       return `${imgboxFields(node)}<label class="editor-prop">Hide frame <input type="checkbox" data-field="plain"${node.plain ? " checked" : ""}></label>`;
     case "card":
@@ -452,9 +463,9 @@ function bodyFor(node: EditNode, choices: Choices, zone: string, locked: boolean
     case "text":
       return `<div class="${joinClass(BLOCK_CLASS, "editor-text", node.loose ? "tessera-loose" : "")}"><h${node.level} contenteditable="true" data-field="heading" data-plain="true" data-placeholder="Heading">${escapeText(node.heading)}</h${node.level}><div class="editor-text-body" contenteditable="true" data-field="html" data-blocks="true" data-placeholder="Write…">${htmlForEditing(node.html)}</div></div>`;
     case "panel":
-      return `<div class="${joinClass(BLOCK_CLASS, "w3-panel", "w3-padding", toneClass(node.tone))}"><div contenteditable="true" data-field="html" data-placeholder="Panel">${htmlForEditing(node.html)}</div></div>`;
+      return `<div class="${joinClass(BLOCK_CLASS, "w3-panel", "w3-padding", toneClass(node.tone, choices.panelTones))}"><div contenteditable="true" data-field="html" data-placeholder="Panel">${htmlForEditing(node.html)}</div></div>`;
     case "quote":
-      return quoteBody(node);
+      return quoteBody(node, choices.panelTones);
     case "imgbox":
       return imgboxBody(node);
     case "card":
@@ -488,11 +499,17 @@ function youtubeBody(node: Extract<EditLeaf, { kind: "youtube" }>): string {
   return `<div class="${joinClass(BLOCK_CLASS, "tessera-youtube")}"${widthAttr}><div class="tessera-video"><iframe src="https://www.youtube-nocookie.com/embed/${escapeAttr(id)}" title="${escapeAttr(node.title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div></div>`;
 }
 
-function quoteBody(node: Extract<EditLeaf, { kind: "quote" }>): string {
-  return quoteBlockHtml(node.text, node.attribution, node.tone, {
-    textAttributes: 'contenteditable="true" data-field="text" data-plain="true" data-placeholder="Quote"',
-    attributionAttributes: "data-quote-by",
-  });
+function quoteBody(node: Extract<EditLeaf, { kind: "quote" }>, panelTones: PanelToneDef[]): string {
+  return quoteBlockHtml(
+    node.text,
+    node.attribution,
+    node.tone,
+    {
+      textAttributes: 'contenteditable="true" data-field="text" data-plain="true" data-placeholder="Quote"',
+      attributionAttributes: "data-quote-by",
+    },
+    panelTones,
+  );
 }
 
 function imgboxBody(node: Extract<EditLeaf, { kind: "imgbox" }>): string {
@@ -1176,10 +1193,13 @@ function focusedColumns(state: Mounted): boolean {
   return findNode(allItems(state), parent)?.kind === "columns";
 }
 
-function toneOptions(current: ToneId): string {
-  const ids = PALETTE_TONES.includes(current) ? [...PALETTE_TONES] : [...PALETTE_TONES, current];
+function toneOptions(current: ToneId, panelTones: PanelToneDef[]): string {
+  const ids = paletteToneIds(panelTones, current);
   return ids
-    .map((id) => `<option value="${id}"${id === current ? " selected" : ""}>${escapeText(toneLabel(id))}</option>`)
+    .map(
+      (id) =>
+        `<option value="${id}"${id === current ? " selected" : ""}>${escapeText(toneLabel(id, panelTones))}</option>`,
+    )
     .join("");
 }
 
@@ -1208,19 +1228,7 @@ function isPaletteKind(kind: string): kind is PaletteKind {
 }
 
 function isTone(value: string): value is ToneId {
-  return (
-    value === "plain" ||
-    value === "sand" ||
-    value === "pale" ||
-    value === "pale-blue" ||
-    value === "pale-green" ||
-    value === "pale-red" ||
-    value === "theme" ||
-    value === "light-grey" ||
-    value === "white" ||
-    value === "orange" ||
-    value === "teal"
-  );
+  return /^[a-z][a-z0-9-]*$/.test(value);
 }
 
 const ALLOWED = new Set(["strong", "b", "em", "i", "u", "s", "code", "a", "br", "ul", "ol", "li", "p"]);

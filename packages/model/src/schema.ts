@@ -164,6 +164,33 @@ export const AspectSchema = z.object({
 
 export type Aspect = z.infer<typeof AspectSchema>;
 
+/**
+ * Theme-declared Compose panel/quote tone.
+ * Painted as a CSS class on the panel; not an aspect and not inherited.
+ */
+export const PanelToneSchema = z.object({
+  id: AspectIdSchema,
+  label: z.string().min(1),
+  className: AspectIdSchema,
+});
+
+export type PanelTone = z.infer<typeof PanelToneSchema>;
+
+/** Built-in Compose tone ids. Theme `panelTones` must not reuse these. */
+export const CORE_PANEL_TONE_IDS = [
+  "plain",
+  "sand",
+  "pale",
+  "pale-blue",
+  "pale-green",
+  "pale-red",
+  "theme",
+  "light-grey",
+  "white",
+  "orange",
+  "teal",
+] as const;
+
 export const PageSchema = z.object({
   id: z.string().min(1),
   title: z.string(),
@@ -345,6 +372,11 @@ export const SiteMetaSchema = z.object({
    */
   defaultAspectId: AspectIdSchema.optional(),
   /**
+   * Extra Panel/Quote tones the current theme offers. Written by theme apply.
+   * Empty or omitted means only the built-in Compose tones.
+   */
+  panelTones: z.array(PanelToneSchema).optional(),
+  /**
    * Copyable dist. `pages` is one HTML file per page.
    * `snapshot` is the single-index SPA. Omitted means `pages`.
    * The editing preview is always the snapshot and ignores this.
@@ -398,6 +430,35 @@ export const SiteDocumentSchema = z
         message: `defaultAspectId ${doc.site.defaultAspectId} is not in aspects`,
         path: ["site", "defaultAspectId"],
       });
+    }
+    const panelTones = doc.site.panelTones ?? [];
+    const toneIds = new Set<string>();
+    const toneClasses = new Set<string>();
+    const core = new Set<string>(CORE_PANEL_TONE_IDS);
+    for (const tone of panelTones) {
+      if (core.has(tone.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `panelTone id ${tone.id} collides with a built-in tone`,
+          path: ["site", "panelTones"],
+        });
+      }
+      if (toneIds.has(tone.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Duplicate panelTone id: ${tone.id}`,
+          path: ["site", "panelTones"],
+        });
+      }
+      if (toneClasses.has(tone.className)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Duplicate panelTone className: ${tone.className}`,
+          path: ["site", "panelTones"],
+        });
+      }
+      toneIds.add(tone.id);
+      toneClasses.add(tone.className);
     }
   });
 
