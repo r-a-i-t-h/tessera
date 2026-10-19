@@ -300,7 +300,7 @@ html.aspect-night #ma-top-band {
 #footermenucontainer > .tessera-nav-tree {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 1.25rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -308,30 +308,24 @@ html.aspect-night #ma-top-band {
 
 #footermenucontainer > .tessera-nav-tree > li {
   width: 180px;
+  padding: 0.15rem 0.75rem 0.5rem;
 }
 
 #footermenucontainer a,
 #footermenucontainer a.w3-button,
 #footermenucontainer a.w3-bar-item {
-  display: inline;
+  display: block;
   width: auto;
   padding: 0;
   margin: 0;
   background: transparent;
   color: #ddd;
-  font-weight: bold;
   text-align: left;
   white-space: normal;
 }
 
-#footermenucontainer ul ul {
-  margin-top: 4px;
-}
-
-#footermenucontainer ul ul a,
-#footermenucontainer ul ul a.w3-button {
-  display: block;
-  font-weight: normal;
+#footermenucontainer .tessera-nav-branch > span {
+  color: #ddd;
 }
 
 #footermenucontainer a.is-active {

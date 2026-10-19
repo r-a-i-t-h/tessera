@@ -130,6 +130,10 @@ describe("nav places", () => {
     const tree = navTree(ctx, { scope: "footer" });
     expect(tree).toContain('href="#events"');
     expect(tree).not.toContain('href="#home"');
+    expect(tree).toContain('class="w3-ul tessera-nav-tree tessera-nav-footer"');
+    const sidebarTree = navTree(ctx, { scope: "sidebar" });
+    expect(sidebarTree).toContain('class="w3-ul tessera-nav-tree"');
+    expect(sidebarTree).not.toContain("tessera-nav-footer");
   });
 });
 

@@ -61,7 +61,11 @@ function renderCurrentGroupSiblings(ctx: Parameters<ComponentFn>[0], nodes: Reso
   return `<ul class="w3-ul tessera-nav-tree tessera-nav-sublinks">${items}</ul>`;
 }
 
-function renderTreeList(ctx: Parameters<ComponentFn>[0], nodes: ResolvedNavNode[]): string {
+function renderTreeList(
+  ctx: Parameters<ComponentFn>[0],
+  nodes: ResolvedNavNode[],
+  rootClass?: string,
+): string {
   if (!nodes.length) return "";
   const items = nodes
     .map((n) => {
@@ -83,7 +87,8 @@ function renderTreeList(ctx: Parameters<ComponentFn>[0], nodes: ResolvedNavNode[
       return "";
     })
     .join("");
-  return `<ul class="w3-ul tessera-nav-tree">${items}</ul>`;
+  const classes = rootClass ? `w3-ul tessera-nav-tree ${rootClass}` : "w3-ul tessera-nav-tree";
+  return `<ul class="${classes}">${items}</ul>`;
 }
 
 function groupLinkMembers(children: ResolvedNavNode[]): ResolvedNavNode[] {
@@ -119,7 +124,8 @@ export const navTree: ComponentFn = (ctx, props = {}) => {
   const scope = typeof props.scope === "string" ? props.scope : undefined;
   const tree = filterScope(resolveNavTree(ctx.document), scope);
   if (!tree.length) return `<p class="w3-text-grey"><em>No nav.</em></p>`;
-  return renderTreeList(ctx, tree);
+  const rootClass = scope === "footer" ? "tessera-nav-footer" : undefined;
+  return renderTreeList(ctx, tree, rootClass);
 };
 
 /** First link in each Nav group is the section entry; siblings use Sub-level markup when the current page is in that group. */

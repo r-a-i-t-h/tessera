@@ -352,6 +352,49 @@ body.footer-fixed .wh-main {
   margin: 0;
 }
 
+/* Footer-scoped navTree: bold column titles, space between columns. */
+.tessera-nav-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tessera-nav-footer > li {
+  padding: 0.15rem 0.75rem 0.5rem;
+}
+
+.tessera-nav-footer > .tessera-nav-branch > span {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+.tessera-nav-footer > li > a,
+.tessera-nav-footer > li > a.w3-button,
+.tessera-nav-footer > li > a.w3-bar-item {
+  display: block;
+  font-weight: 700;
+}
+
+.tessera-nav-footer > li:not(.tessera-nav-branch) > ul.tessera-nav-tree > li:first-child > a,
+.tessera-nav-footer > li:not(.tessera-nav-branch) > ul.tessera-nav-tree > li:first-child > a.w3-button {
+  display: block;
+  font-weight: 700;
+}
+
+.tessera-nav-footer ul ul {
+  margin-top: 0.35rem;
+}
+
+.tessera-nav-footer ul ul a,
+.tessera-nav-footer ul ul a.w3-button {
+  display: block;
+  font-weight: normal;
+}
+
 .tessera-main a {
   color: var(--tessera-link);
 }
