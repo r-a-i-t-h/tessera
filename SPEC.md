@@ -295,7 +295,7 @@ Outlet **id** must equal the content zone key (no aliases in v1). Articles use t
 
 **Within reason after apply:** pages render zones whose ids appear on the resolved layout; other zone data is preserved but not painted until the layout declares them.
 
-**Theme kits** ship under the release seed (`seed/themes/<id>/`) with a `manifest.yaml` (`stack: w3`, patch rules, `zonesDeclared`, optional demo paths). Demo import is optional; **`POST /api/themes/:id/reset-demo`** removes only manifest demo records.
+**Theme kits** ship under the release seed (`seed/themes/<id>/`) with a `manifest.yaml` (`stack: w3`, patch rules, `zonesDeclared`, optional demo paths). Demo import is optional; **`POST /api/themes/:id/reset-demo`** removes only manifest demo records. How to author a kit: [THEME-BUILDER.md](./THEME-BUILDER.md).
 
 ---
 

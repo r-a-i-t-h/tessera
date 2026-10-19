@@ -8,6 +8,7 @@ Client-side site runtime that renders an entire small website from one validated
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | As-built engine contract (packages, pipeline, Zod) |
 | [ROADMAP.md](./ROADMAP.md) | Where the product is, and the work still ahead |
 | [GUIDE.md](./GUIDE.md) | Authoring how-to: YAML, menus, and styles. The editor’s Guide page shows the same notes |
+| [THEME-BUILDER.md](./THEME-BUILDER.md) | Building theme kits: concepts, folder layout, and manifest syntax |
 
 ## Quick start
 

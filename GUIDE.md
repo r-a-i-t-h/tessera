@@ -2,6 +2,8 @@
 
 How menus, styles, and YAML fit together. Willow is the worked example. The same notes are on the editor’s Guide page.
 
+Designers shipping a drop-in look should read [THEME-BUILDER.md](./THEME-BUILDER.md) (kit folders, manifest syntax, apply rules).
+
 ## YAML indentation
 
 Indentation is the structure. A child sits further right than its parent, and every key at one level starts in the same column. Tabs are rejected. The editor writes two spaces per level. One space is legal, and four spaces are legal, when every sibling uses that same step. Mixing 2 and 4 in one block attaches a key to the wrong parent, or the file will not parse.
