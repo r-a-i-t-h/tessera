@@ -36,17 +36,17 @@ describe("schema forms", () => {
     expect(next.id).toBe("hall");
   });
 
-  it("orders content fields as id/title, parent/description, type/tags, frame/aspect, nav/published", () => {
+  it("orders content fields as id/parent, title/frame, type/aspect, description/nav, tags/published", () => {
     expect(CONTENT_FORM.fields.map((field) => field.name)).toEqual([
       "id",
-      "title",
       "parentId",
-      "description",
-      "type",
-      "tags",
+      "title",
       "masterLayoutId",
+      "type",
       "aspectId",
+      "description",
       "showInNav",
+      "tags",
       "published",
     ]);
   });
