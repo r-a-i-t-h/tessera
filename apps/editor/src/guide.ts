@@ -40,7 +40,13 @@ export function guideHtml(): string {
       <li><code>subpageList</code> prints the current page’s children. Optional prop <code>title</code>.</li>
       <li><code>linkCluster</code> prints a group of links in the page body. <code>source</code> is <code>children</code> (the default), <code>type</code> (also set <code>type</code> to a type id), or <code>nav</code> (also set <code>heading</code> to a Nav heading). <code>variant</code> is <code>list</code>, <code>pills</code>, or <code>cards</code>.</li>
     <li><code>pageNav</code> lists every page that has no type. It ignores the Nav record.</li>
+      <li><code>searchBox</code> is typeahead search for the frame. Place it on the master layout. The index loads only on first use. Enter opens the Search page.</li>
+      <li><code>searchResults</code> is the full results UI on a Search page (refine, tag/type filter, relevance or title sort).</li>
   </ul>
+    <p>A blank site already puts <code>searchBox</code> in the sidebar and a Search page on the Nav record. Keep the menu sparse for wiki-style sites; reach other pages by cross-links and search.</p>
+
+    <h2>Page links (wiki-style)</h2>
+    <p>Compose’s <strong>link</strong> control opens the page picker for every page. That stores <code>&lt;a data-tessera-page=&quot;hall&quot; href=&quot;#&quot;&gt;…&lt;/a&gt;</code>. You can also type <code>[[hall]]</code> or <code>[[hall|label]]</code>; saving expands those the same way. Preview and publish resolve the URL. Renaming a page rewrites those ids in prose and binding links. Missing targets use the class <code>tessera-page-missing</code>.</p>
 
     <h2>Articles</h2>
     <p><a href="#/pages">Pages</a> are ordinary pages. <a href="#/articles">Articles</a> opens on the blog list, then that blog’s articles. A blog is one dated stream: path, frame, page size, hero, and lead. Hero is full, banner, or side. Blogs are edited under <a href="#/records/blogs">Records → Blogs</a>. Creating a blog also creates its index. Place each blog on the Nav record yourself. The menu can add the index when the blog asks for it. Articles are not menu items.</p>

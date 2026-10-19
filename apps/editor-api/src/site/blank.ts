@@ -73,6 +73,8 @@ root:
         - type: static
           html: '<a href="javascript:void(0)" onclick="w3_close()" class="w3-button w3-right w3-hide-large" aria-label="Close menu">Close</a>'
         - type: component
+          name: searchBox
+        - type: component
           name: navFlat
           props:
             scope: sidebar
@@ -109,8 +111,25 @@ root:
       id: main
 `;
 
+const SEARCH_LAYOUT_YAML = `id: search
+root:
+  type: region
+  children:
+    - type: region
+      tag: h1
+      children:
+        - type: zone
+          id: title
+    - type: component
+      name: searchResults
+`;
+
 const TYPE_YAML = `id: standard
 layoutId: standard
+`;
+
+const SEARCH_TYPE_YAML = `id: search
+layoutId: search
 `;
 
 const HOME_YAML = `id: home
@@ -121,6 +140,14 @@ zones:
     html: Hello world
   main:
     html: '<p>Hello world.</p>'
+`;
+
+const SEARCH_PAGE_YAML = `id: search
+title: Search
+type: search
+zones:
+  title:
+    html: Search
 `;
 
 const BLOG_YAML = `id: blog
@@ -168,6 +195,9 @@ zones:
 const NAV_YAML = `- id: home
   title: Home
   sidebar: true
+- id: search
+  title: Search
+  sidebar: true
 - id: blog
   title: Blog
   sidebar: true
@@ -176,16 +206,19 @@ const NAV_YAML = `- id: home
 `;
 
 const LAYOUT_ORDER = `- standard
+- search
 - master
 `;
 
 const CONTENT_ORDER = `- home
+- search
 - blog
 - blog-index
 - birthday
 `;
 
 const TYPE_ORDER = `- standard
+- search
 `;
 
 const ITEM_ORDER = `- common-footer
@@ -204,12 +237,15 @@ export async function writeSeedFiles(siteRoot: string): Promise<void> {
   await writeTextAtomic(join(records, "site.yaml"), SITE_YAML);
   await writeTextAtomic(join(records, "layouts", "master.yaml"), MASTER_YAML);
   await writeTextAtomic(join(records, "layouts", "standard.yaml"), STANDARD_YAML);
+  await writeTextAtomic(join(records, "layouts", "search.yaml"), SEARCH_LAYOUT_YAML);
   await writeTextAtomic(join(records, "layouts", "_order.yaml"), LAYOUT_ORDER);
   await writeTextAtomic(join(records, "types", "standard.yaml"), TYPE_YAML);
+  await writeTextAtomic(join(records, "types", "search.yaml"), SEARCH_TYPE_YAML);
   await writeTextAtomic(join(records, "types", "_order.yaml"), TYPE_ORDER);
   await writeTextAtomic(join(records, "items", "common-footer.yaml"), FOOTER_YAML);
   await writeTextAtomic(join(records, "items", "_order.yaml"), ITEM_ORDER);
   await writeTextAtomic(join(records, "content", "home.yaml"), HOME_YAML);
+  await writeTextAtomic(join(records, "content", "search.yaml"), SEARCH_PAGE_YAML);
   await writeTextAtomic(join(records, "content", "blog.yaml"), BLOG_YAML);
   await writeTextAtomic(join(records, "content", "blog-index.yaml"), BLOG_INDEX_YAML);
   await writeTextAtomic(join(records, "content", "birthday.yaml"), ARTICLE_YAML);

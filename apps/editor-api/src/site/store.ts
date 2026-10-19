@@ -24,6 +24,7 @@ import {
   type HistoryRetention,
   type HistorySummary,
 } from "./history.js";
+import { searchIndexJson } from "@r-a-i-t-h/tessera-renderer";
 import { writeSnapshotFiles } from "./snapshot.js";
 import type { DistReport, DistTarget } from "./dist.js";
 import { installPublish } from "./install-publish.js";
@@ -42,6 +43,7 @@ import { DOCUMENT_KINDS, isRecordId, KIND_DIRS, RECORD_KINDS, type RecordKind } 
 import { validateAuthoredRecord } from "./authored-schema.js";
 import { isSystemLibraryFolder } from "./library.js";
 import { rewriteLibraryFolderRefs } from "./library-folder-refs.js";
+import { rewritePageIdProps, rewriteZonesPageRefs } from "./page-ref-rewrite.js";
 
 export type SnapshotRef = { hash: string; file: string };
 
@@ -558,7 +560,12 @@ export class SiteStore {
 
   private async writeOutputs(doc: SiteDocument): Promise<{ snapshot?: SnapshotRef }> {
     if (!this.flattenOut) return {};
-    return { snapshot: await writeSnapshotFiles(this.flattenOut, documentBody(doc)) };
+    const snapshot = await writeSnapshotFiles(this.flattenOut, documentBody(doc));
+    // preview/data/site.json → preview/search-index.json; otherwise beside the snapshot file.
+    const dataDir = dirname(this.flattenOut);
+    const siteRoot = /[/\\]data$/i.test(dataDir) ? dirname(dataDir) : dataDir;
+    await writeTextAtomic(join(siteRoot, "search-index.json"), searchIndexJson(doc));
+    return { snapshot };
   }
 
   private async loadReadyDocument(): Promise<SiteDocument | undefined> {
@@ -987,29 +994,54 @@ export class SiteStore {
         );
       }
     }
+    await this.rewriteContentReferences(id, nextId);
     await this.moveContentRecord(id, nextId, { ...record, id: nextId });
     if (index) {
       const nextIndex = { ...index, id: nextIndexId, parentId: nextId };
       await this.moveContentRecord(index.id, nextIndexId, nextIndex);
-    }
-    try {
-      const nav = await this.readNav();
-      if (Array.isArray(nav)) {
-        await this.commitText(this.navFile(), toYaml(rewriteNavId(nav, id, nextId)), { rebuild: false });
-      }
-    } catch {
-      // nav.yaml is optional until the author adds one
     }
     await this.rebuild();
   }
 
   private async rewriteContentReferences(from: string, to: string): Promise<void> {
     for (const page of await this.contentRecords()) {
-      if (page.id === from || page.parentId !== from || page.type === "blog-index") continue;
+      if (page.id === from) continue;
+      let next = page;
+      let dirty = false;
+      if (page.parentId === from && page.type !== "blog-index") {
+        next = { ...next, parentId: to };
+        dirty = true;
+      }
+      const zones = rewriteZonesPageRefs(next.zones, from, to);
+      if (zones.changed) {
+        next = { ...next, zones: zones.zones };
+        dirty = true;
+      }
+      if (dirty) {
+        await this.commitRecord("content", page.id, recordToYaml("content", next), { rebuild: false });
+      }
+    }
+    for (const id of await this.listIds("items")) {
+      const item = (await this.read("items", id)) as { id: string; zones?: AuthoredPage["zones"] };
+      const zones = rewriteZonesPageRefs(item.zones, from, to);
+      if (zones.changed) {
+        await this.commitRecord(
+          "items",
+          id,
+          recordToYaml("items", { ...item, zones: zones.zones }),
+          { rebuild: false },
+        );
+      }
+    }
+    for (const id of await this.listIds("bindings")) {
+      const binding = await this.read("bindings", id);
+      if (!binding.props || typeof binding.props !== "object") continue;
+      const props = rewritePageIdProps(binding.props, from, to);
+      if (!props.changed) continue;
       await this.commitRecord(
-        "content",
-        page.id,
-        recordToYaml("content", { ...page, parentId: to }),
+        "bindings",
+        id,
+        recordToYaml("bindings", { ...binding, id, props: props.value }),
         { rebuild: false },
       );
     }

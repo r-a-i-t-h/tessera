@@ -119,6 +119,9 @@ body { margin: 0; }
     await expect(readFile(join(fixture.root, "publish", "old", "index.html"), "utf8")).rejects.toThrow();
     expect(await readFile(join(fixture.root, "publish", "media", "logo.svg"), "utf8")).toContain("svg");
     expect(await readFile(join(fixture.root, "publish", "sitemap.xml"), "utf8")).toContain("https://hall.example/about/");
+    const index = await readFile(join(fixture.root, "publish", "search-index.json"), "utf8");
+    expect(index).toContain('"version":1');
+    expect(index).toContain('"index"');
   });
 
   it("refuses a pages dist without an origin and leaves publish untouched", async () => {

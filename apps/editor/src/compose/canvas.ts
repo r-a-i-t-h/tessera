@@ -73,11 +73,17 @@ type ComposeDrag =
   | { kind: "palette"; palette: string }
   | { kind: "item"; zone: string; uid: string };
 
+export type PageLinkPick =
+  | { kind: "page"; id: string; title?: string }
+  | { kind: "url"; href: string };
+
 type Mounted = {
   zones: ZoneState[];
   bindings: BindingChoice[];
   folders: FolderChoice[];
   panelTones: PanelToneDef[];
+  pageTitles: Map<string, string>;
+  pickPageLink?: (current: string) => Promise<PageLinkPick | undefined>;
   active: string;
   locked: boolean;
   drag?: ComposeDrag;
@@ -101,6 +107,8 @@ export function mountComposeCanvases(
     bindings: BindingChoice[];
     folders?: FolderChoice[];
     panelTones?: PanelToneDef[];
+    pageTitles?: Record<string, string>;
+    pickPageLink?: (current: string) => Promise<PageLinkPick | undefined>;
     htmlByZone: Record<string, string>;
     locked?: boolean;
     onEdit?: (burstId?: string) => void;
@@ -121,6 +129,8 @@ export function mountComposeCanvases(
     bindings: options.bindings,
     folders: options.folders ?? [],
     panelTones,
+    pageTitles: new Map(Object.entries(options.pageTitles ?? {})),
+    pickPageLink: options.pickPageLink,
     active: zones.find((zone) => zone.name === "main")?.name ?? zones[0]?.name ?? "",
     locked: options.locked === true,
     onEdit: options.onEdit,
@@ -686,11 +696,11 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
       return;
     }
     if (field === "html" && target.isContentEditable && node.kind === "text") {
-      node.html = htmlFromEditing(target.innerHTML, true);
+      node.html = htmlFromEditing(target.innerHTML, true, state.pageTitles);
       return;
     }
     if (field === "html" && target.isContentEditable && node.kind === "pasted") {
-      node.html = htmlFromEditing(target.innerHTML, false);
+      node.html = htmlFromEditing(target.innerHTML, false, state.pageTitles);
       return;
     }
     if (field === "heading" && target.isContentEditable && node.kind === "text") {
@@ -886,11 +896,29 @@ function runCommand(form: HTMLFormElement, command: string): void {
     return;
   }
   if (command === "link") {
+    const state = mounted.get(form);
     const saved = cloneSelection();
-    const href = window.prompt("Link address");
-    if (!href || /^\s*javascript:/i.test(href)) return;
-    restoreSelection(saved);
-    insertMarkdownLink(href);
+    const current = selectionAnchor()?.getAttribute("data-tessera-page")
+      ?? selectionAnchor()?.getAttribute("href")
+      ?? "";
+    void (async () => {
+      const picked = state?.pickPageLink
+        ? await state.pickPageLink(current)
+        : await legacyPromptLink();
+      if (!picked) return;
+      restoreSelection(saved);
+      if (picked.kind === "page") {
+        const label =
+          document.getSelection()?.toString()
+          || picked.title
+          || state?.pageTitles.get(picked.id)
+          || picked.id;
+        insertPageRef(picked.id, label);
+      } else {
+        if (/^\s*javascript:/i.test(picked.href)) return;
+        insertMarkdownLink(picked.href);
+      }
+    })();
     return;
   }
   if (command === "code") {
@@ -1263,13 +1291,13 @@ function syncAll(state: Mounted): void {
       const node = article ? findNode(zone.items, article.dataset.itemId ?? "") : undefined;
       if (!node || node.kind === "columns") continue;
       if (field.dataset.field === "html" && field.isContentEditable && node.kind === "text") {
-        node.html = htmlFromEditing(field.innerHTML, true);
+        node.html = htmlFromEditing(field.innerHTML, true, state.pageTitles);
       }
       if (field.dataset.field === "heading" && field.isContentEditable && node.kind === "text") {
         node.heading = (field.textContent ?? "").replace(/\n+/g, " ");
       }
       if (field.dataset.field === "html" && field.isContentEditable && node.kind === "pasted") {
-        node.html = htmlFromEditing(field.innerHTML, false);
+        node.html = htmlFromEditing(field.innerHTML, false, state.pageTitles);
       }
       if (field.dataset.field === "text" && field.isContentEditable && (node.kind === "heading" || node.kind === "quote")) {
         node.text = field.textContent ?? "";
@@ -1391,9 +1419,9 @@ function htmlForEditing(stored: string): string {
   return restoreMarkdownLinks(stored);
 }
 
-function htmlFromEditing(innerHTML: string, blocks: boolean): string {
+function htmlFromEditing(innerHTML: string, blocks: boolean, titles?: Map<string, string>): string {
   const raw = blocks ? readTextHtml(innerHTML) : sanitize(innerHTML);
-  return renderMarkdownLinks(raw);
+  return expandWikiLinks(renderMarkdownLinks(raw), titles);
 }
 
 function insertMarkdownLink(href: string): void {
@@ -1418,6 +1446,43 @@ function insertMarkdownLink(href: string): void {
   const label = selected || trimmed;
   document.execCommand("insertText", false, `[${label}](${trimmed})`);
   touchEditable();
+}
+
+function insertPageRef(pageId: string, label: string): void {
+  const safeId = pageId.replace(/[^a-zA-Z0-9_-]/g, "");
+  if (!safeId) return;
+  const text = (label || safeId).replace(/</g, "");
+  const existing = selectionAnchor();
+  if (existing) {
+    existing.setAttribute("data-tessera-page", safeId);
+    existing.setAttribute("href", "#");
+    if (!(existing.textContent ?? "").trim()) existing.textContent = text;
+    touchEditable();
+    return;
+  }
+  document.execCommand(
+    "insertHTML",
+    false,
+    `<a data-tessera-page="${escapeAttr(safeId)}" href="#">${escapeText(text)}</a>`,
+  );
+  touchEditable();
+}
+
+async function legacyPromptLink(): Promise<PageLinkPick | undefined> {
+  const href = window.prompt("Link address");
+  if (!href || /^\s*javascript:/i.test(href)) return undefined;
+  return { kind: "url", href };
+}
+
+const WIKI_LINK = /\[\[([a-zA-Z0-9_-]+)(?:\|([^\]]+))?\]\]/g;
+
+/** Expand `[[page-id]]` / `[[page-id|label]]` into durable page anchors. */
+export function expandWikiLinks(html: string, titles?: Map<string, string>): string {
+  if (!html.includes("[[")) return html;
+  return html.replace(WIKI_LINK, (_full, id: string, label?: string) => {
+    const text = (label?.trim() || titles?.get(id) || id).replace(/</g, "");
+    return `<a data-tessera-page="${escapeAttr(id)}" href="#">${escapeText(text)}</a>`;
+  });
 }
 
 function paragraphsFromPlain(text: string): string {
@@ -1558,6 +1623,11 @@ function cleanChildren(parent: Element): string {
       continue;
     }
     if (tag === "a") {
+      const pageId = node.getAttribute("data-tessera-page")?.trim() ?? "";
+      if (pageId && /^[a-zA-Z0-9_-]+$/.test(pageId)) {
+        out += `<a data-tessera-page="${escapeAttr(pageId)}" href="#">${cleanChildren(node)}</a>`;
+        continue;
+      }
       const href = node.getAttribute("href") ?? "";
       if (!/^(https?:|mailto:|\/|#|\.)/i.test(href) || /^\s*javascript:/i.test(href)) {
         out += cleanChildren(node);

@@ -3,6 +3,7 @@ import { resolveMasterLayout, resolvePageProfile } from "@r-a-i-t-h/tessera-mode
 import { normalizeSiteAssetUrl, rewriteMediaUrls } from "./assets.js";
 import { expandMustache, renderNamed } from "./bindings.js";
 import { expandPageElements } from "./page-elements.js";
+import { resolvePageRefs } from "./page-refs.js";
 import type { ComponentRegistry } from "./registry.js";
 import { indexDocument, mergeZones } from "./merge.js";
 import type { MicroAppMount, RenderContext, ZoneMap } from "./types.js";
@@ -138,7 +139,8 @@ function renderBlock(block: Block, ctx: RenderContext): string {
 
 function authoredHtml(html: string, ctx: RenderContext): string {
   const expanded = expandPageElements(expandMustache(html, ctx), ctx);
-  return rewriteMediaUrls(expanded, ctx.assetUrl ?? ((url) => url));
+  const withPages = resolvePageRefs(expanded, ctx);
+  return rewriteMediaUrls(withPages, ctx.assetUrl ?? ((url) => url));
 }
 
 function renderNode(node: LayoutNode, ctx: RenderContext, skin?: Skin, pageHtml?: string): string {

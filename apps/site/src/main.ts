@@ -1,4 +1,5 @@
 import {
+  bootSearch,
   createDefaultRegistry,
   SiteRenderer,
   readSiteDocumentUrl,
@@ -34,6 +35,7 @@ const renderer = await SiteRenderer.create({
     document.title = page ? `${page.title} · ${doc.site.title}` : doc.site.title;
     insertHeadingsMenu(document.getElementById("app") ?? document);
     bootBlog(document);
+    bootSearch(document);
     updatePreviewDiagnostics(pageId, doc);
   },
 });

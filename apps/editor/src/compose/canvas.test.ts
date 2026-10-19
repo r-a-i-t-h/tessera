@@ -121,6 +121,43 @@ describe("compose palette", () => {
     expect(blank?.getAttribute("data-placeholder")).toBe("Heading");
   });
 
+  it("keeps data-tessera-page anchors as HTML while editing", () => {
+    dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;
+    const form = dom.document.querySelector("form");
+    if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
+    mountComposeCanvases(form, {
+      bindings: [],
+      htmlByZone: {
+        main: `<div class="tessera-text"><p>See <a data-tessera-page="hall" href="#">Hall</a>.</p></div>`,
+      },
+    });
+    const body = form.querySelector<HTMLElement>(".editor-text-body");
+    if (!body) throw new Error("body");
+    expect(body.innerHTML).toContain('data-tessera-page="hall"');
+    const html = readComposeHtml(form).main ?? "";
+    expect(html).toContain('data-tessera-page="hall"');
+  });
+
+  it("expands wiki links when saving compose HTML", () => {
+    dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;
+    const form = dom.document.querySelector("form");
+    if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
+    mountComposeCanvases(form, {
+      bindings: [],
+      pageTitles: { hall: "Great Hall" },
+      htmlByZone: {
+        main: `<div class="tessera-text"><p>x</p></div>`,
+      },
+    });
+    const body = form.querySelector<HTMLElement>(".editor-text-body");
+    if (!body) throw new Error("body");
+    body.innerHTML = "<p>See [[hall]] and [[hall|the hall]].</p>";
+    body.dispatchEvent(new dom.Event("input", { bubbles: true }));
+    const html = readComposeHtml(form).main ?? "";
+    expect(html).toContain('data-tessera-page="hall"');
+    expect(html).toMatch(/data-tessera-page="hall"[^>]*>the hall</);
+  });
+
   it("shows saved anchors as markdown while editing and stores anchors again", () => {
     dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;
     const form = dom.document.querySelector("form");

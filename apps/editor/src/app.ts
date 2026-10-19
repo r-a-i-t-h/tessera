@@ -3045,6 +3045,8 @@ async function mountPageCanvas(
 ): Promise<void> {
   let bindings: { id: string; title?: string }[] = [];
   let folders: { id: string; title?: string }[] = [];
+  let pageTitles: Record<string, string> = {};
+  let pageChoices: PageTargetChoices | undefined;
   try {
     const listing = await listRecords();
     bindings = listing.records
@@ -3053,15 +3055,40 @@ async function mountPageCanvas(
     folders = listing.records
       .filter((row) => row.kind === "folders")
       .map((row) => ({ id: row.id }));
+    for (const row of listing.records) {
+      if (row.kind === "content" && row.title) pageTitles[row.id] = row.title;
+    }
+    try {
+      const [nav, siteData] = await Promise.all([
+        getRecord("nav", "nav").catch(() => undefined),
+        loadSiteData(listing),
+      ]);
+      const navEntries = Array.isArray(nav?.data) ? (nav.data as NavEntry[]) : [];
+      pageChoices = buildPageTargetChoices(listing, siteData ?? { id: "site", title: "Site", homePageId: "home" }, navEntries);
+    } catch {
+      pageChoices = undefined;
+    }
   } catch {
     bindings = [];
     folders = [];
   }
   if (!form.isConnected) return;
+  const choices = pageChoices;
   mountComposeCanvases(form, {
     bindings,
     folders,
     panelTones: layout?.panelTones ?? [],
+    pageTitles,
+    pickPageLink: choices
+      ? async (current) => {
+          const picked = await openPageTargetPicker(choices, current);
+          if (picked === undefined) return undefined;
+          if (/^[a-z][a-z0-9+.-]*:/i.test(picked) || picked.startsWith("//")) {
+            return { kind: "url", href: picked };
+          }
+          return { kind: "page", id: picked, title: pageTitles[picked] };
+        }
+      : undefined,
     htmlByZone: htmlByZone(record, layout),
     locked: record.locked === true,
     onEdit,

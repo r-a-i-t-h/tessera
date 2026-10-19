@@ -43,7 +43,7 @@ describe("blank site", () => {
     });
     expect(res.status).toBe(200);
     const body = (await res.json()) as { pages: number };
-    expect(body.pages).toBe(4);
+    expect(body.pages).toBe(5);
     const siteYaml = await readFile(join(root, "records", "site.yaml"), "utf8");
     expect(siteYaml).toContain("masterLayoutId: master");
     const shell = await readFile(join(root, "shell", "index.html"), "utf8");
@@ -123,7 +123,7 @@ describe("blank site", () => {
     });
     expect(res.status).toBe(200);
     const body = (await res.json()) as { pages: number; safetyBackup: string };
-    expect(body.pages).toBe(4);
+    expect(body.pages).toBe(5);
     expect(body.safetyBackup).toMatch(/\.tar\.gz$/);
     await expect(readFile(join(root, "records", "content", "extra.yaml"), "utf8")).rejects.toThrow();
     await expect(readFile(join(root, "publish", "keep.txt"), "utf8")).rejects.toThrow();

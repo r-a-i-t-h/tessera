@@ -16,6 +16,8 @@ export type ArticleGroup = {
 
 export type PageTargetChoices = {
   nav: NavPageChoice[];
+  /** All content pages (excluding articles), for wiki-style linking. */
+  pages: PageChoice[];
   articles: ArticleGroup[];
 };
 
@@ -38,6 +40,9 @@ export function buildPageTargetChoices(
     title: byId.get(id),
     depth,
   }));
+  const pages: PageChoice[] = contentForNav
+    .map((row) => ({ id: row.id, title: row.title }))
+    .sort((a, b) => (a.title ?? a.id).localeCompare(b.title ?? b.id, undefined, { sensitivity: "base" }));
 
   const blogs = listing.records.filter((row) => row.kind === "content" && row.type === "blog");
   const blogTitle = new Map(blogs.map((row) => [row.id, row.title ?? row.id]));
@@ -57,7 +62,7 @@ export function buildPageTargetChoices(
       pages: sortArticles(rows, "date", rank).map((row) => ({ id: row.id, title: row.title })),
     }));
 
-  return { nav, articles };
+  return { nav, pages, articles };
 }
 
 export function parsePageTargetChoices(raw: string | undefined): PageTargetChoices | undefined {
@@ -90,6 +95,17 @@ export function renderPageTargetPicker(choices: PageTargetChoices, currentHref: 
     ? `<section class="editor-page-target-section"><h3 class="w3-medium">Navigation</h3><ul class="w3-ul editor-page-target-list">${navItems}</ul></section>`
     : `<p class="w3-text-grey">No navigation pages. Add links on the Nav record.</p>`;
 
+  const allPages = (choices.pages ?? [])
+    .map((page) => {
+      const label = pageLabel(page);
+      const selected = page.id === currentHref.trim() ? ' aria-current="true"' : "";
+      return `<li><button type="button" class="w3-button w3-white editor-page-target-row" data-pick-page="${escapeHtml(page.id)}"${selected}>${escapeHtml(label)}</button></li>`;
+    })
+    .join("");
+  const pagesBlock = allPages
+    ? `<section class="editor-page-target-section"><h3 class="w3-medium">All pages</h3><ul class="w3-ul editor-page-target-list">${allPages}</ul></section>`
+    : "";
+
   const articleBlocks = choices.articles
     .map((group) => {
       const heading = group.blogTitle && group.blogTitle !== group.blogId ? `${group.blogTitle} (${group.blogId})` : group.blogId;
@@ -111,6 +127,7 @@ export function renderPageTargetPicker(choices: PageTargetChoices, currentHref: 
 
   return `<div class="editor-page-target-picker">
     ${navBlock}
+    ${pagesBlock}
     ${articlesBlock}
     <section class="editor-page-target-section editor-page-target-external">
       <h3 class="w3-medium">External URL</h3>
@@ -143,7 +160,12 @@ function isPageTargetChoices(value: unknown): value is PageTargetChoices {
   if (!value || typeof value !== "object") return false;
   const o = value as Record<string, unknown>;
   if (!Array.isArray(o.nav) || !Array.isArray(o.articles)) return false;
+  if (o.pages !== undefined && (!Array.isArray(o.pages) || !o.pages.every(isPageChoice))) return false;
   return o.nav.every(isNavPageChoice) && o.articles.every(isArticleGroup);
+}
+
+function isPageChoice(value: unknown): value is PageChoice {
+  return !!value && typeof value === "object" && typeof (value as PageChoice).id === "string";
 }
 
 function isNavPageChoice(value: unknown): value is NavPageChoice {

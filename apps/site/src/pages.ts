@@ -1,5 +1,6 @@
 import { parseSiteDocument, type SiteDocument } from "@r-a-i-t-h/tessera-model";
 import {
+  bootSearch,
   ComponentRegistry,
   createDefaultRegistry,
   escapeHtml,
@@ -67,6 +68,7 @@ function hydrate(): void {
     }
   }
   bootBlog(document);
+  bootSearch(document);
 }
 
 function cssEscape(value: string): string {
@@ -75,4 +77,7 @@ function cssEscape(value: string): string {
 }
 
 hydrate();
-window.addEventListener("hashchange", () => bootBlog(document));
+window.addEventListener("hashchange", () => {
+  bootBlog(document);
+  bootSearch(document);
+});

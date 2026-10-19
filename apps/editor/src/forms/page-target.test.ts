@@ -30,6 +30,7 @@ describe("buildPageTargetChoices", () => {
     expect(choices.articles).toHaveLength(1);
     expect(choices.articles[0]?.blogId).toBe("news");
     expect(choices.articles[0]?.pages.map((p) => p.id)).toEqual(["fair", "open"]);
+    expect(choices.pages.map((p) => p.id).sort()).toEqual(["about", "home", "news"]);
   });
 });
 
@@ -49,7 +50,7 @@ describe("renderPageTargetPicker", () => {
 
 describe("serializePageTargetChoices", () => {
   it("round-trips through JSON", () => {
-    const choices = { nav: [{ id: "home", depth: 0, title: "Home" }], articles: [] };
+    const choices = { nav: [{ id: "home", depth: 0, title: "Home" }], pages: [{ id: "home", title: "Home" }], articles: [] };
     const parsed = parsePageTargetChoices(serializePageTargetChoices(choices));
     expect(parsed).toEqual(choices);
   });

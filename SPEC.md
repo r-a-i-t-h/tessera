@@ -135,7 +135,14 @@ Folder-relative URLs (`./…`) and Vite `base: "./"` keep a published site porta
 - Each file contains that page’s prose, `<title>`, optional meta description, canonical URL, and that page’s frame: the site master, or the frame set on the page or its nearest ancestor. `showInNav: false` keeps the URL and the file. A menu link appears only when that frame's nav component includes that page.
 - Micro-app regions are empty `data-tessera-microapp` mounts plus a JSON description. They run in the browser.
 - `sitemap.xml` lists every published page URL.
+- `search-index.json` is a publish-time MiniSearch index of page titles, tags, descriptions, and zone plain text. The layout `searchBox` component lazy-loads it on first use.
 - Visitors move between pages by loading the next HTML file.
+
+### Wiki-style page links
+
+- Authored prose may link pages by id: `<a data-tessera-page="hall" href="#">…</a>`. Compose’s link control uses the page picker; `[[page-id]]` / `[[page-id|label]]` expand to the same form.
+- Render and pages publish resolve those anchors through `hrefForPage`. Missing targets keep a placeholder href and the class `tessera-page-missing`.
+- Renaming a page rewrites `data-tessera-page` in zone HTML, page-id `href` props on bindings, `parentId`, nav, and `homePageId`.
 
 ### Seeing a new homepage
 
@@ -339,6 +346,12 @@ Criteria define “done enough,” not a build order (see [ROADMAP.md](./ROADMAP
 - [x] `publishPages` writes one HTML file per page, with prose, title, canonical URL, and that page’s frame.
 - [x] Micro-apps are `data-tessera-microapp` mounts plus JSON. The publisher does not run them.
 - [x] `sitemap.xml` lists every published page URL, including pages omitted from nav.
+- [x] `search-index.json` is written on preview emit and on publish (both flavours).
+- [x] Layout `searchBox` typeahead and page `searchResults` refine UI; index is fetched only on first search use.
+
+### Wiki links
+
+- [x] Durable `data-tessera-page` anchors resolve at render/publish; rename rewrites them.
 
 ### Routing and errors
 

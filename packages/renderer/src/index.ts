@@ -94,6 +94,7 @@ export {
 } from "./page-diagnostics.js";
 export { normalizeSiteAssetUrl, isRootAbsoluteUrl } from "./assets.js";
 export { hrefForPage } from "./page-href.js";
+export { resolvePageRefs, rewritePageRefIds } from "./page-refs.js";
 export {
   DEFAULT_PAGE_STYLESHEETS,
   publishPages,
@@ -103,6 +104,27 @@ export {
   type PublishPagesOptions,
   type PublishedFile,
 } from "./publish-pages.js";
+export {
+  buildSearchIndex,
+  createSearchEngine,
+  extractSearchDocuments,
+  loadSearchEngine,
+  runSearch,
+  searchIndexJson,
+  searchIndexPayload,
+  stripHtmlToText,
+  FIELD_BOOSTS,
+  type SearchHit,
+  type SearchIndexDocument,
+  type SearchIndexPayload,
+  type SearchQueryOptions,
+} from "./search-index.js";
+export {
+  registerSearchComponents,
+  searchBox,
+  searchResults,
+  bootSearch,
+} from "./builtins/search.js";
 export type {
   RenderContext,
   ComponentFn,

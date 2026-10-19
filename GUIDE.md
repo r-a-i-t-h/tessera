@@ -57,6 +57,22 @@ Put one of these in the master layout as a component. `scope` is `sidebar` (the 
 | `subpageList` | The current page’s children. Optional prop `title`. |
 | `linkCluster` | A group of links in the page body. `source` is `children` (the default), `type` (also set `type` to a type id), or `nav` (also set `heading` to a Nav heading). `variant` is `list`, `pills`, or `cards`. |
 | `pageNav` | Every page that has no type. Ignores the Nav record. |
+| `searchBox` | Typeahead search in the frame. Put it on the master layout. The index loads only when someone focuses or types. Enter opens the Search page (`search/?q=…`, or `#search?q=…` on a snapshot). |
+| `searchResults` | Full results on a Search page: refine the query, filter by tag or type, sort by relevance or title. |
+
+A blank site already places `searchBox` in the sidebar and ships a Search page on the Nav record. Large wiki-style sites keep the menu sparse: a few entry pages plus Search; everything else is reached by cross-links and search.
+
+## Page links (wiki-style)
+
+Compose’s **link** control opens the page picker (all pages, not only the menu). That stores a durable id:
+
+```html
+<a data-tessera-page="hall" href="#">Great Hall</a>
+```
+
+You can also type `[[hall]]` or `[[hall|Great Hall]]` in Compose; saving expands those to the same anchors. Tessera resolves the real URL when the page is previewed or published. Renaming a page rewrites those ids in other pages’ prose and in binding panel links. A missing target paints as a red dotted link (`tessera-page-missing`).
+
+External URLs still use ordinary markdown/`href` links.
 
 ## Articles
 

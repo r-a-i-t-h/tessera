@@ -82,4 +82,30 @@ describe("content rename", () => {
     });
     await expect(site.renameContent("news-index", "index")).rejects.toThrow(/blog instead/i);
   });
+
+  it("rewrites data-tessera-page refs in other pages and binding hrefs", async () => {
+    const site = await store();
+    await site.write("content", "about", {
+      title: "About",
+      zones: { main: { html: "<p>About</p>" } },
+    });
+    await site.write("content", "home", {
+      title: "Home",
+      zones: {
+        main: { html: `<p>See <a data-tessera-page="about" href="#">About</a>.</p>` },
+      },
+    });
+    await site.write("bindings", "banner", {
+      component: "imageRevealGallery",
+      props: { items: [{ url: "./media/a.jpg", href: "about", title: "About" }] },
+    });
+    await site.renameContent("about", "story");
+    const home = await site.read("content", "home");
+    const main = (home.zones as Record<string, { html?: string }>).main;
+    expect(main?.html).toContain('data-tessera-page="story"');
+    expect(main?.html).not.toContain('data-tessera-page="about"');
+    const binding = await site.read("bindings", "banner");
+    const items = (binding.props as { items: { href: string }[] }).items;
+    expect(items[0]?.href).toBe("story");
+  });
 });

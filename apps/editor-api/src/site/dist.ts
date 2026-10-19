@@ -5,6 +5,7 @@ import type { SiteDocument } from "@r-a-i-t-h/tessera-model";
 import {
   createDefaultRegistry,
   publishPages,
+  searchIndexJson,
 } from "@r-a-i-t-h/tessera-renderer";
 import { registerExtras } from "@r-a-i-t-h/tessera-extras";
 import { w3Skin } from "@r-a-i-t-h/tessera-skin-w3";
@@ -70,13 +71,14 @@ async function emitPages(document: SiteDocument, target: DistTarget): Promise<Di
   for (const file of files) {
     await writeTextAtomic(join(target.publishDir, file.path), file.contents.endsWith("\n") ? file.contents : `${file.contents}\n`);
   }
+  await writeTextAtomic(join(target.publishDir, "search-index.json"), searchIndexJson(document));
   await copyRuntime(target);
   await copySiteCss(target);
   await syncLibraryMedia(document, target.publishDir);
   await removeSnapshotData(target.publishDir);
   await removeGeneratedHtml(
     target.publishDir,
-    new Set(files.map((file) => file.path)),
+    new Set([...files.map((file) => file.path), "search-index.json"]),
   );
   return { flavour: "pages", pages: files.filter((file) => file.path.endsWith(".html")).length };
 }
@@ -97,10 +99,11 @@ async function emitSnapshot(document: SiteDocument, target: DistTarget): Promise
     join(target.publishDir, "data", "site.json"),
     `${JSON.stringify(document, null, 2)}\n`,
   );
+  await writeTextAtomic(join(target.publishDir, "search-index.json"), searchIndexJson(document));
   await copyRuntime(target);
   await copySiteCss(target);
   await syncLibraryMedia(document, target.publishDir);
-  await removeGeneratedHtml(target.publishDir, new Set(["index.html"]));
+  await removeGeneratedHtml(target.publishDir, new Set(["index.html", "search-index.json"]));
   return { flavour: "snapshot", snapshot };
 }
 
