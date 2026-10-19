@@ -173,6 +173,12 @@ body.fontD h6 {
   margin: 0 0 0.75rem;
 }
 
+/* Quote wraps use w3-content; restore auto sides after .tessera-block's margin shorthand. */
+.tessera-block.w3-content {
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .w3-panel.tessera-quote {
   position: relative;
   padding-top: 2.25rem;
