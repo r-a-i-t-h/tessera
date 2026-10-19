@@ -11,6 +11,11 @@ export type FieldSchema = {
   required?: boolean;
   /** Shown when the stored value is missing. */
   defaultValue?: string;
+  /**
+   * SingleSelect: when the stored value is a non-empty string not in `options`,
+   * select this option value instead (e.g. retain-orphan sentinel).
+   */
+  selectIfUnknown?: string;
   /** Checkbox: missing means checked. Checking again omits the key; unchecking writes false. */
   defaultChecked?: boolean;
   /** String stored as a comma-separated list. */
@@ -18,6 +23,9 @@ export type FieldSchema = {
   inputType?: "text" | "url";
   rows?: number;
 };
+
+/** Form value meaning "keep the stored aspectId" — not a valid AspectIdSchema id. */
+export const ASPECT_NO_CHANGE = "__non_theme__";
 
 export type FormSchema = {
   fields: FieldSchema[];
@@ -163,6 +171,7 @@ export function frameWhere(source: "page" | "ancestor" | "site" | undefined, fro
 /**
  * Replace the Aspect text field with Inherit plus the theme's aspects.
  * Drops the field when the catalog is empty and the page has no stored id.
+ * An id absent from the catalog becomes "non-theme aspect specified" (no change on save).
  */
 export function withAspectChoices(
   schema: FormSchema,
@@ -176,12 +185,20 @@ export function withAspectChoices(
     { value: "", label: "Inherit" },
     ...aspects.map((item) => ({ value: item.id, label: item.label })),
   ];
-  if (current && !aspects.some((item) => item.id === current)) {
-    options.push({ value: current, label: current });
+  const orphan = Boolean(current && !aspects.some((item) => item.id === current));
+  if (orphan) {
+    options.push({ value: ASPECT_NO_CHANGE, label: "non-theme aspect specified" });
   }
   return {
     fields: schema.fields.map((field) =>
-      field.name === "aspectId" ? { ...field, type: "SingleSelect", options } : field,
+      field.name === "aspectId"
+        ? {
+            ...field,
+            type: "SingleSelect",
+            options,
+            ...(orphan ? { selectIfUnknown: ASPECT_NO_CHANGE } : {}),
+          }
+        : field,
     ),
   };
 }

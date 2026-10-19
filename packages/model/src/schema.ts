@@ -211,6 +211,7 @@ export const PageSchema = z.object({
   /**
    * Aspect for this page and its descendants.
    * Omitted means the nearest ancestor that sets one, or `site.defaultAspectId`.
+   * An id absent from `site.aspects` is treated as omitted at resolve time.
    * The home page does not inherit: its `parentId` is ignored.
    * Becomes `aspect-{id}` on the document element; layouts ignore it.
    */
@@ -575,10 +576,11 @@ export type ResolvedAspect = {
 /**
  * Aspect for a page: its own `aspectId`, otherwise the nearest ancestor's,
  * otherwise `site.defaultAspectId`. The home page's `parentId` is ignored.
- * A cycle or a missing parent is an error. A stored id is always returned,
- * including when it is absent from `site.aspects`.
+ * A cycle or a missing parent is an error. An id absent from `site.aspects`
+ * is treated as unset so inheritance can continue.
  */
 export function resolveAspect(document: SiteDocument, page: Page): ResolvedAspect {
+  const known = new Set((document.site.aspects ?? []).map((item) => item.id));
   const byId = new Map(document.pages.map((item) => [item.id, item]));
   const homeId = document.site.homePageId;
   const seen: string[] = [];
@@ -588,7 +590,7 @@ export function resolveAspect(document: SiteDocument, page: Page): ResolvedAspec
   while (current) {
     if (seen.includes(current.id)) throw new Error(`Page cycle at ${current.id}`);
     seen.push(current.id);
-    if (current.aspectId) {
+    if (current.aspectId && known.has(current.aspectId)) {
       return {
         aspectId: current.aspectId,
         source: atStart ? "page" : "ancestor",
@@ -603,7 +605,8 @@ export function resolveAspect(document: SiteDocument, page: Page): ResolvedAspec
   }
 
   const aspectId = document.site.defaultAspectId;
-  return { source: "site", ...(aspectId ? { aspectId } : {}) };
+  if (aspectId && known.has(aspectId)) return { source: "site", aspectId };
+  return { source: "site" };
 }
 
 /** Class token for a resolved aspect id. */

@@ -76,16 +76,30 @@ describe("resolveAspect", () => {
     });
   });
 
-  it("emits a stored id even when it is absent from the catalog", () => {
+  it("skips a stored id absent from the catalog and continues inheritance", () => {
     const document = doc();
     const fair = document.pages.find((item) => item.id === "fair")!;
     fair.aspectId = "legacy";
     expect(resolveAspect(document, fair)).toEqual({
-      aspectId: "legacy",
-      source: "page",
-      fromPageId: "fair",
+      aspectId: "night",
+      source: "ancestor",
+      fromPageId: "events",
     });
     expect(aspectClassName("legacy")).toBe("aspect-legacy");
+  });
+
+  it("returns no aspect when every stored id in the chain is absent from the catalog", () => {
+    const document = parseSiteDocument({
+      version: 2,
+      site: { id: "s", title: "S", homePageId: "home", defaultLayoutId: "page" },
+      layouts: [{ id: "page", root: { type: "zone", id: "main" } }],
+      pages: [
+        { id: "home", title: "Home", aspectId: "gone", zones: {} },
+        { id: "about", title: "About", parentId: "home", aspectId: "legacy", zones: {} },
+      ],
+    });
+    const about = document.pages.find((item) => item.id === "about")!;
+    expect(resolveAspect(document, about)).toEqual({ source: "site" });
   });
 
   it("returns no aspect when nothing in the chain sets one", () => {

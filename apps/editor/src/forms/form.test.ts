@@ -105,7 +105,33 @@ describe("schema forms", () => {
     const hidden = withAspectChoices(CONTENT_FORM, []);
     expect(hidden.fields.find((field) => field.name === "aspectId")).toBeUndefined();
     const kept = withAspectChoices(CONTENT_FORM, [], "legacy");
-    expect(renderForm(kept, { id: "fair", title: "Fair", aspectId: "legacy" })).toContain('value="legacy" selected');
+    const orphanHtml = renderForm(kept, { id: "fair", title: "Fair", aspectId: "legacy" });
+    expect(orphanHtml).toContain('value="__non_theme__" selected');
+    expect(orphanHtml).toContain(">non-theme aspect specified</option>");
+    expect(
+      applySubmitted(kept, { id: "fair", title: "Fair", aspectId: "legacy" }, {
+        title: "Fair",
+        aspectId: "__non_theme__",
+      }).aspectId,
+    ).toBe("legacy");
+    expect(
+      applySubmitted(CONTENT_FORM, { id: "fair", title: "Fair", aspectId: "legacy" }, {
+        title: "Fair",
+        aspectId: "__non_theme__",
+      }).aspectId,
+    ).toBe("legacy");
+    expect(
+      applySubmitted(kept, { id: "fair", title: "Fair", aspectId: "legacy" }, {
+        title: "Fair",
+        aspectId: "",
+      }),
+    ).not.toHaveProperty("aspectId");
+    expect(
+      applySubmitted(withAspectChoices(CONTENT_FORM, aspects, "legacy"), { id: "fair", title: "Fair", aspectId: "legacy" }, {
+        title: "Fair",
+        aspectId: "night",
+      }).aspectId,
+    ).toBe("night");
     const siteSchema = withDefaultAspectChoices(SITE_FORM, aspects);
     expect(renderForm(siteSchema, { id: "s", title: "S", homePageId: "home" })).toContain(">None</option>");
     expect(withDefaultAspectChoices(SITE_FORM, []).fields.find((field) => field.name === "defaultAspectId")).toBeUndefined();

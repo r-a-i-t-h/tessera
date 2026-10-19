@@ -1,7 +1,7 @@
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { escapeHtml, fieldId } from "../dom.js";
 import { parseJsonText } from "./item.js";
-import { type FieldSchema, type FormSchema } from "./schema.js";
+import { ASPECT_NO_CHANGE, type FieldSchema, type FormSchema } from "./schema.js";
 
 export type SubmittedValue = string | boolean;
 
@@ -18,9 +18,18 @@ export function renderField(field: FieldSchema, value: unknown): string {
   }
   if (field.type === "SingleSelect") {
     const options = field.options ?? [];
-    const current = typeof value === "string" && options.some((option) => option.value === value)
+    const inList = typeof value === "string" && options.some((option) => option.value === value);
+    const unknown =
+      typeof value === "string" &&
+      value &&
+      !inList &&
+      field.selectIfUnknown &&
+      options.some((option) => option.value === field.selectIfUnknown);
+    const current = inList
       ? value
-      : (field.defaultValue ?? options[0]?.value ?? "");
+      : unknown
+        ? field.selectIfUnknown!
+        : (field.defaultValue ?? options[0]?.value ?? "");
     const choices = options
       .map(
         (option) =>
@@ -93,6 +102,8 @@ function applyField(target: Record<string, unknown>, field: FieldSchema, raw: Su
     return;
   }
   const text = typeof raw === "string" ? raw : "";
+  // Keep stored aspectId when the form sends the non-theme retain sentinel.
+  if (text === ASPECT_NO_CHANGE) return;
   if (field.type === "SingleSelect") {
     if (!text && !field.required) delete target[field.name];
     else target[field.name] = text || field.defaultValue || "";
