@@ -8,6 +8,7 @@ set -eu
 }
 
 ROOT=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+# The release tarball has no apps/ tree. pack-release writes this bundle beside the hook.
 BUNDLED="$ROOT/004-library-added-at.mjs"
 if [ -f "$BUNDLED" ]; then
   exec node "$BUNDLED" "$TESSERA_DATA"

@@ -135,6 +135,8 @@ The editor can open that raw YAML, save it, and read earlier copies back. The sa
 TESSERA_DATA=sites/willow sh deploy/migrate.sh
 ```
 
+The release tarball has no `apps/` tree. Migrations `001` and `002` are inline shell plus `node -e`. A migration that rewrites records adds `apps/editor-api/scripts/migrate-NNN-*.ts`, a matching `deploy/migrations/NNN-*.sh` that runs the sibling `NNN-*.mjs` when present, and fixture tests. `scripts/bundle-migrations.mjs` (called from `scripts/pack-release.sh`) esbuilds every `migrate-NNN-*.ts` into that `.mjs` beside the hook; the `.ts` fallback is for checkouts only. Do not register migrations one at a time in pack-release.
+
 Records live at `$TESSERA_DATA/records`, so a later migration can rewrite page files. The current `001` and `002` migrations only stamp `schemaVersion` on `meta.json`; a migration that rewrites records needs fixture tests for the before and after files. Three numbers stay distinct: the Tessera release (editor and libraries), `schemaVersion` (authoring files), and `SiteDocument.version` (the flattened document the renderer validates). An editor-only release does not require a new export. A renderer or document-schema change needs a migration, then a flatten. Already-exported `publish/` trees keep the shell they were built with until that export.
 
 ## Relative assets

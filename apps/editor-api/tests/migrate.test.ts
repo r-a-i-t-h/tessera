@@ -71,7 +71,12 @@ describe("authoring schema migrations", () => {
     expect(result.stdout).toMatch(/meta\.json missing/);
   });
 
-  it("runs 003 from a release tree that has no apps source", async () => {
+  async function runBundledMigrationHook(
+    hookBasename: string,
+    fromSchema: number,
+    stdoutPattern: RegExp,
+    expectedSchema: number,
+  ): Promise<void> {
     const release = await mkdtemp(join(tmpdir(), "tessera-release-"));
     dataDir = await mkdtemp(join(tmpdir(), "tessera-migrate-"));
     try {
@@ -79,20 +84,38 @@ describe("authoring schema migrations", () => {
       await mkdir(migrations, { recursive: true });
       await mkdir(join(release, "node_modules"), { recursive: true });
       await symlink(join(repoRoot, "node_modules", "yaml"), join(release, "node_modules", "yaml"));
-      await cp(join(repoRoot, "deploy", "migrations", "003-remove-tenants.sh"), join(migrations, "003-remove-tenants.sh"));
+      await cp(join(repoRoot, "deploy", "migrations", hookBasename), join(migrations, hookBasename));
       await execFileAsync(process.execPath, [
-        join(repoRoot, "scripts", "bundle-remove-tenants.mjs"),
-        join(migrations, "003-remove-tenants.mjs"),
+        join(repoRoot, "scripts", "bundle-migrations.mjs"),
+        migrations,
       ]);
-      await writeFile(join(dataDir, "meta.json"), `${JSON.stringify({ schemaVersion: 2 })}\n`);
+      await writeFile(join(dataDir, "meta.json"), `${JSON.stringify({ schemaVersion: fromSchema })}\n`);
 
-      const result = await runMigrate(dataDir, join(migrations, "003-remove-tenants.sh"));
+      const result = await runMigrate(dataDir, join(migrations, hookBasename));
       expect(result.code).toBe(0);
-      expect(result.stdout).toMatch(/migrated records and stamped schema 3/);
-      expect(await readSchemaVersion(join(dataDir, "meta.json"))).toBe(3);
+      expect(result.stdout).toMatch(stdoutPattern);
+      expect(await readSchemaVersion(join(dataDir, "meta.json"))).toBe(expectedSchema);
     } finally {
       await rm(release, { recursive: true, force: true });
     }
+  }
+
+  it("runs 003 from a release tree that has no apps source", async () => {
+    await runBundledMigrationHook(
+      "003-remove-tenants.sh",
+      2,
+      /migrated records and stamped schema 3/,
+      3,
+    );
+  });
+
+  it("runs 004 from a release tree that has no apps source", async () => {
+    await runBundledMigrationHook(
+      "004-library-added-at.sh",
+      3,
+      /004-library-added-at: backfilled addedAt and stamped schema 4/,
+      4,
+    );
   });
 
   it("004 backfills library addedAt and stamps schema 4", async () => {
