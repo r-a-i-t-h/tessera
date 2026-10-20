@@ -46,6 +46,7 @@ describe("editor preview host", () => {
     await writeFile(join(siteRoot, "shell", "index.html"), SHELL);
     await writeFile(join(siteRoot, "shell", "site.css"), "body{color:shell}\n");
     await writeFile(join(siteRoot, "preview", "data", "site.abc123.json"), '{"from":"preview"}\n');
+    await writeFile(join(siteRoot, "preview", "search-index.json"), '{"version":1,"from":"preview-index"}\n');
     await writeFile(join(siteRoot, "publish", "data", "site.abc123.json"), '{"from":"publish"}\n');
     await writeFile(join(siteRoot, "publish", "data", "only-publish.json"), '{"from":"publish-only"}\n');
     await writeFile(join(siteRoot, "files", "photo.png"), "from-files\n");
@@ -127,6 +128,10 @@ describe("editor preview host", () => {
     const body = await data.text();
     expect(body).toContain('"from":"preview"');
     expect(body).not.toContain("publish");
+
+    const searchIndex = await a.request("/preview/search-index.json", { headers });
+    expect(searchIndex.status).toBe(200);
+    expect(await searchIndex.text()).toContain("preview-index");
   });
 
   it("reads skin, library files, and shell assets, and never publish data", async () => {

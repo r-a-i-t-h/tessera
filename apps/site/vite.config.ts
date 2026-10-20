@@ -143,7 +143,7 @@ function serveSite(
             return;
           }
         }
-        if (previewDir && rel.startsWith("data/")) {
+        if (previewDir && (rel === "search-index.json" || rel.startsWith("data/"))) {
           const fromPreview = fileInDir(previewDir, rel);
           if (fromPreview) {
             sendFile(res, fromPreview);

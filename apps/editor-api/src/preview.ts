@@ -153,7 +153,7 @@ function resolvePreviewFile(rel: string, roots: PreviewRoots): string | null {
     if (override) return override;
     return fileInDir(roots.skinDir, name);
   }
-  if (rel.startsWith("data/")) {
+  if (rel === "search-index.json" || rel.startsWith("data/")) {
     return fileInDir(join(roots.siteRoot, "preview"), rel);
   }
   if (rel.startsWith("media/") && !rel.slice("media/".length).includes("/")) {
