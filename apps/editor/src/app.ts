@@ -65,6 +65,7 @@ import { mountComposeCanvases } from "./compose/canvas.js";
 import { draftYaml, dropArticleTitleZone, parsePageYaml } from "./compose/draft.js";
 import { readContentDocument, readContentDraft, composeFormInner, frameNote, htmlByZone, rawText, templateBodyLayout, type ContentMode } from "./compose/view.js";
 import { announceRoute, editorChrome as chrome, loginView, type EditorNavContext } from "./chrome.js";
+import { tesseraLogo3x5 } from "./logo-3x5.js";
 import { editPlace, type EditPlace } from "./edit-place.js";
 import { RECORD_TAB_ORDER } from "./record-nav.js";
 import { createRecord, type CreateRecordDestination } from "./create-record.js";
@@ -1683,7 +1684,7 @@ function homeHtml(listing: RecordList, notice = "", error = ""): string {
        <p><a class="w3-button w3-theme" href="${previewUrl}">Open preview</a>
           <a class="w3-button w3-white" href="#/records">Records</a></p>`
     : startSiteHtml();
-  return `<h1 class="w3-large">Tessera editor</h1>
+  return `${tesseraLogo3x5()}
     ${statusPanels(notice, error)}
     ${body}`;
 }

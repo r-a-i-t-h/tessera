@@ -138,7 +138,8 @@ describe("editor route orchestration", () => {
 
     navigate("#/");
     await vi.waitFor(() => {
-      expect(root.querySelector("h1")?.textContent).toBe("Tessera editor");
+      expect(root.querySelector("h1")?.textContent).toBe("Tessera");
+      expect(root.querySelector("h1 svg.tessera-logo")?.getAttribute("viewBox")).toBe("0 0 288 68");
     });
     navigate("#/content/home");
     await vi.waitFor(() => {
