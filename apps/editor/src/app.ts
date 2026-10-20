@@ -1491,9 +1491,9 @@ async function bindBackups(root: HTMLElement, user: PublicUser, notice = "", err
   }
   root.innerHTML = chrome(user, backupsHtml(listing, themes, notice, error), true, "backups");
   bindChrome(root);
-  root.querySelector<HTMLFormElement>("#backup-upload")?.addEventListener("submit", (event) => {
+  const form = root.querySelector<HTMLFormElement>("#backup-upload");
+  if (form) form.addEventListener("submit", (event) => {
     event.preventDefault();
-    const form = event.currentTarget;
     const input = form.querySelector<HTMLInputElement>('input[name="file"]');
     const file = input?.files?.[0];
     if (!file) {
