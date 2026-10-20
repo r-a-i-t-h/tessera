@@ -126,6 +126,24 @@ export function bindPageTargetPickerPanels(root: ParentNode): void {
     );
     section?.addEventListener("toggle", () => writePageTargetSectionOpen(id, section.open));
   }
+  const picker = root.querySelector<HTMLElement>(".editor-page-target-picker");
+  const filter = root.querySelector<HTMLInputElement>("[data-page-target-filter]");
+  const applyPageTargetFilter = () => {
+    const needle = filter?.value.trim().toLowerCase() ?? "";
+    picker?.querySelectorAll<HTMLElement>("li[data-page-target-filter-text]").forEach((row) => {
+      const title = row.dataset.pageTargetFilterText ?? "";
+      row.hidden = Boolean(needle) && !title.includes(needle);
+    });
+    picker
+      ?.querySelectorAll<HTMLElement>("details[data-page-target-section='articles'] .editor-page-target-section")
+      .forEach((group) => {
+        const rows = group.querySelectorAll<HTMLElement>("li[data-page-target-filter-text]");
+        if (!rows.length) return;
+        const anyVisible = [...rows].some((row) => !row.hidden);
+        group.hidden = Boolean(needle) && !anyVisible;
+      });
+  };
+  filter?.addEventListener("input", applyPageTargetFilter);
 }
 
 /** Modal body for choosing a page id or external URL. */
@@ -134,25 +152,14 @@ export function renderPageTargetPicker(choices: PageTargetChoices, currentHref: 
   const external = isLikelyExternalHref(trimmed) ? trimmed : "";
   const currentPageBanner = pageLinkTargetBanner(choices, trimmed);
   const navItems = choices.nav
-    .map((page) => {
-      const label = pageLabel(page);
-      const selected = page.id === trimmed ? ' aria-current="true"' : "";
-      const indent = page.depth > 0 ? ` style="padding-left:${page.depth * 1.25}rem"` : "";
-      return `<li${indent}><button type="button" class="w3-button w3-white editor-page-target-row" data-pick-page="${escapeHtml(page.id)}"${selected}>${escapeHtml(label)}</button></li>`;
-    })
+    .map((page) => pageTargetListItem(page, trimmed, page.depth))
     .join("");
   const navBody = navItems
     ? `<ul class="w3-ul editor-page-target-list">${navItems}</ul>`
     : `<p class="w3-text-grey">No navigation pages. Add links on the Nav record.</p>`;
   const navBlock = pageTargetCollapsibleSection("nav", "Navigation", navBody);
 
-  const allPages = (choices.pages ?? [])
-    .map((page) => {
-      const label = pageLabel(page);
-      const selected = page.id === trimmed ? ' aria-current="true"' : "";
-      return `<li><button type="button" class="w3-button w3-white editor-page-target-row" data-pick-page="${escapeHtml(page.id)}"${selected}>${escapeHtml(label)}</button></li>`;
-    })
-    .join("");
+  const allPages = (choices.pages ?? []).map((page) => pageTargetListItem(page, trimmed)).join("");
   const pagesBlock = allPages
     ? pageTargetCollapsibleSection("pages", "All pages", `<ul class="w3-ul editor-page-target-list">${allPages}</ul>`)
     : "";
@@ -160,13 +167,7 @@ export function renderPageTargetPicker(choices: PageTargetChoices, currentHref: 
   const articleBlocks = choices.articles
     .map((group) => {
       const heading = group.blogTitle && group.blogTitle !== group.blogId ? `${group.blogTitle} (${group.blogId})` : group.blogId;
-      const items = group.pages
-        .map((page) => {
-          const label = pageLabel(page);
-          const selected = page.id === trimmed ? ' aria-current="true"' : "";
-          return `<li><button type="button" class="w3-button w3-white editor-page-target-row" data-pick-page="${escapeHtml(page.id)}"${selected}>${escapeHtml(label)}</button></li>`;
-        })
-        .join("");
+      const items = group.pages.map((page) => pageTargetListItem(page, trimmed)).join("");
       if (!items) return "";
       return `<section class="editor-page-target-section"><h4 class="w3-medium">${escapeHtml(heading)}</h4><ul class="w3-ul editor-page-target-list">${items}</ul></section>`;
     })
@@ -180,9 +181,15 @@ export function renderPageTargetPicker(choices: PageTargetChoices, currentHref: 
       <p><button type="button" class="w3-button w3-theme" data-page-target-use-url>Use this URL</button></p>
     </section>`;
 
+  const filterBlock = `<p class="editor-page-target-filter">
+      <label for="page-target-filter">Filter</label>
+      <input id="page-target-filter" class="w3-input w3-border" type="search" data-page-target-filter autocomplete="off" placeholder="Title contains…" />
+    </p>`;
+
   return `<div class="editor-page-target-picker">
     ${currentPageBanner}
     ${externalBlock}
+    ${filterBlock}
     ${navBlock}
     ${pagesBlock}
     ${articlesBlock}
@@ -219,6 +226,18 @@ function pageTargetCollapsibleSection(id: PageTargetSectionId, title: string, bo
 
 function pageLabel(page: PageChoice): string {
   return page.title && page.title !== page.id ? `${page.title} (${page.id})` : page.id;
+}
+
+function pageTargetFilterText(page: PageChoice): string {
+  return (page.title ?? page.id).toLowerCase();
+}
+
+function pageTargetListItem(page: PageChoice, currentHref: string, depth = 0): string {
+  const label = pageLabel(page);
+  const selected = page.id === currentHref ? ' aria-current="true"' : "";
+  const indent = depth > 0 ? ` style="padding-left:${depth * 1.25}rem"` : "";
+  const filterText = escapeHtml(pageTargetFilterText(page));
+  return `<li${indent} data-page-target-filter-text="${filterText}"><button type="button" class="w3-button w3-white editor-page-target-row" data-pick-page="${escapeHtml(page.id)}"${selected}>${escapeHtml(label)}</button></li>`;
 }
 
 function pageTitleById(records: readonly RecordSummary[]): Map<string, string | undefined> {

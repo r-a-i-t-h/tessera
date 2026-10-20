@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { RecordList } from "../api.js";
 import {
+  bindPageTargetPickerPanels,
   buildPageTargetChoices,
   parsePageTargetChoices,
   readPageTargetSectionOpen,
@@ -74,6 +75,49 @@ describe("renderPageTargetPicker", () => {
     expect(html.indexOf("Page link:")).toBeLessThan(html.indexOf("External url"));
     expect(html).toContain("<strong>Home (home)</strong>");
     expect(html).toContain('aria-current="true"');
+  });
+
+  it("includes a title filter above the collapsible sections", () => {
+    const choices = buildPageTargetChoices(
+      listing([{ kind: "content", id: "home", title: "Home" }]),
+      { id: "s", title: "S", homePageId: "home" },
+      [{ id: "home", sidebar: true }],
+    );
+    const html = renderPageTargetPicker(choices, "");
+    expect(html).toContain('data-page-target-filter');
+    expect(html.indexOf("data-page-target-filter")).toBeLessThan(html.indexOf('data-page-target-section="nav"'));
+    expect(html).toContain('data-page-target-filter-text="home"');
+  });
+});
+
+/**
+ * @vitest-environment happy-dom
+ */
+describe("bindPageTargetPickerPanels", () => {
+  it("filters list rows by title without changing section open state", () => {
+    const choices = buildPageTargetChoices(
+      listing([
+        { kind: "content", id: "home", title: "Home" },
+        { kind: "content", id: "about", title: "About us" },
+      ]),
+      { id: "s", title: "S", homePageId: "home" },
+      [
+        { id: "home", sidebar: true },
+        { id: "about", sidebar: true },
+      ],
+    );
+    const root = document.createElement("div");
+    root.innerHTML = renderPageTargetPicker(choices, "");
+    const nav = root.querySelector<HTMLDetailsElement>('details[data-page-target-section="nav"]')!;
+    nav.open = true;
+    bindPageTargetPickerPanels(root);
+    const filter = root.querySelector<HTMLInputElement>("[data-page-target-filter]")!;
+    filter.value = "about";
+    filter.dispatchEvent(new Event("input", { bubbles: true }));
+    const rows = [...root.querySelectorAll<HTMLElement>("li[data-page-target-filter-text]")];
+    expect(rows.find((row) => row.dataset.pageTargetFilterText === "home")?.hidden).toBe(true);
+    expect(rows.find((row) => row.dataset.pageTargetFilterText === "about us")?.hidden).toBe(false);
+    expect(nav.open).toBe(true);
   });
 });
 

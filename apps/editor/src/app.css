@@ -913,6 +913,15 @@ img[data-hero-preview] {
   margin-bottom: 0.75rem;
 }
 
+.editor-page-target-filter {
+  margin: 0 0 0.75rem;
+}
+
+.editor-page-target-filter label {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
 .editor-record-note {
   margin: 0.15rem 0 0.35rem;
 }
