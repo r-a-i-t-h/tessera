@@ -42,7 +42,6 @@ body {
   flex-direction: column;
   overflow: auto;
   z-index: 13;
-  padding-bottom: 2.5rem;
 }
 
 .editor-nav-block {
@@ -90,6 +89,23 @@ body {
   margin-top: auto;
   flex: 0 0 auto;
   padding-top: 1rem;
+}
+
+.editor-sidebar-version {
+  flex: 0 0 auto;
+  padding: 0.35rem 1rem 0.85rem;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  opacity: 0.72;
+}
+
+.editor-login-version {
+  margin: 0;
+  padding: 0 1rem 1.25rem;
+  max-width: 32rem;
+  text-align: center;
+  color: #777;
+  font-size: 0.8rem;
 }
 
 .editor-body {
@@ -140,7 +156,7 @@ body {
   position: fixed;
   z-index: 13;
   right: 1rem;
-  bottom: calc(2rem + 0.65rem);
+  bottom: 0.65rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -180,23 +196,6 @@ body {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-}
-
-.editor-footer {
-  position: fixed;
-  z-index: 12;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  height: 2rem;
-  padding: 0 1rem;
-  background: #fff;
-  border-top: 1px solid #ddd;
-  color: #555;
-  font-size: 0.8rem;
 }
 
 .editor-wide {

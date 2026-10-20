@@ -23,6 +23,8 @@ describe("editor chrome", () => {
     expect(html).toContain("editor-nav-brand w3-theme-d3");
     expect(html).toContain('class="editor-shell"');
     expect(html).toContain('class="editor-scroll"');
+    expect(html).toContain('class="editor-sidebar-version"');
+    expect(html).not.toContain("editor-footer");
   });
 
   it("expands blog instances under Articles and marks the active one", () => {

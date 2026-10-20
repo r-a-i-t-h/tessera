@@ -117,6 +117,7 @@ export function editorChrome(
           <a class="w3-bar-item w3-button${section === "account" ? " w3-white" : ""}" href="#/account" title="Account"${section === "account" ? ' aria-current="page"' : ""}>${escapeHtml(user.username)}</a>
           <button type="button" class="w3-bar-item w3-button" data-action="logout">Sign out</button>
         </div>
+        <div class="editor-sidebar-version">${editorVersionLabel()}</div>
       </aside>
       <div class="editor-body">
         <div id="editor-status-stack" class="editor-status-stack" hidden></div>
@@ -126,8 +127,7 @@ export function editorChrome(
         </div>
         ${backToTopHtml()}
       </div>
-    </div>
-    ${editorFooter()}`;
+    </div>`;
 }
 
 export function announceRoute(root: ParentNode): void {
@@ -156,9 +156,9 @@ export function loginView(error = "", username = ""): string {
     </form></main>
     </div>
     ${backToTopHtml()}
-    ${editorFooter()}`;
+    <p class="editor-login-version">${editorVersionLabel()}</p>`;
 }
 
-function editorFooter(): string {
-  return `<footer class="editor-footer"><span class="editor-footer-version">v${escapeHtml(tesseraVersion)}</span></footer>`;
+function editorVersionLabel(): string {
+  return `v${escapeHtml(tesseraVersion)}`;
 }
