@@ -31,10 +31,10 @@ export function editorChrome(
       ${link("#/articles", "Articles", "articles")}
       ${link("#/records", "Records", "records")}
       ${link("#/library", "Library", "library")}
-      ${link("#/maintenance", "Maintenance", "maintenance")}
       ${link("#/styles", "Styles", "styles")}
-      ${link("#/backups", "Backups", "backups")}
       ${link("#/users", "Users", "users")}
+      ${link("#/maintenance", "Maintenance", "maintenance")}
+      ${link("#/backups", "Backups", "backups")}
       <button type="button" class="w3-bar-item w3-button" data-action="render-site">Render site</button>
       <button type="button" class="w3-bar-item w3-button" data-action="publish-site">Publish</button>
       ${link("#/guide", "Guide", "guide")}

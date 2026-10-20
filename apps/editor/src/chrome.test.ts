@@ -30,6 +30,11 @@ describe("editor chrome", () => {
       "maintenance",
     );
     expect(html).toContain('href="#/maintenance" aria-current="page"');
+    const styles = html.indexOf('href="#/styles"');
+    const users = html.indexOf('href="#/users"');
+    const maintenance = html.indexOf('href="#/maintenance"');
+    expect(styles).toBeLessThan(users);
+    expect(users).toBeLessThan(maintenance);
   });
 
   it("announces the main heading after navigation without focusing it", () => {
