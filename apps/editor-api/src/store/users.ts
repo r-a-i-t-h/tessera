@@ -27,7 +27,8 @@ function normalizeUser(raw: Record<string, unknown>): UserRecord | undefined {
 async function listJsonFiles(dir: string): Promise<string[]> {
   try {
     const entries = await readdir(dir);
-    return entries.filter((e) => e.endsWith(".json")).sort();
+    // `._name.json` is a macOS AppleDouble sidecar, not a user record.
+    return entries.filter((e) => e.endsWith(".json") && !e.startsWith("._")).sort();
   } catch {
     return [];
   }
@@ -61,7 +62,14 @@ export class UserStore {
     this.users.clear();
     this.normalizedUsers.clear();
     for (const file of await listJsonFiles(usersDir)) {
-      const raw = await readJson<Record<string, unknown>>(join(usersDir, file));
+      const path = join(usersDir, file);
+      let raw: Record<string, unknown>;
+      try {
+        raw = await readJson<Record<string, unknown>>(path);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        throw new Error(`User file ${file} is not valid JSON: ${message}`);
+      }
       const user = normalizeUser(raw);
       if (user) this.indexUser(user);
     }

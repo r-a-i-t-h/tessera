@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -103,5 +103,25 @@ describe("UserStore seed load", () => {
     expect(store.getUser("bob")).toBeUndefined();
     const left = await readdir(join(dataDir, "users"));
     expect(left).not.toContain("bob.json");
+  });
+
+  it("ignores a macOS AppleDouble sidecar beside a user file", async () => {
+    const dataDir = await siteDir();
+    const usersDir = join(dataDir, "users");
+    await mkdir(usersDir, { recursive: true });
+    await writeFile(
+      join(usersDir, "admin.json"),
+      `${JSON.stringify({
+        username: "admin",
+        passwordHash: "hash",
+        passwordSalt: "salt",
+        createdAt: "2026-08-10T20:00:00.000Z",
+      })}\n`,
+    );
+    await writeFile(join(usersDir, "._admin.json"), Buffer.from("Mac OS X\0\u0005\u0016\u0007binary"));
+
+    const store = new UserStore(dataDir);
+    await store.load(seedDir);
+    expect(store.getUser("admin")?.passwordHash).toBe("hash");
   });
 });
