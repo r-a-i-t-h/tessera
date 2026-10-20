@@ -85,6 +85,13 @@ fi
 cp -R deploy "$DEST/deploy"
 echo "pack-release: bundling authoring migrations"
 node "$ROOT/scripts/bundle-migrations.mjs" "$DEST/deploy/migrations"
+echo "pack-release: bundling reset-user-password"
+node_modules/esbuild/bin/esbuild apps/editor-api/scripts/reset-user-password.ts \
+  --bundle \
+  --platform=node \
+  --format=esm \
+  --target=node20 \
+  --outfile="$DEST/deploy/reset-user-password.mjs"
 find "$DEST/deploy" -name '*.test.sh' -delete
 printf '%s\n' "$TAG" >"$DEST/VERSION"
 
@@ -146,7 +153,7 @@ for CPU in arm64 x64; do
   rm -rf "$SIDE"
 done
 
-chmod 755 "$DEST/deploy/post-update.sh" "$DEST/deploy/migrate.sh" "$DEST/deploy/nginx-upload-limit.sh" "$DEST/deploy/nginx-upload-limit.ps1" "$DEST/deploy/grant-publish.sh"
+chmod 755 "$DEST/deploy/post-update.sh" "$DEST/deploy/migrate.sh" "$DEST/deploy/nginx-upload-limit.sh" "$DEST/deploy/nginx-upload-limit.ps1" "$DEST/deploy/grant-publish.sh" "$DEST/deploy/reset-user-password.sh"
 if [ -d "$DEST/deploy/migrations" ]; then
   find "$DEST/deploy/migrations" -name '*.sh' -exec chmod 755 {} +
 fi
