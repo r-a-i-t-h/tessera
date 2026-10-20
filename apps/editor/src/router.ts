@@ -6,7 +6,7 @@ export type Route =
   | { page: "library"; id: string | null }
   | { page: "maintenance"; tab?: string }
   | { page: "backups" }
-  | { page: "styles" }
+  | { page: "styles"; sheet?: string }
   | { page: "guide" }
   | { page: "account" }
   | { page: "users" }
@@ -14,8 +14,29 @@ export type Route =
   | { page: "edit"; kind: string; id: string }
   | { page: "missing" };
 
+function hashPathAndQuery(hash: string): { path: string; query: URLSearchParams } {
+  const raw = hash.replace(/^#\/?/, "");
+  const qIdx = raw.indexOf("?");
+  if (qIdx === -1) return { path: raw, query: new URLSearchParams() };
+  return { path: raw.slice(0, qIdx), query: new URLSearchParams(raw.slice(qIdx + 1)) };
+}
+
+/** Hash route to the Styles page with a sheet editor maximized. */
+export function stylesSheetHref(sheetId: string): string {
+  return `#/styles?sheet=${encodeURIComponent(sheetId)}`;
+}
+
+/** Stylesheet id from `#/styles?sheet=…` or `?sheet=…` on the page URL. */
+export function stylesSheetQuery(hash = window.location.hash): string | undefined {
+  const { query: hashQuery } = hashPathAndQuery(hash);
+  const fromHash = hashQuery.get("sheet")?.trim();
+  if (fromHash) return fromHash;
+  const fromSearch = new URLSearchParams(window.location.search).get("sheet")?.trim();
+  return fromSearch || undefined;
+}
+
 export function parseRoute(hash: string): Route {
-  const path = hash.replace(/^#\/?/, "");
+  const { path, query } = hashPathAndQuery(hash);
   if (!path) return { page: "home" };
   const slash = path.indexOf("/");
   const head = decodeURIComponent(slash === -1 ? path : path.slice(0, slash));
@@ -39,7 +60,11 @@ export function parseRoute(hash: string): Route {
     return { page: "maintenance", tab: rest || undefined };
   }
   if (head === "backups") return rest ? { page: "missing" } : { page: "backups" };
-  if (head === "styles") return rest ? { page: "missing" } : { page: "styles" };
+  if (head === "styles") {
+    if (rest) return { page: "missing" };
+    const sheet = query.get("sheet")?.trim();
+    return sheet ? { page: "styles", sheet } : { page: "styles" };
+  }
   if (head === "guide") return rest ? { page: "missing" } : { page: "guide" };
   if (head === "account") return rest ? { page: "missing" } : { page: "account" };
   if (head === "users") {

@@ -1,3 +1,5 @@
+import { stylesSheetHref } from "../router.js";
+
 export type FieldType = "string" | "number" | "date" | "Checkbox" | "SingleSelect" | "yaml";
 
 export type SelectOption = { value: string; label: string };
@@ -7,6 +9,8 @@ export type FieldSchema = {
   label: string;
   type: FieldType;
   options?: SelectOption[];
+  /** Trusted HTML shown below the control (internal links only). */
+  helpHtml?: string;
   readOnly?: boolean;
   required?: boolean;
   /** Shown when the stored value is missing. */
@@ -30,6 +34,18 @@ export const ASPECT_NO_CHANGE = "__non_theme__";
 export type FormSchema = {
   fields: FieldSchema[];
 };
+
+const SITE_FIELD_HELP: Record<string, string> = {
+  style: `Chrome tokens on the site record. Values that differ from the Tessera defaults are written after the stylesheet links and override <code>:root</code> variables in <a href="${stylesSheetHref("tessera")}">Tessera</a> (<code>skin/tessera.css</code>). The <a href="#/styles">Styles</a> page edits the same data with a preview.`,
+  panelTones: `Define id, label, and className for each tone. Put CSS for those classes in <a href="${stylesSheetHref("local")}">Site local</a> (<code>shell/local.css</code>) so theme apply does not remove them.`,
+};
+
+function withSiteFieldHelp(fields: FieldSchema[]): FieldSchema[] {
+  return fields.map((field) => {
+    const helpHtml = SITE_FIELD_HELP[field.name];
+    return helpHtml ? { ...field, helpHtml } : field;
+  });
+}
 
 export const SITE_FORM: FormSchema = {
   fields: [
@@ -282,6 +298,7 @@ export function schemaFor(kind: string, data: unknown): FormSchema | undefined {
   // Panel tones are site-owned and stay editable on the site form.
   if (kind === "site") {
     skip.add("aspects");
+    return { fields: withSiteFieldHelp([...authored.fields, ...fieldsFromRecord(record, skip)]) };
   }
   return { fields: [...authored.fields, ...fieldsFromRecord(record, skip)] };
 }

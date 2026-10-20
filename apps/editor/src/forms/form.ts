@@ -79,8 +79,9 @@ function textarea(field: FieldSchema, id: string, text: string, kind: string): s
   const head = yaml
     ? `<span class="editor-code-head"><label for="${id}">${escapeHtml(field.label)}</label>${codeWrapToggle(id)}</span>`
     : `<label for="${id}">${escapeHtml(field.label)}</label>`;
+  const help = field.helpHtml ? `<p class="w3-small w3-text-grey">${field.helpHtml}</p>` : "";
   return `<p class="editor-prop-wide">${head}
-    ${control(`<textarea id="${id}" name="${escapeHtml(field.name)}" data-kind="${kind}" rows="${rows}"${spell} class="w3-input w3-border${extra}">${escapeHtml(text)}</textarea>`)}</p>`;
+    ${control(`<textarea id="${id}" name="${escapeHtml(field.name)}" data-kind="${kind}" rows="${rows}"${spell} class="w3-input w3-border${extra}">${escapeHtml(text)}</textarea>`)}${help}</p>`;
 }
 
 function displayString(field: FieldSchema, value: unknown): string {

@@ -3,9 +3,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   bindStylesheetEditors,
+  openMaximizedStylesheet,
   readStyleTokensOpen,
   readStylesheetOpen,
   stylesheetEditors,
+  stylesPageHtml,
 } from "./styles-page.js";
 
 const panelStore = new Map<string, string>();
@@ -21,6 +23,12 @@ function stubPanelStorage(): void {
     },
   });
 }
+
+describe("site style page", () => {
+  it("links token overrides to the Tessera stylesheet editor", () => {
+    expect(stylesPageHtml({ style: {} })).toContain('href="#/styles?sheet=tessera">Tessera</a>');
+  });
+});
 
 describe("style panel persistence", () => {
   beforeEach(() => {
@@ -95,5 +103,23 @@ describe("stylesheet editors", () => {
     expect(form.hasAttribute("role")).toBe(false);
     expect(document.querySelector(".style-sheet-overlay-host")).toBeNull();
     expect(sheet.contains(form)).toBe(true);
+  });
+
+  it("maximizes a collapsed stylesheet panel", () => {
+    localStorage.setItem(
+      "tessera.styles.panels",
+      JSON.stringify({ sheets: { site: false } }),
+    );
+    document.body.innerHTML = stylesheetEditors([
+      { id: "site", label: "Site layout", text: ".x {}", overridden: false },
+    ]);
+    const form = document.querySelector<HTMLFormElement>('form[data-sheet="site"]')!;
+    const sheet = form.closest<HTMLDetailsElement>("details.style-sheet")!;
+    expect(sheet.open).toBe(false);
+
+    bindStylesheetEditors(document.body, () => {});
+    expect(openMaximizedStylesheet(document.body, "site")).toBe(true);
+    expect(sheet.open).toBe(true);
+    expect(sheet.classList.contains("style-sheet--maximized")).toBe(true);
   });
 });

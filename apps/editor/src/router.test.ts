@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseRoute } from "./router.js";
+import { parseRoute, stylesSheetHref, stylesSheetQuery } from "./router.js";
 
 describe("parseRoute", () => {
   it.each([
@@ -17,6 +17,8 @@ describe("parseRoute", () => {
     ["#/maintenance/orphans/extra", { page: "missing" }],
     ["#/backups", { page: "backups" }],
     ["#/styles", { page: "styles" }],
+    ["#/styles?sheet=site", { page: "styles", sheet: "site" }],
+    ["#/styles?sheet=w3", { page: "styles", sheet: "w3" }],
     ["#/guide", { page: "guide" }],
     ["#/account", { page: "account" }],
     ["#/users", { page: "users" }],
@@ -60,5 +62,14 @@ describe("parseRoute", () => {
 
   it("surfaces malformed URI encoding instead of silently changing the route", () => {
     expect(() => parseRoute("#/content/bad%")).toThrow(URIError);
+  });
+
+  it("reads sheet from hash query for styles deep links", () => {
+    expect(stylesSheetQuery("#/styles?sheet=tessera")).toBe("tessera");
+    expect(stylesSheetQuery("#/styles")).toBeUndefined();
+  });
+
+  it("builds a maximized stylesheet href", () => {
+    expect(stylesSheetHref("local")).toBe("#/styles?sheet=local");
   });
 });

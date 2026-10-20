@@ -195,3 +195,36 @@ The editor’s **Maintenance** section (`#/maintenance`) lists site-health findi
 - **Rescan drift** — dangling media refs, plus assets sitting in the library’s `scanned` folder after a rescan.
 
 These reports are separate from the per-page preview diagnostics panel.
+
+## Panel tones
+
+The site record may list extra tones for Compose **Panel** and **Quote** sections (`panelTones` on the Site form). They appear in the Tone dropdown and style that block only; they are not aspects and do not change the page chrome. Put their CSS in `shell/local.css` so a theme reinstall does not wipe it. Theme apply does not clear the catalog. Panel is a nested-block container (like Card): the tone styles the shell, and you drop other Compose sections inside it.
+
+Keep typed divergence small. Prefer a background (or border) on the panel shell, and only change type on a **Text** widget that is a direct child of the panel body. Cards, quotes, images, and text nested inside those stay on the site style. Example catalog entry and CSS:
+
+```yaml
+- id: callout
+  label: Callout
+  className: tone-callout
+```
+
+```css
+.tone-callout > .rt-panel-body > .tessera-text {
+  font-family: "Source Sans 3", sans-serif;
+  font-size: 1.15em;
+  color: #1a237e;
+  background-color: #fff59d;
+  padding: 0.35em 0.5em;
+}
+.tone-callout > .rt-panel-body > .tessera-text :is(h1, h2, h3, h4, h5, h6) {
+  font-family: inherit;
+  color: inherit;
+}
+.tone-callout > .rt-panel-body > .tessera-text a,
+.tone-callout > .rt-panel-body > .tessera-text a:visited {
+  color: inherit;
+  text-decoration: underline;
+}
+```
+
+Headings and links inside that Text block need their own rules: the font picker styles `body.fontA h1…h6`, and `.tessera-main a` sets link colour. A bare rule on the panel class would paint every nested widget; the `> .rt-panel-body > .tessera-text` chain does not. A separate **Heading** block is a sibling of Text, not that class — include it only if you want the callout title treated the same way.

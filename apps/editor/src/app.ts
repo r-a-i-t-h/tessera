@@ -192,10 +192,11 @@ import {
   type PageListOrder,
 } from "./pages-list.js";
 import type { NavEntry } from "@r-a-i-t-h/tessera-model";
-import { parseRoute } from "./router.js";
+import { parseRoute, stylesSheetQuery } from "./router.js";
 import {
   bindStylePanels,
   bindStylesheetEditors,
+  openMaximizedStylesheet,
   paintSpecimen,
   previewStyle,
   readStyleForm,
@@ -267,7 +268,7 @@ async function render(root: HTMLElement): Promise<void> {
     else if (route.page === "users") await bindUsers(root, user);
     else if (route.page === "user") await bindUser(root, user, route.username);
     else if (route.page === "backups") await bindBackups(root, user);
-    else if (route.page === "styles") await bindStyles(root, user);
+    else if (route.page === "styles") await bindStyles(root, user, "", "", route.sheet ?? stylesSheetQuery());
     else if (route.page === "guide") {
       root.innerHTML = chrome(user, guideHtml(), true, "guide");
       bindChrome(root);
@@ -342,7 +343,13 @@ function bindChrome(root: HTMLElement): void {
   });
 }
 
-async function bindStyles(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {
+async function bindStyles(
+  root: HTMLElement,
+  user: PublicUser,
+  notice = "",
+  error = "",
+  maximizeSheet?: string,
+): Promise<void> {
   const listing = await listRecords();
   const site = listing.records.find((row) => row.kind === "site");
   if (!site) {
@@ -364,6 +371,7 @@ async function bindStyles(root: HTMLElement, user: PublicUser, notice = "", erro
   bindChrome(root);
   bindStylesheetEditorActions(root, user);
   bindStylePanels(root);
+  if (maximizeSheet) openMaximizedStylesheet(root, maximizeSheet);
   const form = root.querySelector<HTMLFormElement>("#style-form");
   if (!form) return;
   const paint = () => paintSpecimen(root, previewStyle(form));
@@ -404,9 +412,15 @@ function bindStylesheetEditorActions(root: HTMLElement, user: PublicUser): void 
     void (async () => {
       try {
         await saveStylesheet(id, text);
-        await bindStyles(root, user, "Saved. The preview uses this immediately. Publish to update the published site.");
+        await bindStyles(
+          root,
+          user,
+          "Saved. The preview uses this immediately. Publish to update the published site.",
+          "",
+          stylesSheetQuery(),
+        );
       } catch (err) {
-        await bindStyles(root, user, "", err instanceof Error ? err.message : "Could not save that stylesheet.");
+        await bindStyles(root, user, "", err instanceof Error ? err.message : "Could not save that stylesheet.", stylesSheetQuery());
       }
     })();
   });

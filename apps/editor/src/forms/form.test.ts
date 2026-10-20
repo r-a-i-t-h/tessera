@@ -207,14 +207,29 @@ describe("schema forms", () => {
     expect(renderForm(siteSchema, { id: "s", title: "S", homePageId: "home" })).toContain(">None</option>");
     expect(withDefaultAspectChoices(SITE_FORM, []).fields.find((field) => field.name === "defaultAspectId")).toBeUndefined();
     expect(schemaFor("site", { id: "s", title: "S", homePageId: "home", aspects: aspects })?.fields.find((f) => f.name === "aspects")).toBeUndefined();
-    expect(
-      schemaFor("site", {
-        id: "s",
-        title: "S",
-        homePageId: "home",
-        panelTones: [{ id: "ma-blue", label: "School blue", className: "ma-panel-blue" }],
-      })?.fields.find((f) => f.name === "panelTones"),
-    ).toMatchObject({ name: "panelTones", type: "yaml" });
+    const panelTonesSchema = schemaFor("site", {
+      id: "s",
+      title: "S",
+      homePageId: "home",
+      panelTones: [{ id: "ma-blue", label: "School blue", className: "ma-panel-blue" }],
+    });
+    expect(panelTonesSchema?.fields.find((f) => f.name === "panelTones")).toMatchObject({
+      name: "panelTones",
+      type: "yaml",
+    });
+    expect(renderForm(panelTonesSchema!, { panelTones: [{ id: "ma-blue", label: "School blue", className: "ma-panel-blue" }] })).toContain(
+      'href="#/styles?sheet=local">Site local</a>',
+    );
+    const styleSchema = schemaFor("site", {
+      id: "s",
+      title: "S",
+      homePageId: "home",
+      style: { bar: "#112233" },
+    });
+    expect(styleSchema?.fields.find((f) => f.name === "style")?.helpHtml).toContain('href="#/styles?sheet=tessera"');
+    expect(renderForm({ fields: styleSchema!.fields.filter((f) => f.name === "style") }, { style: { bar: "#112233" } })).toContain(
+      'href="#/styles?sheet=tessera">Tessera</a>',
+    );
   });
 
   it("offers none for the page type and keeps an unknown id", () => {

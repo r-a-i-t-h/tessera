@@ -3,6 +3,7 @@ import { bindCodeWrap, codeWrapClass, codeWrapToggle } from "./code-wrap.js";
 import { activateDialog, type DialogController } from "./dialog.js";
 import { errorPanel, escapeHtml, noticePanel } from "./dom.js";
 import { STYLE_FIELDS, styleDraft, styleFieldValues, styleFromValues, styleGroups } from "./forms/style.js";
+import { stylesSheetHref } from "./router.js";
 
 const PANELS_KEY = "tessera.styles.panels";
 
@@ -84,6 +85,7 @@ export function stylesPageHtml(record: Record<string, unknown>, notice = "", err
     ${errorPanel(error)}
     <details class="style-sheet style-tokens"${readStyleTokensOpen() ? " open" : ""}>
       <summary>Site style</summary>
+      <p class="w3-small w3-text-grey">Saves <code>site.style</code>. Values you change here are written after the stylesheet links and override <code>:root</code> variables in <a href="${stylesSheetHref("tessera")}">Tessera</a> (<code>skin/tessera.css</code>). Tokens left at their defaults stay in that file only.</p>
       <div id="style-specimen" class="style-specimen" data-side="${escapeHtml(values.navSide)}">
         <style id="style-specimen-css">${siteStyleCss(values, ".style-specimen")}</style>
         <div class="style-specimen-bar"><span>Site title</span><span>A B</span></div>
@@ -238,6 +240,14 @@ export function bindStylesheetEditors(
     });
     normalize?.addEventListener("click", restore);
   }
+}
+
+/** Open a stylesheet editor maximized; works even when the panel was collapsed. */
+export function openMaximizedStylesheet(root: ParentNode, sheetId: string): boolean {
+  const form = root.querySelector<HTMLFormElement>(`form[data-sheet="${CSS.escape(sheetId)}"]`);
+  if (!form) return false;
+  form.querySelector<HTMLButtonElement>("[data-sheet-maximize]")?.click();
+  return true;
 }
 
 function sheetNote(id: string): string {
