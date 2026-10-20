@@ -2091,8 +2091,12 @@ function renderArticleListItems(articles: RecordSummary[]): string {
     .join("");
 }
 
+function articleListToolbar(order: ArticleListOrder): string {
+  return `<div class="editor-entry-filter">${articleTagFilter()}${articleListOrderSelect(order)}</div>`;
+}
+
 function articleTagFilter(): string {
-  return `<p class="editor-list-order"><label for="article-tag">Tag</label>
+  return `<p class="editor-entry-filter-field"><label for="article-tag">Tag</label>
     <input id="article-tag" class="w3-input w3-border" autocomplete="off" /></p>`;
 }
 
@@ -2136,8 +2140,7 @@ function articlesHtml(
       ${formErrorPanel()}
       <p><button type="submit" class="w3-button w3-theme">Create article</button></p>
     </form>
-    ${articleTagFilter()}
-    ${articleListOrderSelect(listOrder)}
+    ${articleListToolbar(listOrder)}
     ${items ? `<ul class="w3-ul" id="article-list">${items}</ul><p id="article-filter-empty" class="w3-text-grey" hidden>No articles with that tag.</p>` : `<p class="w3-text-grey">No articles for this blog yet.</p>`}`;
 }
 
@@ -2322,10 +2325,10 @@ function contentSection(
       ${formErrorPanel()}
       <p><button type="submit" class="w3-button w3-theme">Create page</button></p>
     </form>
-    ${listed.length ? `${entryFilter()}${pageListOrderSelect(listOrder)}${entryRecordList(listed, undefined, homePageId)}<p id="entry-filter-empty" class="w3-text-grey" hidden>No entries match.</p>` : `<p class="w3-text-grey">No records yet.</p>`}`;
+    ${listed.length ? `${entryFilter(pageListOrderSelect(listOrder))}${entryRecordList(listed, undefined, homePageId)}<p id="entry-filter-empty" class="w3-text-grey" hidden>No entries match.</p>` : `<p class="w3-text-grey">No records yet.</p>`}`;
 }
 
-function entryFilter(): string {
+function entryFilter(listOrderHtml = ""): string {
   return `<div class="editor-entry-filter" id="entry-filter">
     <p class="editor-entry-filter-field"><label for="filter-type">Type</label>
       <input id="filter-type" name="type" class="w3-input w3-border" autocomplete="off" />
@@ -2336,6 +2339,7 @@ function entryFilter(): string {
     <p class="editor-entry-filter-field"><label for="filter-title">Title</label>
       <input id="filter-title" name="title" class="w3-input w3-border" autocomplete="off" />
     </p>
+    ${listOrderHtml}
     <button type="button" class="w3-button w3-white" data-action="clear-entry-filter">Clear</button>
   </div>`;
 }
