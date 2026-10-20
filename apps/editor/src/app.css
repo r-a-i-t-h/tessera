@@ -1529,6 +1529,25 @@ img[data-hero-preview] {
   min-width: 0;
 }
 
+.editor-library-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin: 0 0 0.75rem;
+}
+
+.editor-library-toolbar > p,
+.editor-library-toolbar .editor-list-order {
+  margin: 0;
+}
+
+.editor-library-toolbar .editor-list-order select {
+  flex: 0 1 auto;
+  width: auto;
+  min-width: 10rem;
+}
+
 .editor-library-panels {
   display: flex;
   flex-direction: column;

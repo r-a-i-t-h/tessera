@@ -220,14 +220,16 @@ export function renderLibrary(
     : `<ul class="w3-ul editor-library">${rows}</ul>`;
   return `<h1 class="w3-large">Library</h1>
     ${noticePanel(notice)}
+    <p class="editor-crumbs">${crumbs}</p>
+    <div class="editor-library-toolbar">
+      <p>
+        <button type="button" class="w3-button w3-white" data-action="new-folder">New folder here</button>
+        <button type="button" class="w3-button w3-white" data-action="rescan">Rescan</button>
+      </p>
+      ${libraryAssetListOrderSelect(assetOrder)}
+    </div>
     <div class="editor-library-split">
       <section class="editor-library-browse" aria-label="Folders and files">
-        <p class="editor-crumbs">${crumbs}</p>
-        <p>
-          <button type="button" class="w3-button w3-white" data-action="new-folder">New folder here</button>
-          <button type="button" class="w3-button w3-white" data-action="rescan">Rescan</button>
-        </p>
-        ${libraryAssetListOrderSelect(assetOrder)}
         ${browse}
       </section>
       <div class="editor-library-panels">
