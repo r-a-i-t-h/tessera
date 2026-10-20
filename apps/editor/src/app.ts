@@ -166,6 +166,7 @@ import {
 import { editorMediaSrc } from "./forms/media-url.js";
 import { guideHtml } from "./guide.js";
 import { activeMaintenanceTab, maintenanceHtml } from "./maintenance.js";
+import { bindCodeWrap, codeWrapClass, codeWrapToggle, isCodeWrapToggle } from "./code-wrap.js";
 import { escapeHtml, fieldId, formErrorPanel, noticePanel, statusPanels } from "./dom.js";
 import { buildContentCreationRank } from "./creation-rank.js";
 import {
@@ -2757,8 +2758,8 @@ async function bindEdit(
         ? arrangeMarkup(layoutRoot, arrangeInfo)
         : `<p class="w3-panel w3-pale-red" role="alert">This layout’s root could not be read. Use Raw file.</p>`
       : editMode === "raw"
-      ? `<p><label for="raw-file">Raw YAML</label>
-         <textarea id="raw-file" name="raw" rows="24" spellcheck="false" class="w3-input w3-border w3-margin-top editor-raw">${escapeHtml(rawShown)}</textarea></p>`
+      ? `<p><span class="editor-code-head"><label for="raw-file">Raw YAML</label>${codeWrapToggle("raw-file")}</span>
+         <textarea id="raw-file" name="raw" rows="24" spellcheck="false" class="w3-input w3-border w3-margin-top editor-raw${codeWrapClass()}">${escapeHtml(rawShown)}</textarea></p>`
       : editMode === "compose" && record
         ? composeFormInner(kind, record, bodyLayout, typeIds, contentExtras, pageIds)
       : navList
@@ -2895,14 +2896,17 @@ async function bindEdit(
   if (form) {
     bindPickers(form);
     bindJsonFormat(form);
+    bindCodeWrap(form);
   }
   form?.addEventListener("input", (event) => {
+    if (isCodeWrapToggle(event.target)) return;
     form.dataset.dirty = "true";
     if (!session || canvasOwnsEdit(editMode, event.target)) return;
     const burst = typingBurst(event.target);
     if (burst) checkpoint(burst);
   });
   form?.addEventListener("change", (event) => {
+    if (isCodeWrapToggle(event.target)) return;
     form.dataset.dirty = "true";
     if (!session || canvasOwnsEdit(editMode, event.target)) return;
     checkpoint(typingBurst(event.target));
@@ -3454,8 +3458,8 @@ function textareaField(name: string, label: string, value: string, rows: number)
 function yamlField(name: string, label: string, value: unknown, rows: number): string {
   const id = fieldId(name);
   const text = stringifyYaml(value, { indent: 2, lineWidth: 0 }).trimEnd();
-  return `<p><label for="${id}">${escapeHtml(label)}</label>
-    <textarea id="${id}" name="${escapeHtml(name)}" data-kind="yaml" rows="${rows}" spellcheck="false" class="w3-input w3-border w3-margin-top editor-yaml">${escapeHtml(text)}</textarea></p>`;
+  return `<p><span class="editor-code-head"><label for="${id}">${escapeHtml(label)}</label>${codeWrapToggle(id)}</span>
+    <textarea id="${id}" name="${escapeHtml(name)}" data-kind="yaml" rows="${rows}" spellcheck="false" class="w3-input w3-border w3-margin-top editor-yaml${codeWrapClass()}">${escapeHtml(text)}</textarea></p>`;
 }
 
 function labelize(key: string): string {

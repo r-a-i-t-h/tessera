@@ -230,6 +230,9 @@ describe("schema forms", () => {
     expect(html).toContain("editor-prop-wide");
     expect(html).toContain('data-kind="yaml"');
     expect(html).toContain('spellcheck="false"');
+    expect(html).toContain("data-code-wrap");
+    expect(html).toContain("Word wrap");
+    expect(html).toContain('aria-controls="f-meta"');
   });
 
   it("keeps keys the content schema does not name", () => {

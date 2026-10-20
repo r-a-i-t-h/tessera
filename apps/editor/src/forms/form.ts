@@ -1,4 +1,5 @@
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
+import { codeWrapClass, codeWrapToggle } from "../code-wrap.js";
 import { escapeHtml, fieldId } from "../dom.js";
 import { parseJsonText } from "./item.js";
 import { ASPECT_NO_CHANGE, type FieldSchema, type FormSchema } from "./schema.js";
@@ -73,9 +74,12 @@ export function renderField(field: FieldSchema, value: unknown): string {
 function textarea(field: FieldSchema, id: string, text: string, kind: string): string {
   const rows = field.rows ?? 8;
   const yaml = kind === "yaml";
-  const extra = yaml ? " editor-yaml" : rows >= 14 ? " editor-body" : "";
+  const extra = yaml ? ` editor-yaml${codeWrapClass()}` : rows >= 14 ? " editor-body" : "";
   const spell = yaml ? ` spellcheck="false"` : "";
-  return `<p class="editor-prop-wide"><label for="${id}">${escapeHtml(field.label)}</label>
+  const head = yaml
+    ? `<span class="editor-code-head"><label for="${id}">${escapeHtml(field.label)}</label>${codeWrapToggle(id)}</span>`
+    : `<label for="${id}">${escapeHtml(field.label)}</label>`;
+  return `<p class="editor-prop-wide">${head}
     ${control(`<textarea id="${id}" name="${escapeHtml(field.name)}" data-kind="${kind}" rows="${rows}"${spell} class="w3-input w3-border${extra}">${escapeHtml(text)}</textarea>`)}</p>`;
 }
 

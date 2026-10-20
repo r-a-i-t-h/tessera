@@ -67,6 +67,8 @@ describe("stylesheet editors", () => {
     expect(html).toContain("data-sheet-maximize>Maximize</button>");
     expect(html).toContain('class="w3-button w3-white style-sheet-normalize" data-sheet-normalize');
     expect(html).toContain('data-sheet="site"');
+    expect(html).toContain("data-code-wrap");
+    expect(html).toContain('id="style-site"');
   });
 
   it("toggles maximize overlay and restores on normalize", () => {

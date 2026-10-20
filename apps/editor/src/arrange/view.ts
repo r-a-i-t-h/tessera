@@ -4,6 +4,7 @@ import {
   isKnownW3RegionPreset,
   w3RegionPresetClasses,
 } from "@r-a-i-t-h/tessera-skin-w3";
+import { codeWrapClass, codeWrapToggle } from "../code-wrap.js";
 import { escapeHtml } from "../dom.js";
 import {
   COMPONENT_CHOICES,
@@ -188,7 +189,8 @@ function componentFields(node: Extract<LayoutNode, { type: "component" }>, used:
   const extra = extraProps(props);
   const extraText = Object.keys(extra).length ? yamlish(extra) : "";
   return `${shape}${place}${known}
-    <p><label>Other props <textarea class="w3-input w3-border editor-yaml" data-field="extraProps" rows="4" spellcheck="false">${escapeHtml(extraText)}</textarea></label></p>`;
+    <p><span class="editor-code-head"><label for="arrange-extra-props">Other props</label>${codeWrapToggle("arrange-extra-props")}</span>
+    <textarea id="arrange-extra-props" class="w3-input w3-border editor-yaml${codeWrapClass()}" data-field="extraProps" rows="4" spellcheck="false">${escapeHtml(extraText)}</textarea></p>`;
 }
 
 function knownFields(name: string, props: Record<string, unknown>): string {
