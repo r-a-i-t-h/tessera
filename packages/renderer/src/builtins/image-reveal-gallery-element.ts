@@ -175,6 +175,11 @@ function lerp(a: number, b: number, t: number): number {
 
 /**
  * Cropped image panels: hover grow (fine pointer), click/tap reveal full stage then navigate.
+ *
+ * Paint model matches the live Miller's Ark gallery: each panel owns its
+ * `background-image`, and crop is `background-position` synced to left/top.
+ * Stage is design-sized and fitted with CSS `transform: scale` (ResizeObserver
+ * only updates scale / wrap height — not panel geometry).
  */
 export class TesseraImageRevealGallery extends WCBase {
   useShadow = false;
@@ -191,7 +196,6 @@ export class TesseraImageRevealGallery extends WCBase {
   #hoverGap = 10;
   #navigateDelay = 2500;
   #titleSizeEm = 1;
-  #scale = 1;
   #activeIndex = -1;
   #navigating = false;
   #resizeObserver: ResizeObserver | null = null;
@@ -240,7 +244,7 @@ export class TesseraImageRevealGallery extends WCBase {
 
   b() {
     this.style.display = "block";
-    this.classList.add("tessera-irg", "tessera-block", "tessera-irg--scale");
+    this.classList.add("tessera-irg", "tessera-block");
     this.wrapEl.style.maxWidth = `${this.#designW}px`;
     return [this.wrapEl, [this.stageEl]];
   }
@@ -251,7 +255,7 @@ export class TesseraImageRevealGallery extends WCBase {
     this.#rebuild();
     if (typeof ResizeObserver !== "undefined") {
       this.#resizeObserver = new ResizeObserver(() => this.#syncScale());
-      this.#resizeObserver.observe(this.stageEl);
+      this.#resizeObserver.observe(this.wrapEl);
     }
     this.#syncScale();
   }
@@ -283,6 +287,10 @@ export class TesseraImageRevealGallery extends WCBase {
     this.#panels = [];
 
     if (!this.#items.length) {
+      this.stageEl.style.width = "";
+      this.stageEl.style.height = "";
+      this.stageEl.style.transform = "";
+      this.wrapEl.style.height = "";
       const empty = this.d({ className: "w3-text-grey w3-padding" });
       empty.textContent = "No reveal banner panels.";
       this.stageEl.append(empty);
@@ -303,7 +311,9 @@ export class TesseraImageRevealGallery extends WCBase {
       apart,
     );
 
-    this.stageEl.style.aspectRatio = `${this.#designW} / ${this.#designH}`;
+    this.stageEl.style.width = `${this.#designW}px`;
+    this.stageEl.style.height = `${this.#designH}px`;
+    this.stageEl.style.transformOrigin = "top left";
     this.wrapEl.style.padding = "";
 
     for (let i = 0; i < this.#items.length; i += 1) {
@@ -313,9 +323,8 @@ export class TesseraImageRevealGallery extends WCBase {
         className: "tessera-irg-panel",
         href: item.href,
       });
-      const art = this.d({ className: "tessera-irg-art" });
-      art.style.backgroundImage = `url("${item.url.replace(/"/g, "%22")}")`;
-      link.append(art);
+      link.style.backgroundImage = `url("${item.url.replace(/"/g, "%22")}")`;
+      link.style.backgroundSize = `${this.#designW}px ${this.#designH}px`;
       const label = item.title?.trim();
       if (label) link.setAttribute("aria-label", label.replace(/\n/g, " "));
       link.tabIndex = 0;
@@ -341,32 +350,32 @@ export class TesseraImageRevealGallery extends WCBase {
 
       this.stageEl.append(link);
       this.#panels.push({ el: link, orig, href: item.href });
+      this.#commitBox(link, orig);
     }
 
     this.#syncScale();
   }
 
+  /** Fit the design-sized stage into the wrap with CSS scale only. */
   #syncScale(): void {
-    const w = this.stageEl.clientWidth;
-    this.#scale = w > 0 ? w / this.#designW : 1;
-    for (let i = 0; i < this.#panels.length; i += 1) {
-      const panel = this.#panels[i]!;
-      if (panel.el.classList.contains("is-revealed")) {
-        this.#applyRect(panel.el, { left: 0, top: 0, width: this.#designW, height: this.#designH });
-      } else if (panel.el.classList.contains("is-hovered") && i === this.#activeIndex) {
-        this.#applyRect(panel.el, this.#expandedRect(panel.orig));
-      } else {
-        this.#applyRect(panel.el, panel.orig);
-      }
-    }
+    if (!this.#panels.length) return;
+    const w = this.wrapEl.clientWidth;
+    const scale = w > 0 ? w / this.#designW : 1;
+    this.stageEl.style.transform = scale === 1 ? "" : `scale(${scale})`;
+    this.wrapEl.style.height = `${Math.round(this.#designH * scale)}px`;
   }
 
   /**
-   * Box and crop are written together each frame. A CSS transition on
-   * background-position runs after left/top, so the image slides inside the panel.
+   * Box and crop are written together each frame (legacy ImageRevealGallery model):
+   * `background-position` tracks `-left -top` so the panel is a window onto the stage image.
    */
   #applyRect(el: HTMLAnchorElement, rect: ImageRevealRect, animate = false): Promise<void> {
-    const to = this.#pixelBox(rect);
+    const to: PixelBox = {
+      left: Math.round(rect.left),
+      top: Math.round(rect.top),
+      width: Math.max(1, Math.round(rect.width)),
+      height: Math.max(1, Math.round(rect.height)),
+    };
     const from = boxFromInline(el);
     this.#stopMove(el);
     const motion =
@@ -378,27 +387,12 @@ export class TesseraImageRevealGallery extends WCBase {
     return this.#moveBox(el, from, to);
   }
 
-  #pixelBox(rect: ImageRevealRect): PixelBox {
-    const s = this.#scale;
-    return {
-      left: Math.round(rect.left * s),
-      top: Math.round(rect.top * s),
-      width: Math.max(1, Math.round(rect.width * s)),
-      height: Math.max(1, Math.round(rect.height * s)),
-    };
-  }
-
   #commitBox(el: HTMLElement, box: PixelBox): void {
     el.style.left = `${box.left}px`;
     el.style.top = `${box.top}px`;
     el.style.width = `${box.width}px`;
     el.style.height = `${box.height}px`;
-    const art = el.querySelector<HTMLElement>(".tessera-irg-art");
-    if (!art) return;
-    art.style.width = `${Math.round(this.#designW * this.#scale)}px`;
-    art.style.height = `${Math.round(this.#designH * this.#scale)}px`;
-    art.style.left = `${-box.left}px`;
-    art.style.top = `${-box.top}px`;
+    el.style.backgroundPosition = `-${box.left}px -${box.top}px`;
   }
 
   #moveBox(el: HTMLElement, from: PixelBox, to: PixelBox): Promise<void> {

@@ -83,7 +83,10 @@ tessera-gallery .tessera-gallery-slides .w3-display-right {
   right: 0;
 }
 
-/* Reveal banner (imageRevealGallery) */
+/* Reveal banner (imageRevealGallery)
+   Panels crop via background-position (live MA model). Stage is design-sized
+   and fitted with CSS transform: scale. Titles use a light backdrop (no stroke
+   / multi-shadow — those stressed Safari scroll with fixed sky). */
 
 tessera-image-reveal-gallery.tessera-irg {
   width: 100%;
@@ -91,68 +94,59 @@ tessera-image-reveal-gallery.tessera-irg {
 }
 
 tessera-image-reveal-gallery .tessera-irg-wrap {
+  position: relative;
   width: 100%;
   margin-inline: auto;
+  overflow: visible;
 }
 
 tessera-image-reveal-gallery .tessera-irg-stage {
-  position: relative;
-  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
   overflow: visible;
 }
 
 tessera-image-reveal-gallery .tessera-irg-panel {
   position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   box-sizing: border-box;
   overflow: hidden;
   border-radius: 10px;
   box-shadow: 4px 8px 8px rgba(0, 0, 0, 0.2);
   text-decoration: none;
+  background-repeat: no-repeat;
   transition: opacity 0.2s ease-out;
 }
 
-tessera-image-reveal-gallery .tessera-irg-art {
-  position: absolute;
-  display: block;
-  background-repeat: no-repeat;
-  background-position: 0 0;
-  background-size: 100% 100%;
-  pointer-events: none;
-}
-
 tessera-image-reveal-gallery .tessera-irg-panel-title {
-  position: relative;
+  position: absolute;
+  left: 50%;
+  top: 50%;
   z-index: 1;
-  margin: 0;
-  padding: 0.35rem 0.5rem;
-  max-width: 100%;
   box-sizing: border-box;
+  max-width: calc(100% - 1rem);
+  margin: 0;
+  padding: 0.35rem 0.55rem;
+  border-radius: 6px;
   text-align: center;
   white-space: pre-line;
   line-height: 1.25;
   font-size: var(--tessera-irg-title-size, 1em);
   font-weight: 600;
   color: #fff;
-  -webkit-text-stroke: 0.06em rgba(0, 0, 0, 0.75);
-  paint-order: stroke fill;
-  text-shadow:
-    0 0 8px rgba(0, 0, 0, 0.95),
-    0 0 18px rgba(0, 0, 0, 0.75),
-    0 2px 4px rgba(0, 0, 0, 0.95),
-    0 0 1px rgba(0, 0, 0, 1);
+  background: rgba(0, 0, 0, 0.45);
+  transform: translate(-50%, -50%);
   pointer-events: none;
 }
 
 tessera-image-reveal-gallery .tessera-irg-panel-title[data-lines="2"] {
-  margin-top: -0.15em;
+  line-height: 1.2;
 }
 
 tessera-image-reveal-gallery .tessera-irg-panel-title[data-lines="3"],
 tessera-image-reveal-gallery .tessera-irg-panel-title[data-lines="4"] {
-  margin-top: -0.3em;
+  line-height: 1.15;
 }
 
 tessera-image-reveal-gallery .tessera-irg-panel:focus-visible {
