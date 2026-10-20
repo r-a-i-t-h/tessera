@@ -83,9 +83,3 @@ Before making a production editor reachable:
 - keep `$TESSERA_DATA` and the sibling backup directory writable only by `tessera` (the process user), and test restore separately from the live directory;
 - keep the API and reverse-proxy upload limits aligned; the API rejects over-limit requests but buffers allowed multipart bodies;
 - use the HTML and immutable-asset cache rules in `ARCHITECTURE.md` for the published site.
-
-Authoring schema migrations (the hook node-vps-kit runs as `deploy/post-update.sh`) stamp `schemaVersion` on `$TESSERA_DATA/meta.json`. The app does not bump that counter. Migrations `001` and `002` stamp versions 1 and 2 without rewriting records. Records are inside that directory, so a later migration can rewrite them and must carry before/after fixture coverage.
-
-```bash
-TESSERA_DATA=sites/willow sh deploy/migrate.sh
-```

@@ -4,8 +4,8 @@ import { readText, writeJsonAtomic } from "./fs.js";
 
 /**
  * Authoring-data schema counter in `$TESSERA_DATA/meta.json`.
- * Migrations (`deploy/post-update.sh`) are the only writer of `schemaVersion`.
  * The app copies a seed file once, then preserves whatever is already there.
+ * It reads `schemaVersion` and does not bump it.
  */
 export function metaPath(dataDir: string): string {
   return join(dataDir, "meta.json");
@@ -31,7 +31,7 @@ export async function ensureMetaFile(dataDir: string, seedDir?: string): Promise
   await writeJsonAtomic(dest, {});
 }
 
-/** Missing file or a non-numeric `schemaVersion` is 0 (migrations not applied). */
+/** Missing file or a non-numeric `schemaVersion` is 0. */
 export async function readSchemaVersion(file: string): Promise<number> {
   let text: string;
   try {

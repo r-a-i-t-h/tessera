@@ -133,17 +133,11 @@ Saving a content page writes the new YAML, then appends the **previous raw file*
 
 The editor History panel lists earlier copies; clicking a time views that raw YAML (no restore). The save response names the new `site.<hash>.json`. That filename is the browser cache key: `rev.json` changes with it, and an open snapshot tab picks the new file up on its next poll.
 
-**Authoring schema** is `schemaVersion` in `$TESSERA_DATA/meta.json`. It is not `SiteDocument.version` (the number the renderer validates). The process reads `schemaVersion` and stamps it on each history entry. It does not bump the counter. Missing or non-numeric means **0**.
+**Authoring schema** is `schemaVersion` in `$TESSERA_DATA/meta.json`. It is not `SiteDocument.version` (the number the renderer validates). The process reads `schemaVersion` and stamps it on each history entry. It does not bump the counter. Missing or non-numeric means **0**. First boot copies `seed/meta.json` into `data/` only when `meta.json` is absent, so a later boot does not wipe the stamp.
 
-[node-vps-kit](https://github.com/r-a-i-t-h/node-vps-kit) runs `deploy/post-update.sh` as the process user (`tessera`, unless install passed `-User`) after it swaps `current` and before systemd restarts. The hook receives `TESSERA_DATA`, `TESSERA_SEED`, and `TESSERA_BACKUP`. It applies `deploy/migrations/NNN-*.sh` when `NNN` is greater than `schemaVersion`. `001` stamps `schemaVersion: 1`; `002` stamps version 2 after the asset-library file layout became the authoring contract. Both leave records unchanged and preserve other meta keys. First boot copies `seed/meta.json` into `data/` only when `meta.json` is absent, so a later boot does not wipe the stamp.
+Updates replace the release tree and leave `$TESSERA_DATA` unchanged. There is no post-update rewrite of records.
 
-```bash
-TESSERA_DATA=sites/willow sh deploy/migrate.sh
-```
-
-The release tarball has no `apps/` tree. Migrations `001` and `002` are inline shell plus `node -e`. A migration that rewrites records adds `apps/editor-api/scripts/migrate-NNN-*.ts`, a matching `deploy/migrations/NNN-*.sh` that runs the sibling `NNN-*.mjs` when present, and fixture tests. `scripts/bundle-migrations.mjs` (called from `scripts/pack-release.sh`) esbuilds every `migrate-NNN-*.ts` into that `.mjs` beside the hook; the `.ts` fallback is for checkouts only. Do not register migrations one at a time in pack-release.
-
-Records live at `$TESSERA_DATA/records`, so a later migration can rewrite page files. The current `001` and `002` migrations only stamp `schemaVersion` on `meta.json`; a migration that rewrites records needs fixture tests for the before and after files. Three numbers stay distinct: the Tessera release (editor and libraries), `schemaVersion` (authoring files), and `SiteDocument.version` (the flattened document the renderer validates). An editor-only release does not require a new export. A renderer or document-schema change needs a migration, then a flatten. Already-exported `publish/` trees keep the shell they were built with until that export.
+Three numbers stay distinct: the Tessera release (editor and libraries), `schemaVersion` (the stamp on `meta.json` and on history entries), and `SiteDocument.version` (the flattened document the renderer validates). An editor-only release does not require a new export. Already-exported `publish/` trees keep the shell they were built with until the next export.
 
 ## Relative assets
 

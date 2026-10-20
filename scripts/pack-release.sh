@@ -83,8 +83,6 @@ if [ ! -f "apps/editor-api/seed/examples/willow.tar.gz" ] && [ -f "sites/willow/
     -C "sites/willow" .
 fi
 cp -R deploy "$DEST/deploy"
-echo "pack-release: bundling authoring migrations"
-node "$ROOT/scripts/bundle-migrations.mjs" "$DEST/deploy/migrations"
 echo "pack-release: bundling reset-user-password"
 node_modules/esbuild/bin/esbuild apps/editor-api/scripts/reset-user-password.ts \
   --bundle \
@@ -153,10 +151,7 @@ for CPU in arm64 x64; do
   rm -rf "$SIDE"
 done
 
-chmod 755 "$DEST/deploy/post-update.sh" "$DEST/deploy/migrate.sh" "$DEST/deploy/nginx-upload-limit.sh" "$DEST/deploy/nginx-upload-limit.ps1" "$DEST/deploy/grant-publish.sh" "$DEST/deploy/reset-user-password.sh"
-if [ -d "$DEST/deploy/migrations" ]; then
-  find "$DEST/deploy/migrations" -name '*.sh' -exec chmod 755 {} +
-fi
+chmod 755 "$DEST/deploy/nginx-upload-limit.sh" "$DEST/deploy/nginx-upload-limit.ps1" "$DEST/deploy/grant-publish.sh" "$DEST/deploy/reset-user-password.sh"
 find "$DEST" -name '*.map' -delete
 
 OUT_DIR="$ROOT/dist-release"
