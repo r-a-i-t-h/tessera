@@ -11,6 +11,7 @@ import {
   deleteLibraryFolder,
   getHistoryEntry,
   getLibrary,
+  getMaintenance,
   getRecord,
   listBackups,
   listRecords,
@@ -161,6 +162,7 @@ import {
 } from "./forms/page-target.js";
 import { editorMediaSrc } from "./forms/media-url.js";
 import { guideHtml } from "./guide.js";
+import { maintenanceHtml } from "./maintenance.js";
 import { escapeHtml, fieldId, formErrorPanel, noticePanel, statusPanels } from "./dom.js";
 import { buildContentCreationRank } from "./creation-rank.js";
 import {
@@ -263,6 +265,7 @@ async function render(root: HTMLElement): Promise<void> {
       bindChrome(root);
     }
     else if (route.page === "library") await bindLibrary(root, user, route.id);
+    else if (route.page === "maintenance") await bindMaintenance(root, user, route.tab);
     else if (route.page === "pages") await bindPages(root, user);
     else if (route.page === "articles") await bindArticles(root, user, route.blog);
     else if (route.page === "records") await bindList(root, user, route.kind);
@@ -1469,6 +1472,18 @@ function navControls(form: HTMLFormElement): ControlValue[] {
     });
   }
   return controls;
+}
+
+async function bindMaintenance(
+  root: HTMLElement,
+  user: PublicUser,
+  tab?: string,
+  notice = "",
+  error = "",
+): Promise<void> {
+  const report = await getMaintenance();
+  root.innerHTML = chrome(user, maintenanceHtml(report, tab, notice, error), true, "maintenance");
+  bindChrome(root);
 }
 
 async function bindBackups(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {

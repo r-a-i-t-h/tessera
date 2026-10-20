@@ -10,6 +10,7 @@ import { authRoutes } from "./routes/auth.js";
 import { backupRoutes } from "./routes/backups.js";
 import { recordRoutes } from "./routes/records.js";
 import { libraryRoutes } from "./routes/library.js";
+import { maintenanceRoutes } from "./routes/maintenance.js";
 import { renderRoutes } from "./routes/render.js";
 import { siteRoutes } from "./routes/site.js";
 import { themeRoutes } from "./routes/themes.js";
@@ -73,6 +74,7 @@ export function createApp(opts: {
   app.route("/api", apiRoutes);
   app.route("/api", recordRoutes);
   app.route("/api", libraryRoutes);
+  app.route("/api", maintenanceRoutes);
   app.route("/api", renderRoutes);
   app.route("/api", siteRoutes);
   app.route("/api", themeRoutes);

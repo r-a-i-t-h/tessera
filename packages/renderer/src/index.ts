@@ -104,6 +104,24 @@ export {
   type PageLinks,
 } from "./page-link-graph.js";
 export {
+  SCANNED_FOLDER_ID,
+  buildMaintenanceReport,
+  collectAssetUsage,
+  collectMediaIdsFromHtml,
+  isLibraryStyleMedia,
+  listBrokenRefs,
+  listOrphanPages,
+  listRescanDrift,
+  listUnknownBindings,
+  listUnreachableNavTargets,
+  listUnusedItemsAndLayouts,
+  listUnusedLibraryAssets,
+  mediaIdFromUrl,
+  type AssetUsage,
+  type MaintenanceFinding,
+  type MaintenanceReport,
+} from "./site-reports.js";
+export {
   DEFAULT_PAGE_STYLESHEETS,
   publishPages,
   hrefFor,

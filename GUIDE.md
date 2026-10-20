@@ -181,3 +181,17 @@ The site record names the frame every page uses until a page names another. On t
 The parent is the same parent that builds the URL. A winter fair whose parent is Events publishes at `/events/event-winter-fair` and wears the Events frame. A page that is not under Events keeps the site frame, even when it uses the same page layout. The home page does not inherit from a parent.
 
 The page layout does not follow the frame. Style tokens stay on the site. Both frames' classes live in `shell/site.css`. Each frame places its own menu components, and those components still read the one Nav record.
+
+## Maintenance
+
+The editor’s **Maintenance** section (`#/maintenance`) lists site-health findings. Each row links to the record to fix. Tabs:
+
+- **Orphan pages** — not home, not on the Nav record (after expansion), and not linked from another page via a wiki link. Articles under a reachable blog are omitted.
+- **Unused assets** — library media nothing references.
+- **Broken refs** — missing wiki targets, media, or gallery folders; the link opens the source record.
+- **Unused items** — common items and layouts never referenced.
+- **Unknown bindings** — mustache names with no binding, or components the registry does not know.
+- **Unreachable nav** — designed nav rows whose page id is missing.
+- **Rescan drift** — dangling media refs, plus assets sitting in the library’s `scanned` folder after a rescan.
+
+These reports are separate from the per-page preview diagnostics panel.

@@ -249,6 +249,31 @@ export function initSite(): Promise<RenderResult> {
   return request("/api/site/init", { method: "POST" });
 }
 
+export type MaintenanceFinding = {
+  href: string;
+  label: string;
+  detail?: string;
+};
+
+export type MaintenanceReport = {
+  ok: true;
+  orphans: MaintenanceFinding[];
+  unusedAssets: MaintenanceFinding[];
+  brokenRefs: MaintenanceFinding[];
+  unusedItems: MaintenanceFinding[];
+  unusedLayouts: MaintenanceFinding[];
+  unknownBindings: MaintenanceFinding[];
+  unreachableNav: MaintenanceFinding[];
+  rescanDrift: {
+    danglingMedia: MaintenanceFinding[];
+    scannedAssets: MaintenanceFinding[];
+  };
+};
+
+export function getMaintenance(): Promise<MaintenanceReport> {
+  return request("/api/maintenance");
+}
+
 export function listRecords(): Promise<RecordList> {
   return request("/api/records");
 }

@@ -4,6 +4,7 @@ export type Route =
   | { page: "articles"; blog?: string }
   | { page: "records"; kind?: string }
   | { page: "library"; id: string | null }
+  | { page: "maintenance"; tab?: string }
   | { page: "backups" }
   | { page: "styles" }
   | { page: "guide" }
@@ -33,6 +34,10 @@ export function parseRoute(hash: string): Route {
     return { page: "records", kind: head };
   }
   if (head === "library") return { page: "library", id: rest || null };
+  if (head === "maintenance") {
+    if (rest.includes("/")) return { page: "missing" };
+    return { page: "maintenance", tab: rest || undefined };
+  }
   if (head === "backups") return rest ? { page: "missing" } : { page: "backups" };
   if (head === "styles") return rest ? { page: "missing" } : { page: "styles" };
   if (head === "guide") return rest ? { page: "missing" } : { page: "guide" };

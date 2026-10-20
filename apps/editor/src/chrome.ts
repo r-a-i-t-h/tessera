@@ -8,6 +8,7 @@ export type EditorSection =
   | "articles"
   | "records"
   | "library"
+  | "maintenance"
   | "backups"
   | "styles"
   | "guide"
@@ -30,6 +31,7 @@ export function editorChrome(
       ${link("#/articles", "Articles", "articles")}
       ${link("#/records", "Records", "records")}
       ${link("#/library", "Library", "library")}
+      ${link("#/maintenance", "Maintenance", "maintenance")}
       ${link("#/styles", "Styles", "styles")}
       ${link("#/backups", "Backups", "backups")}
       ${link("#/users", "Users", "users")}

@@ -128,6 +128,19 @@ export function guideHtml(): string {
     <p>The parent is the same parent that builds the URL. A winter fair whose parent is Events publishes at <code>/events/event-winter-fair</code> and wears the Events frame. A page that is not under Events keeps the site frame, even when it uses the same page layout. The home page does not inherit from a parent.</p>
     <p>The page layout does not follow the frame. Style tokens stay on the site. Both frames' classes live in <code>shell/site.css</code>. Each frame places its own menu components, and those components still read the one Nav record.</p>
 
+    <h2>Maintenance</h2>
+    <p>The editor’s <a href="#/maintenance">Maintenance</a> section lists site-health findings. Each row links to the record to fix. Tabs:</p>
+    <ul>
+      <li><strong>Orphan pages</strong> — not home, not on the Nav record (after expansion), and not linked from another page via a wiki link. Articles under a reachable blog are omitted.</li>
+      <li><strong>Unused assets</strong> — library media nothing references.</li>
+      <li><strong>Broken refs</strong> — missing wiki targets, media, or gallery folders; the link opens the source record.</li>
+      <li><strong>Unused items</strong> — common items and layouts never referenced.</li>
+      <li><strong>Unknown bindings</strong> — mustache names with no binding, or components the registry does not know.</li>
+      <li><strong>Unreachable nav</strong> — designed nav rows whose page id is missing.</li>
+      <li><strong>Rescan drift</strong> — dangling media refs, plus assets sitting in the library’s <code>scanned</code> folder after a rescan.</li>
+    </ul>
+    <p>These reports are separate from the per-page preview diagnostics panel.</p>
+
     <h2>Aspects</h2>
     <p>A theme that offers more than one look lists those looks as aspects. On a page, <strong>Aspect</strong> picks one. Leave it as <strong>Inherit</strong> and the page uses the nearest parent that set one, or the site default. The home page does not inherit from a parent. Choosing an aspect only adds a class on the document root for that theme's CSS. It does not change the layout or the frame.</p>
 

@@ -144,6 +144,7 @@ Folder-relative URLs (`./…`) and Vite `base: "./"` keep a published site porta
 - Render and pages publish resolve those anchors through `hrefForPage`. Missing targets keep a placeholder href and the class `tessera-page-missing`.
 - Renaming a page rewrites `data-tessera-page` in zone HTML, page-id `href` props on bindings, `parentId`, nav, and `homePageId`.
 - Preview diagnostics builds a page-link graph from those refs and lists pages linked to and from the current page.
+- The editor **Maintenance** section (`GET /api/maintenance`) runs site-wide health reports (orphans, unused assets, broken refs, unused items/layouts, unknown bindings, unreachable nav, rescan drift). Each finding deep-links into the editor. Per-page preview diagnostics stay separate.
 
 ### Seeing a new homepage
 
@@ -354,6 +355,12 @@ Criteria define “done enough,” not a build order (see [ROADMAP.md](./ROADMAP
 
 - [x] Durable `data-tessera-page` anchors resolve at render/publish; rename rewrites them.
 - [x] Preview diagnostics lists pages linked to / from the current page (page-link graph).
+
+### Maintenance
+
+- [x] Editor top-level Maintenance section with tabs for orphan pages, unused library assets, broken refs, unused items/layouts, unknown bindings, unreachable nav, and rescan drift.
+- [x] `GET /api/maintenance` flattens the site and returns those reports; each finding includes an editor hash link.
+- [x] Orphan detection uses nav membership + the page-link graph, with blog articles inheriting reachability from a reachable parent blog.
 
 ### Routing and errors
 

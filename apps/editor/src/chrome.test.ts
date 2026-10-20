@@ -22,6 +22,16 @@ describe("editor chrome", () => {
     expect(html).toContain('class="editor-scroll"');
   });
 
+  it("marks Maintenance in the top bar", () => {
+    const html = editorChrome(
+      { ok: true, username: "alice", createdAt: "2026-01-01" },
+      "<h1>Maintenance</h1>",
+      true,
+      "maintenance",
+    );
+    expect(html).toContain('href="#/maintenance" aria-current="page"');
+  });
+
   it("announces the main heading after navigation without focusing it", () => {
     document.body.innerHTML = editorChrome(
       { ok: true, username: "alice", createdAt: "2026-01-01" },
