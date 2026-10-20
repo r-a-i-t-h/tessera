@@ -78,7 +78,7 @@ The editor’s Backups page writes a dated `tar.gz` of `data/` into the sibling 
 Before making a production editor reachable:
 
 - terminate HTTPS at the reverse proxy and set `TESSERA_SECURE_COOKIES=1` if Node is not running with `NODE_ENV=production`;
-- sign in with the seed account and change the known `admin` password immediately; with shell access you can also run `deploy/reset-user-password.sh` against `$TESSERA_DATA` (bundled in the release tarball), then restart the service;
+- sign in with the seed account and change the known `admin` password immediately; with shell access you can also run `deploy/reset-user-password.sh` against `$TESSERA_DATA` (bundled in the release tarball), then restart the service — the deploy helper re-runs the reset as the systemd `User=` when invoked with sudo so `$TESSERA_DATA/users/` stays owned by the process account;
 - restrict editor access to trusted authors; authored HTML is trusted and every signed-in user currently has full editor access;
 - keep `$TESSERA_DATA` and the sibling backup directory writable only by `tessera` (the process user), and test restore separately from the live directory;
 - keep the API and reverse-proxy upload limits aligned; the API rejects over-limit requests but buffers allowed multipart bodies;

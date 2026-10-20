@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Set an editor user's password when you have shell access to the host.
 #
 # Environment:
@@ -8,10 +8,16 @@
 #   TESSERA_DATA=/opt/tessera/mysite/data deploy/reset-user-password.sh admin 'new-secret'
 #   deploy/reset-user-password.sh /opt/tessera/mysite/data admin 'new-secret'
 #
+# When run as root, the script drops to the tessera systemd User= for that instance
+# so user files stay owned by the process account (mode 600). Running node as root
+# would leave root-owned secrets and the service would fail to start.
+#
 # Restart the tessera systemd unit after a reset so in-memory sessions are cleared.
-set -eu
+set -euo pipefail
 
-err() { echo "reset-user-password: $*" >&2; exit 1; }
+say() { printf 'reset-user-password: %s\n' "$*"; }
+err() { printf 'reset-user-password: %s\n' "$*" >&2; exit 1; }
+quote() { printf '%q' "$1"; }
 
 DATA=${TESSERA_DATA:-}
 USER=
@@ -35,9 +41,40 @@ command -v node >/dev/null 2>&1 || err "node is required"
 
 ROOT=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 BUNDLED="$ROOT/reset-user-password.mjs"
-if [ -f "$BUNDLED" ]; then
-  exec node "$BUNDLED" "$DATA" "$USER" "$PASS"
+REPO=$(CDPATH= cd -- "$ROOT/../.." && pwd)
+
+service_user_for_data() {
+  local data=$1 name unit user
+  if [[ "$data" =~ ^/opt/tessera/([^/]+)/data/?$ ]]; then
+    name="${BASH_REMATCH[1]}"
+    unit="/etc/systemd/system/tessera-${name}.service"
+    if [[ -f "$unit" ]]; then
+      user=$(awk '$1 == "User=" { print $2; exit }' "$unit")
+      if [[ -n "$user" ]] && id "$user" >/dev/null 2>&1; then
+        printf '%s\n' "$user"
+        return 0
+      fi
+    fi
+  fi
+  return 1
+}
+
+run_node() {
+  if [ -f "$BUNDLED" ]; then
+    exec node "$BUNDLED" "$DATA" "$USER" "$PASS"
+  fi
+  exec node --experimental-strip-types "$REPO/apps/editor-api/scripts/reset-user-password.ts" "$DATA" "$USER" "$PASS"
+}
+
+if [ "$(id -u)" -eq 0 ]; then
+  svc=$(service_user_for_data "$DATA") || err "running as root would create root-owned user files; run as the service user (see tessera-*.service User=) or pass TESSERA_DATA as /opt/tessera/<name>/data"
+  say "running as $svc"
+  if [ -f "$BUNDLED" ]; then
+    cmd="exec node $(quote "$BUNDLED") $(quote "$DATA") $(quote "$USER") $(quote "$PASS")"
+  else
+    cmd="exec node --experimental-strip-types $(quote "$REPO/apps/editor-api/scripts/reset-user-password.ts") $(quote "$DATA") $(quote "$USER") $(quote "$PASS")"
+  fi
+  exec su -s /bin/sh "$svc" -c "$cmd"
 fi
 
-REPO=$(CDPATH= cd -- "$ROOT/../.." && pwd)
-exec node --experimental-strip-types "$REPO/apps/editor-api/scripts/reset-user-password.ts" "$DATA" "$USER" "$PASS"
+run_node
