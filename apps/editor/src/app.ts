@@ -168,6 +168,7 @@ import { guideHtml } from "./guide.js";
 import { activeMaintenanceTab, maintenanceHtml } from "./maintenance.js";
 import { bindCodeWrap, codeWrapClass, codeWrapToggle, isCodeWrapToggle } from "./code-wrap.js";
 import { escapeHtml, fieldId, formErrorPanel, noticePanel, statusPanels } from "./dom.js";
+import { pushStatusMessage } from "./status-stack.js";
 import { buildContentCreationRank } from "./creation-rank.js";
 import {
   readArticleListOrder,
@@ -411,25 +412,15 @@ function bindStylesheetEditorActions(root: HTMLElement, user: PublicUser): void 
 async function runRender(root: HTMLElement): Promise<void> {
   const button = root.querySelector<HTMLButtonElement>("[data-action=render-site]");
   const publish = root.querySelector<HTMLButtonElement>("[data-action=publish-site]");
-  const status = root.querySelector<HTMLElement>("#render-status");
   if (button) button.disabled = true;
   if (publish) publish.disabled = true;
-  if (status) {
-    status.hidden = false;
-    status.className = "editor-render-status w3-pale-yellow";
-    status.textContent = "Rendering the whole site…";
-  }
+  const progress = pushStatusMessage(root, "progress", "Rendering the whole site…");
   try {
     const result = await renderSite();
-    if (status) {
-      status.className = "editor-render-status w3-pale-green";
-      status.innerHTML = renderNotice(result);
-    }
+    pushStatusMessage(root, "success", renderNotice(result), { html: true });
   } catch (err) {
-    if (status) {
-      status.className = "editor-render-status w3-pale-red";
-      status.textContent = err instanceof Error ? err.message : "Render failed.";
-    }
+    progress.remove();
+    pushStatusMessage(root, "error", err instanceof Error ? err.message : "Render failed.");
   } finally {
     if (button) button.disabled = false;
     if (publish) publish.disabled = false;
@@ -446,25 +437,15 @@ async function runPublish(root: HTMLElement): Promise<void> {
   if (!window.confirm("Publish this site? This replaces the published files.")) return;
   const button = root.querySelector<HTMLButtonElement>("[data-action=publish-site]");
   const render = root.querySelector<HTMLButtonElement>("[data-action=render-site]");
-  const status = root.querySelector<HTMLElement>("#render-status");
   if (button) button.disabled = true;
   if (render) render.disabled = true;
-  if (status) {
-    status.hidden = false;
-    status.className = "editor-render-status w3-pale-yellow";
-    status.textContent = "Publishing the copyable site…";
-  }
+  const progress = pushStatusMessage(root, "progress", "Publishing the copyable site…");
   try {
     const result = await publishSite();
-    if (status) {
-      status.className = "editor-render-status w3-pale-green";
-      status.textContent = publishNotice(result);
-    }
+    pushStatusMessage(root, "success", publishNotice(result));
   } catch (err) {
-    if (status) {
-      status.className = "editor-render-status w3-pale-red";
-      status.textContent = err instanceof Error ? err.message : "Publish failed.";
-    }
+    progress.remove();
+    pushStatusMessage(root, "error", err instanceof Error ? err.message : "Publish failed.");
   } finally {
     if (button) button.disabled = false;
     if (render) render.disabled = false;

@@ -102,6 +102,7 @@ body {
 }
 
 .editor-bar,
+.editor-status-stack,
 .editor-render-status {
   flex: none;
 }
@@ -1325,6 +1326,12 @@ img[data-hero-preview] {
   border-radius: 4px;
   padding: 0.75rem 1rem;
   overflow-x: auto;
+}
+
+.editor-status-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .editor-render-status {

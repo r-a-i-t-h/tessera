@@ -118,7 +118,7 @@ export function editorChrome(
         </div>
       </aside>
       <div class="editor-body">
-        <p id="render-status" class="editor-render-status" hidden></p>
+        <div id="editor-status-stack" class="editor-status-stack" hidden></div>
         <p id="route-status" class="editor-sr-only" aria-live="polite"></p>
         <div class="editor-scroll">
           <main class="editor-main${wide ? " editor-wide" : ""}">${inner}</main>
