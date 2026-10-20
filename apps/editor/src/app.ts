@@ -128,6 +128,7 @@ import {
   blankNewBinding,
   datedDraftFromForm,
   datedRecord,
+  bindingControls,
   embedDraftFromForm,
   embedRecord,
   galleryDraftFromForm,
@@ -1213,23 +1214,6 @@ function folderSelection(form: HTMLFormElement): string[] | undefined {
       checked: el.checked,
     })),
   );
-}
-
-function bindingControls(form: HTMLFormElement): { name: string; value: string; checked?: boolean }[] {
-  const prefixes = ["binding-", "gallery-", "dated-", "people-", "links-", "ir-"];
-  const controls: { name: string; value: string; checked?: boolean }[] = [];
-  for (const el of Array.from(form.elements)) {
-    if (!(el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement)) {
-      continue;
-    }
-    if (!el.name || !prefixes.some((prefix) => el.name.startsWith(prefix))) continue;
-    controls.push({
-      name: el.name,
-      value: el.value,
-      checked: el instanceof HTMLInputElement && el.type === "checkbox" ? el.checked : undefined,
-    });
-  }
-  return controls;
 }
 
 async function loadBindingListInfo(listing: RecordList): Promise<{ notes: Map<string, string>; choices: BindingChoices }> {

@@ -1,7 +1,11 @@
+/** @vitest-environment happy-dom */
 import { describe, expect, it } from "vitest";
 import {
+  bindingControls,
   bindingIdsIn,
   bindingSentence,
+  embedDraftFromForm,
+  embedRecord,
   datedDraft,
   datedRecord,
   galleryDraft,
@@ -348,6 +352,21 @@ describe("binding forms", () => {
     );
     expect(html).toContain('name="embed-html"');
     expect(html).toContain("&lt;iframe&gt;&lt;/iframe&gt;");
+  });
+
+  it("reads embed HTML from the binding form", () => {
+    const form = document.createElement("form");
+    const area = document.createElement("textarea");
+    area.name = "embed-html";
+    const snippet = '<script src="https://example.com/tix.js"></script>';
+    area.value = snippet;
+    form.append(area);
+    const controls = bindingControls(form);
+    expect(embedRecord("ticket-widget", embedDraftFromForm(controls))).toEqual({
+      id: "ticket-widget",
+      component: "htmlEmbed",
+      props: { html: snippet },
+    });
   });
 
   it("rejects a bad limit and a duplicate id", () => {

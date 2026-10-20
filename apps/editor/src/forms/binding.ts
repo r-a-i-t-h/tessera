@@ -269,6 +269,25 @@ export function embedDraftFromForm(controls: readonly ControlValue[]): EmbedDraf
   };
 }
 
+const BINDING_CONTROL_PREFIXES = ["binding-", "gallery-", "dated-", "people-", "links-", "ir-", "embed-"] as const;
+
+/** Named controls on binding create/edit forms (excludes unrelated fields on the same page). */
+export function bindingControls(form: HTMLFormElement): ControlValue[] {
+  const controls: ControlValue[] = [];
+  for (const el of Array.from(form.elements)) {
+    if (!(el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement)) {
+      continue;
+    }
+    if (!el.name || !BINDING_CONTROL_PREFIXES.some((prefix) => el.name.startsWith(prefix))) continue;
+    controls.push({
+      name: el.name,
+      value: el.value,
+      checked: el instanceof HTMLInputElement && el.type === "checkbox" ? el.checked : undefined,
+    });
+  }
+  return controls;
+}
+
 export function renderEmbedForm(id: string, draft: EmbedDraft): string {
   return `${insertLine(id)}${hiddenExtra("embed", draft.propsExtra, draft.recordExtra)}
     <p class="w3-small w3-text-grey">Third-party markup (tickets, payments, maps, etc.). Put it on a page with Compose → Insert. Scripts and iframes are kept on the published site.</p>
