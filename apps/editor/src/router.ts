@@ -31,19 +31,24 @@ export function guideSectionHref(sectionId: string): string {
   return `#/guide?section=${encodeURIComponent(sectionId)}`;
 }
 
+function locationHash(): string {
+  return typeof window !== "undefined" ? window.location.hash : "";
+}
+
 /** Section id from `#/guide?section=…`. */
-export function guideSectionQuery(hash = window.location.hash): string | undefined {
-  const { path, query } = hashPathAndQuery(hash);
+export function guideSectionQuery(hash?: string): string | undefined {
+  const { path, query } = hashPathAndQuery(hash ?? locationHash());
   if (path !== "guide") return undefined;
   const section = query.get("section")?.trim();
   return section || undefined;
 }
 
 /** Stylesheet id from `#/styles?sheet=…` or `?sheet=…` on the page URL. */
-export function stylesSheetQuery(hash = window.location.hash): string | undefined {
-  const { query: hashQuery } = hashPathAndQuery(hash);
+export function stylesSheetQuery(hash?: string): string | undefined {
+  const { query: hashQuery } = hashPathAndQuery(hash ?? locationHash());
   const fromHash = hashQuery.get("sheet")?.trim();
   if (fromHash) return fromHash;
+  if (typeof window === "undefined") return undefined;
   const fromSearch = new URLSearchParams(window.location.search).get("sheet")?.trim();
   return fromSearch || undefined;
 }
