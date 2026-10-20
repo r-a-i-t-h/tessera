@@ -14,6 +14,23 @@ import {
 } from "./schema.js";
 
 describe("schema forms", () => {
+  it("orders site fields in two-column pairs", () => {
+    expect(SITE_FORM.fields.map((field) => field.name)).toEqual([
+      "id",
+      "homePageId",
+      "title",
+      "masterLayoutId",
+      "origin",
+      "defaultLayoutId",
+      "publishTo",
+      "defaultAspectId",
+      "delivery",
+      "historyMaxAgeDays",
+      "version",
+      "historyMaxEntries",
+    ]);
+  });
+
   it("offers flavour and origin on a site that has neither", () => {
     const html = renderForm(SITE_FORM, { id: "hall", title: "Hall", homePageId: "home" });
     expect(html).toContain("Flavour");

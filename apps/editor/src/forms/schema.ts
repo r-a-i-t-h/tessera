@@ -34,10 +34,12 @@ export type FormSchema = {
 export const SITE_FORM: FormSchema = {
   fields: [
     { name: "id", label: "Id", type: "string", readOnly: true, required: true },
-    { name: "title", label: "Title", type: "string", required: true },
     { name: "homePageId", label: "Home page", type: "string", required: true },
-    { name: "defaultLayoutId", label: "Default layout", type: "string" },
+    { name: "title", label: "Title", type: "string", required: true },
     { name: "masterLayoutId", label: "Master layout", type: "string" },
+    { name: "origin", label: "Origin", type: "string", inputType: "url" },
+    { name: "defaultLayoutId", label: "Default layout", type: "string" },
+    { name: "publishTo", label: "Publish to", type: "string" },
     { name: "defaultAspectId", label: "Default aspect", type: "string" },
     {
       name: "delivery",
@@ -50,10 +52,9 @@ export const SITE_FORM: FormSchema = {
         { value: "snapshot", label: "Snapshot" },
       ],
     },
-    { name: "origin", label: "Origin", type: "string", inputType: "url" },
-    { name: "publishTo", label: "Publish to", type: "string" },
-    { name: "historyMaxEntries", label: "History max entries", type: "number" },
     { name: "historyMaxAgeDays", label: "History max age (days)", type: "number" },
+    { name: "version", label: "Version", type: "number", readOnly: true },
+    { name: "historyMaxEntries", label: "History max entries", type: "number" },
   ],
 };
 
