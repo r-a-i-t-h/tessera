@@ -7,6 +7,7 @@ import {
   backupPath,
   createDataBackup,
   deleteBackup,
+  importDataBackup,
   listBackups,
   listExamples,
   restoreDataBackup,
@@ -34,6 +35,29 @@ backupRoutes.post("/backups", async (c) => {
     return c.json({ ok: true, ...created });
   } catch (err) {
     return apiError(c, 400, err instanceof Error ? err.message : "Backup failed");
+  }
+});
+
+backupRoutes.post("/backups/upload", async (c) => {
+  const dirs = configured(c);
+  if (isResponse(dirs)) return dirs;
+  try {
+    const form = await c.req.parseBody();
+    const file = form.file;
+    if (!(file instanceof File)) return apiError(c, 400, "Choose a backup archive.");
+    const limits = c.get("uploadLimits");
+    if (file.size > limits.maxTotalBytes) {
+      return apiError(
+        c,
+        413,
+        `Archive exceeds the ${limits.maxTotalBytes}-byte upload limit.`,
+      );
+    }
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const created = await importDataBackup(dirs.backupDir, bytes);
+    return c.json({ ok: true, ...created });
+  } catch (err) {
+    return apiError(c, 400, err instanceof Error ? err.message : "Upload failed");
   }
 });
 

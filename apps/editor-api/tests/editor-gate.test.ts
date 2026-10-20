@@ -56,6 +56,7 @@ describe("requireEditor gate", () => {
     ["DELETE", "/api/library/assets/photo"],
     ["PUT", "/api/stylesheets/site"],
     ["POST", "/api/backups"],
+    ["POST", "/api/backups/upload"],
     ["POST", "/api/backups/example.tar.gz/delete"],
     ["POST", "/api/backups/example.tar.gz/restore"],
     ["POST", "/api/examples/willow/restore"],

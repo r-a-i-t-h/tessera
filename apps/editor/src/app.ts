@@ -43,6 +43,7 @@ import {
   updateLibraryAsset,
   updateUser,
   uploadLibrary,
+  uploadBackup,
   rescanLibrary,
   createLibraryFolder,
   updateLibraryFolder,
@@ -1486,6 +1487,27 @@ async function bindBackups(root: HTMLElement, user: PublicUser, notice = "", err
   }
   root.innerHTML = chrome(user, backupsHtml(listing, themes, notice, error), true, "backups");
   bindChrome(root);
+  root.querySelector<HTMLFormElement>("#backup-upload")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const input = form.querySelector<HTMLInputElement>('input[name="file"]');
+    const file = input?.files?.[0];
+    if (!file) {
+      void bindBackups(root, user, "", "Choose a backup archive.");
+      return;
+    }
+    const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+    if (button) button.disabled = true;
+    void uploadBackup(file)
+      .then((created) => bindBackups(root, user, `Uploaded ${created.name} (${formatBytes(created.size)}).`))
+      .catch((err) =>
+        bindBackups(root, user, "", err instanceof Error ? err.message : "Upload failed."),
+      )
+      .finally(() => {
+        if (button) button.disabled = false;
+        form.reset();
+      });
+  });
   root.querySelector("[data-action=backup]")?.addEventListener("click", async () => {
     const button = root.querySelector<HTMLButtonElement>("[data-action=backup]");
     if (button) button.disabled = true;
@@ -1644,6 +1666,11 @@ function backupsHtml(listing: BackupList, themes: ThemeKitInfo[], notice: string
   return `<h1 class="w3-large">Backups</h1>
     ${statusPanels(notice, error)}
     <p><button type="button" class="w3-button w3-theme" data-action="backup">Back up now</button></p>
+    <form id="backup-upload" class="editor-backup w3-margin-bottom">
+      <label class="w3-small w3-text-grey">Upload a site archive (.tar.gz) from another installation.</label>
+      <input name="file" type="file" accept=".tar.gz,application/gzip,application/x-gzip" required />
+      <button type="submit" class="w3-button w3-white">Upload</button>
+    </form>
     ${rows}
     <h2 class="w3-medium">Themes</h2>
     <p class="w3-small w3-text-grey">Apply a design without changing your page content. A safety backup is written first.</p>

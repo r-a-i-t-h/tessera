@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { cp, mkdir, mkdtemp, readFile, readdir, rename, rm, stat } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { SESSION_HANDOFF_FILE } from "../auth/sessions.js";
@@ -146,6 +146,41 @@ export async function createDataBackup(dataDir: string, backupDir: string): Prom
     await runTar(
       ["-czf", partial, `--exclude=${SESSION_HANDOFF_FILE}`, "--exclude=backup", "-C", dataDir, "."],
     );
+    await rename(partial, dest);
+  } catch (err) {
+    await rm(partial, { force: true });
+    throw err;
+  }
+
+  const st = await stat(dest);
+  return { name, size: st.size, mtime: st.mtime.toISOString() };
+}
+
+/** Store an uploaded site archive in the backup folder after validating it. */
+export async function importDataBackup(backupDir: string, bytes: Uint8Array): Promise<BackupInfo> {
+  await mkdir(backupDir, { recursive: true });
+  const probeDir = await mkdtemp(join(tmpdir(), "tessera-backup-import-"));
+  const probeArchive = join(probeDir, "probe.tar.gz");
+  try {
+    await writeFile(probeArchive, bytes);
+    await assertSiteArchive(probeArchive);
+  } finally {
+    await rm(probeDir, { recursive: true, force: true });
+  }
+
+  let name = utcBackupName();
+  let dest = join(backupDir, name);
+  try {
+    await stat(dest);
+    name = utcBackupName(new Date(Date.now() + 1000));
+    dest = join(backupDir, name);
+  } catch {
+    // dest does not exist yet
+  }
+
+  const partial = `${dest}.partial`;
+  try {
+    await writeFile(partial, bytes);
     await rename(partial, dest);
   } catch (err) {
     await rm(partial, { force: true });

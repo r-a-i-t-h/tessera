@@ -9,6 +9,7 @@ import * as blank from "../src/site/blank.js";
 import {
   createDataBackup,
   ensureExampleArchives,
+  importDataBackup,
   listBackups,
   listExamples,
   reseedSite,
@@ -159,6 +160,64 @@ describe("site backups", () => {
     expect(await readFile(join(again.site, "records", "site.yaml"), "utf8")).toContain("Before");
     expect(await readFile(join(again.site, "users", "admin.json"), "utf8")).toContain("admin");
     spy.mockRestore();
+  });
+
+  it("imports an uploaded archive into the backup folder", async () => {
+    const { site, backup } = await siteWith("Portable");
+    const created = await createDataBackup(site, backup);
+    const bytes = await readFile(join(backup, created.name));
+    await rm(join(backup, created.name));
+
+    const imported = await importDataBackup(backup, bytes);
+    expect(imported.name).toMatch(/^\d{4}-\d{2}-\d{2}T\d{6}Z\.tar\.gz$/);
+    expect((await listBackups(backup)).map((item) => item.name)).toContain(imported.name);
+
+    const other = await tempDir("tessera-not-site-");
+    await writeFile(join(other, "note.txt"), "nope\n");
+    const bad = await createDataBackup(other, backup);
+    const badBytes = await readFile(join(backup, bad.name));
+    await rm(join(backup, bad.name));
+    await expect(importDataBackup(backup, badBytes)).rejects.toThrow(/meta\.json/);
+  });
+
+  it("accepts backup uploads over HTTP", async () => {
+    const parent = await tempDir("tessera-http-upload-");
+    const site = join(parent, "data");
+    const backup = join(parent, "backup");
+    await mkdir(join(site, "records"), { recursive: true });
+    await writeFile(join(site, "meta.json"), '{"schemaVersion":1}\n');
+    await writeFile(join(site, "records", "site.yaml"), "title: Upload\n");
+    const users = new UserStore(site);
+    await users.load();
+    const password = await hashPassword("secret1");
+    await users.createUser("alice", password.hash, password.salt);
+    const sessions = new SessionStore();
+    const token = sessions.create("alice").token;
+    const app = createApp({
+      users,
+      sessions,
+      siteRoot: site,
+      backupDir: backup,
+      seedDir: join(parent, "seed"),
+    });
+
+    const created = await createDataBackup(site, backup);
+    const archive = await readFile(join(backup, created.name));
+    await rm(join(backup, created.name));
+
+    const form = new FormData();
+    form.append("file", new File([archive], "portable.tar.gz", { type: "application/gzip" }));
+    expect((await app.request("/api/backups/upload", { method: "POST", body: form })).status).toBe(401);
+
+    const res = await app.request("/api/backups/upload", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { ok: boolean; name: string };
+    expect(body.ok).toBe(true);
+    expect((await listBackups(backup)).some((item) => item.name === body.name)).toBe(true);
   });
 
   it("requires an editor to list backups", async () => {

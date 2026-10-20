@@ -371,6 +371,12 @@ export function createBackup(): Promise<{ ok: true; name: string; size: number; 
   return request("/api/backups", { method: "POST" });
 }
 
+export function uploadBackup(file: File): Promise<{ ok: true; name: string; size: number; mtime: string }> {
+  const body = new FormData();
+  body.append("file", file);
+  return request("/api/backups/upload", { method: "POST", body });
+}
+
 export function restoreBackup(name: string): Promise<RestoreResult> {
   return request(`/api/backups/${encodeURIComponent(name)}/restore`, { method: "POST" });
 }

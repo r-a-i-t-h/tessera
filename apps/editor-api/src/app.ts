@@ -67,6 +67,12 @@ export function createApp(opts: {
       error: `Upload request exceeds the ${uploadLimits.maxTotalBytes}-byte total limit.`,
     }, 413),
   }));
+  app.use("/api/backups/upload", bodyLimit({
+    maxSize: uploadLimits.maxTotalBytes,
+    onError: (c) => c.json({
+      error: `Upload request exceeds the ${uploadLimits.maxTotalBytes}-byte total limit.`,
+    }, 413),
+  }));
 
   app.get("/health", (c) => c.json({ ok: true, name: "tessera-editor-api" }));
 
