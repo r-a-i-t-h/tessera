@@ -75,6 +75,7 @@ export function guideHtml(): string {
       <li><strong>People grid</strong> — Pages of a type with photo and role.</li>
       <li><strong>Link group</strong> — Children, pages of a type, or a menu heading.</li>
       <li><strong>Reveal banner</strong> — Cropped panels, hover grow, click-to-reveal, then link (Miller’s Ark homepage hero). Panel image: site-relative path; panel link: page id or external URL (Choose page in the binding editor). Insert only.</li>
+      <li><strong>Embed</strong> — Raw HTML from a ticket vendor, payment provider, or similar (scripts and iframes kept on publish). Paste in the binding editor; insert with Compose → Insert. Not a layout Component.</li>
     </ul>
     <p>Menus, breadcrumbs, profile lines, and <strong>Subpages</strong> are not bindings. Unsupported components use the raw binding file.</p>
 

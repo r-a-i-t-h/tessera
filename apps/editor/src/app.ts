@@ -128,6 +128,8 @@ import {
   blankNewBinding,
   datedDraftFromForm,
   datedRecord,
+  embedDraftFromForm,
+  embedRecord,
   galleryDraftFromForm,
   galleryRecord,
   imageRevealDraftFromForm,
@@ -1175,7 +1177,9 @@ async function createBinding(
     return;
   }
   const notice =
-    state.kind === "gallery" ? `Created ${id}. Put it on a page with Compose → Insert.` : `Created ${id}.`;
+    state.kind === "gallery" || state.kind === "embed"
+      ? `Created ${id}. Put it on a page with Compose → Insert.`
+      : `Created ${id}.`;
   pendingEdit = { mode: state.kind === "other" ? "raw" : "fields", notice };
   const hash = `#/bindings/${encodeURIComponent(id)}`;
   if (window.location.hash === hash) await render(root);
@@ -3541,6 +3545,7 @@ function bindingBody(id: string, form: HTMLFormElement, original: unknown): unkn
     return linksRecord(id, draft);
   }
   if (kind === "imageReveal") return imageRevealRecord(id, imageRevealDraftFromForm(controls));
+  if (kind === "embed") return embedRecord(id, embedDraftFromForm(controls));
   return saveRecordBody("bindings", form, original);
 }
 

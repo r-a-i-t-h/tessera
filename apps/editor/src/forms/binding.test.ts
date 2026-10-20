@@ -103,6 +103,19 @@ describe("binding sentences", () => {
     expect(bindingSentence({ component: "eventList" })).toBe("eventList. Edit the raw file.");
   });
 
+  it("describes an embed binding", () => {
+    expect(bindingSentence({ component: "htmlEmbed", props: { html: "" } })).toBe("An embed with no HTML yet.");
+    expect(bindingSentence({ component: "htmlEmbed", props: { html: "<iframe></iframe>" } })).toBe(
+      "Embed (one line of HTML).",
+    );
+    expect(
+      bindingSentence({
+        component: "htmlEmbed",
+        props: { html: "<div></div>\n<script></script>" },
+      }),
+    ).toBe("Embed (2 lines of HTML).");
+  });
+
   it("describes a reveal banner binding", () => {
     expect(
       bindingSentence({
@@ -314,6 +327,27 @@ describe("binding forms", () => {
     expect(galleryDraftFromForm(created.gallery.folders.map(() => ({ name: "x", value: "" })), ["lambs"]).folders).toEqual([
       "lambs",
     ]);
+  });
+
+  it("writes and edits embed HTML", () => {
+    const created = readNewBinding([
+      { name: "binding-kind", value: "embed" },
+      { name: "binding-id", value: "ticket-widget" },
+      { name: "binding-step", value: "1" },
+      { name: "embed-html", value: '<script src="https://example.com/tix.js"></script>' },
+    ]);
+    expect(newBindingRecord(created)).toEqual({
+      id: "ticket-widget",
+      component: "htmlEmbed",
+      props: { html: '<script src="https://example.com/tix.js"></script>' },
+    });
+    const html = renderBindingForm(
+      "ticket-widget",
+      { component: "htmlEmbed", props: { html: "<iframe></iframe>" } },
+      { folders: [], types: [], headings: [] },
+    );
+    expect(html).toContain('name="embed-html"');
+    expect(html).toContain("&lt;iframe&gt;&lt;/iframe&gt;");
   });
 
   it("rejects a bad limit and a duplicate id", () => {

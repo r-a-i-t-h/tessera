@@ -13,6 +13,7 @@ import {
 import { bindingsById } from "./bindings.js";
 import { flattenNav, resolveNavTree } from "./nav-expand.js";
 import { buildPageLinkGraph } from "./page-link-graph.js";
+import { BINDING_ONLY_COMPONENTS } from "./builtins/html-embed.js";
 import type { ComponentRegistry } from "./registry.js";
 import { isSiteMediaUrl } from "./assets.js";
 
@@ -578,6 +579,10 @@ function noteUnknown(
     if (!registry.has(binding.component)) {
       hits.push({ name: binding.component, kind: "component", source });
     }
+    return;
+  }
+  if (BINDING_ONLY_COMPONENTS.has(name)) {
+    hits.push({ name, kind: "component", source });
     return;
   }
   if (registry.has(name)) return;

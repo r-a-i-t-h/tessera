@@ -5,7 +5,7 @@ import { pageIdError } from "./page.js";
 import { folderChecklist } from "./picker.js";
 import type { ControlValue } from "./nav.js";
 
-export type BindingKind = "gallery" | "dated" | "people" | "links" | "imageReveal" | "other";
+export type BindingKind = "gallery" | "dated" | "people" | "links" | "imageReveal" | "embed" | "other";
 
 const IMAGE_REVEAL_SLOT_COUNT = 6;
 
@@ -68,6 +68,12 @@ export type LinksDraft = {
   recordExtra: Record<string, unknown>;
 };
 
+export type EmbedDraft = {
+  html: string;
+  propsExtra: Record<string, unknown>;
+  recordExtra: Record<string, unknown>;
+};
+
 export type PageUse = { id: string; title?: string };
 
 export type BindingChoices = {
@@ -87,6 +93,7 @@ export type NewBinding = {
   people: PeopleDraft;
   links: LinksDraft;
   imageReveal: ImageRevealDraft;
+  embed: EmbedDraft;
 };
 
 const TOKEN = /\{\{([a-zA-Z0-9_-]+)\}\}/g;
@@ -98,6 +105,7 @@ export function bindingKind(data: unknown): BindingKind {
   if (data.component === "peopleGrid") return "people";
   if (data.component === "linkCluster") return "links";
   if (data.component === "imageRevealGallery") return "imageReveal";
+  if (data.component === "htmlEmbed") return "embed";
   return "other";
 }
 
@@ -112,6 +120,7 @@ export function blankNewBinding(): NewBinding {
     people: blankPeople(),
     links: blankLinks(),
     imageReveal: blankImageReveal(),
+    embed: blankEmbed(),
   };
 }
 
@@ -229,6 +238,41 @@ export function linksDraft(data: unknown): LinksDraft {
     propsExtra,
     recordExtra: recordExtra(record),
   };
+}
+
+export function embedDraft(data: unknown): EmbedDraft {
+  const record = isRecord(data) ? data : {};
+  const props = isRecord(record.props) ? record.props : {};
+  const propsExtra = { ...props };
+  delete propsExtra.html;
+  return {
+    html: typeof props.html === "string" ? props.html : "",
+    propsExtra,
+    recordExtra: recordExtra(record),
+  };
+}
+
+export function embedRecord(id: string, draft: EmbedDraft): Record<string, unknown> {
+  const props: Record<string, unknown> = { ...draft.propsExtra };
+  if (draft.html) props.html = draft.html;
+  else delete props.html;
+  const out: Record<string, unknown> = { ...draft.recordExtra, id, component: "htmlEmbed" };
+  if (Object.keys(props).length) out.props = props;
+  return out;
+}
+
+export function embedDraftFromForm(controls: readonly ControlValue[]): EmbedDraft {
+  return {
+    html: valueOf(controls, "embed-html"),
+    propsExtra: parseObject(valueOf(controls, "embed-props-extra")),
+    recordExtra: parseObject(valueOf(controls, "embed-record-extra")),
+  };
+}
+
+export function renderEmbedForm(id: string, draft: EmbedDraft): string {
+  return `${insertLine(id)}${hiddenExtra("embed", draft.propsExtra, draft.recordExtra)}
+    <p class="w3-small w3-text-grey">Third-party markup (tickets, payments, maps, etc.). Put it on a page with Compose → Insert. Scripts and iframes are kept on the published site.</p>
+    <p><label>HTML <textarea class="w3-input w3-border editor-html" name="embed-html" rows="14" spellcheck="false">${escapeHtml(draft.html)}</textarea></label></p>`;
 }
 
 export function linksRecord(id: string, draft: LinksDraft): Record<string, unknown> {
@@ -357,7 +401,9 @@ export function bindingSentence(data: unknown, pages: readonly PageUse[] = []): 
             ? linksPhrase(linksDraft(data))
             : kind === "imageReveal"
               ? imageRevealPhrase(imageRevealDraft(data))
-              : otherPhrase(data);
+              : kind === "embed"
+                ? embedPhrase(embedDraft(data))
+                : otherPhrase(data);
   return `${detail}${usagePhrase(pages)}`;
 }
 
@@ -412,6 +458,7 @@ export function renderBindingForm(id: string, data: unknown, choices: BindingCho
   if (kind === "people") return renderPeopleForm(id, peopleDraft(data), choices.types);
   if (kind === "links") return renderLinksForm(id, linksDraft(data), choices);
   if (kind === "imageReveal") return renderImageRevealForm(id, imageRevealDraft(data), choices);
+  if (kind === "embed") return renderEmbedForm(id, embedDraft(data));
   return "";
 }
 
@@ -523,6 +570,7 @@ export function readNewBinding(controls: readonly ControlValue[], folderIds?: re
     imageReveal: controls.some((control) => control.name === "ir-width" || control.name === "ir-panel-url")
       ? imageRevealDraftFromForm(controls)
       : blankImageReveal(),
+    embed: controls.some((control) => control.name === "embed-html") ? embedDraftFromForm(controls) : blankEmbed(),
   };
 }
 
@@ -533,6 +581,7 @@ export function newBindingRecord(state: NewBinding): Record<string, unknown> {
   if (state.kind === "people") return peopleRecord(id, state.people);
   if (state.kind === "links") return linksRecord(id, state.links);
   if (state.kind === "imageReveal") return imageRevealRecord(id, state.imageReveal);
+  if (state.kind === "embed") return embedRecord(id, state.embed);
   return { id, component: state.component.trim() };
 }
 
@@ -602,6 +651,7 @@ function kindField(state: NewBinding): string {
     { value: "people", label: "People grid" },
     { value: "links", label: "Link group" },
     { value: "imageReveal", label: "Reveal banner" },
+    { value: "embed", label: "Embed" },
     { value: "other", label: "Something else" },
   ];
   return `<input type="hidden" name="binding-step" value="1" />
@@ -627,6 +677,10 @@ function kindBody(state: NewBinding, choices: BindingChoices): string {
   if (state.kind === "links") return linksFields(state.links, choices);
   if (state.kind === "imageReveal") {
     return `<p class="w3-small w3-text-grey">Cropped image panels with hover and click-to-reveal. Configure panels on the next step, then insert with Compose → Insert.</p>`;
+  }
+  if (state.kind === "embed") {
+    return `<p class="w3-small w3-text-grey">Paste embed code from a ticket vendor, payment provider, or similar. Insert with Compose → Insert after saving.</p>
+    <p><label>HTML <textarea class="w3-input w3-border editor-html" name="embed-html" rows="14" spellcheck="false">${escapeHtml(state.embed.html)}</textarea></label></p>`;
   }
   return `<div class="editor-props"><p><label for="new-binding-component">Component</label>
     <input id="new-binding-component" name="binding-component" class="w3-input w3-border" spellcheck="false" autocomplete="off" value="${escapeHtml(state.component)}" /></p>
@@ -975,6 +1029,17 @@ function linksPhrase(draft: LinksDraft): string {
   return `${look} for this page's children.`;
 }
 
+function embedPhrase(draft: EmbedDraft): string {
+  const trimmed = draft.html.trim();
+  if (!trimmed) return "An embed with no HTML yet.";
+  const lines = trimmed.split(/\r?\n/).length;
+  return lines > 1 ? `Embed (${lines} lines of HTML).` : "Embed (one line of HTML).";
+}
+
+function blankEmbed(): EmbedDraft {
+  return { html: "", propsExtra: {}, recordExtra: {} };
+}
+
 function otherPhrase(data: unknown): string {
   const component = isRecord(data) && typeof data.component === "string" ? data.component.trim() : "";
   if (!component) return "Edit the raw file.";
@@ -1050,6 +1115,7 @@ function parseKind(value: string): BindingKind {
     value === "people" ||
     value === "links" ||
     value === "imageReveal" ||
+    value === "embed" ||
     value === "other"
   ) {
     return value;
