@@ -157,6 +157,7 @@ import {
   type PickedAsset,
 } from "./forms/picker.js";
 import {
+  bindPageTargetPickerPanels,
   buildPageTargetChoices,
   parsePageTargetChoices,
   renderPageTargetPicker,
@@ -3100,8 +3101,8 @@ async function mountPageCanvas(
     panelTones: layout?.panelTones ?? [],
     pageTitles,
     pickPageLink: choices
-      ? async (current) => {
-          const picked = await openPageTargetPicker(choices, current);
+      ? async (current, options) => {
+          const picked = await openPageTargetPicker(choices, current, options?.returnFocus);
           if (picked === undefined) return undefined;
           if (/^[a-z][a-z0-9+.-]*:/i.test(picked) || picked.startsWith("//")) {
             return { kind: "url", href: picked };
@@ -3686,8 +3687,14 @@ function insertAtCursor(el: HTMLTextAreaElement, text: string): void {
   el.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
-function openPageTargetPicker(choices: PageTargetChoices, current: string): Promise<string | undefined> {
-  const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+function openPageTargetPicker(
+  choices: PageTargetChoices,
+  current: string,
+  returnFocus?: HTMLElement | null,
+): Promise<string | undefined> {
+  const focusTarget =
+    returnFocus ??
+    (document.activeElement instanceof HTMLElement ? document.activeElement : null);
   return new Promise((resolve) => {
     const host = document.createElement("div");
     host.className = "editor-picker-host";
@@ -3702,10 +3709,11 @@ function openPageTargetPicker(choices: PageTargetChoices, current: string): Prom
     };
     const paint = () => {
       host.innerHTML = `<div class="editor-picker-backdrop" data-dialog-backdrop><div class="w3-card w3-white w3-padding editor-card editor-page-target-dialog" role="dialog" aria-modal="true" aria-labelledby="page-target-picker-title" tabindex="-1">
-        <h2 id="page-target-picker-title" class="w3-large">Choose page or URL</h2>
-        <p><button type="button" class="w3-button w3-white" data-picker-close>Close</button></p>
+        <button type="button" class="editor-dialog-close" data-picker-close aria-label="Close">×</button>
+        <h2 id="page-target-picker-title" class="w3-large editor-page-target-dialog-title">Choose page or URL</h2>
         ${renderPageTargetPicker(choices, current)}
       </div></div>`;
+      bindPageTargetPickerPanels(host);
     };
     host.addEventListener("click", (event) => {
       const button = (event.target as HTMLElement).closest("button");
@@ -3728,7 +3736,7 @@ function openPageTargetPicker(choices: PageTargetChoices, current: string): Prom
     document.body.appendChild(host);
     dialog = activateDialog(host, {
       onCancel: () => finish(undefined),
-      returnFocus,
+      returnFocus: focusTarget,
       initialFocus: "[data-picker-close]",
       closeOnBackdrop: false,
     });

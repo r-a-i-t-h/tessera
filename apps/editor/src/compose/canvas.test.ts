@@ -10,10 +10,12 @@ beforeAll(() => {
     window: dom,
     document: dom.document,
     HTMLElement: dom.HTMLElement,
+    HTMLFormElement: dom.HTMLFormElement,
     HTMLInputElement: dom.HTMLInputElement,
     HTMLSelectElement: dom.HTMLSelectElement,
     Node: dom.Node,
     Element: dom.Element,
+    KeyboardEvent: dom.KeyboardEvent,
     DOMParser: dom.DOMParser,
   });
 });
@@ -138,6 +140,40 @@ describe("compose palette", () => {
     expect(html).toContain('data-tessera-page="hall"');
   });
 
+  it("runs the link command from Cmd/Ctrl+K in the text body", () => {
+    dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;
+    const form = dom.document.querySelector("form");
+    if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
+    mountComposeCanvases(form, {
+      bindings: [],
+      htmlByZone: { main: `<div class="tessera-text"><p>Hello</p></div>` },
+    });
+    const body = form.querySelector<HTMLElement>(".editor-text-body");
+    const heading = form.querySelector<HTMLElement>("[data-field=heading]");
+    if (!body || !heading) throw new Error("text");
+    body.focus();
+    const shortcut = new dom.KeyboardEvent("keydown", {
+      code: "KeyK",
+      key: "k",
+      metaKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    body.dispatchEvent(shortcut);
+    expect(shortcut.defaultPrevented).toBe(true);
+    expect(form.dataset.dirty).toBe("true");
+    heading.focus();
+    const ignored = new dom.KeyboardEvent("keydown", {
+      code: "KeyK",
+      key: "k",
+      metaKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    heading.dispatchEvent(ignored);
+    expect(ignored.defaultPrevented).toBe(false);
+  });
+
   it("expands wiki links when saving compose HTML", () => {
     dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;
     const form = dom.document.querySelector("form");
@@ -158,7 +194,7 @@ describe("compose palette", () => {
     expect(html).toMatch(/data-tessera-page="hall"[^>]*>the hall</);
   });
 
-  it("shows saved anchors as markdown while editing and stores anchors again", () => {
+  it("shows saved anchors as HTML while editing and stores anchors on save", () => {
     dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;
     const form = dom.document.querySelector("form");
     if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
@@ -171,8 +207,8 @@ describe("compose palette", () => {
 
     const body = form.querySelector<HTMLElement>(".editor-text-body");
     if (!body) throw new Error("body");
-    expect(body.textContent).toContain("[Hall](https://example.com/hall)");
-    expect(body.innerHTML).not.toMatch(/<a\s/i);
+    expect(body.textContent).toContain("Hall");
+    expect(body.innerHTML).toMatch(/<a\s[^>]*href="https:\/\/example.com\/hall"/);
 
     body.innerHTML = "<p>Visit [Hall](https://example.com/hall) today.</p>";
     body.dispatchEvent(new dom.Event("input", { bubbles: true }));

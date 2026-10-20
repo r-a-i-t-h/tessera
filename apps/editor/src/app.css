@@ -818,10 +818,24 @@ img[data-hero-preview] {
   white-space: nowrap;
 }
 
+.editor-picker-backdrop .editor-page-target-dialog {
+  position: relative;
+}
+
 .editor-page-target-dialog {
   max-width: 36rem;
   max-height: min(85vh, 40rem);
   overflow: auto;
+}
+
+.editor-page-target-dialog-title {
+  padding-right: 2.25rem;
+  margin-top: 0;
+}
+
+.editor-page-target-collapsible summary {
+  cursor: pointer;
+  font-weight: 600;
 }
 
 .editor-page-target-section {
@@ -842,9 +856,14 @@ img[data-hero-preview] {
   margin: 0.15rem 0;
 }
 
+.editor-page-target-current {
+  margin: 0 0 0.75rem;
+}
+
 .editor-page-target-external {
-  border-top: 1px solid #eee;
-  padding-top: 0.75rem;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.75rem;
 }
 
 .editor-record-note {

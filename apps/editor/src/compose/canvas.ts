@@ -15,7 +15,6 @@ import {
   paletteToneIds,
   quoteBlockHtml,
   renderMarkdownLinks,
-  restoreMarkdownLinks,
   toneClass,
   toneLabel,
   youtubeVideoId,
@@ -30,6 +29,7 @@ import {
 import { setDragGhost } from "../drag-ghost.js";
 import { startDragScroll, type DragScroll } from "../drag-scroll.js";
 import { REORDER_ICONS } from "../editor-icons.js";
+import { hasOpenModal } from "../escape-key.js";
 import { editorMediaHtml, editorMediaSrc } from "../forms/media-url.js";
 
 export type BindingChoice = { id: string; title?: string };
@@ -83,7 +83,10 @@ type Mounted = {
   folders: FolderChoice[];
   panelTones: PanelToneDef[];
   pageTitles: Map<string, string>;
-  pickPageLink?: (current: string) => Promise<PageLinkPick | undefined>;
+  pickPageLink?: (
+    current: string,
+    options?: { returnFocus?: HTMLElement | null },
+  ) => Promise<PageLinkPick | undefined>;
   active: string;
   locked: boolean;
   drag?: ComposeDrag;
@@ -108,7 +111,10 @@ export function mountComposeCanvases(
     folders?: FolderChoice[];
     panelTones?: PanelToneDef[];
     pageTitles?: Record<string, string>;
-    pickPageLink?: (current: string) => Promise<PageLinkPick | undefined>;
+    pickPageLink?: (
+    current: string,
+    options?: { returnFocus?: HTMLElement | null },
+  ) => Promise<PageLinkPick | undefined>;
     htmlByZone: Record<string, string>;
     locked?: boolean;
     onEdit?: (burstId?: string) => void;
@@ -144,8 +150,22 @@ export function mountComposeCanvases(
   });
   form.addEventListener("keydown", (event) => {
     const target = event.target;
-    if (!(target instanceof HTMLElement) || target.dataset.field !== "heading") return;
-    if (event.key === "Enter") event.preventDefault();
+    if (target instanceof HTMLElement && target.dataset.field === "heading" && event.key === "Enter") {
+      event.preventDefault();
+      return;
+    }
+    if (
+      event.code !== "KeyK" ||
+      event.altKey ||
+      event.shiftKey ||
+      !(event.metaKey || event.ctrlKey) ||
+      hasOpenModal()
+    ) {
+      return;
+    }
+    if (!linkCommandField(target, form)) return;
+    event.preventDefault();
+    runCommand(form, "link");
   });
   form.addEventListener("focusin", (event) => {
     const target = event.target;
@@ -889,6 +909,15 @@ function appendPalette(form: HTMLFormElement, kind: string): void {
 
 const ALIGN_CLASS = ["w3-left-align", "w3-right-align", "w3-center", "w3-text-center", "w3-justify"];
 
+function linkCommandField(target: EventTarget | null, form: HTMLFormElement): boolean {
+  if (!target || typeof target !== "object" || !("dataset" in target)) return false;
+  const field = target as HTMLElement;
+  if (!field.isContentEditable && field.getAttribute("contenteditable") !== "true") return false;
+  if (!form.contains(field)) return false;
+  if (field.dataset.plain === "true") return false;
+  return field.dataset.field === "html";
+}
+
 function runCommand(form: HTMLFormElement, command: string): void {
   mark(form);
   if (command.startsWith("align:")) {
@@ -898,15 +927,16 @@ function runCommand(form: HTMLFormElement, command: string): void {
   if (command === "link") {
     const state = mounted.get(form);
     const saved = cloneSelection();
+    const editField = htmlEditFieldFromSelection();
     const current = selectionAnchor()?.getAttribute("data-tessera-page")
       ?? selectionAnchor()?.getAttribute("href")
       ?? "";
     void (async () => {
       const picked = state?.pickPageLink
-        ? await state.pickPageLink(current)
+        ? await state.pickPageLink(current, { returnFocus: editField })
         : await legacyPromptLink();
+      restoreEditingCaret(saved, editField);
       if (!picked) return;
-      restoreSelection(saved);
       if (picked.kind === "page") {
         const label =
           document.getSelection()?.toString()
@@ -1000,6 +1030,20 @@ function restoreSelection(range: Range | null): void {
   if (!sel) return;
   sel.removeAllRanges();
   sel.addRange(range);
+}
+
+function htmlEditFieldFromSelection(): HTMLElement | null {
+  const sel = document.getSelection();
+  const node = sel?.anchorNode;
+  const from = node instanceof Element ? node : node?.parentElement;
+  const field = from?.closest<HTMLElement>('[contenteditable][data-field="html"]');
+  return field?.isConnected ? field : null;
+}
+
+function restoreEditingCaret(range: Range | null, field: HTMLElement | null): void {
+  if (field?.isConnected) field.focus({ preventScroll: true });
+  if (!range?.startContainer.isConnected) return;
+  restoreSelection(range);
 }
 
 function selectionAnchor(): HTMLAnchorElement | null {
@@ -1416,7 +1460,7 @@ const ALLOWED = new Set(["strong", "b", "em", "i", "u", "s", "code", "a", "br", 
 const MARKDOWN_LINK_SELECTION = /^\[([^\]\n]+)\]\(([^)\s]+)\)$/;
 
 function htmlForEditing(stored: string): string {
-  return restoreMarkdownLinks(stored);
+  return stored;
 }
 
 function htmlFromEditing(innerHTML: string, blocks: boolean, titles?: Map<string, string>): string {
@@ -1426,25 +1470,21 @@ function htmlFromEditing(innerHTML: string, blocks: boolean, titles?: Map<string
 
 function insertMarkdownLink(href: string): void {
   const trimmed = href.trim();
+  if (!trimmed) return;
   const sel = document.getSelection();
   if (!sel || sel.rangeCount === 0) return;
   const selected = sel.toString();
   const mdMatch = selected.match(MARKDOWN_LINK_SELECTION);
-  if (mdMatch) {
-    const label = mdMatch[1] ?? "";
-    document.execCommand("insertText", false, `[${label}](${trimmed})`);
-    touchEditable();
-    return;
-  }
   const existing = selectionAnchor();
   if (existing) {
-    const label = (existing.textContent ?? "").trim() || trimmed;
-    existing.replaceWith(document.createTextNode(`[${label}](${trimmed})`));
+    existing.removeAttribute("data-tessera-page");
+    existing.setAttribute("href", trimmed);
+    if (!(existing.textContent ?? "").trim()) existing.textContent = trimmed;
     touchEditable();
     return;
   }
-  const label = selected || trimmed;
-  document.execCommand("insertText", false, `[${label}](${trimmed})`);
+  const label = mdMatch?.[1] || selected || trimmed;
+  document.execCommand("insertHTML", false, `<a href="${escapeAttr(trimmed)}">${escapeText(label)}</a>`);
   touchEditable();
 }
 

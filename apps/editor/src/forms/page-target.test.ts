@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { RecordList } from "../api.js";
-import { buildPageTargetChoices, renderPageTargetPicker, serializePageTargetChoices, parsePageTargetChoices } from "./page-target.js";
+import {
+  buildPageTargetChoices,
+  parsePageTargetChoices,
+  readPageTargetSectionOpen,
+  renderPageTargetPicker,
+  serializePageTargetChoices,
+} from "./page-target.js";
 
 function listing(records: RecordList["records"]): RecordList {
   return { ok: true, records };
@@ -34,6 +40,14 @@ describe("buildPageTargetChoices", () => {
   });
 });
 
+describe("readPageTargetSectionOpen", () => {
+  it("defaults sections to collapsed", () => {
+    expect(readPageTargetSectionOpen("nav")).toBe(false);
+    expect(readPageTargetSectionOpen("pages")).toBe(false);
+    expect(readPageTargetSectionOpen("articles")).toBe(false);
+  });
+});
+
 describe("renderPageTargetPicker", () => {
   it("lists nav picks and prefills external URL when current is external", () => {
     const choices = buildPageTargetChoices(
@@ -44,7 +58,22 @@ describe("renderPageTargetPicker", () => {
     const html = renderPageTargetPicker(choices, "https://example.com/x");
     expect(html).toContain('data-pick-page="home"');
     expect(html).toContain('value="https://example.com/x"');
-    expect(html).toContain("Navigation");
+    expect(html).toContain('data-page-target-section="nav"');
+    expect(html).toContain("<summary");
+    expect(html).not.toContain('data-page-target-section="nav" open');
+    expect(html).not.toContain("Page link:");
+  });
+
+  it("shows the current page link at the top", () => {
+    const choices = buildPageTargetChoices(
+      listing([{ kind: "content", id: "home", title: "Home" }]),
+      { id: "s", title: "S", homePageId: "home" },
+      [{ id: "home", sidebar: true }],
+    );
+    const html = renderPageTargetPicker(choices, "home");
+    expect(html.indexOf("Page link:")).toBeLessThan(html.indexOf("External url"));
+    expect(html).toContain("<strong>Home (home)</strong>");
+    expect(html).toContain('aria-current="true"');
   });
 });
 

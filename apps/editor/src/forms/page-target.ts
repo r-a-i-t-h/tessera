@@ -80,30 +80,81 @@ export function serializePageTargetChoices(choices: PageTargetChoices): string {
   return JSON.stringify(choices);
 }
 
+const PANELS_KEY = "tessera.pageTarget.panels";
+
+export type PageTargetSectionId = "nav" | "pages" | "articles";
+
+type StoredPanels = Partial<Record<PageTargetSectionId, boolean>>;
+
+function storedPanels(): StoredPanels {
+  try {
+    const raw = localStorage.getItem(PANELS_KEY);
+    if (!raw) return {};
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    return parsed as StoredPanels;
+  } catch {
+    return {};
+  }
+}
+
+function savePanels(state: StoredPanels): void {
+  try {
+    localStorage.setItem(PANELS_KEY, JSON.stringify(state));
+  } catch {
+    // ignore
+  }
+}
+
+/** Whether a page-picker section starts open. Default collapsed. */
+export function readPageTargetSectionOpen(id: PageTargetSectionId): boolean {
+  const stored = storedPanels();
+  if (Object.prototype.hasOwnProperty.call(stored, id)) return stored[id]!;
+  return false;
+}
+
+function writePageTargetSectionOpen(id: PageTargetSectionId, open: boolean): void {
+  const state = storedPanels();
+  state[id] = open;
+  savePanels(state);
+}
+
+export function bindPageTargetPickerPanels(root: ParentNode): void {
+  for (const id of ["nav", "pages", "articles"] as const) {
+    const section = root.querySelector<HTMLDetailsElement>(
+      `details.editor-page-target-section[data-page-target-section="${id}"]`,
+    );
+    section?.addEventListener("toggle", () => writePageTargetSectionOpen(id, section.open));
+  }
+}
+
 /** Modal body for choosing a page id or external URL. */
 export function renderPageTargetPicker(choices: PageTargetChoices, currentHref: string): string {
-  const external = isLikelyExternalHref(currentHref.trim()) ? currentHref.trim() : "";
+  const trimmed = currentHref.trim();
+  const external = isLikelyExternalHref(trimmed) ? trimmed : "";
+  const currentPageBanner = pageLinkTargetBanner(choices, trimmed);
   const navItems = choices.nav
     .map((page) => {
       const label = pageLabel(page);
-      const selected = page.id === currentHref.trim() ? ' aria-current="true"' : "";
+      const selected = page.id === trimmed ? ' aria-current="true"' : "";
       const indent = page.depth > 0 ? ` style="padding-left:${page.depth * 1.25}rem"` : "";
       return `<li${indent}><button type="button" class="w3-button w3-white editor-page-target-row" data-pick-page="${escapeHtml(page.id)}"${selected}>${escapeHtml(label)}</button></li>`;
     })
     .join("");
-  const navBlock = navItems
-    ? `<section class="editor-page-target-section"><h3 class="w3-medium">Navigation</h3><ul class="w3-ul editor-page-target-list">${navItems}</ul></section>`
+  const navBody = navItems
+    ? `<ul class="w3-ul editor-page-target-list">${navItems}</ul>`
     : `<p class="w3-text-grey">No navigation pages. Add links on the Nav record.</p>`;
+  const navBlock = pageTargetCollapsibleSection("nav", "Navigation", navBody);
 
   const allPages = (choices.pages ?? [])
     .map((page) => {
       const label = pageLabel(page);
-      const selected = page.id === currentHref.trim() ? ' aria-current="true"' : "";
+      const selected = page.id === trimmed ? ' aria-current="true"' : "";
       return `<li><button type="button" class="w3-button w3-white editor-page-target-row" data-pick-page="${escapeHtml(page.id)}"${selected}>${escapeHtml(label)}</button></li>`;
     })
     .join("");
   const pagesBlock = allPages
-    ? `<section class="editor-page-target-section"><h3 class="w3-medium">All pages</h3><ul class="w3-ul editor-page-target-list">${allPages}</ul></section>`
+    ? pageTargetCollapsibleSection("pages", "All pages", `<ul class="w3-ul editor-page-target-list">${allPages}</ul>`)
     : "";
 
   const articleBlocks = choices.articles
@@ -112,7 +163,7 @@ export function renderPageTargetPicker(choices: PageTargetChoices, currentHref: 
       const items = group.pages
         .map((page) => {
           const label = pageLabel(page);
-          const selected = page.id === currentHref.trim() ? ' aria-current="true"' : "";
+          const selected = page.id === trimmed ? ' aria-current="true"' : "";
           return `<li><button type="button" class="w3-button w3-white editor-page-target-row" data-pick-page="${escapeHtml(page.id)}"${selected}>${escapeHtml(label)}</button></li>`;
         })
         .join("");
@@ -121,22 +172,49 @@ export function renderPageTargetPicker(choices: PageTargetChoices, currentHref: 
     })
     .filter(Boolean)
     .join("");
-  const articlesBlock = articleBlocks
-    ? `<section class="editor-page-target-section"><h3 class="w3-medium">Articles</h3>${articleBlocks}</section>`
-    : "";
+  const articlesBlock = articleBlocks ? pageTargetCollapsibleSection("articles", "Articles", articleBlocks) : "";
+
+  const externalBlock = `<section class="editor-page-target-section editor-page-target-external">
+      <p><label for="page-target-external">External url</label>
+        <input id="page-target-external" class="w3-input w3-border" data-page-target-external value="${escapeHtml(external)}" /></p>
+      <p><button type="button" class="w3-button w3-theme" data-page-target-use-url>Use this URL</button></p>
+    </section>`;
 
   return `<div class="editor-page-target-picker">
+    ${currentPageBanner}
+    ${externalBlock}
     ${navBlock}
     ${pagesBlock}
     ${articlesBlock}
-    <section class="editor-page-target-section editor-page-target-external">
-      <h3 class="w3-medium">External URL</h3>
-      <p class="w3-small w3-text-grey">Use a full address for off-site links (e.g. <code>https://…</code>).</p>
-      <p><label for="page-target-external">URL</label>
-        <input id="page-target-external" class="w3-input w3-border" data-page-target-external value="${escapeHtml(external)}" /></p>
-      <p><button type="button" class="w3-button w3-theme" data-page-target-use-url>Use this URL</button></p>
-    </section>
   </div>`;
+}
+
+function pageLinkTargetBanner(choices: PageTargetChoices, current: string): string {
+  if (!current || isLikelyExternalHref(current)) return "";
+  const page = findPageChoice(choices, current);
+  const label = page ? pageLabel(page) : current;
+  const note = page ? "" : `<span class="w3-text-grey"> (unknown page)</span>`;
+  return `<p class="editor-page-target-current">Page link: <strong>${escapeHtml(label)}</strong>${note}</p>`;
+}
+
+function findPageChoice(choices: PageTargetChoices, id: string): PageChoice | undefined {
+  const hit = choices.nav.find((page) => page.id === id);
+  if (hit) return hit;
+  const fromPages = choices.pages?.find((page) => page.id === id);
+  if (fromPages) return fromPages;
+  for (const group of choices.articles) {
+    const article = group.pages.find((page) => page.id === id);
+    if (article) return article;
+  }
+  return undefined;
+}
+
+function pageTargetCollapsibleSection(id: PageTargetSectionId, title: string, body: string): string {
+  const open = readPageTargetSectionOpen(id) ? " open" : "";
+  return `<details class="editor-page-target-section editor-page-target-collapsible" data-page-target-section="${id}"${open}>
+    <summary class="w3-medium">${escapeHtml(title)}</summary>
+    ${body}
+  </details>`;
 }
 
 function pageLabel(page: PageChoice): string {
