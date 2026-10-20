@@ -165,7 +165,7 @@ import {
 } from "./forms/page-target.js";
 import { editorMediaSrc } from "./forms/media-url.js";
 import { guideHtml } from "./guide.js";
-import { activeMaintenanceTab, maintenanceHtml } from "./maintenance.js";
+import { maintenanceHtml, maintenanceTabId } from "./maintenance.js";
 import { bindCodeWrap, codeWrapClass, codeWrapToggle, isCodeWrapToggle } from "./code-wrap.js";
 import { escapeHtml, fieldId, formErrorPanel, noticePanel, statusPanels } from "./dom.js";
 import { pushStatusMessage } from "./status-stack.js";
@@ -1469,7 +1469,7 @@ async function bindMaintenance(
   error = "",
 ): Promise<void> {
   const report = await getMaintenance();
-  const active = activeMaintenanceTab(tab);
+  const active = maintenanceTabId(tab);
   root.innerHTML = chrome(user, maintenanceHtml(report, tab, notice, error), true, "maintenance", {
     maintenanceTab: active,
   });

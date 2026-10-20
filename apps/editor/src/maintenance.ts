@@ -20,11 +20,34 @@ export const MAINTENANCE_TABS: { id: MaintenanceTabId; label: string }[] = [
   { id: "rescan", label: "Rescan drift" },
 ];
 
-export function activeMaintenanceTab(selected?: string): MaintenanceTabId {
+export function maintenanceTabId(selected?: string): MaintenanceTabId | undefined {
   if (MAINTENANCE_TABS.some((tab) => tab.id === selected)) {
     return selected as MaintenanceTabId;
   }
-  return "orphans";
+  return undefined;
+}
+
+export function maintenanceTabCount(report: MaintenanceReport, tab: MaintenanceTabId): number {
+  switch (tab) {
+    case "orphans":
+      return report.orphans.length;
+    case "assets":
+      return report.unusedAssets.length;
+    case "broken":
+      return report.brokenRefs.length;
+    case "unused":
+      return report.unusedItems.length + report.unusedLayouts.length;
+    case "unknown":
+      return report.unknownBindings.length;
+    case "nav":
+      return report.unreachableNav.length;
+    case "rescan":
+      return report.rescanDrift.danglingMedia.length + report.rescanDrift.scannedAssets.length;
+    default: {
+      const _exhaustive: never = tab;
+      return _exhaustive;
+    }
+  }
 }
 
 function findingList(items: MaintenanceFinding[], empty: string): string {
@@ -78,15 +101,36 @@ function tabBody(report: MaintenanceReport, tab: MaintenanceTabId): string {
   }
 }
 
+function overviewBody(report: MaintenanceReport): string {
+  const rows = MAINTENANCE_TABS.map((tab) => {
+    const count = maintenanceTabCount(report, tab.id);
+    const countHtml =
+      count === 0
+        ? `<span class="w3-text-grey">0</span>`
+        : `<strong>${count}</strong>`;
+    return `<li><a href="#/maintenance/${encodeURIComponent(tab.id)}">${escapeHtml(tab.label)}</a> ${countHtml}</li>`;
+  }).join("");
+  return `<p class="w3-small w3-text-grey">Open a report for details and links to fix each finding.</p>
+    <ul class="w3-ul">${rows}</ul>`;
+}
+
 export function maintenanceHtml(
   report: MaintenanceReport,
   selected: string | undefined,
   notice = "",
   error = "",
 ): string {
-  const active = activeMaintenanceTab(selected);
+  const tab = maintenanceTabId(selected);
+  const detail = tab
+    ? (() => {
+        const meta = MAINTENANCE_TABS.find((item) => item.id === tab)!;
+        return `<p class="w3-small"><a href="#/maintenance">All reports</a></p>
+          <h2 class="w3-medium">${escapeHtml(meta.label)}</h2>
+          <section class="editor-kind">${tabBody(report, tab)}</section>`;
+      })()
+    : `<section class="editor-kind">${overviewBody(report)}</section>`;
   return `<h1 class="w3-large">Maintenance</h1>
     ${statusPanels(notice, error)}
     <p class="w3-text-grey">Site health reports. Each finding links to the editor record to fix.</p>
-    <section class="editor-kind">${tabBody(report, active)}</section>`;
+    ${detail}`;
 }
