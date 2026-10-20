@@ -108,7 +108,7 @@ writeFileSync(
       name: "tessera",
       private: true,
       type: "module",
-      engines: { node: ">=20" },
+      engines: { node: ">=22" },
       dependencies,
     },
     null,

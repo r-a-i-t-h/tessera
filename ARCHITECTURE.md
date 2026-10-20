@@ -29,7 +29,7 @@ The example site lives under `sites/willow`. It is not an npm workspace. The edi
 
 ## Editor API
 
-Hono app (Node ≥20). JSON routes first; if `spa/index.html` (a release), `apps/editor/dist/index.html` (a checkout), or `TESSERA_SPA_DIR` is present, the same process serves the editor SPA so cookies stay first-party. Runtime data is file-backed with an in-memory cache; writes use atomic temp+rename.
+Hono app (Node ≥22). JSON routes first; if `spa/index.html` (a release), `apps/editor/dist/index.html` (a checkout), or `TESSERA_SPA_DIR` is present, the same process serves the editor SPA so cookies stay first-party. Runtime data is file-backed with an in-memory cache; writes use atomic temp+rename.
 
 | Concern | Contract |
 |---------|----------|
