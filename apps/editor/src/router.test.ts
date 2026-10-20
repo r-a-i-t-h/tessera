@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseRoute, stylesSheetHref, stylesSheetQuery } from "./router.js";
+import { guideSectionHref, guideSectionQuery, parseRoute, stylesSheetHref, stylesSheetQuery } from "./router.js";
 
 describe("parseRoute", () => {
   it.each([
@@ -71,5 +71,15 @@ describe("parseRoute", () => {
 
   it("builds a maximized stylesheet href", () => {
     expect(stylesSheetHref("local")).toBe("#/styles?sheet=local");
+  });
+
+  it("reads section from hash query for guide deep links", () => {
+    expect(guideSectionQuery("#/guide?section=menus")).toBe("menus");
+    expect(guideSectionQuery("#/guide")).toBeUndefined();
+    expect(guideSectionQuery("#/pages")).toBeUndefined();
+  });
+
+  it("builds a guide section href", () => {
+    expect(guideSectionHref("page-links-wiki-style")).toBe("#/guide?section=page-links-wiki-style");
   });
 });

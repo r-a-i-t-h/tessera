@@ -167,7 +167,8 @@ import {
   type PageTargetChoices,
 } from "./forms/page-target.js";
 import { editorMediaSrc } from "./forms/media-url.js";
-import { guideHtml } from "./guide.js";
+import { bindBackToTop } from "./back-to-top.js";
+import { guideHtml, scrollGuideSection } from "./guide.js";
 import { maintenanceHtml, maintenanceTabId } from "./maintenance.js";
 import { bindCodeWrap, codeWrapClass, codeWrapToggle, isCodeWrapToggle } from "./code-wrap.js";
 import { escapeHtml, fieldId, formErrorPanel, noticePanel, statusPanels } from "./dom.js";
@@ -192,7 +193,7 @@ import {
   type PageListOrder,
 } from "./pages-list.js";
 import type { NavEntry } from "@r-a-i-t-h/tessera-model";
-import { parseRoute, stylesSheetQuery } from "./router.js";
+import { guideSectionQuery, parseRoute, stylesSheetQuery } from "./router.js";
 import {
   bindStylePanels,
   bindStylesheetEditors,
@@ -272,6 +273,8 @@ async function render(root: HTMLElement): Promise<void> {
     else if (route.page === "guide") {
       root.innerHTML = chrome(user, guideHtml(), true, "guide");
       bindChrome(root);
+      const section = guideSectionQuery();
+      if (section) scrollGuideSection(root, section);
     }
     else if (route.page === "library") await bindLibrary(root, user, route.id);
     else if (route.page === "maintenance") await bindMaintenance(root, user, route.tab);
@@ -330,6 +333,7 @@ let historyRestore = false;
 let undoKeys: AbortController | undefined;
 
 function bindChrome(root: HTMLElement): void {
+  bindBackToTop(root);
   root.querySelector("[data-action=logout]")?.addEventListener("click", async () => {
     await logout().catch(() => undefined);
     window.location.hash = "";
@@ -807,6 +811,7 @@ function passwordChangeError(currentPassword: string, newPassword: string, confi
 function bindLogin(root: HTMLElement, error?: string, username = ""): void {
   lastAnnouncedHash = "";
   root.innerHTML = loginView(error, username);
+  bindBackToTop(root);
   const form = root.querySelector<HTMLFormElement>("#login-form");
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();

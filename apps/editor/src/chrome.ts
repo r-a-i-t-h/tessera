@@ -1,4 +1,5 @@
 import { version as tesseraVersion } from "../../../package.json";
+import { backToTopHtml } from "./back-to-top.js";
 import type { PublicUser } from "./api.js";
 import { escapeHtml } from "./dom.js";
 import { MAINTENANCE_TABS } from "./maintenance.js";
@@ -123,6 +124,7 @@ export function editorChrome(
         <div class="editor-scroll">
           <main class="editor-main${wide ? " editor-wide" : ""}">${inner}</main>
         </div>
+        ${backToTopHtml()}
       </div>
     </div>
     ${editorFooter()}`;
@@ -153,6 +155,7 @@ export function loginView(error = "", username = ""): string {
       <p><button type="submit" class="w3-button w3-theme">Sign in</button></p>
     </form></main>
     </div>
+    ${backToTopHtml()}
     ${editorFooter()}`;
 }
 

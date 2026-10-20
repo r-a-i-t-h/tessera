@@ -136,6 +136,52 @@ body {
   height: auto;
 }
 
+.editor-back-to-top {
+  position: fixed;
+  z-index: 13;
+  right: 1rem;
+  bottom: calc(2rem + 0.65rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid #c8c8c4;
+  border-radius: 999px;
+  background: #fff;
+  color: #333;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.15s ease,
+    visibility 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.editor-back-to-top svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.editor-back-to-top:hover {
+  background: #f6f6f4;
+}
+
+.editor-back-to-top:focus-visible {
+  outline: 2px solid #009688;
+  outline-offset: 2px;
+}
+
+.editor-back-to-top--visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
 .editor-footer {
   position: fixed;
   z-index: 12;
@@ -1306,9 +1352,27 @@ img[data-hero-preview] {
   max-width: 46rem;
 }
 
+.editor-guide-toc {
+  margin: 1.25rem 0 0;
+  padding: 0.75rem 1rem;
+  background: #f6f6f4;
+  border: 1px solid #c8c8c4;
+  border-radius: 4px;
+}
+
+.editor-guide-toc p {
+  margin: 0;
+}
+
+.editor-guide-toc ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+}
+
 .editor-guide h2 {
   margin-top: 1.75rem;
   font-size: 1.15rem;
+  scroll-margin-top: 1rem;
 }
 
 .editor-guide pre,

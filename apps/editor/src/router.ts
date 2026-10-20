@@ -26,6 +26,19 @@ export function stylesSheetHref(sheetId: string): string {
   return `#/styles?sheet=${encodeURIComponent(sheetId)}`;
 }
 
+/** Hash route to the Guide with a section scrolled into view. */
+export function guideSectionHref(sectionId: string): string {
+  return `#/guide?section=${encodeURIComponent(sectionId)}`;
+}
+
+/** Section id from `#/guide?section=…`. */
+export function guideSectionQuery(hash = window.location.hash): string | undefined {
+  const { path, query } = hashPathAndQuery(hash);
+  if (path !== "guide") return undefined;
+  const section = query.get("section")?.trim();
+  return section || undefined;
+}
+
 /** Stylesheet id from `#/styles?sheet=…` or `?sheet=…` on the page URL. */
 export function stylesSheetQuery(hash = window.location.hash): string | undefined {
   const { query: hashQuery } = hashPathAndQuery(hash);

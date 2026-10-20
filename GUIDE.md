@@ -1,8 +1,23 @@
 # Authoring guide
 
-How menus, styles, and YAML fit together. Willow is the worked example. The same notes are on the editor’s Guide page.
+How menus, styles, and YAML fit together. Willow is the worked example. The same notes are on the editor’s Guide page (`#/guide` in the editor; use `#/guide?section=…` to jump to a section).
 
 Designers shipping a drop-in look should read [THEME-BUILDER.md](./THEME-BUILDER.md) (kit folders, manifest syntax, apply rules).
+
+## On this page
+
+- [YAML indentation](#yaml-indentation)
+- [Menus](#menus)
+- [Menu components](#menu-components)
+- [Page links (wiki-style)](#page-links-wiki-style)
+- [Articles](#articles)
+- [Bindings](#bindings)
+- [Stylesheets](#stylesheets)
+- [What the Styles page changes](#what-the-styles-page-changes)
+- [A standing side menu on Willow](#a-standing-side-menu-on-willow)
+- [A different frame for a section](#a-different-frame-for-a-section)
+- [Maintenance](#maintenance)
+- [Panel tones](#panel-tones)
 
 ## YAML indentation
 
