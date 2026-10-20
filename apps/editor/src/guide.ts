@@ -1,9 +1,12 @@
-import { guideSectionHref } from "./router.js";
+import { guideSectionHref, stylesSheetHref } from "./router.js";
 
 /** Authoring notes shown at #/guide. Keep this aligned with GUIDE.md. */
 export function guideHtml(): string {
   const toc = (label: string, id: string) =>
     `<li><a href="${guideSectionHref(id)}">${label}</a></li>`;
+  const stylesPage = `<a href="#/styles">Styles</a>`;
+  const sheetLink = (id: string, label: string) =>
+    `<a href="${stylesSheetHref(id)}">${label}</a>`;
 
   return `<article class="editor-guide">
     <h1 class="w3-large">Guide</h1>
@@ -39,7 +42,7 @@ export function guideHtml(): string {
 
     <h2 id="menus">Menus</h2>
     <p>Links live on the Nav record (<a href="#/records/nav">Records → Nav</a>, file <code>records/nav.yaml</code>). Each row has three places: <strong>Sidebar</strong>, <strong>Top bar</strong>, and <strong>Footer</strong>. A place shows the row only when the master layout draws a menu component for that place.</p>
-    <p>Willow’s master layout (<a href="#/records/layouts">Records → Layouts</a>, then <code>master</code>) has two:</p>
+    <p>Willow’s master layout (<a href="#/records/layouts">Records → Layouts</a>, then <a href="#/layouts/master"><code>master</code></a>) has two:</p>
     <ul>
       <li><code>navFlat</code> with <code>scope: topbar</code> is the row of links under the logo.</li>
       <li><code>navFlat</code> with <code>scope: sidebar</code> is the drawer. On a wide window the Menu button is hidden and the drawer stays closed. Narrow the window and Menu opens it.</li>
@@ -64,10 +67,10 @@ export function guideHtml(): string {
       <li><code>subpageList</code> prints the current page’s children. Optional prop <code>title</code>.</li>
       <li><code>linkCluster</code> prints a group of links in the page body. <code>source</code> is <code>children</code> (the default), <code>type</code> (also set <code>type</code> to a type id), or <code>nav</code> (also set <code>heading</code> to a Nav heading). <code>variant</code> is <code>list</code>, <code>pills</code>, or <code>cards</code>.</li>
     <li><code>pageNav</code> lists every page that has no type. It ignores the Nav record.</li>
-      <li><code>searchBox</code> is typeahead search for the frame. Place it on the master layout. The index loads only on first use. Enter opens the Search page.</li>
-      <li><code>searchResults</code> is the full results UI on a Search page (refine, tag/type filter, relevance or title sort).</li>
+      <li><code>searchBox</code> is typeahead search for the frame. Place it on the master layout. The index loads only on first use. Enter opens the <a href="#/content/search">Search page</a>.</li>
+      <li><code>searchResults</code> is the full results UI on the <a href="#/content/search">Search page</a> (refine, tag/type filter, relevance or title sort).</li>
   </ul>
-    <p>A blank site already puts <code>searchBox</code> in the sidebar and a Search page on the Nav record. Keep the menu sparse for wiki-style sites; reach other pages by cross-links and search.</p>
+    <p>A blank site already puts <code>searchBox</code> in the sidebar and a <a href="#/content/search">Search page</a> on the <a href="#/records/nav">Nav record</a>. Keep the menu sparse for wiki-style sites; reach other pages by cross-links and search.</p>
 
     <h2 id="page-links-wiki-style">Page links (wiki-style)</h2>
     <p>Compose’s <strong>link</strong> control opens the page picker for every page. That stores <code>&lt;a data-tessera-page=&quot;hall&quot; href=&quot;#&quot;&gt;…&lt;/a&gt;</code>. You can also type <code>[[hall]]</code> or <code>[[hall|label]]</code>; saving expands those the same way. Preview and publish resolve the URL. Renaming a page rewrites those ids in prose and binding links. Missing targets use the class <code>tessera-page-missing</code>. Preview diagnostics lists pages linked to and from the current page.</p>
@@ -106,17 +109,17 @@ export function guideHtml(): string {
   <h2 id="stylesheets">Stylesheets</h2>
     <p>A class on a layout region is an ordinary CSS class. These stylesheets supply them, and they do not stand in for each other.</p>
     <ul>
-      <li><strong>W3.CSS</strong> (<code>skin/w3.css</code>), linked by every shell. Examples: <code>w3-sidebar</code>, <code>w3-bar-block</code>, <code>w3-collapse</code>, <code>w3-hide-large</code>, <code>w3-row</code>, <code>w3-col</code>. <code>w3-collapse</code> on a <code>w3-sidebar</code> shows that sidebar from 993px up and hides it below that, where the Menu button opens it. <code>w3-hide-large</code> hides an element from 993px up.</li>
-      <li><strong>Tessera</strong> (<code>skin/tessera.css</code>), linked by every shell. The default frame and shared widgets: <code>tessera-sidebar</code>, <code>tessera-bar</code>, <code>tessera-main</code>, <code>tessera-content</code>, <code>tessera-footer</code>, link clusters, video, pasted notes, and <code>tessera-imgbox</code>. Tokens changed on the <a href="#/styles">Styles</a> page override <code>:root</code> in this file. Defaults stay here.</li>
-      <li><strong>Micro-apps</strong> (<code>skin/microapps.css</code>). The gallery lives here.</li>
-      <li><strong>Site CSS</strong> (<code>shell/site.css</code>). Theme / frame layout for this site. Willow’s look is here: <code>wh-header</code>, <code>wh-topnav</code>, <code>wh-drawer</code>, <code>wh-main</code>, and the colours under <code>--wh-</code>. <code>.wh-drawer</code> is <code>display: none</code> until Menu runs. Theme apply may replace this file.</li>
-      <li><strong>Site local</strong> (<code>shell/local.css</code>). Durable site-owned rules (panel tones, local tweaks). Theme apply does not overwrite it. Linked after <code>site.css</code>.</li>
+      <li><strong>${sheetLink("w3", "W3.CSS")}</strong> (<code>skin/w3.css</code>), linked by every shell. Examples: <code>w3-sidebar</code>, <code>w3-bar-block</code>, <code>w3-collapse</code>, <code>w3-hide-large</code>, <code>w3-row</code>, <code>w3-col</code>. <code>w3-collapse</code> on a <code>w3-sidebar</code> shows that sidebar from 993px up and hides it below that, where the Menu button opens it. <code>w3-hide-large</code> hides an element from 993px up.</li>
+      <li><strong>${sheetLink("tessera", "Tessera")}</strong> (<code>skin/tessera.css</code>), linked by every shell. The default frame and shared widgets: <code>tessera-sidebar</code>, <code>tessera-bar</code>, <code>tessera-main</code>, <code>tessera-content</code>, <code>tessera-footer</code>, link clusters, video, pasted notes, and <code>tessera-imgbox</code>. Tokens changed on the ${stylesPage} page override <code>:root</code> in this file. Defaults stay here.</li>
+      <li><strong>${sheetLink("microapps", "Micro-apps")}</strong> (<code>skin/microapps.css</code>). The gallery lives here.</li>
+      <li><strong>${sheetLink("site", "Site CSS")}</strong> (<code>shell/site.css</code>). Theme / frame layout for this site. Willow’s look is here: <code>wh-header</code>, <code>wh-topnav</code>, <code>wh-drawer</code>, <code>wh-main</code>, and the colours under <code>--wh-</code>. <code>.wh-drawer</code> is <code>display: none</code> until Menu runs. Theme apply may replace this file.</li>
+      <li><strong>${sheetLink("local", "Site local")}</strong> (<code>shell/local.css</code>). Durable site-owned rules (panel tones, local tweaks). Theme apply does not overwrite it. Linked after <code>site.css</code>.</li>
     </ul>
-    <p>A shell that links a W3 theme, such as <code>skin/w3-theme-teal.css</code>, keeps that file between W3 and Tessera. Willow paints those colours in <code>site.css</code> instead. The fonts link is a URL, not one of these files.</p>
-    <p>The Styles page can open each of these files. Saving W3, Tessera, micro-apps, or the theme stores a copy for this site and leaves the shared file alone. Saving site layout writes <code>shell/site.css</code>; saving site local writes <code>shell/local.css</code>. The preview uses a save immediately. Publish updates the published copy.</p>
+    <p>A shell that links a W3 theme, such as <code>skin/w3-theme-teal.css</code>, keeps ${sheetLink("theme", "that theme file")} between W3 and Tessera. Willow paints those colours in ${sheetLink("site", "site layout")} instead. The fonts link is a URL, not one of these files.</p>
+    <p>The ${stylesPage} page can open each of these files. Saving W3, Tessera, micro-apps, or the theme stores a copy for this site and leaves the shared file alone. Saving site layout writes <code>shell/site.css</code>; saving site local writes <code>shell/local.css</code>. The preview uses a save immediately. Publish updates the published copy.</p>
 
     <h2 id="what-the-styles-page-changes">What the Styles page changes</h2>
-    <p>Styles saves <code>site.style</code>. A pages build writes tokens that differ from the Tessera defaults into a style element after the stylesheet links, and adds <code>leftnav</code> or <code>rightnav</code> on the body. That style element overrides those variables in <code>tessera.css</code>. A token left at its default stays in the stylesheet, so editing it there shows in the preview. Editing a stylesheet does not change this form. Willow’s master layout uses <code>wh-</code> classes, so saving the tokens leaves the hall looking the same. The specimen on the Styles page is the default frame, which is the frame a blank site starts with.</p>
+    <p>${stylesPage} saves <code>site.style</code>. A pages build writes tokens that differ from the Tessera defaults into a style element after the stylesheet links, and adds <code>leftnav</code> or <code>rightnav</code> on the body. That style element overrides those variables in ${sheetLink("tessera", "Tessera")}. A token left at its default stays in the stylesheet, so editing it there shows in the preview. Editing a stylesheet does not change this form. Willow’s master layout uses <code>wh-</code> classes, so saving the tokens leaves the hall looking the same. The specimen on the ${stylesPage} page is the default frame, which is the frame a blank site starts with.</p>
     <table class="w3-table w3-bordered">
       <thead><tr><th>Field</th><th>Effect on the default chrome</th></tr></thead>
       <tbody>
@@ -140,18 +143,18 @@ export function guideHtml(): string {
     <h2 id="a-standing-side-menu-on-willow">A standing side menu on Willow</h2>
     <p>The drawer is already in the master layout, with id <code>mySidebar</code>. To keep it open on a wide window, add <code>w3-collapse</code> to that region’s classes:</p>
     <pre>className: w3-sidebar w3-bar-block w3-collapse wh-drawer</pre>
-    <p>Then give the page a left margin in <code>shell/site.css</code>:</p>
+    <p>Then give the page a left margin in ${sheetLink("site", "site layout")}:</p>
     <pre>@media (min-width: 993px) {
   .wh-drawer { width: 16rem; }
   .wh-main { margin-left: 16rem; }
 }</pre>
     <p>Below 993px it stays a drawer opened by Menu, and that flyout may slide in. Leave <code>w3-animate-left</code> off the standing column: from 993px up the column is already on the page, and a slide on every new page is only noise. Keep the ids <code>mySidebar</code> and <code>myOverlay</code>. The runtime binds open and close to those two ids.</p>
-    <p>A starter site already has this column, on the left. Its master uses <code>tessera-sidebar</code> and <code>w3-collapse</code>, its shell links <code>tessera.css</code>, and the site record sets Menu side to left. The Styles page can move the standing column. Below 993px the column hides. The Menu button sits on the right of the bar and opens a flyout from the right, so the site title stays put and the left of the page stays in view. The flyout position is in <code>shell/site.css</code>.</p>
+    <p>A starter site already has this column, on the left. Its master uses <code>tessera-sidebar</code> and <code>w3-collapse</code>, its shell links ${sheetLink("tessera", "Tessera")}, and the <a href="#/records/site">site record</a> sets Menu side to left. The ${stylesPage} page can move the standing column. Below 993px the column hides. The Menu button sits on the right of the bar and opens a flyout from the right, so the site title stays put and the left of the page stays in view. The flyout position is in ${sheetLink("site", "site layout")}.</p>
 
     <h2 id="a-different-frame-for-a-section">A different frame for a section</h2>
-    <p>The site record names the frame every page uses until a page names another. On that page, <strong>Frame</strong> is the layout. Leave it as <strong>Inherit</strong> on the children: they use the nearest parent that set one. A page further down can name its own, and that starts again. Naming the site's frame on a nested page steps that subtree back to the site frame.</p>
+    <p>The <a href="#/records/site">site record</a> names the frame every page uses until a page names another. On that page, <strong>Frame</strong> is the layout. Leave it as <strong>Inherit</strong> on the children: they use the nearest parent that set one. A page further down can name its own, and that starts again. Naming the site's frame on a nested page steps that subtree back to the site frame.</p>
     <p>The parent is the same parent that builds the URL. A winter fair whose parent is Events publishes at <code>/events/event-winter-fair</code> and wears the Events frame. A page that is not under Events keeps the site frame, even when it uses the same page layout. The home page does not inherit from a parent.</p>
-    <p>The page layout does not follow the frame. Style tokens stay on the site. Both frames' classes live in <code>shell/site.css</code>. Each frame places its own menu components, and those components still read the one Nav record.</p>
+    <p>The page layout does not follow the frame. Style tokens stay on the site. Both frames' classes live in ${sheetLink("site", "site layout")}. Each frame places its own menu components, and those components still read the one <a href="#/records/nav">Nav record</a>.</p>
 
     <h2 id="maintenance">Maintenance</h2>
     <p>The editor’s <a href="#/maintenance">Maintenance</a> overview shows how many findings each report has; open a report for the full list. Each row links to the record to fix. Sidebar items:</p>
@@ -170,7 +173,7 @@ export function guideHtml(): string {
     <p>A theme that offers more than one look lists those looks as aspects. On a page, <strong>Aspect</strong> picks one. Leave it as <strong>Inherit</strong> and the page uses the nearest parent that set one, or the site default. The home page does not inherit from a parent. Choosing an aspect only adds a class on the document root for that theme's CSS. It does not change the layout or the frame.</p>
 
     <h2 id="panel-tones">Panel tones</h2>
-    <p>The site record may list extra tones for Compose <strong>Panel</strong> and <strong>Quote</strong> sections (<code>panelTones</code> on the Site form). They appear in the Tone dropdown and style that block only; they are not aspects and do not change the page chrome. Put their CSS in <code>shell/local.css</code> so a theme reinstall does not wipe it. Theme apply does not clear the catalog. Panel is a nested-block container (like Card): the tone styles the shell, and you drop other Compose sections inside it.</p>
+    <p>The <a href="#/records/site">site record</a> may list extra tones for Compose <strong>Panel</strong> and <strong>Quote</strong> sections (<code>panelTones</code> on the Site form). They appear in the Tone dropdown and style that block only; they are not aspects and do not change the page chrome. Put their CSS in ${sheetLink("local", "site local")} so a theme reinstall does not wipe it. Theme apply does not clear the catalog. Panel is a nested-block container (like Card): the tone styles the shell, and you drop other Compose sections inside it.</p>
     <p>Keep typed divergence small. Prefer a background (or border) on the panel shell, and only change type on a <strong>Text</strong> widget that is a direct child of the panel body. Cards, quotes, images, and text nested inside those stay on the site style. Example catalog entry and CSS:</p>
     <pre>- id: callout
   label: Callout

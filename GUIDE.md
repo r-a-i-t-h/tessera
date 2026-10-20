@@ -36,9 +36,9 @@ Save on the Fields tab rewrites a file at two spaces. The Raw file tab keeps the
 
 ## Menus
 
-Links live on the Nav record (Records → Nav, file `records/nav.yaml`). Each row has three places: **Sidebar**, **Top bar**, and **Footer**. A place shows the row only when the master layout draws a menu component for that place.
+Links live on the Nav record ([Records → Nav](#/records/nav), file `records/nav.yaml`). Each row has three places: **Sidebar**, **Top bar**, and **Footer**. A place shows the row only when the master layout draws a menu component for that place.
 
-Willow’s master layout (Records → Layouts, then `master`) has two:
+Willow’s master layout ([Records → Layouts](#/records/layouts), then [`master`](#/layouts/master)) has two:
 
 - `navFlat` with `scope: topbar` is the row of links under the logo.
 - `navFlat` with `scope: sidebar` is the drawer. On a wide window the Menu button is hidden and the drawer stays closed. Narrow the window and Menu opens it.
@@ -72,10 +72,10 @@ Put one of these in the master layout as a component. `scope` is `sidebar` (the 
 | `subpageList` | The current page’s children. Optional prop `title`. |
 | `linkCluster` | A group of links in the page body. `source` is `children` (the default), `type` (also set `type` to a type id), or `nav` (also set `heading` to a Nav heading). `variant` is `list`, `pills`, or `cards`. |
 | `pageNav` | Every page that has no type. Ignores the Nav record. |
-| `searchBox` | Typeahead search in the frame. Put it on the master layout. The index loads only when someone focuses or types. Enter opens the Search page (`search/?q=…`, or `#search?q=…` on a snapshot). |
-| `searchResults` | Full results on a Search page: refine the query, filter by tag or type, sort by relevance or title. |
+| `searchBox` | Typeahead search in the frame. Put it on the master layout. The index loads only when someone focuses or types. Enter opens the [Search page](#/content/search) (`search/?q=…`, or `#search?q=…` on a snapshot). |
+| `searchResults` | Full results on the [Search page](#/content/search): refine the query, filter by tag or type, sort by relevance or title. |
 
-A blank site already places `searchBox` in the sidebar and ships a Search page on the Nav record. Large wiki-style sites keep the menu sparse: a few entry pages plus Search; everything else is reached by cross-links and search.
+A blank site already places `searchBox` in the sidebar and ships a [Search page](#/content/search) on the [Nav record](#/records/nav). Large wiki-style sites keep the menu sparse: a few entry pages plus Search; everything else is reached by cross-links and search.
 
 ## Page links (wiki-style)
 
@@ -91,11 +91,11 @@ External URLs still use ordinary markdown/`href` links.
 
 ## Articles
 
-Pages are ordinary pages. Articles expands each blog in the sidebar so you can pick which stream’s articles to edit. A blog is one dated stream: path, frame, page size, hero, and lead. Blog records are managed under Records → Blogs. Creating a blog also creates its index. Place each blog on the Nav record yourself. The menu can add the index when the blog asks for it. Articles are not menu items.
+Pages are ordinary pages. [Articles](#/articles) expands each blog in the sidebar so you can pick which stream’s articles to edit. A blog is one dated stream: path, frame, page size, hero, and lead. Blog records are managed under [Records → Blogs](#/records/blogs). Creating a blog also creates its index. Place each blog on the Nav record yourself. The menu can add the index when the blog asks for it. Articles are not menu items.
 
 ## Bindings
 
-A **binding** is a named configuration for a registry component. It lives once under Records → Bindings (`records/bindings/<id>.yaml`): the component name (for example `gallery`, `imageRevealGallery`) and its props. Pages do not store that configuration — they store a token **`{{id}}`** that Tessera expands when the page is rendered.
+A **binding** is a named configuration for a registry component. It lives once under [Records → Bindings](#/records/bindings) (`records/bindings/<id>.yaml`): the component name (for example `gallery`, `imageRevealGallery`) and its props. Pages do not store that configuration — they store a token **`{{id}}`** that Tessera expands when the page is rendered.
 
 ### Where bindings belong on a page
 
@@ -126,7 +126,7 @@ Other binding kinds have **no** Compose section shortcut — configure them only
 - **Link group** — Titled links: this page’s children, every page of a type, or one menu heading.
 - **Reveal banner** — Grid of image panels (Miller’s Ark–style homepage hero): set banner width, height, and panels per row (2–6); optional title size (1–2 em) and expanded gap (default 10px, the space left beside a grown panel); up to six panels with image, title, and link. Each panel shows its slice of full-size artwork; hover to grow on desktop; click or tap to reveal the full banner, then navigate. Insert only; no Compose palette section. Panel **image** is a site-relative library path (e.g. `./media/hero/img1.jpg`). Panel **link** is a **page id** (same id as Pages or Nav) or a full external URL (`https://…`, `mailto:…`); use **Choose page** in the binding editor. Do not use `./` or publish paths for panel links.
 
-Create these from Records → Bindings (wizard) or edit the YAML. Unsupported components are edited as the raw file.
+Create these from [Records → Bindings](#/records/bindings) (wizard) or edit the YAML. Unsupported components are edited as the raw file.
 
 ### What is not a binding
 
@@ -136,19 +136,19 @@ Menus, breadcrumbs, and profile lines (`articleByline`, `profileKicker`, `profil
 
 A class on a layout region is an ordinary CSS class. These stylesheets supply them, and they do not stand in for each other.
 
-- **W3.CSS** (`skin/w3.css`), linked by every shell. Examples: `w3-sidebar`, `w3-bar-block`, `w3-collapse`, `w3-hide-large`, `w3-row`, `w3-col`. `w3-collapse` on a `w3-sidebar` shows that sidebar from 993px up and hides it below that, where the Menu button opens it. `w3-hide-large` hides an element from 993px up.
-- **Tessera** (`skin/tessera.css`), linked by every shell. The default frame and shared widgets: `tessera-sidebar`, `tessera-bar`, `tessera-main`, `tessera-content`, `tessera-footer`, link clusters, video, pasted notes, and `tessera-imgbox`. Tokens changed on the Styles page override `:root` in this file. Defaults stay here.
-- **Micro-apps** (`skin/microapps.css`). The gallery lives here.
-- **Site CSS** (`shell/site.css`). Theme / frame layout for this site. Willow’s look is here: `wh-header`, `wh-topnav`, `wh-drawer`, `wh-main`, and the colours under `--wh-`. `.wh-drawer` is `display: none` until Menu runs. Theme apply may replace this file.
-- **Site local** (`shell/local.css`). Durable site-owned rules (panel tones, local tweaks). Theme apply does not overwrite it. Linked after `site.css`.
+- **[W3.CSS](#/styles?sheet=w3)** (`skin/w3.css`), linked by every shell. Examples: `w3-sidebar`, `w3-bar-block`, `w3-collapse`, `w3-hide-large`, `w3-row`, `w3-col`. `w3-collapse` on a `w3-sidebar` shows that sidebar from 993px up and hides it below that, where the Menu button opens it. `w3-hide-large` hides an element from 993px up.
+- **[Tessera](#/styles?sheet=tessera)** (`skin/tessera.css`), linked by every shell. The default frame and shared widgets: `tessera-sidebar`, `tessera-bar`, `tessera-main`, `tessera-content`, `tessera-footer`, link clusters, video, pasted notes, and `tessera-imgbox`. Tokens changed on the [Styles](#/styles) page override `:root` in this file. Defaults stay here.
+- **[Micro-apps](#/styles?sheet=microapps)** (`skin/microapps.css`). The gallery lives here.
+- **[Site CSS](#/styles?sheet=site)** (`shell/site.css`). Theme / frame layout for this site. Willow’s look is here: `wh-header`, `wh-topnav`, `wh-drawer`, `wh-main`, and the colours under `--wh-`. `.wh-drawer` is `display: none` until Menu runs. Theme apply may replace this file.
+- **[Site local](#/styles?sheet=local)** (`shell/local.css`). Durable site-owned rules (panel tones, local tweaks). Theme apply does not overwrite it. Linked after `site.css`.
 
-A shell that links a W3 theme, such as `skin/w3-theme-teal.css`, keeps that file between W3 and Tessera. Willow paints those colours in `site.css` instead. The fonts link is a URL, not one of these files.
+A shell that links a W3 theme, such as `skin/w3-theme-teal.css`, keeps [that theme file](#/styles?sheet=theme) between W3 and Tessera. Willow paints those colours in [site layout](#/styles?sheet=site) instead. The fonts link is a URL, not one of these files.
 
-The Styles page can open each of these files. Saving W3, Tessera, micro-apps, or the theme stores a copy for this site and leaves the shared file alone. Saving site layout writes `shell/site.css`; saving site local writes `shell/local.css`. The preview uses a save immediately. Publish updates the published copy.
+The [Styles](#/styles) page can open each of these files. Saving W3, Tessera, micro-apps, or the theme stores a copy for this site and leaves the shared file alone. Saving site layout writes `shell/site.css`; saving site local writes `shell/local.css`. The preview uses a save immediately. Publish updates the published copy.
 
 ## What the Styles page changes
 
-Styles saves `site.style`. A pages build writes tokens that differ from the Tessera defaults into a style element after the stylesheet links, and adds `leftnav` or `rightnav` on the body. That style element overrides those variables in `tessera.css`. A token left at its default stays in the stylesheet, so editing it there shows in the preview. Editing a stylesheet does not change this form. Willow’s master layout uses `wh-` classes, so saving the tokens leaves the hall looking the same. The specimen on the Styles page is the default frame, which is the frame a blank site starts with.
+[Styles](#/styles) saves `site.style`. A pages build writes tokens that differ from the Tessera defaults into a style element after the stylesheet links, and adds `leftnav` or `rightnav` on the body. That style element overrides those variables in [Tessera](#/styles?sheet=tessera). A token left at its default stays in the stylesheet, so editing it there shows in the preview. Editing a stylesheet does not change this form. Willow’s master layout uses `wh-` classes, so saving the tokens leaves the hall looking the same. The specimen on the [Styles](#/styles) page is the default frame, which is the frame a blank site starts with.
 
 | Field | Effect on the default chrome |
 |-------|-------------------------------|
@@ -176,7 +176,7 @@ The drawer is already in the master layout, with id `mySidebar`. To keep it open
 className: w3-sidebar w3-bar-block w3-collapse wh-drawer
 ```
 
-Then give the page a left margin in `shell/site.css`:
+Then give the page a left margin in [site layout](#/styles?sheet=site):
 
 ```css
 @media (min-width: 993px) {
@@ -187,15 +187,15 @@ Then give the page a left margin in `shell/site.css`:
 
 Below 993px it stays a drawer opened by Menu, and that flyout may slide in. Leave `w3-animate-left` off the standing column: from 993px up the column is already on the page, and a slide on every new page is only noise. Keep the ids `mySidebar` and `myOverlay`. The runtime binds open and close to those two ids.
 
-A starter site already has this column, on the left. Its master uses `tessera-sidebar` and `w3-collapse`, its shell links `tessera.css`, and the site record sets Menu side to left. The Styles page can move the standing column. Below 993px the column hides. The Menu button sits on the right of the bar and opens a flyout from the right, so the site title stays put and the left of the page stays in view. The flyout position is in `shell/site.css`.
+A starter site already has this column, on the left. Its master uses `tessera-sidebar` and `w3-collapse`, its shell links [Tessera](#/styles?sheet=tessera), and the [site record](#/records/site) sets Menu side to left. The [Styles](#/styles) page can move the standing column. Below 993px the column hides. The Menu button sits on the right of the bar and opens a flyout from the right, so the site title stays put and the left of the page stays in view. The flyout position is in [site layout](#/styles?sheet=site).
 
 ## A different frame for a section
 
-The site record names the frame every page uses until a page names another. On that page, **Frame** is the layout. Leave it as **Inherit** on the children: they use the nearest parent that set one. A page further down can name its own, and that starts again. Naming the site's frame on a nested page steps that subtree back to the site frame.
+The [site record](#/records/site) names the frame every page uses until a page names another. On that page, **Frame** is the layout. Leave it as **Inherit** on the children: they use the nearest parent that set one. A page further down can name its own, and that starts again. Naming the site's frame on a nested page steps that subtree back to the site frame.
 
 The parent is the same parent that builds the URL. A winter fair whose parent is Events publishes at `/events/event-winter-fair` and wears the Events frame. A page that is not under Events keeps the site frame, even when it uses the same page layout. The home page does not inherit from a parent.
 
-The page layout does not follow the frame. Style tokens stay on the site. Both frames' classes live in `shell/site.css`. Each frame places its own menu components, and those components still read the one Nav record.
+The page layout does not follow the frame. Style tokens stay on the site. Both frames' classes live in [site layout](#/styles?sheet=site). Each frame places its own menu components, and those components still read the one [Nav record](#/records/nav).
 
 ## Maintenance
 
@@ -213,7 +213,7 @@ These reports are separate from the per-page preview diagnostics panel.
 
 ## Panel tones
 
-The site record may list extra tones for Compose **Panel** and **Quote** sections (`panelTones` on the Site form). They appear in the Tone dropdown and style that block only; they are not aspects and do not change the page chrome. Put their CSS in `shell/local.css` so a theme reinstall does not wipe it. Theme apply does not clear the catalog. Panel is a nested-block container (like Card): the tone styles the shell, and you drop other Compose sections inside it.
+The [site record](#/records/site) may list extra tones for Compose **Panel** and **Quote** sections (`panelTones` on the Site form). They appear in the Tone dropdown and style that block only; they are not aspects and do not change the page chrome. Put their CSS in [site local](#/styles?sheet=local) so a theme reinstall does not wipe it. Theme apply does not clear the catalog. Panel is a nested-block container (like Card): the tone styles the shell, and you drop other Compose sections inside it.
 
 Keep typed divergence small. Prefer a background (or border) on the panel shell, and only change type on a **Text** widget that is a direct child of the panel body. Cards, quotes, images, and text nested inside those stay on the site style. Example catalog entry and CSS:
 
