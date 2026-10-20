@@ -1664,8 +1664,7 @@ function homeHtml(listing: RecordList, notice = "", error = ""): string {
   const site = listing.records.find((row) => row.kind === "site");
   const body = site
     ? `<p>This site is <strong>${escapeHtml(site.title ?? site.id)}</strong>.</p>
-       <p><a class="w3-button w3-theme" href="${previewUrl}">Open preview</a>
-          <a class="w3-button w3-white" href="#/records">Records</a></p>`
+       <p><a class="w3-button w3-theme" href="${previewUrl}">Open preview</a></p>`
     : startSiteHtml();
   return `${tesseraLogo3x5()}
     ${statusPanels(notice, error)}
