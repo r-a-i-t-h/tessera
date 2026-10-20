@@ -54,7 +54,7 @@ export const searchBox: ComponentFn = (ctx, props = {}) => {
   const pageExists = ctx.document.pages.some((p) => p.id === resultsPageId);
   return `<div class="tessera-search tessera-search-box" data-tessera-search="box" data-search-index="${index}" data-search-results-page="${ctx.escapeHtml(resultsPageId)}" data-search-results-href="${results}"${pageExists ? "" : ' data-search-results-missing="1"'}>
   <label class="tessera-search-label w3-hide">Search</label>
-  <input type="search" class="w3-input w3-border tessera-search-input" placeholder="${ctx.escapeHtml(placeholder)}" autocomplete="off" enterkeyhint="search" aria-label="Search" />
+  <input type="search" class="w3-input w3-border tessera-search-input" placeholder="${ctx.escapeHtml(placeholder)}" autocomplete="off" enterkeyhint="search" aria-label="Search" role="combobox" aria-autocomplete="list" aria-expanded="false" />
   <ul class="tessera-search-suggest w3-ul w3-card w3-white" hidden role="listbox"></ul>
 </div>`;
 };
@@ -117,36 +117,83 @@ function wireBox(host: HTMLElement): void {
   const suggest = host.querySelector<HTMLElement>(".tessera-search-suggest");
   if (!input || !suggest) return;
 
+  const mountId =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `search-${Math.random().toString(36).slice(2)}`;
+  const inputId = `tessera-search-input-${mountId}`;
+  const listId = `tessera-search-list-${mountId}`;
+  input.id = inputId;
+  input.setAttribute("role", "combobox");
+  input.setAttribute("aria-autocomplete", "list");
+  input.setAttribute("aria-controls", listId);
+  input.setAttribute("aria-expanded", "false");
+  suggest.id = listId;
+
+  let activeIndex = -1;
   let timer: ReturnType<typeof setTimeout> | undefined;
+
+  const getOptions = () => suggest.querySelectorAll<HTMLElement>('[role="option"]');
+
+  const setActive = (index: number) => {
+    const options = getOptions();
+    const next = index < 0 || index >= options.length ? -1 : index;
+    activeIndex = next;
+    options.forEach((opt, i) => {
+      opt.setAttribute("aria-selected", i === next ? "true" : "false");
+    });
+    if (next >= 0) {
+      const active = options[next];
+      input.setAttribute("aria-activedescendant", active.id);
+      active.scrollIntoView({ block: "nearest" });
+    } else {
+      input.removeAttribute("aria-activedescendant");
+    }
+  };
+
+  const hideSuggest = () => {
+    suggest.hidden = true;
+    input.setAttribute("aria-expanded", "false");
+    setActive(-1);
+  };
+
+  const showSuggest = () => {
+    suggest.hidden = false;
+    input.setAttribute("aria-expanded", "true");
+  };
+
   const run = () => {
     void (async () => {
       const q = input.value.trim();
       if (!q) {
-        suggest.hidden = true;
         suggest.innerHTML = "";
+        hideSuggest();
         return;
       }
       const loaded = await ensureIndex(host);
       if (!loaded) {
-        suggest.hidden = false;
         suggest.innerHTML = `<li class="w3-text-grey">Search index unavailable.</li>`;
+        setActive(-1);
+        showSuggest();
         return;
       }
       const hits = runSearch(loaded.mini, { query: q, limit: TYPEAHEAD_LIMIT });
       if (!hits.length) {
-        suggest.hidden = false;
         suggest.innerHTML = `<li class="w3-text-grey">No matches.</li>`;
+        setActive(-1);
+        showSuggest();
         return;
       }
       const resultsHrefBase = host.dataset.searchResultsHref ?? "#search";
       const resultsPageId = host.dataset.searchResultsPage ?? "search";
       const missing = host.dataset.searchResultsMissing === "1";
       suggest.innerHTML =
-        hits.map((hit) => suggestRow(hit, pageHrefFromHost(host, hit))).join("") +
+        hits.map((hit, i) => suggestRow(hit, pageHrefFromHost(host, hit), listId, i)).join("") +
         (missing
           ? ""
-          : `<li><a class="tessera-search-see-all" href="${escapeAttr(withQuery(resultsHrefBase, resultsPageId, q))}">See all results</a></li>`);
-      suggest.hidden = false;
+          : `<li role="option" id="${escapeAttr(`${listId}-opt-${hits.length}`)}" aria-selected="false"><a class="tessera-search-see-all" href="${escapeAttr(withQuery(resultsHrefBase, resultsPageId, q))}" tabindex="-1">See all results</a></li>`);
+      setActive(-1);
+      showSuggest();
     })();
   };
 
@@ -155,16 +202,37 @@ function wireBox(host: HTMLElement): void {
     if (input.value.trim()) run();
   });
   input.addEventListener("input", () => {
+    setActive(-1);
     clearTimeout(timer);
     timer = setTimeout(run, 120);
   });
   input.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
-      suggest.hidden = true;
+      hideSuggest();
+      return;
+    }
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      if (suggest.hidden) return;
+      const options = getOptions();
+      if (!options.length) return;
+      event.preventDefault();
+      if (event.key === "ArrowDown") {
+        setActive(activeIndex < options.length - 1 ? activeIndex + 1 : activeIndex);
+      } else if (activeIndex <= 0) {
+        setActive(-1);
+      } else {
+        setActive(activeIndex - 1);
+      }
       return;
     }
     if (event.key === "Enter") {
       event.preventDefault();
+      if (activeIndex >= 0) {
+        const option = getOptions()[activeIndex];
+        const href = option?.querySelector("a")?.getAttribute("href");
+        if (href) window.location.assign(href);
+        return;
+      }
       const q = input.value.trim();
       if (!q) return;
       if (host.dataset.searchResultsMissing === "1") return;
@@ -174,7 +242,7 @@ function wireBox(host: HTMLElement): void {
     }
   });
   document.addEventListener("click", (event) => {
-    if (!host.contains(event.target as Node)) suggest.hidden = true;
+    if (!host.contains(event.target as Node)) hideSuggest();
   });
 }
 
@@ -365,9 +433,10 @@ function updateResultsUrl(
   window.history.replaceState(null, "", url.pathname + url.search);
 }
 
-function suggestRow(hit: SearchHit, href: string): string {
+function suggestRow(hit: SearchHit, href: string, listId: string, index: number): string {
   const desc = hit.description || hit.precis;
-  return `<li role="option"><a href="${escapeAttr(href)}"><strong>${escapeText(hit.title)}</strong>${
+  const id = `${listId}-opt-${index}`;
+  return `<li role="option" id="${escapeAttr(id)}" aria-selected="false"><a href="${escapeAttr(href)}" tabindex="-1"><strong>${escapeText(hit.title)}</strong>${
     desc ? `<span class="w3-small w3-text-grey tessera-search-desc"> — ${escapeText(truncate(desc, 80))}</span>` : ""
   }</a></li>`;
 }

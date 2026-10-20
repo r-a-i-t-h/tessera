@@ -430,6 +430,14 @@ a.tessera-page-missing,
   text-decoration: none;
 }
 
+.tessera-search-suggest [role="option"][aria-selected="true"] {
+  background: rgba(0, 150, 136, 0.12);
+}
+
+.tessera-search-suggest [role="option"][aria-selected="true"] a {
+  color: var(--tessera-link);
+}
+
 .tessera-search-hit {
   margin: 0.75rem 0;
 }
