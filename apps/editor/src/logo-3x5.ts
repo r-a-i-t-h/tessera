@@ -2,6 +2,7 @@
  * 3×5 variant of the homepage wordmark. Same mosaic and ERA lockup as logo.ts,
  * with a smaller pixel face. Three columns keep the stem of T in the middle.
  * Each render gives the non-letter tiles a new shade. The letters stay fixed.
+ * Sometimes the mosaic spells 733S (7 and 3 for the first two tiles); ERA keeps T, E, R, A.
  */
 
 const PITCH = 10;
@@ -33,12 +34,31 @@ const GLYPH: Record<string, readonly string[]> = {
   S: ["111", "100", "111", "001", "111"],
   R: ["110", "101", "110", "101", "101"],
   A: ["010", "101", "111", "101", "101"],
+  "7": ["111", "001", "001", "001", "001"],
+  "3": ["111", "001", "111", "001", "111"],
 };
 
-const MOSAIC_WORD = "TESS";
+/** Keys index into {@link GLYPH} for each mosaic letter. ERA always uses T, E, R, A. */
+const MOSAIC_FACE = {
+  tess: ["T", "E", "S", "S"],
+  "733s": ["7", "3", "S", "S"],
+} as const;
+
+export type TesseraLogoMosaicFace = keyof typeof MOSAIC_FACE;
+
+export type TesseraLogo3x5Options = {
+  random?: () => number;
+  /** Default `random`: classic TESS most of the time, 733S sometimes. */
+  mosaicFace?: TesseraLogoMosaicFace | "random";
+};
+
 const ERA = "ERA";
 
-const WORD_COLS = MOSAIC_WORD.length * GLYPH_W + (MOSAIC_WORD.length - 1) * LETTER_GAP;
+/** Chance the mosaic uses 7 and 3 for the first two letters when `mosaicFace` is random. */
+const LEET_MOSAIC_CHANCE = 0.4;
+
+const MOSAIC_LEN = MOSAIC_FACE.tess.length;
+const WORD_COLS = MOSAIC_LEN * GLYPH_W + (MOSAIC_LEN - 1) * LETTER_GAP;
 const MOSAIC_COLS = WORD_COLS + PAD_X * 2;
 const MOSAIC_ROWS = GLYPH_H + PAD_Y * 2;
 
@@ -97,7 +117,12 @@ function glyphOrigin(index: number): number {
   return index * (GLYPH_W + LETTER_GAP);
 }
 
-function mosaicInk(col: number, row: number): boolean {
+function resolveMosaicFace(random: () => number, mosaicFace: TesseraLogo3x5Options["mosaicFace"]): TesseraLogoMosaicFace {
+  if (mosaicFace === "tess" || mosaicFace === "733s") return mosaicFace;
+  return random() < LEET_MOSAIC_CHANCE ? "733s" : "tess";
+}
+
+function mosaicInk(col: number, row: number, mosaicFace: TesseraLogoMosaicFace): boolean {
   if (row < PAD_Y || row >= PAD_Y + GLYPH_H) return false;
   const localRow = row - PAD_Y;
   const localCol = col - PAD_X;
@@ -105,8 +130,9 @@ function mosaicInk(col: number, row: number): boolean {
   const stride = GLYPH_W + LETTER_GAP;
   const index = Math.floor(localCol / stride);
   const glyphCol = localCol % stride;
-  if (glyphCol >= GLYPH_W || index >= MOSAIC_WORD.length) return false;
-  const rows = GLYPH[MOSAIC_WORD[index]!];
+  if (glyphCol >= GLYPH_W || index >= MOSAIC_LEN) return false;
+  const key = MOSAIC_FACE[mosaicFace][index]!;
+  const rows = GLYPH[key];
   return rows?.[localRow]?.[glyphCol] === "1";
 }
 
@@ -131,7 +157,7 @@ function tileBox(col: number, row: number, w: number, h: number): Pick<LogoTile,
   };
 }
 
-function mosaicTiles(random: () => number): LogoTile[] {
+function mosaicTiles(random: () => number, mosaicFace: TesseraLogoMosaicFace): LogoTile[] {
   const spans = rimSpans();
   const covered = new Set<string>();
   const tiles: LogoTile[] = [];
@@ -152,7 +178,7 @@ function mosaicTiles(random: () => number): LogoTile[] {
   for (let row = 0; row < MOSAIC_ROWS; row += 1) {
     for (let col = 0; col < MOSAIC_COLS; col += 1) {
       if (covered.has(`${col},${row}`)) continue;
-      const ink = mosaicInk(col, row);
+      const ink = mosaicInk(col, row, mosaicFace);
       tiles.push({
         part: "mosaic",
         ink,
@@ -189,13 +215,16 @@ function eraTiles(originX: number): LogoTile[] {
   return tiles;
 }
 
-export function tesseraLogo3x5Model(random: () => number = Math.random): TesseraLogoModel {
+export function tesseraLogo3x5Model(options: TesseraLogo3x5Options | (() => number) = {}): TesseraLogoModel {
+  const opts: TesseraLogo3x5Options = typeof options === "function" ? { random: options } : options;
+  const random = opts.random ?? Math.random;
+  const mosaicFace = resolveMosaicFace(random, opts.mosaicFace ?? "random");
   const mosaicWidth = (MOSAIC_COLS - 1) * PITCH + TILE;
   const mosaicHeight = (MOSAIC_ROWS - 1) * PITCH + TILE;
   const era = eraTiles(mosaicWidth + AFTER_MOSAIC);
   const eraRight = era.reduce((max, tile) => Math.max(max, tile.x + tile.width), 0);
   return {
-    tiles: [...mosaicTiles(random), ...era],
+    tiles: [...mosaicTiles(random, mosaicFace), ...era],
     mosaic: { width: mosaicWidth, height: mosaicHeight, cols: MOSAIC_COLS, rows: MOSAIC_ROWS },
     view: { width: eraRight, height: mosaicHeight },
     pitch: PITCH,
@@ -209,8 +238,8 @@ function rect(tile: LogoTile): string {
   return `<rect data-tile="${tileKind}" x="${tile.x}" y="${tile.y}" width="${tile.width}" height="${tile.height}" fill="${tile.fill}"/>`;
 }
 
-export function tesseraLogo3x5Svg(): string {
-  const model = tesseraLogo3x5Model();
+export function tesseraLogo3x5Svg(options?: TesseraLogo3x5Options): string {
+  const model = tesseraLogo3x5Model(options);
   const mosaic = model.tiles.filter((tile) => tile.part === "mosaic").map(rect).join("");
   const era = model.tiles.filter((tile) => tile.part === "era").map(rect).join("");
   return `<svg class="tessera-logo" viewBox="0 0 ${model.view.width} ${model.view.height}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><g>${mosaic}</g><g>${era}</g></svg>`;
