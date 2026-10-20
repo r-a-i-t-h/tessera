@@ -28,7 +28,7 @@ The seed login is for first setup only. Change its password before exposing the 
 npm test
 ```
 
-GitHub CI runs the existing install, typecheck, test, and build commands on Node 20, 22, and 24. Those root scripts remain the source of truth and work on any CI service or local machine; the tag release workflow and local `npm run pack` stay independent.
+GitHub CI runs the existing install, typecheck, test, and build commands on Node 22 and 24. Those root scripts remain the source of truth and work on any CI service or local machine; the tag release workflow and local `npm run pack` stay independent.
 
 ## Packages
 
