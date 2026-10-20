@@ -96,6 +96,14 @@ export { normalizeSiteAssetUrl, isRootAbsoluteUrl } from "./assets.js";
 export { hrefForPage } from "./page-href.js";
 export { resolvePageRefs, rewritePageRefIds } from "./page-refs.js";
 export {
+  buildPageLinkGraph,
+  collectPageRefIds,
+  pageLinksFor,
+  type PageLinkGraph,
+  type PageLinkRef,
+  type PageLinks,
+} from "./page-link-graph.js";
+export {
   DEFAULT_PAGE_STYLESHEETS,
   publishPages,
   hrefFor,

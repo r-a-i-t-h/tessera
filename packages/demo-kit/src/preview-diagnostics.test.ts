@@ -38,4 +38,44 @@ describe("preview diagnostics panel", () => {
     expect(body?.textContent).toContain("About");
     expect(body?.querySelector('a[href="../#/content/about"]')).not.toBeNull();
   });
+
+  it("lists page links to and from the current page", () => {
+    const base = makeFixtureDoc();
+    const doc = {
+      ...base,
+      pages: [
+        {
+          id: "home",
+          title: "Home",
+          zones: {
+            main: [
+              {
+                type: "text" as const,
+                html: `<p><a data-tessera-page="about" href="#">About</a> <a data-tessera-page="gone" href="#">Gone</a></p>`,
+              },
+            ],
+          },
+        },
+        {
+          id: "about",
+          title: "About",
+          zones: {
+            main: [{ type: "text" as const, html: "<p>About</p>" }],
+          },
+        },
+      ],
+    };
+
+    updatePreviewDiagnostics("home", doc, { pathname: "/preview/" });
+    const body = document.getElementById("tessera-preview-diagnostics-body");
+    expect(body?.textContent).toContain("Page links");
+    expect(body?.textContent).toContain("Linked to");
+    expect(body?.textContent).toContain("Linked from");
+    expect(body?.querySelector('a[href="#about"]')).not.toBeNull();
+    expect(body?.textContent).toContain("missing");
+
+    updatePreviewDiagnostics("about", doc, { pathname: "/preview/" });
+    expect(body?.querySelector('a[href="#home"]')).not.toBeNull();
+    expect(body?.textContent).toContain("Home");
+  });
 });

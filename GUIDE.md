@@ -70,7 +70,7 @@ Compose’s **link** control opens the page picker (all pages, not only the menu
 <a data-tessera-page="hall" href="#">Great Hall</a>
 ```
 
-You can also type `[[hall]]` or `[[hall|Great Hall]]` in Compose; saving expands those to the same anchors. Tessera resolves the real URL when the page is previewed or published. Renaming a page rewrites those ids in other pages’ prose and in binding panel links. A missing target paints as a red dotted link (`tessera-page-missing`).
+You can also type `[[hall]]` or `[[hall|Great Hall]]` in Compose; saving expands those to the same anchors. Tessera resolves the real URL when the page is previewed or published. Renaming a page rewrites those ids in other pages’ prose and in binding panel links. A missing target paints as a red dotted link (`tessera-page-missing`). Preview diagnostics lists pages linked to and from the current page.
 
 External URLs still use ordinary markdown/`href` links.
 

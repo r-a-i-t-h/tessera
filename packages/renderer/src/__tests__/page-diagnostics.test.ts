@@ -114,4 +114,39 @@ describe("page diagnostics", () => {
     expect(info.blog).toMatchObject({ id: "news", title: "News", indexPageId: "news-index" });
     expect(info.page.fields?.date).toBe("2026-01-01");
   });
+
+  it("includes page link graph to/from", () => {
+    const doc: SiteDocument = {
+      ...makeFixtureDoc(),
+      pages: [
+        {
+          id: "home",
+          title: "Home",
+          zones: {
+            main: [
+              {
+                type: "text",
+                html: `<p><a data-tessera-page="about" href="#">About</a></p>`,
+              },
+            ],
+          },
+        },
+        {
+          id: "about",
+          title: "About",
+          zones: {
+            main: [{ type: "text", html: "<p>About</p>" }],
+          },
+        },
+      ],
+    };
+
+    const home = analyzePageDiagnostics(doc, "home");
+    expect(home.pageLinks.linkedTo).toEqual([{ id: "about", title: "About" }]);
+    expect(home.pageLinks.linkedFrom).toEqual([]);
+
+    const about = analyzePageDiagnostics(doc, "about");
+    expect(about.pageLinks.linkedFrom).toEqual([{ id: "home", title: "Home" }]);
+    expect(about.pageLinks.linkedTo).toEqual([]);
+  });
 });

@@ -43,9 +43,17 @@ function itemSourceLabel(source: "page" | "pageLayout" | "masterLayout"): string
   }
 }
 
-function linkRow(label: string, id: string, href: string, meta?: string): string {
+function linkRow(
+  label: string,
+  id: string,
+  href: string,
+  meta?: string,
+  opts: { newTab?: boolean } = {},
+): string {
   const metaHtml = meta ? `<span class="tessera-preview-diag-meta">${escapeHtml(meta)}</span>` : "";
-  return `<li><a href="${escapeHtml(href)}" target="_blank" rel="noopener">${escapeHtml(label)}</a> <code>${escapeHtml(id)}</code>${metaHtml}</li>`;
+  const newTab = opts.newTab !== false;
+  const target = newTab ? ` target="_blank" rel="noopener"` : "";
+  return `<li><a href="${escapeHtml(href)}"${target}>${escapeHtml(label)}</a> <code>${escapeHtml(id)}</code>${metaHtml}</li>`;
 }
 
 function detailsSection(title: string, body: string, open = true): string {
@@ -53,8 +61,24 @@ function detailsSection(title: string, body: string, open = true): string {
   return `<details class="tessera-preview-diag-section" ${open ? "open" : ""}><summary>${escapeHtml(title)}</summary>${body}</details>`;
 }
 
+function pageLinkList(
+  refs: PageDiagnostics["pageLinks"]["linkedTo"],
+  empty: string,
+): string {
+  if (refs.length === 0) {
+    return `<p class="tessera-preview-diag-empty">${escapeHtml(empty)}</p>`;
+  }
+  return `<ul class="tessera-preview-diag-list">${refs
+    .map((ref) => {
+      const label = ref.title ?? ref.id;
+      const meta = ref.missing ? "missing" : undefined;
+      return linkRow(label, ref.id, `#${ref.id}`, meta, { newTab: false });
+    })
+    .join("")}</ul>`;
+}
+
 function renderPanelContent(info: PageDiagnostics, document: SiteDocument): string {
-  const { page, profile, master, items, bindings, blog } = info;
+  const { page, profile, master, items, bindings, blog, pageLinks } = info;
 
   const pageBits: string[] = [
     `<li><strong>Title</strong> ${escapeHtml(page.title)}</li>`,
@@ -137,10 +161,18 @@ function renderPanelContent(info: PageDiagnostics, document: SiteDocument): stri
           .join("")}</ul>`
       : `<p class="tessera-preview-diag-empty">None referenced on this page.</p>`;
 
+  const pageLinksHtml = [
+    `<p class="tessera-preview-diag-meta"><strong>Linked to</strong></p>`,
+    pageLinkList(pageLinks.linkedTo, "None."),
+    `<p class="tessera-preview-diag-meta"><strong>Linked from</strong></p>`,
+    pageLinkList(pageLinks.linkedFrom, "None."),
+  ].join("");
+
   return [
     detailsSection("Page", `<ul class="tessera-preview-diag-list">${pageBits.join("")}</ul>`),
     detailsSection("Layouts", `<ul class="tessera-preview-diag-list">${layoutBits.join("")}</ul>`),
     blog ? detailsSection("Blog", blogHtml, false) : "",
+    detailsSection("Page links", pageLinksHtml),
     detailsSection("Common items", itemsHtml, false),
     detailsSection("Bindings", bindingsHtml, false),
   ].join("");

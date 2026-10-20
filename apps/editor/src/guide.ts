@@ -46,7 +46,7 @@ export function guideHtml(): string {
     <p>A blank site already puts <code>searchBox</code> in the sidebar and a Search page on the Nav record. Keep the menu sparse for wiki-style sites; reach other pages by cross-links and search.</p>
 
     <h2>Page links (wiki-style)</h2>
-    <p>Compose’s <strong>link</strong> control opens the page picker for every page. That stores <code>&lt;a data-tessera-page=&quot;hall&quot; href=&quot;#&quot;&gt;…&lt;/a&gt;</code>. You can also type <code>[[hall]]</code> or <code>[[hall|label]]</code>; saving expands those the same way. Preview and publish resolve the URL. Renaming a page rewrites those ids in prose and binding links. Missing targets use the class <code>tessera-page-missing</code>.</p>
+    <p>Compose’s <strong>link</strong> control opens the page picker for every page. That stores <code>&lt;a data-tessera-page=&quot;hall&quot; href=&quot;#&quot;&gt;…&lt;/a&gt;</code>. You can also type <code>[[hall]]</code> or <code>[[hall|label]]</code>; saving expands those the same way. Preview and publish resolve the URL. Renaming a page rewrites those ids in prose and binding links. Missing targets use the class <code>tessera-page-missing</code>. Preview diagnostics lists pages linked to and from the current page.</p>
 
     <h2>Articles</h2>
     <p><a href="#/pages">Pages</a> are ordinary pages. <a href="#/articles">Articles</a> opens on the blog list, then that blog’s articles. A blog is one dated stream: path, frame, page size, hero, and lead. Hero is full, banner, or side. Blogs are edited under <a href="#/records/blogs">Records → Blogs</a>. Creating a blog also creates its index. Place each blog on the Nav record yourself. The menu can add the index when the blog asks for it. Articles are not menu items.</p>

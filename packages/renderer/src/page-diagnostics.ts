@@ -14,6 +14,11 @@ import {
 } from "@r-a-i-t-h/tessera-model";
 import { bindingsById } from "./bindings.js";
 import { indexDocument } from "./merge.js";
+import {
+  buildPageLinkGraph,
+  pageLinksFor,
+  type PageLinks,
+} from "./page-link-graph.js";
 
 const MUSTACHE_RE = /\{\{([a-zA-Z0-9_-]+)\}\}/g;
 
@@ -74,6 +79,7 @@ export type PageDiagnostics = {
   items: PageItemRef[];
   bindings: BindingOnPage[];
   blog?: PageDiagnosticsBlog;
+  pageLinks: PageLinks;
 };
 
 function mustacheBindingIds(html: string): string[] {
@@ -283,6 +289,7 @@ export function analyzePageDiagnostics(
   }
 
   const blog = resolveBlogSection(document, page);
+  const pageLinks = pageLinksFor(buildPageLinkGraph(document), pageId, document);
 
   return {
     page: {
@@ -302,6 +309,7 @@ export function analyzePageDiagnostics(
     items,
     bindings: [...bindingMap.values()].sort((a, b) => a.id.localeCompare(b.id)),
     ...(blog ? { blog } : {}),
+    pageLinks,
   };
 }
 

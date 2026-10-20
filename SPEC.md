@@ -143,6 +143,7 @@ Folder-relative URLs (`./…`) and Vite `base: "./"` keep a published site porta
 - Authored prose may link pages by id: `<a data-tessera-page="hall" href="#">…</a>`. Compose’s link control uses the page picker; `[[page-id]]` / `[[page-id|label]]` expand to the same form.
 - Render and pages publish resolve those anchors through `hrefForPage`. Missing targets keep a placeholder href and the class `tessera-page-missing`.
 - Renaming a page rewrites `data-tessera-page` in zone HTML, page-id `href` props on bindings, `parentId`, nav, and `homePageId`.
+- Preview diagnostics builds a page-link graph from those refs and lists pages linked to and from the current page.
 
 ### Seeing a new homepage
 
@@ -352,6 +353,7 @@ Criteria define “done enough,” not a build order (see [ROADMAP.md](./ROADMAP
 ### Wiki links
 
 - [x] Durable `data-tessera-page` anchors resolve at render/publish; rename rewrites them.
+- [x] Preview diagnostics lists pages linked to / from the current page (page-link graph).
 
 ### Routing and errors
 
