@@ -1,6 +1,8 @@
 import { version as tesseraVersion } from "../../../package.json";
 import type { PublicUser } from "./api.js";
 import { escapeHtml } from "./dom.js";
+import { MAINTENANCE_TABS } from "./maintenance.js";
+import { RECORD_NAV_ITEMS } from "./record-nav.js";
 
 export type EditorSection =
   | "home"
@@ -15,36 +17,113 @@ export type EditorSection =
   | "users"
   | "account";
 
+export type EditorNavBlog = { id: string; title: string };
+
+export type EditorNavContext = {
+  recordsKind?: string;
+  maintenanceTab?: string;
+  /** Blog records shown under Articles (which blog’s articles to edit). */
+  blogs?: EditorNavBlog[];
+  /** Active blog id when viewing or editing that blog’s articles. */
+  articlesBlog?: string;
+};
+
 export function editorChrome(
   user: PublicUser,
   inner: string,
   wide = false,
   section: EditorSection = "home",
+  nav: EditorNavContext = {},
 ): string {
-  const link = (href: string, label: string, key: EditorSection) => {
+  const blogs = nav.blogs ?? [];
+  const articlesOpen = section === "articles";
+  const articlesBlogOn = Boolean(nav.articlesBlog);
+  const recordsOpen = section === "records";
+  const maintenanceOpen = section === "maintenance";
+  const recordsChildOn = recordsOpen && Boolean(nav.recordsKind);
+  const maintenanceChildOn = maintenanceOpen && Boolean(nav.maintenanceTab);
+
+  const sectionLink = (
+    href: string,
+    label: string,
+    key: EditorSection,
+    childOn = false,
+    extraClass = "",
+  ) => {
     const current = section === key;
-    return `<a class="w3-bar-item w3-button${current ? " w3-white" : ""}" href="${href}"${current ? ' aria-current="page"' : ""}>${label}</a>`;
+    const aria = current && !childOn ? ' aria-current="page"' : "";
+    const brand = extraClass.includes("editor-nav-brand");
+    const classes = `w3-bar-item w3-button${extraClass ? ` ${extraClass}` : ""}${current && !brand ? " w3-white" : ""}`;
+    return `<a class="${classes}" href="${href}"${aria}>${label}</a>`;
   };
-  return `<header class="editor-bar w3-bar w3-theme">
-      ${link("#/", "Tessera editor", "home")}
-      ${link("#/pages", "Pages", "pages")}
-      ${link("#/articles", "Articles", "articles")}
-      ${link("#/records", "Records", "records")}
-      ${link("#/library", "Library", "library")}
-      ${link("#/styles", "Styles", "styles")}
-      ${link("#/users", "Users", "users")}
-      ${link("#/maintenance", "Maintenance", "maintenance")}
-      ${link("#/backups", "Backups", "backups")}
-      <button type="button" class="w3-bar-item w3-button" data-action="render-site">Render site</button>
-      <button type="button" class="w3-bar-item w3-button" data-action="publish-site">Publish</button>
-      ${link("#/guide", "Guide", "guide")}
-      <button type="button" class="w3-bar-item w3-button w3-right" data-action="logout">Sign out</button>
-      <a class="w3-bar-item w3-button w3-right${section === "account" ? " w3-white" : ""}" href="#/account" title="Account"${section === "account" ? ' aria-current="page"' : ""}>${escapeHtml(user.username)}</a>
-    </header>
-    <p id="render-status" class="editor-render-status" hidden></p>
-    <p id="route-status" class="editor-sr-only" aria-live="polite"></p>
-    <div class="editor-scroll">
-      <main class="editor-main${wide ? " editor-wide" : ""}">${inner}</main>
+
+  const childLink = (href: string, label: string, on: boolean) =>
+    `<a class="w3-bar-item w3-button editor-nav-child${on ? " editor-nav-child-current" : ""}" href="${href}"${on ? ' aria-current="page"' : ""}>${escapeHtml(label)}</a>`;
+
+  const articlesChildren =
+    articlesOpen && blogs.length
+      ? `<div class="editor-nav-children" role="group" aria-label="Blogs">${blogs
+          .map((blog) =>
+            childLink(
+              `#/articles/${encodeURIComponent(blog.id)}`,
+              blog.title,
+              nav.articlesBlog === blog.id,
+            ),
+          )
+          .join("")}</div>`
+      : "";
+
+  const recordsChildren = recordsOpen
+    ? `<div class="editor-nav-children" role="group" aria-label="Record types">${RECORD_NAV_ITEMS.map((item) =>
+        childLink(
+          `#/records/${encodeURIComponent(item.kind)}`,
+          item.label,
+          nav.recordsKind === item.kind,
+        ),
+      ).join("")}</div>`
+    : "";
+
+  const maintenanceChildren = maintenanceOpen
+    ? `<div class="editor-nav-children" role="group" aria-label="Maintenance reports">${MAINTENANCE_TABS.map((tab) =>
+        childLink(
+          `#/maintenance/${encodeURIComponent(tab.id)}`,
+          tab.label,
+          nav.maintenanceTab === tab.id,
+        ),
+      ).join("")}</div>`
+    : "";
+
+  return `<div class="editor-shell">
+      <aside class="editor-sidebar w3-theme">
+        <nav class="w3-bar-block editor-nav-block" aria-label="Editor">
+          ${sectionLink("#/", "Tessera editor", "home", false, "editor-nav-brand w3-theme-d3")}
+          ${sectionLink("#/pages", "Pages", "pages")}
+          ${sectionLink("#/articles", "Articles", "articles", articlesBlogOn)}
+          ${articlesChildren}
+          ${sectionLink("#/library", "Library", "library")}
+          ${sectionLink("#/records", "Records", "records", recordsChildOn)}
+          ${recordsChildren}
+          ${sectionLink("#/styles", "Styles", "styles")}
+          ${sectionLink("#/users", "Users", "users")}
+          ${sectionLink("#/maintenance", "Maintenance", "maintenance", maintenanceChildOn)}
+          ${maintenanceChildren}
+          ${sectionLink("#/backups", "Backups", "backups")}
+          <button type="button" class="w3-bar-item w3-button" data-action="render-site">Render preview</button>
+          <button type="button" class="w3-bar-item w3-button" data-action="publish-site">Publish site</button>
+          ${sectionLink("#/guide", "Guide", "guide")}
+        </nav>
+        <div class="editor-nav-account w3-bar-block">
+          <a class="w3-bar-item w3-button${section === "account" ? " w3-white" : ""}" href="#/account" title="Account"${section === "account" ? ' aria-current="page"' : ""}>${escapeHtml(user.username)}</a>
+          <button type="button" class="w3-bar-item w3-button" data-action="logout">Sign out</button>
+        </div>
+      </aside>
+      <div class="editor-body">
+        <p id="render-status" class="editor-render-status" hidden></p>
+        <p id="route-status" class="editor-sr-only" aria-live="polite"></p>
+        <div class="editor-scroll">
+          <main class="editor-main${wide ? " editor-wide" : ""}">${inner}</main>
+        </div>
+      </div>
     </div>
     ${editorFooter()}`;
 }

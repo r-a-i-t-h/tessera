@@ -76,7 +76,7 @@ External URLs still use ordinary markdown/`href` links.
 
 ## Articles
 
-Pages are ordinary pages. Articles opens on the blog list, then that blog’s articles. A blog is one dated stream: path, frame, page size, hero, and lead. Blogs are edited under Records → Blogs. Creating a blog also creates its index. Place each blog on the Nav record yourself. The menu can add the index when the blog asks for it. Articles are not menu items.
+Pages are ordinary pages. Articles expands each blog in the sidebar so you can pick which stream’s articles to edit. A blog is one dated stream: path, frame, page size, hero, and lead. Blog records are managed under Records → Blogs. Creating a blog also creates its index. Place each blog on the Nav record yourself. The menu can add the index when the blog asks for it. Articles are not menu items.
 
 ## Bindings
 
@@ -184,7 +184,7 @@ The page layout does not follow the frame. Style tokens stay on the site. Both f
 
 ## Maintenance
 
-The editor’s **Maintenance** section (`#/maintenance`) lists site-health findings. Each row links to the record to fix. Tabs:
+The editor’s **Maintenance** section (`#/maintenance`) lists site-health findings. Each row links to the record to fix. Sidebar items:
 
 - **Orphan pages** — not home, not on the Nav record (after expansion), and not linked from another page via a wiki link. Articles under a reachable blog are omitted.
 - **Unused assets** — library media nothing references.

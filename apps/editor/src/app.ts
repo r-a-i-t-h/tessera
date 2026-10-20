@@ -64,8 +64,9 @@ import type { ArrangeInfo } from "./arrange/view.js";
 import { mountComposeCanvases } from "./compose/canvas.js";
 import { draftYaml, dropArticleTitleZone, parsePageYaml } from "./compose/draft.js";
 import { readContentDocument, readContentDraft, composeFormInner, frameNote, htmlByZone, rawText, templateBodyLayout, type ContentMode } from "./compose/view.js";
-import { announceRoute, editorChrome as chrome, loginView } from "./chrome.js";
-import { editPlace } from "./edit-place.js";
+import { announceRoute, editorChrome as chrome, loginView, type EditorNavContext } from "./chrome.js";
+import { editPlace, type EditPlace } from "./edit-place.js";
+import { RECORD_TAB_ORDER } from "./record-nav.js";
 import { createRecord, type CreateRecordDestination } from "./create-record.js";
 import { activateDialog, type DialogController } from "./dialog.js";
 import { readFormValues, renderForm } from "./forms/form.js";
@@ -162,7 +163,7 @@ import {
 } from "./forms/page-target.js";
 import { editorMediaSrc } from "./forms/media-url.js";
 import { guideHtml } from "./guide.js";
-import { maintenanceHtml } from "./maintenance.js";
+import { activeMaintenanceTab, maintenanceHtml } from "./maintenance.js";
 import { escapeHtml, fieldId, formErrorPanel, noticePanel, statusPanels } from "./dom.js";
 import { buildContentCreationRank } from "./creation-rank.js";
 import {
@@ -871,7 +872,9 @@ async function bindList(
   const bindingInfo = active === "bindings" ? await loadBindingListInfo(listing) : undefined;
   const itemZones = active === "items" ? await loadItemZones(listing) : [];
   const listNotes = bindingInfo?.notes ?? layoutNotes;
-  root.innerHTML = chrome(user, listHtml(listing, kind, notice, error, listNotes, itemZones), true, "records");
+  root.innerHTML = chrome(user, listHtml(listing, kind, notice, error, listNotes, itemZones), true, "records", {
+    recordsKind: active,
+  });
   bindChrome(root);
   bindInitSite(root, (nextNotice, nextError) => bindList(root, user, kind, nextNotice, nextError));
   if (active === "blogs") bindBlogs(root, user, listing);
@@ -1482,7 +1485,10 @@ async function bindMaintenance(
   error = "",
 ): Promise<void> {
   const report = await getMaintenance();
-  root.innerHTML = chrome(user, maintenanceHtml(report, tab, notice, error), true, "maintenance");
+  const active = activeMaintenanceTab(tab);
+  root.innerHTML = chrome(user, maintenanceHtml(report, tab, notice, error), true, "maintenance", {
+    maintenanceTab: active,
+  });
   bindChrome(root);
 }
 
@@ -1689,23 +1695,6 @@ function startSiteHtml(): string {
 /** Media and folders are edited in the Library, not as record lists. */
 const LIBRARY_RECORD_KINDS = new Set(["media", "folders"]);
 
-/**
- * Left to right: the assembled site, then the layers under it.
- * A layout declares the zones. A type picks one. Items fill those zones, and a
- * binding mounts a component on that fill. A template is a page body copied into
- * content. Navigation is the menu over those pages. Site names the home page and the layouts.
- */
-const RECORD_TAB_ORDER = [
-  "site",
-  "nav",
-  "blogs",
-  "templates",
-  "bindings",
-  "items",
-  "types",
-  "layouts",
-];
-
 function recordTabs(listing: RecordList): { kind: string; label: string }[] {
   const rank = new Map(RECORD_TAB_ORDER.map((kind, index) => [kind, index]));
   const tabs = listing.kinds
@@ -1738,19 +1727,11 @@ function listHtml(
     list.push(rec);
     byKind.set(rec.kind, list);
   }
-  const kinds = recordTabs(listing);
   const active = activeRecordKind(listing, selected);
   const siteReady = listing.records.some((row) => row.kind === "site");
-  const tabs = kinds
-    .map((kind) => {
-      const on = kind.kind === active;
-      return `<a class="w3-button ${on ? "w3-theme" : "w3-white"}" href="#/records/${encodeURIComponent(kind.kind)}"${on ? ' aria-current="page"' : ""}>${escapeHtml(kind.label)}</a>`;
-    })
-    .join("");
   return `<h1 class="w3-large">Records</h1>
     ${statusPanels(notice, error)}
     ${siteReady ? "" : startSiteHtml()}
-    <nav class="editor-tabs" aria-label="Record types">${tabs}</nav>
     ${recordTab(listing, active, byKind, siteReady, layoutNotes, itemZones)}`;
 }
 
@@ -1981,10 +1962,35 @@ function bindPageListOrder(root: HTMLElement, listing: RecordList): void {
   });
 }
 
+function articleNavBlogs(listing: RecordList): { id: string; title: string }[] {
+  return listing.records
+    .filter((row) => row.kind === "content" && row.type === "blog")
+    .map((row) => ({ id: row.id, title: row.title ?? row.id }))
+    .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
+}
+
+async function editNavContext(
+  place: EditPlace,
+  kind: string,
+  record: Record<string, unknown> | undefined,
+): Promise<EditorNavContext> {
+  if (place.section === "records") {
+    const recordsKind =
+      record?.type === "blog" || record?.type === "blog-index" ? "blogs" : kind;
+    return { recordsKind };
+  }
+  if (place.section === "articles") {
+    const listing = await listRecords();
+    const parentId = typeof record?.parentId === "string" ? record.parentId.trim() : "";
+    return { blogs: articleNavBlogs(listing), articlesBlog: parentId || undefined };
+  }
+  return {};
+}
+
 async function bindArticles(root: HTMLElement, user: PublicUser, blog?: string, notice = "", error = ""): Promise<void> {
   const listing = await listRecords();
+  const blogs = articleNavBlogs(listing);
   if (!blog) {
-    const blogs = listing.records.filter((row) => row.kind === "content" && row.type === "blog");
     if (blogs.length === 1) {
       const next = `#/articles/${encodeURIComponent(blogs[0]!.id)}`;
       if (window.location.hash !== next) {
@@ -1994,7 +2000,10 @@ async function bindArticles(root: HTMLElement, user: PublicUser, blog?: string, 
     }
   }
   const listOrder = readArticleListOrder();
-  root.innerHTML = chrome(user, articlesHtml(listing, blog, notice, error, listOrder), true, "articles");
+  root.innerHTML = chrome(user, articlesHtml(listing, blog, notice, error, listOrder), true, "articles", {
+    blogs,
+    articlesBlog: blog,
+  });
   bindChrome(root);
   const filter = root.querySelector<HTMLInputElement>("#article-tag");
   const list = root.querySelector<HTMLUListElement>("#article-list");
@@ -2072,15 +2081,10 @@ function articlesHtml(
 ): string {
   const blogs = listing.records.filter((row) => row.kind === "content" && row.type === "blog");
   if (!blog) {
-    const items = blogs.length
-      ? `<ul class="w3-ul">${blogs
-          .map(
-            (row) =>
-              `<li><a href="#/articles/${encodeURIComponent(row.id)}">${escapeHtml(row.title ?? row.id)}</a> <span class="w3-text-grey w3-small">${escapeHtml(row.id)}</span></li>`,
-          )
-          .join("")}</ul>`
+    const hint = blogs.length
+      ? `<p class="w3-text-grey">Choose a blog in the sidebar.</p>`
       : `<p class="w3-text-grey">No blogs yet. Add one under <a href="#/records/blogs">Records → Blogs</a>.</p>`;
-    return `<h1 class="w3-large">Articles</h1>${statusPanels(notice, error)}${items}`;
+    return `<h1 class="w3-large">Articles</h1>${statusPanels(notice, error)}${hint}`;
   }
   if (!blogs.some((row) => row.id === blog)) {
     return `<h1 class="w3-large">Articles</h1><p>That blog is not a record. <a href="#/articles">Back</a></p>`;
@@ -2088,9 +2092,8 @@ function articlesHtml(
   const blogRow = blogs.find((row) => row.id === blog);
   const articles = blogArticles(listing, blog, listOrder);
   const items = renderArticleListItems(articles);
-  return `<h1 class="w3-large">Articles</h1>
+  return `<h1 class="w3-large">${escapeHtml(blogRow?.title ?? blog)}</h1>
     ${statusPanels(notice, error)}
-    <p><a href="#/articles">Blogs</a> · ${escapeHtml(blogRow?.title ?? blog)}</p>
     <p><button type="button" class="w3-button w3-theme" data-action="new-article">New article</button></p>
     <form id="new-article-form" class="editor-new-page" hidden>
       <p><label for="new-article-id">Id</label>
@@ -2824,6 +2827,7 @@ async function bindEdit(
        ${editor}`,
       true,
       place.section,
+      await editNavContext(place, kind, record),
     );
     bindChrome(root);
   }

@@ -49,7 +49,7 @@ export function guideHtml(): string {
     <p>Compose’s <strong>link</strong> control opens the page picker for every page. That stores <code>&lt;a data-tessera-page=&quot;hall&quot; href=&quot;#&quot;&gt;…&lt;/a&gt;</code>. You can also type <code>[[hall]]</code> or <code>[[hall|label]]</code>; saving expands those the same way. Preview and publish resolve the URL. Renaming a page rewrites those ids in prose and binding links. Missing targets use the class <code>tessera-page-missing</code>. Preview diagnostics lists pages linked to and from the current page.</p>
 
     <h2>Articles</h2>
-    <p><a href="#/pages">Pages</a> are ordinary pages. <a href="#/articles">Articles</a> opens on the blog list, then that blog’s articles. A blog is one dated stream: path, frame, page size, hero, and lead. Hero is full, banner, or side. Blogs are edited under <a href="#/records/blogs">Records → Blogs</a>. Creating a blog also creates its index. Place each blog on the Nav record yourself. The menu can add the index when the blog asks for it. Articles are not menu items.</p>
+    <p><a href="#/pages">Pages</a> are ordinary pages. <a href="#/articles">Articles</a> expands each blog in the sidebar so you can pick which stream’s articles to edit. A blog is one dated stream: path, frame, page size, hero, and lead. Hero is full, banner, or side. Blog records are managed under <a href="#/records/blogs">Records → Blogs</a>. Creating a blog also creates its index. Place each blog on the Nav record yourself. The menu can add the index when the blog asks for it. Articles are not menu items.</p>
 
     <h2>Bindings</h2>
     <p>A <strong>binding</strong> is a named configuration for a registry component. It lives once under <a href="#/records/bindings">Records → Bindings</a> (<code>records/bindings/&lt;id&gt;.yaml</code>): the component name and its props. Pages store a token <code>{{id}}</code> that Tessera expands when the page is rendered.</p>
@@ -129,7 +129,7 @@ export function guideHtml(): string {
     <p>The page layout does not follow the frame. Style tokens stay on the site. Both frames' classes live in <code>shell/site.css</code>. Each frame places its own menu components, and those components still read the one Nav record.</p>
 
     <h2>Maintenance</h2>
-    <p>The editor’s <a href="#/maintenance">Maintenance</a> section lists site-health findings. Each row links to the record to fix. Tabs:</p>
+    <p>The editor’s <a href="#/maintenance">Maintenance</a> section lists site-health findings. Each row links to the record to fix. Sidebar items:</p>
     <ul>
       <li><strong>Orphan pages</strong> — not home, not on the Nav record (after expansion), and not linked from another page via a wiki link. Articles under a reachable blog are omitted.</li>
       <li><strong>Unused assets</strong> — library media nothing references.</li>

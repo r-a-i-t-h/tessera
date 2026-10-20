@@ -85,14 +85,8 @@ export function maintenanceHtml(
   error = "",
 ): string {
   const active = activeMaintenanceTab(selected);
-  const tabs = MAINTENANCE_TABS.map((tab) => {
-    const on = tab.id === active;
-    return `<a class="w3-button ${on ? "w3-theme" : "w3-white"}" href="#/maintenance/${encodeURIComponent(tab.id)}"${on ? ' aria-current="page"' : ""}>${escapeHtml(tab.label)}</a>`;
-  }).join("");
-
   return `<h1 class="w3-large">Maintenance</h1>
     ${statusPanels(notice, error)}
     <p class="w3-text-grey">Site health reports. Each finding links to the editor record to fix.</p>
-    <nav class="editor-tabs" aria-label="Maintenance reports">${tabs}</nav>
     <section class="editor-kind">${tabBody(report, active)}</section>`;
 }

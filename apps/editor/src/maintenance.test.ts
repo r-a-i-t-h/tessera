@@ -34,10 +34,11 @@ describe("maintenance tabs", () => {
       "orphans",
     );
     expect(html).toContain("<h1 class=\"w3-large\">Maintenance</h1>");
-    expect(html).toContain('href="#/maintenance/orphans" aria-current="page"');
+    expect(html).not.toContain('aria-label="Maintenance reports"');
     expect(html).toContain('<a href="#/content/lonely">Lonely</a>');
     expect(html).toContain("lonely");
     expect(MAINTENANCE_TABS).toHaveLength(7);
+    expect(MAINTENANCE_TABS[0]).toEqual({ id: "orphans", label: "Orphan pages" });
   });
 
   it("escapes labels and details", () => {
