@@ -9,6 +9,7 @@ Client-side site runtime that renders an entire small website from one validated
 | [ROADMAP.md](./ROADMAP.md) | Where the product is, and the work still ahead |
 | [GUIDE.md](./GUIDE.md) | Authoring how-to: YAML, menus, and styles. The editor’s Guide page shows the same notes |
 | [THEME-BUILDER.md](./THEME-BUILDER.md) | Building theme kits: concepts, folder layout, and manifest syntax |
+| [EDITOR-REVIEW.md](./EDITOR-REVIEW.md) | 21 October 2026 review: page types, editor shape, and why we are not rewriting |
 
 ## Quick start
 
