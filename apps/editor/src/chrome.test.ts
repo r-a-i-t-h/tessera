@@ -49,6 +49,27 @@ describe("editor chrome", () => {
     expect(html).toContain('class="w3-bar-item w3-button w3-white" href="#/articles"');
   });
 
+  it("expands datasets under Datasets and marks the active one", () => {
+    const html = editorChrome(
+      { ok: true, username: "alice", createdAt: "2026-01-01" },
+      "<h1>Products</h1>",
+      true,
+      "datasets",
+      {
+        datasets: [
+          { id: "events", title: "Events" },
+          { id: "products", title: "Products" },
+        ],
+        activeDataset: "products",
+      },
+    );
+    expect(html).toContain('aria-label="Datasets"');
+    expect(html).toContain('href="#/datasets/products" aria-current="page"');
+    expect(html).toContain('href="#/datasets/events"');
+    expect(html).not.toContain('href="#/datasets" aria-current="page"');
+    expect(html).toContain('class="w3-bar-item w3-button w3-white" href="#/datasets"');
+  });
+
   it("keeps Blogs under Records", () => {
     const html = editorChrome(
       { ok: true, username: "alice", createdAt: "2026-01-01" },

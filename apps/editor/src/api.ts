@@ -1,3 +1,5 @@
+import type { DatasetFile, DatasetField, SchemaAdaptationSummary } from "@r-a-i-t-h/tessera-model";
+
 export type PublicUser = {
   ok: true;
   username: string;
@@ -511,4 +513,101 @@ export function saveStylesheet(id: string, text: string): Promise<void> {
     method: "PUT",
     body: JSON.stringify({ text }),
   });
+}
+
+export type DatasetSummary = {
+  id: string;
+  title: string;
+  recordCount: number;
+  invalidCount: number;
+};
+
+export function listDatasets(): Promise<{ ok: true; datasets: DatasetSummary[] }> {
+  return request("/api/datasets");
+}
+
+export function createDataset(id: string, title: string): Promise<{ ok: true; file: DatasetFile }> {
+  return request("/api/datasets", { method: "POST", body: JSON.stringify({ id, title }) });
+}
+
+export function getDataset(id: string): Promise<{
+  ok: true;
+  file: DatasetFile;
+  recordIssues: { uid: number; issues: { path: string; message: string }[] }[];
+}> {
+  return request(`/api/datasets/${encodeURIComponent(id)}`);
+}
+
+export function deleteDataset(id: string): Promise<{ ok: true }> {
+  return request(`/api/datasets/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export function updateDatasetTitle(id: string, title: string): Promise<{ ok: true; file: DatasetFile }> {
+  return request(`/api/datasets/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: JSON.stringify({ title }),
+  });
+}
+
+export function updateDatasetView(
+  id: string,
+  view: { columns: string[]; displayName?: string },
+): Promise<{ ok: true; file: DatasetFile }> {
+  return request(`/api/datasets/${encodeURIComponent(id)}/view`, {
+    method: "PUT",
+    body: JSON.stringify(view),
+  });
+}
+
+export function updateDatasetSchema(
+  id: string,
+  schema: { fields: DatasetField[] },
+): Promise<{ ok: true; file: DatasetFile; summary: SchemaAdaptationSummary }> {
+  return request(`/api/datasets/${encodeURIComponent(id)}/schema`, {
+    method: "PUT",
+    body: JSON.stringify({ schema }),
+  });
+}
+
+export function appendDatasetRecord(
+  id: string,
+  record: Record<string, unknown>,
+): Promise<{ ok: true; file: DatasetFile }> {
+  return request(`/api/datasets/${encodeURIComponent(id)}/records`, {
+    method: "POST",
+    body: JSON.stringify({ record }),
+  });
+}
+
+export function saveDatasetRecord(
+  id: string,
+  uid: number,
+  record: Record<string, unknown>,
+): Promise<{ ok: true; file: DatasetFile }> {
+  return request(`/api/datasets/${encodeURIComponent(id)}/records/${uid}`, {
+    method: "PUT",
+    body: JSON.stringify({ record }),
+  });
+}
+
+export function patchDatasetRecords(
+  id: string,
+  items: { uid: number; record: Record<string, unknown> }[],
+): Promise<{ ok: true; file: DatasetFile }> {
+  return request(`/api/datasets/${encodeURIComponent(id)}/records`, {
+    method: "PATCH",
+    body: JSON.stringify({ items }),
+  });
+}
+
+export function deleteDatasetRecord(id: string, uid: number): Promise<{ ok: true; file: DatasetFile }> {
+  return request(`/api/datasets/${encodeURIComponent(id)}/records/${uid}`, { method: "DELETE" });
+}
+
+export function datasetRootRecords(id: string): Promise<{
+  ok: true;
+  id: string;
+  records: { uid: number; displayName: string }[];
+}> {
+  return request(`/api/datasets/${encodeURIComponent(id)}/roots`);
 }

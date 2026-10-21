@@ -1754,6 +1754,217 @@ button.editor-library-row:hover,
   width: min(68rem, calc(100% - 2rem));
 }
 
+.editor-picker-backdrop .editor-dataset-schema-dialog {
+  position: relative;
+  width: min(68rem, calc(100% - 2rem));
+}
+
+.editor-dataset-schema .editor-type-line {
+  grid-template-columns: minmax(6rem, 1fr) minmax(6rem, 1fr) minmax(5.5rem, 7rem) auto auto auto;
+}
+
+.editor-dataset-schema .editor-type-line > label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+  white-space: nowrap;
+  font-size: 0.85rem;
+}
+
+.editor-dataset-schema .editor-type-actions {
+  flex-shrink: 0;
+}
+
+.editor-dataset-create {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 0.25rem;
+  background: #fafafa;
+  max-width: 48rem;
+}
+
+.editor-dataset-create label {
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.editor-dataset-create .w3-input {
+  flex: 1 1 8rem;
+  min-width: 6rem;
+  max-width: 14rem;
+  margin-top: 0 !important;
+  padding: 0.35rem 0.5rem;
+  box-sizing: border-box;
+}
+
+.editor-dataset-create .w3-button {
+  flex: 0 0 auto;
+}
+
+.editor-dataset-columns,
+.editor-dataset-settings {
+  margin: 0 0 1rem;
+  max-width: 48rem;
+  padding: 0.5rem 0.65rem 0.65rem;
+  border: 1px solid #ddd;
+  border-radius: 0.25rem;
+  background: #fafafa;
+}
+
+.editor-dataset-settings-body {
+  margin-top: 0.65rem;
+}
+
+.editor-dataset-settings-row {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+  margin: 0 0 0.75rem;
+}
+
+.editor-dataset-settings-row label {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.editor-dataset-settings-row .w3-input {
+  max-width: 28rem;
+}
+
+.editor-dataset-settings-static {
+  font-family: ui-monospace, monospace;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.editor-dataset-settings-title-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.editor-dataset-settings-title-control .w3-input {
+  flex: 1 1 12rem;
+  max-width: 28rem;
+}
+
+.editor-dataset-settings-actions {
+  margin: 0;
+  padding-top: 0.35rem;
+  border-top: 1px solid #e8e8e8;
+}
+
+.editor-dataset-settings > summary,
+.editor-dataset-columns > summary {
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+
+.editor-dataset-settings > summary::-webkit-details-marker,
+.editor-dataset-columns > summary::-webkit-details-marker {
+  display: none;
+}
+
+.editor-dataset-settings > summary::before,
+.editor-dataset-columns > summary::before {
+  content: "▸";
+  display: inline-block;
+  width: 1rem;
+  color: #666;
+  transition: transform 0.15s ease;
+}
+
+.editor-dataset-settings[open] > summary::before,
+.editor-dataset-columns[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.editor-dataset-grid-meta {
+  margin: 0 0 0.35rem;
+}
+
+.editor-dataset-clear-filters {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #2196f3;
+  font: inherit;
+  font-size: 0.9rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.editor-dataset-clear-filters:hover {
+  color: #1976d2;
+}
+
+.editor-dataset-columns-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 0.35rem 0.75rem;
+  margin-top: 0.65rem;
+}
+
+.editor-dataset-column-choice {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 0.4rem;
+  row-gap: 0.05rem;
+  align-items: center;
+  margin: 0;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 0.2rem;
+  background: #fafafa;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.editor-dataset-column-choice:has(input:checked) {
+  border-color: #b8c9d9;
+  background: #f3f7fb;
+}
+
+.editor-dataset-column-choice input {
+  grid-row: 1 / span 2;
+  margin: 0;
+}
+
+.editor-dataset-column-choice > span:first-of-type {
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.editor-dataset-column-id {
+  grid-column: 2;
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
+  color: #666;
+  line-height: 1.1;
+}
+
+.editor-dataset-columns-empty {
+  margin: 0;
+  grid-column: 1 / -1;
+}
+
 .editor-library-dialog-title {
   padding-right: 2.25rem;
   margin-top: 0;

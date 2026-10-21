@@ -193,6 +193,7 @@ While a snapshot stays open, re-check `rev.json` on a fixed interval of **5 minu
 - Pages and items reference layouts, zones, media, **bindings**, and registered component names.
 - **Bindings** are part of site data: pair a registered component with a public id such as Willow’s `upcoming-events`. Insert with `{{upcoming-events}}` in text HTML or a component block named `upcoming-events`.
 - Relative asset URLs (`./…`) are required for subdirectory hosting; the renderer may normalize accidental root-absolute media paths at paint time.
+- **Datasets** are separate JSON files under `$TESSERA_DATA/datasets/` for typed tabular/nested data (events, products, branches). They are edited in the Datasets section and are not part of the published site document until a later rendering plan connects them.
 
 ---
 

@@ -10,6 +10,7 @@ export type EditorSection =
   | "pages"
   | "articles"
   | "records"
+  | "datasets"
   | "library"
   | "maintenance"
   | "backups"
@@ -20,6 +21,8 @@ export type EditorSection =
 
 export type EditorNavBlog = { id: string; title: string };
 
+export type EditorNavDataset = { id: string; title: string };
+
 export type EditorNavContext = {
   recordsKind?: string;
   maintenanceTab?: string;
@@ -27,6 +30,10 @@ export type EditorNavContext = {
   blogs?: EditorNavBlog[];
   /** Active blog id when viewing or editing that blog’s articles. */
   articlesBlog?: string;
+  /** Datasets shown under Datasets for quick switching (dashboard stays at #/datasets). */
+  datasets?: EditorNavDataset[];
+  /** Active dataset id when editing a dataset grid. */
+  activeDataset?: string;
 };
 
 export function editorChrome(
@@ -39,6 +46,9 @@ export function editorChrome(
   const blogs = nav.blogs ?? [];
   const articlesOpen = section === "articles";
   const articlesBlogOn = Boolean(nav.articlesBlog);
+  const datasetsOpen = section === "datasets";
+  const datasetsChildOn = Boolean(nav.activeDataset);
+  const datasetNav = nav.datasets ?? [];
   const recordsOpen = section === "records";
   const maintenanceOpen = section === "maintenance";
   const recordsChildOn = recordsOpen && Boolean(nav.recordsKind);
@@ -94,6 +104,19 @@ export function editorChrome(
       ).join("")}</div>`
     : "";
 
+  const datasetsChildren =
+    datasetsOpen && datasetNav.length
+      ? `<div class="editor-nav-children" role="group" aria-label="Datasets">${datasetNav
+          .map((dataset) =>
+            childLink(
+              `#/datasets/${encodeURIComponent(dataset.id)}`,
+              dataset.title,
+              nav.activeDataset === dataset.id,
+            ),
+          )
+          .join("")}</div>`
+      : "";
+
   return `<div class="editor-shell">
       <aside class="editor-sidebar w3-theme">
         <nav class="w3-bar-block editor-nav-block" aria-label="Editor">
@@ -104,6 +127,8 @@ export function editorChrome(
           ${sectionLink("#/library", "Library", "library")}
           ${sectionLink("#/records", "Records", "records", recordsChildOn)}
           ${recordsChildren}
+          ${sectionLink("#/datasets", "Datasets", "datasets", datasetsChildOn)}
+          ${datasetsChildren}
           ${sectionLink("#/styles", "Styles", "styles")}
           ${sectionLink("#/users", "Users", "users")}
           ${sectionLink("#/maintenance", "Maintenance", "maintenance", maintenanceChildOn)}

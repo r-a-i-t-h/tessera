@@ -3,6 +3,7 @@ export type Route =
   | { page: "pages" }
   | { page: "articles"; blog?: string }
   | { page: "records"; kind?: string }
+  | { page: "datasets"; datasetId?: string }
   | { page: "library"; id: string | null }
   | { page: "maintenance"; tab?: string }
   | { page: "backups" }
@@ -67,6 +68,10 @@ export function parseRoute(hash: string): Route {
   if (head === "records") {
     if (rest.includes("/")) return { page: "missing" };
     return { page: "records", kind: rest || undefined };
+  }
+  if (head === "datasets") {
+    if (rest.includes("/")) return { page: "missing" };
+    return { page: "datasets", datasetId: rest || undefined };
   }
   if (head === "site" || head === "nav") {
     if (!rest || rest.includes("/")) return { page: "missing" };

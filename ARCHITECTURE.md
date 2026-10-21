@@ -73,6 +73,8 @@ sites/willow/
   records/                  # YAML records, not on the web path
     site.yaml  nav.yaml
     content/ templates/ items/ layouts/ bindings/ types/ media/ folders/
+  datasets/                 # JSON dataset files (authoring only; not flattened or published)
+    <id>.json
   files/                    # flat asset blobs and editor thumbnails, not on the web path
   shell/                    # document shell, no TypeScript and no frame
     index.html  site.css  local.css
@@ -92,6 +94,12 @@ sites/willow/
 `shell/` is the document shell: head, one mount (`#app`), and CSS. It does not contain the header, the nav, or TypeScript. That frame is the master layout. `publish/tessera.js` and `publish/skin/` are install bytes stamped by the site build. Adding a component is a Tessera release: it lands in `@r-a-i-t-h/tessera-extras` and every site may name it. The editor API does not load site code. The runtime loads the document, registers the catalogue, and mounts the render. It does not paint a sidebar or a top bar of its own.
 
 The editor process serves the working snapshot at `/preview/` on the editor origin. The shell HTML is returned unchanged, so `./tessera.js`, `./data/`, `./skin/`, and `./media/` resolve inside that folder the same way they would in any directory on a static host. `tessera.js` and `skin/` come from the site build, `/data/*` comes from `preview/data` and not from `publish/`, and `media/` comes from `files/`. A signed-in editor session is required. `npm run dev:site` still serves the instance on port 5173 with live TypeScript: `data/shell` and `data/preview` (a short placeholder while `data/shell` is missing). `/data/*` is the SPA snapshot in `preview/`. `media/` and `img/` still come from `data/publish` on that dev server. `TESSERA_SITE=willow` serves that reference shell against the same runtime and keeps reading `sites/willow/publish`, which has no `preview/`. Saving and **Render site** refresh the preview only. **Publish** rebuilds `publish/` in the site's `delivery` flavour (`pages` by default, or `snapshot`) and leaves that folder alone until the next publish. `npm run build -w @r-a-i-t-h/tessera-site` builds `tessera.js` and `tessera-pages.js` and stamps `tessera.js` and `skin/` into each reference `publish/` tree. That build is not the preview. Copy `publish/` to the live host when `publishTo` is unset. When `site.yaml` sets `publishTo` to an existing directory this process can write, Publish copies `publish/` into that directory and then replaces the files there. It does not create a missing directory, rename the directory, or run as root. On Ubuntu, `/var/www` stays `root:root` mode `755`; `chown` the live folder to the app user once so the process can write inside it. Nginx, as `www-data`, can read the files when directories are `755` and files are `644`. That folder should hold only the published site: a file placed there by hand is removed on the next successful install. One publish runs at a time. A failed copy leaves the current live files in place.
+
+## Datasets
+
+Structured collections (events, products, meeting rows, branches, and similar) live in `$TESSERA_DATA/datasets/<id>.json`. Each file holds a field tree (`schema`), view prefs (`view.columns`, `view.displayName`), a `nextUid` counter, and `records` as nested JSON documents. Root records store `uid`, `added`, `modified`, and schema field values. `view.displayName` is a template such as `{make} {model} {year}` used in pickers and labels. Grid columns come from `view.columns` (optional `uid`, schema scalar fields, and optional `added` / `modified`). List items carry `uid` and timestamps only.
+
+The editor **Datasets** section designs the schema and edits records (grid, inline grid edit, and record dialog). Saving a schema runs `adaptRecords` in `@r-a-i-t-h/tessera-model` so renames, removals, and defaults rewrite stored rows. Flatten, preview, and publish ignore this folder until a later release wires datasets into the public site.
 
 ## Authoring files
 
