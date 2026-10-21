@@ -366,7 +366,7 @@ async function mountDatasetGrid(
       });
     };
     host.querySelector("[data-dataset-rename]")?.addEventListener("click", renameDataset);
-    host.querySelector("[data-dataset-title]")?.addEventListener("keydown", (event) => {
+    host.querySelector<HTMLInputElement>("[data-dataset-title]")?.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         event.preventDefault();
         renameDataset();

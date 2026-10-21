@@ -99,7 +99,7 @@ function readFieldsAtDepth(root: HTMLElement, existing: DatasetField[], depth: n
     depth === 0
       ? root.querySelector(".editor-dataset-schema-custom-fields")
       : root.querySelector(":scope > ul.editor-type-fields");
-  const rows = [...(list?.querySelectorAll(":scope > li[data-schema-index]") ?? [])];
+  const rows = [...(list?.querySelectorAll<HTMLElement>(":scope > li[data-schema-index]") ?? [])];
   const fields: DatasetField[] = [];
   for (const row of rows) {
     const index = Number(row.dataset.schemaIndex);
@@ -154,7 +154,8 @@ export function schemaRowPath(row: HTMLElement): number[] {
   let li: HTMLElement | null = row;
   while (li?.matches("li[data-schema-index]")) {
     path.unshift(Number(li.dataset.schemaIndex));
-    const parentField = li.parentElement?.parentElement?.closest("li[data-schema-index]") ?? null;
+    const parentField: HTMLElement | null =
+      li.parentElement?.parentElement?.closest<HTMLElement>("li[data-schema-index]") ?? null;
     li = parentField;
   }
   return path;
