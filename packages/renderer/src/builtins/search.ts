@@ -19,6 +19,7 @@ type LoadedIndex = {
 
 let indexPromise: Promise<LoadedIndex | null> | null = null;
 let indexUrlCached: string | null = null;
+let slashFocusBound = false;
 
 function indexHref(ctx: Parameters<ComponentFn>[0]): string {
   const raw = "./search-index.json";
@@ -113,6 +114,8 @@ export function bootSearch(root: ParentNode = document): void {
 }
 
 function wireBox(host: HTMLElement): void {
+  ensureSlashFocusShortcut();
+
   const input = host.querySelector<HTMLInputElement>(".tessera-search-input");
   const suggest = host.querySelector<HTMLElement>(".tessera-search-suggest");
   if (!input || !suggest) return;
@@ -244,6 +247,47 @@ function wireBox(host: HTMLElement): void {
   document.addEventListener("click", (event) => {
     if (!host.contains(event.target as Node)) hideSuggest();
   });
+}
+
+function ensureSlashFocusShortcut(): void {
+  if (slashFocusBound) return;
+  slashFocusBound = true;
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "/" || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (isTypingTarget(document.activeElement)) return;
+    const boxes = document.querySelectorAll<HTMLElement>("[data-tessera-search='box']");
+    for (const box of boxes) {
+      if (!isSearchBoxOnScreen(box)) continue;
+      const input = box.querySelector<HTMLInputElement>(".tessera-search-input");
+      if (!input) continue;
+      event.preventDefault();
+      input.focus();
+      void ensureIndex(box);
+      return;
+    }
+  });
+}
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!target || !(target instanceof HTMLElement)) return false;
+  const tag = target.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+  return target.isContentEditable;
+}
+
+function isSearchBoxOnScreen(host: HTMLElement): boolean {
+  if (!host.isConnected) return false;
+  if (host.closest("[hidden]")) return false;
+  const style = getComputedStyle(host);
+  if (style.display === "none" || style.visibility === "hidden") return false;
+  const rect = host.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) return false;
+  return (
+    rect.bottom > 0 &&
+    rect.top < window.innerHeight &&
+    rect.right > 0 &&
+    rect.left < window.innerWidth
+  );
 }
 
 function wireResults(host: HTMLElement): void {

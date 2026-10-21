@@ -110,6 +110,55 @@ describe("search box keyboard", () => {
     expect(assignSpy).toHaveBeenCalledWith("#search?q=home");
   });
 
+  it("Slash focuses the search box when it is on screen and focus is elsewhere", () => {
+    const { host, input } = mountSearchBox("./search-index-kb-slash.json");
+    Object.defineProperty(host, "getBoundingClientRect", {
+      configurable: true,
+      value: () => ({
+        top: 10,
+        left: 10,
+        bottom: 50,
+        right: 200,
+        width: 190,
+        height: 40,
+      }),
+    });
+    bootSearch(document);
+
+    const other = document.createElement("button");
+    other.type = "button";
+    other.textContent = "Elsewhere";
+    document.body.appendChild(other);
+    other.focus();
+
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "/", bubbles: true }));
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("Slash does not steal focus from another text field", () => {
+    const { host } = mountSearchBox("./search-index-kb-slash2.json");
+    Object.defineProperty(host, "getBoundingClientRect", {
+      configurable: true,
+      value: () => ({
+        top: 10,
+        left: 10,
+        bottom: 50,
+        right: 200,
+        width: 190,
+        height: 40,
+      }),
+    });
+    bootSearch(document);
+
+    const field = document.createElement("input");
+    field.type = "text";
+    document.body.appendChild(field);
+    field.focus();
+
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "/", bubbles: true }));
+    expect(document.activeElement).toBe(field);
+  });
+
   it("ArrowUp from the first option clears the highlight", async () => {
     const payload = searchIndexPayload(makeFixtureDoc());
     const indexUrl = `./search-index-kb-${Math.random().toString(36).slice(2)}.json`;
