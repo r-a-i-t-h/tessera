@@ -123,13 +123,21 @@ function paintArticle(host: HTMLElement, payload: ArticlePayload, today: string)
   const index = cards.findIndex((card) => card.id === payload.pageId);
   const newer = index > 0 ? cards[index - 1] : undefined;
   const older = index >= 0 ? cards[index + 1] : undefined;
-  const bits = [
-    older ? `<a href="${escapeAttr(older.href)}">Previous: ${escapeText(older.title)}</a>` : "",
-    `<a href="${escapeAttr(payload.blogHref)}">Blog</a>`,
-    `<a href="${escapeAttr(payload.indexHref)}">Index</a>`,
-    newer ? `<a href="${escapeAttr(newer.href)}">Next: ${escapeText(newer.title)}</a>` : "",
-  ].filter(Boolean);
-  nav.innerHTML = bits.join("");
+  nav.innerHTML = [
+    `<div class="tessera-blog-neighbor-start">${older ? neighborPrev(older) : ""}</div>`,
+    `<a class="tessera-blog-neighbor-index" href="${escapeAttr(payload.indexHref)}">Index</a>`,
+    `<div class="tessera-blog-neighbor-end">${newer ? neighborNext(newer) : ""}</div>`,
+  ].join("");
+}
+
+function neighborPrev(card: BlogCard): string {
+  const label = escapeAttr(card.title);
+  return `<a class="tessera-blog-neighbor tessera-blog-neighbor-prev" href="${escapeAttr(card.href)}" aria-label="Previous: ${label}"><span class="tessera-blog-neighbor-btn" aria-hidden="true">‹</span><span class="tessera-blog-neighbor-title">${escapeText(card.title)}</span></a>`;
+}
+
+function neighborNext(card: BlogCard): string {
+  const label = escapeAttr(card.title);
+  return `<a class="tessera-blog-neighbor tessera-blog-neighbor-next" href="${escapeAttr(card.href)}" aria-label="Next: ${label}"><span class="tessera-blog-neighbor-title">${escapeText(card.title)}</span><span class="tessera-blog-neighbor-btn" aria-hidden="true">›</span></a>`;
 }
 
 function paintFeed(host: HTMLElement, payload: FeedPayload, today: string): void {

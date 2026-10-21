@@ -759,12 +759,72 @@ a.tessera-page-missing,
 .tessera-blog-tags,
 .tessera-blog-tenants,
 .tessera-blog-pager,
-.tessera-blog-neighbors,
 .tessera-blog-index-link {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem 1rem;
   margin: 1rem 0;
+}
+
+.tessera-blog-neighbors {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin: 1rem 0;
+}
+
+.tessera-blog-neighbor-start {
+  justify-self: start;
+  min-width: 0;
+}
+
+.tessera-blog-neighbor-end {
+  justify-self: stretch;
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.tessera-blog-neighbor-index {
+  justify-self: center;
+}
+
+.tessera-blog-neighbor {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  max-width: 100%;
+  text-decoration: none;
+}
+
+.tessera-blog-neighbor-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tessera-blog-neighbor-btn {
+  box-sizing: border-box;
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #616161;
+  color: #fff;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.tessera-blog-neighbor:hover .tessera-blog-neighbor-btn,
+.tessera-blog-neighbor:focus-visible .tessera-blog-neighbor-btn {
+  background: #757575;
+  color: #fff;
 }
 
 .tessera-blog-tools {
