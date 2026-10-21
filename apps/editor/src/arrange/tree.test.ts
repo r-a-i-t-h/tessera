@@ -16,6 +16,7 @@ import {
   newFrame,
   newPageLayout,
   nodeLabel,
+  COMPONENT_UNSET,
   nodesFor,
   paletteFor,
   relocate,
@@ -186,7 +187,7 @@ describe("layout arrange tree", () => {
       "Page",
       "Side menu",
       "Menu",
-      "Breadcrumbs",
+      "Component",
       "Custom HTML",
       "Font switch",
     ]);
@@ -200,6 +201,23 @@ describe("layout arrange tree", () => {
       "Component",
       "Custom HTML",
     ]);
+  });
+
+  it("drops Component without choosing a type on frame and page layouts", () => {
+    const frame = newFrame("master").root;
+    const page = newPageLayout("standard").root;
+    const fromFrame = nodesFor("component", frame);
+    const fromPage = nodesFor("component", page);
+    expect(fromFrame.ok && fromFrame.nodes[0]).toEqual({ type: "component", name: COMPONENT_UNSET });
+    expect(fromPage.ok && fromPage.nodes[0]).toEqual({ type: "component", name: COMPONENT_UNSET });
+    expect(fromFrame.ok && fromPage.ok && fromFrame.nodes[0]).toEqual(fromPage.ok ? fromPage.nodes[0] : undefined);
+    if (!fromFrame.ok) return;
+    const html = inspectorHtml(fromFrame.nodes[0], { layoutId: "master", master: true, fallback: false, typeIds: [] }, true);
+    expect(html).toContain("Choose…");
+    expect(html).toContain("Search box");
+    expect(html).toContain("Search results");
+    expect(html).toContain("Breadcrumbs");
+    expect(html).toContain("Pick a type");
   });
 
   it("sets a column width without dropping w3-col", () => {

@@ -15,10 +15,29 @@ export const COMPONENT_CHOICES = [
   { name: "breadcrumbs", label: "Breadcrumbs" },
   { name: "subpageList", label: "Subpages" },
   { name: "linkCluster", label: "Link cluster" },
+  { name: "searchBox", label: "Search box" },
+  { name: "searchResults", label: "Search results" },
 ] as const;
 
+/** Placeholder name until the editor picks a type from the Component inspector. */
+export const COMPONENT_UNSET = "_";
+
+export function isUnsetComponent(name: string): boolean {
+  return !name.trim() || name === COMPONENT_UNSET;
+}
+
 const SCOPED_MENUS = new Set(["navFlat", "navTree", "navCollapse"]);
-const KNOWN_PROPS = ["scope", "tag", "title", "variant", "source", "type", "heading"] as const;
+const KNOWN_PROPS = [
+  "scope",
+  "tag",
+  "title",
+  "variant",
+  "source",
+  "type",
+  "heading",
+  "placeholder",
+  "resultsPageId",
+] as const;
 
 const MENU_BUTTON =
   '<a class="w3-bar-item w3-button tessera-menu-btn w3-hide-large" href="javascript:void(0)" onclick="w3_open()" aria-label="Open menu">Menu</a><div class="w3-bar-item tessera-brand">Site</div>';
@@ -34,7 +53,6 @@ export type PaletteId =
   | "fonts"
   | "menu"
   | "sidemenu"
-  | "breadcrumbs"
   | "page"
   | "footer"
   | "html"
@@ -68,7 +86,7 @@ export function paletteFor(frame: boolean): PaletteItem[][] {
       [
         { id: "sidemenu", label: "Side menu" },
         { id: "menu", label: "Menu" },
-        { id: "breadcrumbs", label: "Breadcrumbs" },
+        { id: "component", label: "Component" },
       ],
       [
         { id: "html", label: "Custom HTML" },
@@ -278,7 +296,7 @@ export function nodeDetail(node: LayoutNode): string {
       return trimmed.length > 80 ? `${trimmed.slice(0, 80)}…` : trimmed;
     }
     case "component":
-      return node.name;
+      return isUnsetComponent(node.name) ? "Choose a type" : node.name;
     case "region":
       return node.className ?? "";
     default: {
@@ -398,8 +416,6 @@ function presetNodes(id: PaletteId, root: LayoutNode): LayoutNode[] {
         },
         { type: "static", html: OVERLAY },
       ];
-    case "breadcrumbs":
-      return [{ type: "component", name: "breadcrumbs" }];
     case "page":
       return [{ type: "page" }];
     case "footer":
@@ -422,7 +438,8 @@ function presetNodes(id: PaletteId, root: LayoutNode): LayoutNode[] {
     case "heading":
       return [{ type: "region", tag: "h1", className: "w3-text-theme", children: [] }];
     case "component":
-      return [{ type: "component", name: "subpageList" }];
+      // Same for frame and page layouts — the inspector picks the type.
+      return [{ type: "component", name: COMPONENT_UNSET }];
     default: {
       const _exhaustive: never = id;
       return _exhaustive;
@@ -484,10 +501,10 @@ function applyStaticField(node: LayoutNode & { type: "static" }, field: string, 
 function applyComponentField(node: LayoutComponentNode, field: string, value: string): LayoutNode {
   const props = { ...(node.props ?? {}) };
   if (field === "componentName") {
-    const name = value.trim() || node.name;
-    if (!SCOPED_MENUS.has(name)) delete props.scope;
+    const name = value.trim() || COMPONENT_UNSET;
+    if (isUnsetComponent(name) || !SCOPED_MENUS.has(name)) delete props.scope;
     else if (typeof props.scope !== "string") props.scope = "sidebar";
-    return componentWith(node, name, props);
+    return componentWith(node, isUnsetComponent(name) ? COMPONENT_UNSET : name, props);
   }
   if (field === "prop") return node;
   if (field.startsWith("prop:")) {
@@ -576,6 +593,7 @@ function fragmentId(html: string): string | undefined {
 }
 
 function componentLabel(node: LayoutComponentNode): string {
+  if (isUnsetComponent(node.name)) return "Component";
   const shape = MENU_SHAPES.find((item) => item.name === node.name);
   const scope = typeof node.props?.scope === "string" ? node.props.scope : "";
   const place = scope === "topbar" ? "Top bar" : scope === "footer" ? "Footer" : scope === "sidebar" ? "Sidebar" : "";

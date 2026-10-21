@@ -8,12 +8,14 @@ import { codeWrapClass, codeWrapToggle } from "../code-wrap.js";
 import { escapeHtml } from "../dom.js";
 import {
   COMPONENT_CHOICES,
+  COMPONENT_UNSET,
   MENU_SHAPES,
   childList,
   classTokens,
   columnWidth,
   drawerState,
   extraProps,
+  isUnsetComponent,
   nodeDetail,
   nodeLabel,
   paletteFor,
@@ -163,34 +165,41 @@ function staticFields(html: string): string {
 }
 
 function componentFields(node: Extract<LayoutNode, { type: "component" }>, used: Set<string>): string {
-  const names = new Set<string>(COMPONENT_CHOICES.map((item) => item.name));
-  names.add(node.name);
-  for (const name of used) names.add(name);
-  const options = [...names]
-    .map((name) => {
-      const choice = COMPONENT_CHOICES.find((item) => item.name === name);
-      const label = choice?.label ?? name;
-      return `<option value="${escapeHtml(name)}"${name === node.name ? " selected" : ""}>${escapeHtml(label)}</option>`;
-    })
-    .join("");
+  const unset = isUnsetComponent(node.name);
+  const knownNames = new Set<string>(COMPONENT_CHOICES.map((item) => item.name));
+  const extras = [...used, node.name].filter((name) => name && !isUnsetComponent(name) && !knownNames.has(name));
+  const names = [...COMPONENT_CHOICES.map((item) => item.name), ...new Set(extras)];
+  const choose = `<option value="${COMPONENT_UNSET}"${unset ? " selected" : ""}>Choose…</option>`;
+  const options =
+    choose +
+    names
+      .map((name) => {
+        const choice = COMPONENT_CHOICES.find((item) => item.name === name);
+        const label = choice?.label ?? name;
+        return `<option value="${escapeHtml(name)}"${!unset && name === node.name ? " selected" : ""}>${escapeHtml(label)}</option>`;
+      })
+      .join("");
   const props = node.props ?? {};
   const scope = typeof props.scope === "string" ? props.scope : "sidebar";
   const scoped = node.name === "navFlat" || node.name === "navTree" || node.name === "navCollapse";
-  const place = scoped
-    ? `<p><label>Place <select class="w3-select w3-border" data-field="prop:scope">
+  const place =
+    !unset && scoped
+      ? `<p><label>Place <select class="w3-select w3-border" data-field="prop:scope">
         ${["sidebar", "topbar", "footer"].map((value) => `<option value="${value}"${value === scope ? " selected" : ""}>${value === "sidebar" ? "Sidebar" : value === "topbar" ? "Top bar" : "Footer"}</option>`).join("")}
       </select></label></p>
       <p class="w3-small w3-text-grey">Links come from <a href="#/records/nav">Nav</a>. A row shows here only when that place is ticked.</p>`
-    : "";
-  const shape = MENU_SHAPES.some((item) => item.name === node.name)
-    ? `<p><label>List <select class="w3-select w3-border" data-field="componentName">${options}</select></label></p>`
-    : `<p><label>Component <select class="w3-select w3-border" data-field="componentName">${options}</select></label></p>`;
-  const known = knownFields(node.name, props);
-  const extra = extraProps(props);
+      : "";
+  const pickerLabel = MENU_SHAPES.some((item) => item.name === node.name) ? "List" : "Component";
+  const shape = `<p><label>${pickerLabel} <select class="w3-select w3-border" data-field="componentName">${options}</select></label></p>
+    ${unset ? `<p class="w3-small w3-text-grey">Pick a type. The same list is used on frame and page layouts.</p>` : ""}`;
+  const known = unset ? "" : knownFields(node.name, props);
+  const extra = unset ? {} : extraProps(props);
   const extraText = Object.keys(extra).length ? yamlish(extra) : "";
-  return `${shape}${place}${known}
-    <p><span class="editor-code-head"><label for="arrange-extra-props">Other props</label>${codeWrapToggle("arrange-extra-props")}</span>
+  const other = unset
+    ? ""
+    : `<p><span class="editor-code-head"><label for="arrange-extra-props">Other props</label>${codeWrapToggle("arrange-extra-props")}</span>
     <textarea id="arrange-extra-props" class="w3-input w3-border editor-yaml${codeWrapClass()}" data-field="extraProps" rows="4" spellcheck="false">${escapeHtml(extraText)}</textarea></p>`;
+  return `${shape}${place}${known}${other}`;
 }
 
 function knownFields(name: string, props: Record<string, unknown>): string {
@@ -214,6 +223,15 @@ function knownFields(name: string, props: Record<string, unknown>): string {
       <p><label>Type <input class="w3-input w3-border" data-field="prop:type" value="${escapeHtml(value("type"))}" /></label></p>
       <p><label>Heading <input class="w3-input w3-border" data-field="prop:heading" value="${escapeHtml(value("heading"))}" /></label></p>
       <p><label>Title <input class="w3-input w3-border" data-field="prop:title" value="${escapeHtml(value("title"))}" /></label></p>`;
+  }
+  if (name === "searchBox") {
+    return `<p><label>Placeholder <input class="w3-input w3-border" data-field="prop:placeholder" value="${escapeHtml(value("placeholder"))}" /></label></p>
+      <p><label>Results page <input class="w3-input w3-border" data-field="prop:resultsPageId" value="${escapeHtml(value("resultsPageId"))}" placeholder="search" /></label></p>
+      <p class="w3-small w3-text-grey">Empty results page uses <code>search</code>. Put this on the master layout; Enter opens that page.</p>`;
+  }
+  if (name === "searchResults") {
+    return `<p><label>Results page <input class="w3-input w3-border" data-field="prop:resultsPageId" value="${escapeHtml(value("resultsPageId"))}" /></label></p>
+      <p class="w3-small w3-text-grey">Empty uses this page’s id. Usual place is the Search page layout.</p>`;
   }
   return "";
 }
