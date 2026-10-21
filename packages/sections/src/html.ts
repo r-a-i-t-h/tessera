@@ -209,6 +209,36 @@ export function textContent(node: HtmlNode): string {
   return node.children.map((child) => textContent(child)).join("");
 }
 
+/** Escape plain text and turn newlines into `<br>` for quote (and similar) paint. */
+export function plainTextToHtml(text: string): string {
+  return escapeText(text).replace(/\n/g, "<br>");
+}
+
+/**
+ * Flatten an HTML fragment to plain text: `<br>` and block boundaries become newlines.
+ * Trims leading/trailing newlines from the result.
+ */
+export function htmlToPlainText(html: string): string {
+  const root = parseFragment(html);
+  return nodeToPlainText(root).replace(/^\n+|\n+$/g, "");
+}
+
+function nodeToPlainText(node: HtmlNode): string {
+  if (node.type === "text") return node.text;
+  if (node.tag === "br") return "\n";
+  const parts: string[] = [];
+  for (const child of node.children) {
+    if (child.type === "el" && (child.tag === "p" || child.tag === "div")) {
+      const inner = nodeToPlainText(child);
+      if (parts.length && !parts[parts.length - 1]!.endsWith("\n")) parts.push("\n");
+      parts.push(inner);
+      continue;
+    }
+    parts.push(nodeToPlainText(child));
+  }
+  return parts.join("");
+}
+
 export function escapeText(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }

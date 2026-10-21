@@ -3,7 +3,9 @@ import {
   escapeAttr,
   escapeText,
   hasClass,
+  htmlToPlainText,
   parseFragment,
+  plainTextToHtml,
   renderMarkdownLinks,
   serializeChildren,
   serializeNode,
@@ -420,7 +422,7 @@ function quoteInnerHtml(text: string, attribution: string, options: QuoteBlockOp
   const textAttrs = options.textAttributes ? ` ${options.textAttributes}` : "";
   const byAttrs = options.attributionAttributes ? ` ${options.attributionAttributes}` : "";
   const by = attribution ? `<p class="w3-right-align"${byAttrs}>${escapeText(attribution)}</p>` : "";
-  return `${quoteMark("open")}<p class="w3-xlarge w3-serif w3-center"${textAttrs}>${escapeText(text)}</p>${by}${quoteMark("close")}`;
+  return `${quoteMark("open")}<p class="w3-xlarge w3-serif w3-center"${textAttrs}>${plainTextToHtml(text)}</p>${by}${quoteMark("close")}`;
 }
 
 export function quoteBlockHtml(
@@ -541,7 +543,7 @@ function atomsFrom(node: HtmlNode, allowColumns: boolean, lookup: ToneLookup): A
   if (textRun) return [{ type: "section", section: textRun }];
   if (hasClass(node, "tessera-text")) return [];
   if (isBareDiv(node)) return node.children.flatMap((child) => atomsFrom(child, allowColumns, lookup));
-  if (node.tag === "p" || node.tag === "ul" || node.tag === "ol") {
+  if (node.tag === "p" || node.tag === "ul" || node.tag === "ol" || node.tag === "pre") {
     const insert = onlyInsert(node);
     if (insert) return [{ type: "section", section: insert }];
     return [{ type: "flow", html: serializeNode(node) }];
@@ -702,15 +704,17 @@ function asQuote(el: ElNode, lookup: ToneLookup): Section | null {
   let text = "";
   let attribution = "";
   for (const para of collect(el, (node) => node.tag === "p")) {
-    const words = textContent(para).trim();
     if (isQuoteDecoration(para)) continue;
     if (hasClass(para, "w3-right-align")) {
-      attribution = words;
+      attribution = textContent(para).trim();
       continue;
     }
-    if (!text && words) text = words;
+    if (!text) {
+      const words = htmlToPlainText(serializeChildren(para.children));
+      if (words) text = words;
+    }
   }
-  if (el.tag === "blockquote" && !text) text = textContent(el).trim();
+  if (el.tag === "blockquote" && !text) text = htmlToPlainText(serializeChildren(el.children));
   return { kind: "quote", tone: toneOf(panel, lookup), text, attribution };
 }
 

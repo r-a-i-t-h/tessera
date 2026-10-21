@@ -9,6 +9,7 @@ import {
   imgboxClass,
   isBlockWidth,
   isColumnLayout,
+  htmlToPlainText,
   paintSections,
   parseHeadingLevel,
   parseSections,
@@ -150,9 +151,45 @@ export function mountComposeCanvases(
   });
   form.addEventListener("keydown", (event) => {
     const target = event.target;
-    if (target instanceof HTMLElement && target.dataset.field === "heading" && event.key === "Enter") {
-      event.preventDefault();
-      return;
+    if (!(target instanceof HTMLElement)) return;
+    if (event.key === "Enter") {
+      if (target.dataset.field === "heading") {
+        event.preventDefault();
+        return;
+      }
+      if (
+        target.dataset.plain === "true" &&
+        target.dataset.field === "text" &&
+        target.closest(".tessera-quote")
+      ) {
+        event.preventDefault();
+        insertSoftBreak();
+        return;
+      }
+      if (
+        target.dataset.plain === "true" &&
+        target.dataset.field === "text" &&
+        !target.closest(".tessera-quote")
+      ) {
+        event.preventDefault();
+        return;
+      }
+      if (target.dataset.blocks === "true" && selectionInsidePre()) {
+        // Keep Enter as a newline inside a code block (avoid a new paragraph).
+        event.preventDefault();
+        insertSoftBreak();
+        return;
+      }
+      if (
+        target.dataset.blocks === "true" &&
+        (event.shiftKey || event.ctrlKey) &&
+        !event.metaKey &&
+        !event.altKey
+      ) {
+        event.preventDefault();
+        insertSoftBreak();
+        return;
+      }
     }
     if (
       event.code !== "KeyK" ||
@@ -170,6 +207,7 @@ export function mountComposeCanvases(
   form.addEventListener("focusin", (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement) || target.dataset.blocks !== "true") return;
+    if (selectionInsidePre()) return;
     try {
       document.execCommand("defaultParagraphSeparator", false, "p");
     } catch {
@@ -544,6 +582,7 @@ function inlineTools(): string {
     markButton("underline", "Underline", "<u>U</u>"),
     markButton("strikeThrough", "Strikethrough", "<s>S</s>"),
     markButton("code", "Code", `<span class="editor-mark-code">&lt;/&gt;</span>`),
+    markButton("codeBlock", "Code block", `<span class="editor-mark-code">{ }</span>`),
     markGap(),
     markButton("link", "Link", LINK_ICON),
     markButton("removeFormat", "Clear formatting", CLEAR_ICON),
@@ -733,7 +772,8 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
       return;
     }
     if (field === "text" && target.isContentEditable) {
-      if (node.kind === "heading" || node.kind === "quote") node.text = target.textContent ?? "";
+      if (node.kind === "heading") node.text = (target.textContent ?? "").replace(/\n+/g, " ");
+      if (node.kind === "quote") node.text = htmlToPlainText(target.innerHTML);
       return;
     }
     if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement)) return;
@@ -955,6 +995,10 @@ function runCommand(form: HTMLFormElement, command: string): void {
     toggleCode();
     return;
   }
+  if (command === "codeBlock") {
+    toggleCodeBlock();
+    return;
+  }
   if (command === "removeFormat") {
     document.execCommand("removeFormat");
     document.execCommand("unlink");
@@ -1000,6 +1044,27 @@ function currentBlock(): HTMLElement | null {
   return block instanceof HTMLElement && editable.contains(block) ? block : null;
 }
 
+function selectionInsidePre(): HTMLElement | null {
+  const sel = document.getSelection();
+  const node = sel?.anchorNode;
+  const el = node instanceof Element ? node : node?.parentElement;
+  const editable = el?.closest<HTMLElement>("[contenteditable]");
+  if (!editable || editable.dataset.blocks !== "true") return null;
+  const pre = el?.closest("pre.tessera-pre");
+  return pre instanceof HTMLElement && editable.contains(pre) ? pre : null;
+}
+
+function insertSoftBreak(): void {
+  try {
+    if (!document.execCommand("insertLineBreak")) {
+      document.execCommand("insertHTML", false, "<br>");
+    }
+  } catch {
+    document.execCommand("insertHTML", false, "<br>");
+  }
+  touchEditable();
+}
+
 function toggleCode(): void {
   const sel = document.getSelection();
   if (!sel || sel.rangeCount === 0) return;
@@ -1016,6 +1081,44 @@ function toggleCode(): void {
   if (!text) return;
   document.execCommand("insertHTML", false, `<code>${escapeText(text)}</code>`);
   touchEditable();
+}
+
+function toggleCodeBlock(): void {
+  const pre = selectionInsidePre();
+  if (pre) {
+    const p = document.createElement("p");
+    const text = pre.textContent ?? "";
+    if (text) p.textContent = text;
+    else p.append(document.createElement("br"));
+    pre.replaceWith(p);
+    placeCaretIn(p);
+    touchEditable();
+    return;
+  }
+  const block = currentBlock();
+  if (block && block.tagName.toLowerCase() === "p") {
+    const next = document.createElement("pre");
+    next.className = "tessera-pre";
+    const text = block.textContent ?? "";
+    if (text) next.textContent = text;
+    else next.append(document.createElement("br"));
+    block.replaceWith(next);
+    placeCaretIn(next);
+    touchEditable();
+    return;
+  }
+  document.execCommand("insertHTML", false, `<pre class="tessera-pre"><br></pre>`);
+  touchEditable();
+}
+
+function placeCaretIn(el: HTMLElement): void {
+  const sel = document.getSelection();
+  if (!sel) return;
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  range.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(range);
 }
 
 function cloneSelection(): Range | null {
@@ -1101,7 +1204,7 @@ function onPaste(event: ClipboardEvent): void {
   const target = event.target;
   if (!(target instanceof HTMLElement) || !target.isContentEditable) return;
   event.preventDefault();
-  if (target.dataset.plain === "true") {
+  if (target.dataset.plain === "true" || selectionInsidePre()) {
     document.execCommand("insertText", false, event.clipboardData?.getData("text/plain") ?? "");
     return;
   }
@@ -1343,8 +1446,11 @@ function syncAll(state: Mounted): void {
       if (field.dataset.field === "html" && field.isContentEditable && node.kind === "pasted") {
         node.html = htmlFromEditing(field.innerHTML, false, state.pageTitles);
       }
-      if (field.dataset.field === "text" && field.isContentEditable && (node.kind === "heading" || node.kind === "quote")) {
-        node.text = field.textContent ?? "";
+      if (field.dataset.field === "text" && field.isContentEditable && node.kind === "heading") {
+        node.text = (field.textContent ?? "").replace(/\n+/g, " ");
+      }
+      if (field.dataset.field === "text" && field.isContentEditable && node.kind === "quote") {
+        node.text = htmlToPlainText(field.innerHTML);
       }
       if (field instanceof HTMLInputElement && field.type === "checkbox") {
         applyControl(node, field.dataset.field ?? "", field.checked ? "true" : "false");
@@ -1455,7 +1561,7 @@ function isTone(value: string): value is ToneId {
   return /^[a-z][a-z0-9-]*$/.test(value);
 }
 
-const ALLOWED = new Set(["strong", "b", "em", "i", "u", "s", "code", "a", "br", "ul", "ol", "li", "p"]);
+const ALLOWED = new Set(["strong", "b", "em", "i", "u", "s", "code", "a", "br", "ul", "ol", "li", "p", "pre"]);
 
 const MARKDOWN_LINK_SELECTION = /^\[([^\]\n]+)\]\(([^)\s]+)\)$/;
 
@@ -1588,6 +1694,11 @@ function blocksIn(parent: Element): string {
       if (items) out += `<${tagOpen(node, tag)}>${items}</${tag}>`;
       continue;
     }
+    if (tag === "pre") {
+      flush();
+      out += `<pre class="tessera-pre">${escapeText(prePlainText(node))}</pre>`;
+      continue;
+    }
     if (tag === "p" || tag === "div") {
       const nested =
         tag === "div" &&
@@ -1636,6 +1747,23 @@ function sanitize(html: string): string {
   return root ? cleanChildren(root) : "";
 }
 
+function prePlainText(el: Element): string {
+  let out = "";
+  for (const node of el.childNodes) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      out += node.textContent ?? "";
+      continue;
+    }
+    if (!(node instanceof Element)) continue;
+    if (node.tagName.toLowerCase() === "br") {
+      out += "\n";
+      continue;
+    }
+    out += prePlainText(node);
+  }
+  return out;
+}
+
 function cleanChildren(parent: Element): string {
   let out = "";
   for (const node of parent.childNodes) {
@@ -1648,6 +1776,10 @@ function cleanChildren(parent: Element): string {
     if (tag === "div") {
       if (out && !out.endsWith("<br>")) out += "<br>";
       out += cleanChildren(node);
+      continue;
+    }
+    if (tag === "pre") {
+      out += `<pre class="tessera-pre">${escapeText(prePlainText(node))}</pre>`;
       continue;
     }
     if (tag === "strike") {

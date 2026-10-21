@@ -21,7 +21,7 @@ export {
   toneLabel,
   youtubeVideoId,
 } from "./sections.js";
-export { renderMarkdownLinks, restoreMarkdownLinks } from "./html.js";
+export { htmlToPlainText, plainTextToHtml, renderMarkdownLinks, restoreMarkdownLinks } from "./html.js";
 export type {
   BlockWidthId,
   ColumnCell,

@@ -169,6 +169,27 @@ describe("paintSections", () => {
     ]);
   });
 
+  it("paints and parses quote line breaks as br", () => {
+    const sections = [{ kind: "quote" as const, tone: "sand" as const, text: "Line one\nLine two", attribution: "" }];
+    const html = paintSections(sections);
+    expect(html).toContain("Line one<br>Line two");
+    expect(parseSections(html)).toEqual(sections);
+  });
+
+  it("round-trips a code block inside text html", () => {
+    const sections = [
+      {
+        kind: "text" as const,
+        heading: "",
+        level: 2 as const,
+        html: `<p>Intro.</p><pre class="tessera-pre">const x = 1;\nconsole.log(x);</pre><p>After.</p>`,
+      },
+    ];
+    const html = paintSections(sections);
+    expect(html).toContain('<pre class="tessera-pre">const x = 1;\nconsole.log(x);</pre>');
+    expect(parseSections(html)).toEqual(sections);
+  });
+
   it("rebuilds the same sections from painted HTML", () => {
     const sections: Section[] = [
       { kind: "heading", level: 2, text: "Hello" },

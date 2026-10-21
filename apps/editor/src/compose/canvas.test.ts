@@ -453,6 +453,56 @@ describe("text spacing", () => {
     expect(html).toContain("<p><br></p><p>Hello</p><p><br></p><p><br></p>");
   });
 
+  it("keeps soft line breaks inside a paragraph", () => {
+    const form = mountZone(`<div class="tessera-text"><p>Hello</p></div>`);
+    const body = form.querySelector<HTMLElement>(".editor-text-body");
+    if (!body) throw new Error("body");
+    body.innerHTML = "<p>Line one<br>Line two</p>";
+    body.dispatchEvent(new dom.Event("input", { bubbles: true }));
+    const html = readComposeHtml(form).main ?? "";
+    expect(html).toContain("<p>Line one<br>Line two</p>");
+  });
+
+  it("keeps a bordered code block with newlines", () => {
+    const form = mountZone(`<div class="tessera-text"><p>Hello</p></div>`);
+    const body = form.querySelector<HTMLElement>(".editor-text-body");
+    if (!body) throw new Error("body");
+    body.innerHTML = `<p>Intro.</p><pre class="tessera-pre">const x = 1;\nconsole.log(x);</pre><p>After.</p>`;
+    body.dispatchEvent(new dom.Event("input", { bubbles: true }));
+    const html = readComposeHtml(form).main ?? "";
+    expect(html).toContain('<pre class="tessera-pre">const x = 1;\nconsole.log(x);</pre>');
+    expect(html).toContain("<p>Intro.</p>");
+    expect(html).toContain("<p>After.</p>");
+    expect(form.querySelector("[data-cmd=codeBlock]")?.getAttribute("aria-label")).toBe("Code block");
+  });
+
+  it("toggles a paragraph into a code block and back", () => {
+    const form = mountZone(`<div class="tessera-text"><p>snippet</p></div>`);
+    const body = form.querySelector<HTMLElement>(".editor-text-body");
+    const para = body?.querySelector("p");
+    const button = form.querySelector<HTMLElement>("[data-cmd=codeBlock]");
+    if (!body || !para || !button) throw new Error("setup");
+    body.focus();
+    const range = dom.document.createRange();
+    range.selectNodeContents(para);
+    range.collapse(true);
+    const sel = dom.window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+    button.dispatchEvent(new dom.MouseEvent("click", { bubbles: true }));
+    expect(body.querySelector("pre.tessera-pre")?.textContent).toBe("snippet");
+    expect(body.querySelector("p")).toBeNull();
+    const pre = body.querySelector("pre.tessera-pre");
+    if (!pre) throw new Error("pre");
+    range.selectNodeContents(pre);
+    range.collapse(true);
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+    button.dispatchEvent(new dom.MouseEvent("click", { bubbles: true }));
+    expect(body.querySelector("p")?.textContent).toBe("snippet");
+    expect(body.querySelector("pre.tessera-pre")).toBeNull();
+  });
+
   it("stores no body html when only blank paragraphs remain", () => {
     const form = mountZone(`<div class="tessera-text"><p>Hi</p></div>`);
     const body = form.querySelector<HTMLElement>(".editor-text-body");
@@ -557,6 +607,18 @@ describe("quote attribution", () => {
     expect(form.querySelector("[data-field=attribution]")).toBe(input);
     expect(form.querySelector("[data-quote-by]")).toBeNull();
     expect(readComposeHtml(form).main ?? "").not.toContain("Ada");
+  });
+
+  it("keeps line breaks in quote text through save", () => {
+    const quote = `<div class="tessera-block w3-content w3-padding-16" style="max-width: 70%"><div class="w3-panel w3-card-4 w3-round-large tessera-quote w3-sand"><span class="tessera-quote-mark tessera-quote-open" aria-hidden="true">“</span><p class="w3-xlarge w3-serif w3-center">Stay curious</p><span class="tessera-quote-mark tessera-quote-close" aria-hidden="true">”</span></div></div>`;
+    const form = mountZone(quote);
+    const field = form.querySelector<HTMLElement>('.tessera-quote [data-field="text"]');
+    if (!field) throw new Error("quote text");
+    field.innerHTML = "Stay<br>curious";
+    field.dispatchEvent(new dom.Event("input", { bubbles: true }));
+    const html = readComposeHtml(form).main ?? "";
+    expect(html).toContain("Stay<br>curious");
+    expect(parseSections(html)).toMatchObject([{ kind: "quote", text: "Stay\ncurious" }]);
   });
 });
 
