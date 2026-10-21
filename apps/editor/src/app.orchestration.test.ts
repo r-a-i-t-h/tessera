@@ -102,23 +102,19 @@ describe("editor route orchestration", () => {
 
     await mount(root);
     await vi.waitFor(() => {
-      expect(root.querySelector("[data-mode=compose]")?.classList.contains("w3-theme")).toBe(true);
-      expect(root.querySelector("[data-mode=compose]")?.getAttribute("aria-pressed")).toBe("true");
+      expect(root.querySelector("[data-mode=fields]")?.classList.contains("w3-theme")).toBe(true);
+      expect(root.querySelector("[data-mode=fields]")?.getAttribute("aria-pressed")).toBe("true");
+      expect(root.querySelector("[data-mode=fields]")?.textContent).toBe("Page");
       expect(root.querySelector('[role="toolbar"][aria-label="Editing mode"]')).toBeTruthy();
+      expect(root.querySelector("#content-tools")).toBeTruthy();
     });
     expect(root.querySelector('a[href="#/pages"]')?.getAttribute("aria-current")).toBe("page");
     expect(root.querySelector('a[href="#/records"]')?.hasAttribute("aria-current")).toBe(false);
     expect(root.querySelector(".editor-back")?.getAttribute("href")).toBe("#/pages");
     expect(root.querySelector("h1")?.textContent).toBe("Home");
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>("[data-mode]")].map((button) => button.dataset.mode);
+    expect(tabs).toEqual(["fields", "compose", "raw"]);
 
-    root
-      .querySelector<HTMLButtonElement>("[data-mode=fields]")
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    await vi.waitFor(() => {
-      expect(root.querySelector("[data-mode=fields]")?.classList.contains("w3-theme")).toBe(true);
-      expect(root.querySelector("[data-mode=fields]")?.getAttribute("aria-pressed")).toBe("true");
-      expect(root.querySelector("[data-mode=compose]")?.getAttribute("aria-pressed")).toBe("false");
-    });
     const title = root.querySelector<HTMLInputElement>("#f-title");
     if (!title) throw new Error("title");
     title.value = "Unsaved title";
@@ -136,6 +132,13 @@ describe("editor route orchestration", () => {
       expect(root.querySelector<HTMLInputElement>("#f-title")?.value).toBe("Unsaved title");
     });
 
+    root.querySelector<HTMLButtonElement>("[data-mode=compose]")?.click();
+    await vi.waitFor(() => {
+      expect(root.querySelector("[data-mode=compose]")?.getAttribute("aria-pressed")).toBe("true");
+      expect(root.querySelector("#f-title")).toBeNull();
+      expect(root.querySelector("#content-tools")).toBeNull();
+    });
+
     navigate("#/");
     await vi.waitFor(() => {
       expect(root.querySelector("h1")?.textContent).toBe("Tessera");
@@ -143,6 +146,7 @@ describe("editor route orchestration", () => {
     });
     navigate("#/content/home");
     await vi.waitFor(() => {
+      expect(root.querySelector("[data-mode=fields]")?.classList.contains("w3-theme")).toBe(true);
       expect(root.querySelector<HTMLInputElement>("#f-title")?.value).toBe("Home");
     });
 

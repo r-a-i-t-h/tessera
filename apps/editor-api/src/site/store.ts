@@ -81,6 +81,12 @@ export type PageLayoutHint = {
   fields: { id: string; required?: boolean }[];
   declaredZones: string[];
   offLayoutZones: string[];
+  /** Zone ids declared on any frame layout (page slot present). */
+  frameZoneCatalog: string[];
+  /** Page zone keys shown on the Frame tab (present keys minus page-layout zones). */
+  frameEditorZones: string[];
+  /** Zones on the resolved master minus page-layout overlap (for Frame tab notes). */
+  activeFrameZoneIds: string[];
   layouts: Record<string, { zones: string[] }>;
   /** Layout ids that contain a page slot. */
   frames: string[];
@@ -204,11 +210,24 @@ export class SiteStore {
       };
     }
     const declaredZones = layouts[profile.layoutId]?.zones ?? [];
+    const declaredSet = new Set(declaredZones);
     const present = Object.keys(authored.zones ?? {});
     const type = doc.types?.find((item) => item.id === profile.typeId);
     const master = resolveMasterLayout(doc, resolved);
     const aspect = resolveAspect(doc, resolved);
-    const frames = doc.layouts.filter((layout) => layoutHasPageSlot(layout.root)).map((layout) => layout.id);
+    const frameLayouts = doc.layouts.filter((layout) => layoutHasPageSlot(layout.root));
+    const frames = frameLayouts.map((layout) => layout.id);
+    const frameZoneCatalog = [
+      ...new Set(frameLayouts.flatMap((layout) => [...collectDeclaredZones(layout.root)])),
+    ].sort();
+    const frameEditorZones = present.filter((id) => {
+      if (declaredSet.has(id)) return false;
+      if (authored.type === "article" && id === "title") return false;
+      return true;
+    });
+    const activeFrameZoneIds = (master.layoutId ? (layouts[master.layoutId]?.zones ?? []) : []).filter(
+      (id) => !declaredSet.has(id),
+    );
     const aspects = (doc.site.aspects ?? []).map((item) => ({ id: item.id, label: item.label }));
     const panelTones = (doc.site.panelTones ?? []).map((item) => ({
       id: item.id,
@@ -225,6 +244,9 @@ export class SiteStore {
       })),
       declaredZones,
       offLayoutZones: present.filter((id) => !declaredZones.includes(id)),
+      frameZoneCatalog,
+      frameEditorZones,
+      activeFrameZoneIds,
       layouts,
       frames,
       ...(master.layoutId ? { masterLayoutId: master.layoutId } : {}),

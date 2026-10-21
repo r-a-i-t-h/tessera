@@ -206,6 +206,72 @@ describe("record routes", () => {
     expect(record.layout.offLayoutZones).toEqual(["meta"]);
   });
 
+  it("lists frame zone catalog and frame editor zones for the Frame tab", async () => {
+    await site.write("layouts", "master", {
+      root: {
+        type: "region",
+        children: [
+          { type: "zone", id: "sidebar_target" },
+          { type: "page" },
+        ],
+      },
+    });
+    await site.write("layouts", "events-frame", {
+      root: {
+        type: "region",
+        children: [
+          { type: "zone", id: "events_aside" },
+          { type: "page" },
+        ],
+      },
+    });
+    await site.writeSite({
+      version: 2,
+      id: "demo",
+      title: "Demo",
+      homePageId: "home",
+      defaultLayoutId: "standard",
+      masterLayoutId: "master",
+    });
+    await site.write("content", "home", {
+      title: "Home",
+      tags: ["page"],
+      zones: { main: { html: "<p>Hello</p>" } },
+    });
+    const before = await app().request("/api/records/content/home", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const empty = (await before.json()) as {
+      layout: {
+        declaredZones: string[];
+        frameZoneCatalog: string[];
+        frameEditorZones: string[];
+        activeFrameZoneIds: string[];
+      };
+    };
+    expect(empty.layout.declaredZones).toEqual(["main"]);
+    expect(empty.layout.frameZoneCatalog).toEqual(["events_aside", "sidebar_target"]);
+    expect(empty.layout.frameEditorZones).toEqual([]);
+    expect(empty.layout.activeFrameZoneIds).toEqual(["sidebar_target"]);
+
+    await site.write("content", "home", {
+      title: "Home",
+      tags: ["page"],
+      zones: {
+        main: { html: "<p>Hello</p>" },
+        sidebar_target: { html: "<p>Quote</p>" },
+      },
+    });
+    const after = await app().request("/api/records/content/home", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const filled = (await after.json()) as {
+      layout: { frameEditorZones: string[]; declaredZones: string[] };
+    };
+    expect(filled.layout.declaredZones).toEqual(["main"]);
+    expect(filled.layout.frameEditorZones).toEqual(["sidebar_target"]);
+  });
+
   it("appends the previous page file and republishes a new snapshot", async () => {
     const before = await app().request("/api/records/content/home", {
       headers: { Authorization: `Bearer ${token}` },

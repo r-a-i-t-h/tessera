@@ -64,7 +64,18 @@ import { asLayoutNode, cleanNode, isFrame, newFrame, newPageLayout } from "./arr
 import type { ArrangeInfo } from "./arrange/view.js";
 import { mountComposeCanvases } from "./compose/canvas.js";
 import { draftYaml, dropArticleTitleZone, parsePageYaml } from "./compose/draft.js";
-import { readContentDocument, readContentDraft, composeFormInner, frameNote, htmlByZone, rawText, templateBodyLayout, type ContentMode } from "./compose/view.js";
+import {
+  readContentDocument,
+  readContentDraft,
+  composeFormInner,
+  frameFormInner,
+  frameNote,
+  htmlByZoneForMode,
+  rawText,
+  templateBodyLayout,
+  validateFrameZoneId,
+  addFrameZoneToRecord,
+} from "./compose/view.js";
 import { announceRoute, editorChrome as chrome, loginView, type EditorNavContext } from "./chrome.js";
 import { tesseraLogo3x5 } from "./logo-3x5.js";
 import { editPlace, type EditPlace } from "./edit-place.js";
@@ -309,7 +320,7 @@ async function render(root: HTMLElement): Promise<void> {
 
 const previewUrl = "/preview/";
 
-type EditMode = "arrange" | "compose" | "fields" | "raw";
+type EditMode = "arrange" | "compose" | "frame" | "fields" | "raw";
 
 /** Set just before opening a newly created page, so that page starts on Compose. */
 let pendingEdit: { mode: EditMode; notice: string } | undefined;
@@ -2437,8 +2448,8 @@ function editsBody(kind: string | undefined): boolean {
 function initialEditMode(kind: string, pending: { mode: EditMode } | undefined): EditMode {
   const mode = pending?.mode;
   if (editsBody(kind)) {
-    if (mode === "compose" || mode === "fields" || mode === "raw") return mode;
-    return "compose";
+    if (mode === "compose" || mode === "frame" || mode === "fields" || mode === "raw") return mode;
+    return "fields";
   }
   if (kind === "layouts") {
     if (mode === "arrange" || mode === "fields" || mode === "raw") return mode;
@@ -2606,7 +2617,7 @@ function recordList(rows: RecordSummary[], entries = false, noteFor?: (row: Reco
 
 function snapshotYaml(form: HTMLFormElement, mode: EditMode, session: ContentSession, kind: string): string | undefined {
   if (editsBody(kind)) {
-    if (mode !== "compose" && mode !== "fields" && mode !== "raw") return undefined;
+    if (mode !== "compose" && mode !== "frame" && mode !== "fields" && mode !== "raw") return undefined;
     const read = readContentDocument(form, mode, session.draft, session.payload.raw, session.payload.data, kind);
     if (!read.ok) return undefined;
     return read.fromEditor ? draftYaml(read.draft) : session.payload.raw;
@@ -2645,7 +2656,7 @@ function syncUndoButtons(scope: ParentNode, history: UndoHistory): void {
 function canvasOwnsEdit(mode: EditMode, target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   if (mode === "arrange") return target.dataset.field !== undefined;
-  if (mode === "compose") return !!target.closest("[data-canvas], [data-item-id]");
+  if (mode === "compose" || mode === "frame") return !!target.closest("[data-canvas], [data-item-id]");
   return false;
 }
 
@@ -2749,9 +2760,16 @@ async function bindEdit(
   const record = session?.draft ?? asRecord(payload.data);
   const rawShown = session ? rawText(session.fromEditor, session.draft, payload.raw) : payload.raw;
   let editMode: EditMode =
-    mode === "compose" && !editsBody(kind) ? "fields" : mode === "arrange" && kind !== "layouts" ? "fields" : mode;
-  if (record?.type === "blog-index" && editMode === "compose") editMode = "fields";
+    (mode === "compose" || mode === "frame") && !editsBody(kind)
+      ? "fields"
+      : mode === "arrange" && kind !== "layouts"
+        ? "fields"
+        : mode;
+  if (record?.type === "blog-index" && (editMode === "compose" || editMode === "frame")) editMode = "fields";
   const bodyLayout = kind === "templates" ? templateBodyLayout() : payload.layout;
+  const showFrameTab =
+    editsBody(kind) && record?.type !== "blog-index" && (bodyLayout?.frames?.length ?? 0) > 0;
+  if (editMode === "frame" && !showFrameTab) editMode = "compose";
   const navList = kind === "nav" && editMode === "fields" && Array.isArray(payload.data);
   const pages: PageChoice[] = navList ? await contentPages() : [];
   const navNote = "";
@@ -2762,9 +2780,11 @@ async function bindEdit(
   const typeEditor = kind === "types" && editMode === "fields" && !!record;
   const typeLayouts = typeEditor ? await typeLayoutChoices(typeof record.layoutId === "string" ? record.layoutId : "") : [];
   const typeIds =
-    editsBody(kind) && (editMode === "compose" || editMode === "fields") ? await loadTypeIds() : undefined;
+    editsBody(kind) && (editMode === "compose" || editMode === "frame" || editMode === "fields")
+      ? await loadTypeIds()
+      : undefined;
   const pageIds =
-    kind === "content" && (editMode === "compose" || editMode === "fields")
+    kind === "content" && (editMode === "compose" || editMode === "frame" || editMode === "fields")
       ? await loadContentPageIds()
       : undefined;
   const heroUrl =
@@ -2780,6 +2800,8 @@ async function bindEdit(
          <textarea id="raw-file" name="raw" rows="24" spellcheck="false" class="w3-input w3-border w3-margin-top editor-raw${codeWrapClass()}">${escapeHtml(rawShown)}</textarea></p>`
       : editMode === "compose" && record
         ? composeFormInner(kind, record, bodyLayout, typeIds, contentExtras, pageIds)
+      : editMode === "frame" && record
+        ? frameFormInner(kind, record, bodyLayout, typeIds, contentExtras, pageIds)
       : navList
         ? `<div id="nav-editor">${renderNavList(navRows(payload.data), pages)}</div>`
         : typeEditor
@@ -2790,6 +2812,12 @@ async function bindEdit(
   const place = editPlace(kind, id, record);
   const homeId = kind === "content" ? await loadHomePageId() : "";
   const pageHost = host === "page";
+  const fieldsTabLabel = editsBody(kind) ? "Page" : "Fields";
+  const showContentRename =
+    editMode === "fields" &&
+    kind === "content" &&
+    record?.type !== "blog" &&
+    record?.type !== "blog-index";
   const sessionActions =
     editsBody(kind) || kind === "layouts"
       ? `<button type="button" class="w3-button w3-white" data-action="undo" title="Undo (Ctrl+Z)" disabled>Undo</button><button type="button" class="w3-button w3-white" data-action="redo" title="Redo (Ctrl+Shift+Z)" disabled>Redo</button><button type="button" class="w3-button w3-white" data-action="revert">Revert</button>`
@@ -2808,12 +2836,17 @@ async function bindEdit(
            ? `<button type="button" class="w3-button ${editMode === "arrange" ? "w3-theme" : "w3-white"}" data-mode="arrange" aria-pressed="${editMode === "arrange"}">Arrange</button>`
            : ""
        }
+       <button type="button" class="w3-button ${editMode === "fields" ? "w3-theme" : "w3-white"}" data-mode="fields" aria-pressed="${editMode === "fields"}">${fieldsTabLabel}</button>
        ${
          editsBody(kind) && record?.type !== "blog-index"
            ? `<button type="button" class="w3-button ${editMode === "compose" ? "w3-theme" : "w3-white"}" data-mode="compose" aria-pressed="${editMode === "compose"}">Compose</button>`
            : ""
        }
-       <button type="button" class="w3-button ${editMode === "fields" ? "w3-theme" : "w3-white"}" data-mode="fields" aria-pressed="${editMode === "fields"}">Fields</button>
+       ${
+         showFrameTab
+           ? `<button type="button" class="w3-button ${editMode === "frame" ? "w3-theme" : "w3-white"}" data-mode="frame" aria-pressed="${editMode === "frame"}">Frame</button>`
+           : ""
+       }
        <button type="button" class="w3-button ${editMode === "raw" ? "w3-theme" : "w3-white"}" data-mode="raw" aria-pressed="${editMode === "raw"}">Raw file</button>
      </div>
      <p class="w3-text-grey editor-record-note"><code>${escapeHtml(payload.file)}</code></p>
@@ -2822,11 +2855,7 @@ async function bindEdit(
        ${pageHost ? "" : `${saveStatus}${actionRow}`}
      </form>
      ${kind === "items" ? itemToolsHtml(id) : ""}
-     ${
-       kind === "content" && record?.type !== "blog" && record?.type !== "blog-index"
-         ? contentToolsHtml(id)
-         : ""
-     }
+     ${showContentRename ? contentToolsHtml(id) : ""}
      ${historyHtml(payload)}`;
   let scope: ParentNode = root;
   if (host === "tab") {
@@ -2852,7 +2881,9 @@ async function bindEdit(
     );
     bindChrome(root);
   }
-  if (editMode === "compose" || editMode === "arrange") root.querySelector(".editor-main")?.classList.add("editor-compose");
+  if (editMode === "compose" || editMode === "frame" || editMode === "arrange") {
+    root.querySelector(".editor-main")?.classList.add("editor-compose");
+  }
   const form = scope.querySelector<HTMLFormElement>("#record-form");
   const checkpoint = (burstId?: string): void => {
     if (!session || !form) return;
@@ -2866,14 +2897,24 @@ async function bindEdit(
     undoKeys?.abort();
     undoKeys = undefined;
   }
-  if (form && editMode === "compose" && record) await mountPageCanvas(form, record, bodyLayout, checkpoint);
+  if (form && (editMode === "compose" || editMode === "frame") && record) {
+    await mountPageCanvas(form, record, bodyLayout, editMode, checkpoint);
+  }
   if (form && editMode === "arrange" && layoutRoot && arrangeInfo) mountArrange(form, layoutRoot, arrangeInfo, checkpoint);
+  if (form && editMode === "frame" && contentSession && record) {
+    bindAddFrameZone(form, root, user, kind, id, host, contentSession, bodyLayout);
+  }
   for (const button of scope.querySelectorAll<HTMLButtonElement>("[data-mode]")) {
     button.addEventListener("click", () => {
       const next = button.dataset.mode;
-      if (next !== "arrange" && next !== "compose" && next !== "fields" && next !== "raw") return;
+      if (next !== "arrange" && next !== "compose" && next !== "frame" && next !== "fields" && next !== "raw") return;
       if (next === editMode) return;
-      if (editsBody(kind) && contentSession && form && (editMode === "compose" || editMode === "fields" || editMode === "raw")) {
+      if (
+        editsBody(kind) &&
+        contentSession &&
+        form &&
+        (editMode === "compose" || editMode === "frame" || editMode === "fields" || editMode === "raw")
+      ) {
         const taken = readContentDraft(form, editMode, contentSession.draft, contentSession.payload.raw, contentSession.payload.data, kind);
         if (!taken.ok) {
           showSaveError(root, taken.error);
@@ -2899,7 +2940,16 @@ async function bindEdit(
         void bindEdit(root, user, kind, id, next, "", true, host);
         return;
       }
-      void bindEdit(root, user, kind, id, next === "compose" || next === "arrange" ? "fields" : next, "", false, host);
+      void bindEdit(
+        root,
+        user,
+        kind,
+        id,
+        next === "compose" || next === "frame" || next === "arrange" ? "fields" : next,
+        "",
+        false,
+        host,
+      );
     });
   }
   for (const button of scope.querySelectorAll<HTMLButtonElement>("[data-history]")) {
@@ -3032,7 +3082,11 @@ async function bindEdit(
           editMode === "raw"
             ? await saveRawRecord(kind, id, form.querySelector<HTMLTextAreaElement>("#raw-file")?.value ?? "")
             : await saveRecord(kind, id, layoutSession.draft);
-      } else if (editsBody(kind) && contentSession && (editMode === "compose" || editMode === "fields" || editMode === "raw")) {
+      } else if (
+        editsBody(kind) &&
+        contentSession &&
+        (editMode === "compose" || editMode === "frame" || editMode === "fields" || editMode === "raw")
+      ) {
         const taken = readContentDraft(form, editMode, contentSession.draft, contentSession.payload.raw, contentSession.payload.data, kind);
         if (!taken.ok) {
           showSaveError(root, taken.error);
@@ -3046,7 +3100,11 @@ async function bindEdit(
         saved =
           editMode === "raw"
             ? await saveRawRecord(kind, id, form.querySelector<HTMLTextAreaElement>("#raw-file")?.value ?? "")
-            : await saveRecord(kind, id, pruneEmptyHtmlZones(contentSession.draft));
+            : await saveRecord(
+                kind,
+                id,
+                pruneEmptyHtmlZones(contentSession.draft, bodyLayout?.declaredZones),
+              );
       } else {
         saved =
           editMode === "raw"
@@ -3080,10 +3138,57 @@ function showSaveError(root: HTMLElement, message: string): void {
   statusEl.className = "w3-pale-red w3-padding";
 }
 
+function bindAddFrameZone(
+  form: HTMLFormElement,
+  root: HTMLElement,
+  user: PublicUser,
+  kind: string,
+  id: string,
+  host: "page" | "tab",
+  session: ContentSession,
+  layout: PageLayoutHint | undefined,
+): void {
+  form.querySelector<HTMLButtonElement>("[data-action=add-frame-zone]")?.addEventListener("click", () => {
+    const pick = form.querySelector<HTMLSelectElement>("[name=frame-zone-pick]")?.value.trim() ?? "";
+    const custom = form.querySelector<HTMLInputElement>("[name=frame-zone-id]")?.value.trim() ?? "";
+    const note = form.querySelector<HTMLElement>("[data-add-frame-zone-error]");
+    const taken = readContentDraft(form, "frame", session.draft, session.payload.raw, session.payload.data, kind);
+    if (!taken.ok) {
+      if (note) {
+        note.hidden = false;
+        note.textContent = taken.error;
+      }
+      return;
+    }
+    const draft = taken.unchanged ? session.draft : taken.draft;
+    if (!taken.unchanged) {
+      session.draft = taken.draft;
+      session.fromEditor = taken.fromEditor;
+    }
+    const checked = validateFrameZoneId(pick || custom, draft, layout);
+    if (!checked.ok) {
+      if (note) {
+        note.hidden = false;
+        note.textContent = checked.error;
+      }
+      return;
+    }
+    if (note) {
+      note.hidden = true;
+      note.textContent = "";
+    }
+    session.draft = addFrameZoneToRecord(draft, checked.id);
+    session.fromEditor = true;
+    form.dataset.dirty = "true";
+    void bindEdit(root, user, kind, id, "frame", "", true, host);
+  });
+}
+
 async function mountPageCanvas(
   form: HTMLFormElement,
   record: Record<string, unknown>,
   layout: PageLayoutHint | undefined,
+  mode: "compose" | "frame",
   onEdit?: (burstId?: string) => void,
 ): Promise<void> {
   let bindings: { id: string; title?: string }[] = [];
@@ -3132,7 +3237,7 @@ async function mountPageCanvas(
           return { kind: "page", id: picked, title: pageTitles[picked] };
         }
       : undefined,
-    htmlByZone: htmlByZone(record, layout),
+    htmlByZone: htmlByZoneForMode(record, layout, mode),
     locked: record.locked === true,
     onEdit,
   });
@@ -3484,14 +3589,15 @@ function labelize(key: string): string {
   return key.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase());
 }
 
-function pruneEmptyHtmlZones(data: unknown): unknown {
+function pruneEmptyHtmlZones(data: unknown, declaredZones?: readonly string[]): unknown {
   if (!data || typeof data !== "object" || Array.isArray(data)) return data;
   const record = dropArticleTitleZone(data as Record<string, unknown>);
   const zones = record.zones;
   if (!zones || typeof zones !== "object" || Array.isArray(zones)) return data;
+  const declared = new Set(declaredZones ?? []);
   const next: Record<string, unknown> = {};
   for (const [id, zone] of Object.entries(zones as Record<string, unknown>)) {
-    if (
+    const emptyHtml =
       zone &&
       typeof zone === "object" &&
       !Array.isArray(zone) &&
@@ -3499,8 +3605,10 @@ function pruneEmptyHtmlZones(data: unknown): unknown {
       !("json" in zone) &&
       !("blocks" in zone) &&
       !("component" in zone) &&
-      String((zone as { html: unknown }).html ?? "").trim() === ""
-    ) {
+      String((zone as { html: unknown }).html ?? "").trim() === "";
+    // Keep empty frame / custom zones so the Frame tab can reopen them; page-layout
+    // empties are still pruned because Compose always lists declared zones.
+    if (emptyHtml && (declared.size === 0 || declared.has(id))) {
       continue;
     }
     next[id] = zone;

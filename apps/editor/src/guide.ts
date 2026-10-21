@@ -38,7 +38,7 @@ export function guideHtml(): string {
   title: Events
   sidebar: true
   topbar: true</pre>
-    <p>Save on the Fields tab rewrites a file at two spaces. The Raw file tab keeps the spaces you typed.</p>
+    <p>Save on the <strong>Page</strong> tab (labelled Fields on other records) rewrites a file at two spaces. The Raw file tab keeps the spaces you typed. On a content page, title, type, parent, frame, tags, and id rename live on Page; Compose and Frame are zone canvases only.</p>
 
     <h2 id="menus">Menus</h2>
     <p>Links live on the Nav record (<a href="#/records/nav">Records → Nav</a>, file <code>records/nav.yaml</code>). Each row has three places: <strong>Sidebar</strong>, <strong>Top bar</strong>, and <strong>Footer</strong>. A place shows the row only when the master layout draws a menu component for that place.</p>
@@ -71,6 +71,9 @@ export function guideHtml(): string {
       <li><code>searchResults</code> is the full results UI on the <a href="#/content/search">Search page</a> (refine, tag/type filter, relevance or title sort).</li>
   </ul>
     <p>A blank site already puts <code>searchBox</code> in the sidebar and a <a href="#/content/search">Search page</a> on the <a href="#/records/nav">Nav record</a>. Keep the menu sparse for wiki-style sites; reach other pages by cross-links and search.</p>
+
+    <h2 id="frame-zones">Frame zones</h2>
+    <p>A master layout can declare content <strong>zones</strong> outside the page slot (for example a sidebar outlet). Those ids are not on the page layout, so they do not appear on <strong>Compose</strong>. Use the page’s <strong>Frame</strong> tab: <strong>Add zone</strong> lists every zone id from any frame layout, or type a custom id. Content is stored on the page under that name and paints only when a layout declares the id. If the page inherits a different master, unused content stays until a layout uses it again.</p>
 
     <h2 id="page-links-wiki-style">Page links (wiki-style)</h2>
     <p>Compose’s <strong>link</strong> control opens the page picker for every page. That stores <code>&lt;a data-tessera-page=&quot;hall&quot; href=&quot;#&quot;&gt;…&lt;/a&gt;</code>. You can also type <code>[[hall]]</code> or <code>[[hall|label]]</code>; saving expands those the same way. Preview and publish resolve the URL. Renaming a page rewrites those ids in prose and binding links. Missing targets use the class <code>tessera-page-missing</code>. Preview diagnostics lists pages linked to and from the current page.</p>

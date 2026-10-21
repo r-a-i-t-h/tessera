@@ -32,7 +32,7 @@ List items are the awkward case. The dash already occupies two columns, so the k
   topbar: true
 ```
 
-Save on the Fields tab rewrites a file at two spaces. The Raw file tab keeps the spaces you typed.
+Save on the Page tab (Fields on other records) rewrites a file at two spaces. The Raw file tab keeps the spaces you typed. On a content page, title, type, parent, frame, tags, and id rename live on **Page**; **Compose** and **Frame** are for zone canvases only.
 
 ## Menus
 
@@ -76,6 +76,10 @@ Put one of these in the master layout as a component. `scope` is `sidebar` (the 
 | `searchResults` | Full results on the [Search page](#/content/search): refine the query, filter by tag or type, sort by relevance or title. |
 
 A blank site already places `searchBox` in the sidebar and ships a [Search page](#/content/search) on the [Nav record](#/records/nav). Large wiki-style sites keep the menu sparse: a few entry pages plus Search; everything else is reached by cross-links and search.
+
+## Frame zones
+
+A master layout can declare content **zones** outside the page slot (for example a sidebar outlet). Those ids are not on the page layout, so they do not appear on **Compose**. Use the page’s **Frame** tab: **Add zone** offers every zone id declared on any frame layout, or type a custom id. Content is stored on the page under that name and paints only when some layout in the render walk declares the id. If the page inherits a different master, unused content stays on the page until a layout uses it again. Page title, type, parent, and rename stay on the **Page** tab.
 
 ## Page links (wiki-style)
 

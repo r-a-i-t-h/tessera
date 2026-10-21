@@ -155,6 +155,12 @@ export type PageLayoutHint = {
   fields: { id: string; required?: boolean }[];
   declaredZones: string[];
   offLayoutZones: string[];
+  /** Zone ids declared on any frame layout (page slot present). */
+  frameZoneCatalog?: string[];
+  /** Page zone keys shown on the Frame tab (present keys minus page-layout zones). */
+  frameEditorZones?: string[];
+  /** Zones on the resolved master minus page-layout overlap (for Frame tab notes). */
+  activeFrameZoneIds?: string[];
   layouts: Record<string, { zones: string[] }>;
   /** Layout ids that contain a page slot. */
   frames?: string[];

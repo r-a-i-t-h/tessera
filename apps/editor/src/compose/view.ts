@@ -3,18 +3,13 @@ import type { PageLayoutHint } from "../api.js";
 import { escapeHtml } from "../dom.js";
 import { draftYaml, parsePageYaml, withZoneHtml } from "./draft.js";
 import { readComposeHtml } from "./canvas.js";
-import { readFormValues, renderForm } from "../forms/form.js";
-import { articleMeta, blogMeta, heroField } from "../forms/article.js";
-import {
-  authoredSchema,
-  schemaFor,
-  withAspectChoices,
-  withFrameChoices,
-  withParentChoices,
-  withTypeChoices,
-} from "../forms/schema.js";
+import { readFormValues } from "../forms/form.js";
+import { schemaFor } from "../forms/schema.js";
 
-export type ContentMode = "compose" | "fields" | "raw";
+/** Controls on the Frame tab that must not be written into the page record. */
+const FRAME_UI_FIELDS = new Set(["frame-zone-id", "frame-zone-pick"]);
+
+export type ContentMode = "compose" | "frame" | "fields" | "raw";
 
 type ZoneView = {
   name: string;
@@ -22,6 +17,8 @@ type ZoneView = {
   off: boolean;
   kind: "html" | "note";
   html: string;
+  /** On Frame tab: whether the resolved master declares this outlet. */
+  active?: boolean;
 };
 
 /** Compose for a template always edits one body zone, whatever page frame it names. */
@@ -32,6 +29,9 @@ export function templateBodyLayout(): PageLayoutHint {
     fields: [],
     declaredZones: ["main"],
     offLayoutZones: [],
+    frameZoneCatalog: [],
+    frameEditorZones: [],
+    activeFrameZoneIds: [],
     layouts: {},
   };
 }
@@ -43,67 +43,119 @@ export function frameNote(layout?: PageLayoutHint): string {
   return `<p class="w3-small w3-text-grey">Aspect ${escapeHtml(label)} is set on ${escapeHtml(layout.aspectFromPageId)}.</p>`;
 }
 
+/** Compose tab: page-layout zone canvases only. Page properties live on the Page tab. */
 export function composeFormInner(
   kind: string,
   record: Record<string, unknown>,
   layout?: PageLayoutHint,
-  types?: readonly string[],
-  options?: { heroUrl?: string },
-  pageIds?: readonly string[],
+  _types?: readonly string[],
+  _options?: { heroUrl?: string },
+  _pageIds?: readonly string[],
 ): string {
   const zoneLayout =
     kind === "content" && record.type === "article" && layout
       ? { ...layout, declaredZones: ["main"], offLayoutZones: [] }
       : layout;
-  const schema = contentSchema(kind, record, zoneLayout, types, pageIds);
-  const authoredNames = new Set((authoredSchema(kind)?.fields ?? []).map((field) => field.name));
-  const base = schema?.fields.filter((field) => authoredNames.has(field.name)) ?? [];
-  const extras =
-    schema?.fields.filter((field) => !authoredNames.has(field.name) && field.name !== "locked" && field.name !== "templateId") ??
-    [];
-  const zones = zoneViews(record, zoneLayout);
-  const onLayout = zones.filter((zone) => !zone.off);
-  const offLayout = zones.filter((zone) => zone.off);
+  const zones = pageLayoutZoneViews(record, zoneLayout);
   const locked = record.locked === true;
-  const palette = locked
-    ? ""
-    : `<div class="editor-palette">
-        <p><button type="button" class="w3-button w3-white w3-border" data-compose-list aria-pressed="false">List</button></p>
-        ${PALETTE.map((item) => `<button type="button" class="w3-button w3-white w3-border" draggable="true" data-palette="${item.kind}">${item.label}</button>`).join("")}
-      </div>`;
-  const prefix =
-    kind === "content" && record.type === "article"
-      ? articleMeta(record)
-      : kind === "content" && record.type === "blog"
-        ? blogMeta(record)
-        : "";
-  const hero =
-    kind === "content" && record.type === "article"
-      ? heroField(stringField(record, "hero"), options?.heroUrl)
-      : "";
-  const pageInline = kind === "content" ? { inline: true } : undefined;
-  return `${prefix}
-    ${renderForm({ fields: base }, record, pageInline)}
-    ${hero}
-    ${layoutBanner(record, zoneLayout)}
+  const palette = locked ? "" : composePalette();
+  return `${layoutBanner(record, zoneLayout)}
     ${frameNote(zoneLayout)}
     <div class="editor-compose-layout">
       ${palette}
       <div class="editor-zones">
-        ${onLayout.map((zone) => zoneBlock(zone)).join("")}
-        ${
-          offLayout.length
-            ? `<section class="editor-off-layout"><h2 class="w3-medium">Off layout</h2>${offLayout.map((zone) => zoneBlock(zone)).join("")}</section>`
-            : ""
-        }
+        ${zones.map((zone) => zoneBlock(zone)).join("")}
       </div>
-    </div>
-    ${extras.length ? renderForm({ fields: extras }, record) : ""}`;
+    </div>`;
+}
+
+/** Frame tab: frame / custom zone canvases only. Page properties live on the Page tab. */
+export function frameFormInner(
+  kind: string,
+  record: Record<string, unknown>,
+  layout?: PageLayoutHint,
+  _types?: readonly string[],
+  _options?: { heroUrl?: string },
+  _pageIds?: readonly string[],
+): string {
+  const zoneLayout =
+    kind === "content" && record.type === "article" && layout
+      ? { ...layout, declaredZones: ["main"], offLayoutZones: [] }
+      : layout;
+  const zones = frameZoneViews(record, zoneLayout);
+  const locked = record.locked === true;
+  const palette = locked ? "" : composePalette();
+  const master = layout?.masterLayoutId ? escapeHtml(layout.masterLayoutId) : "";
+  const banner = `<p class="w3-text-grey">Frame zones paint when a layout in the render walk declares that id. Changing parent or master can leave content unused. Page body zones stay on <strong>Compose</strong>. Title, type, and rename are on <strong>Page</strong>.</p>
+    ${
+      master
+        ? `<p class="w3-small w3-text-grey">Current frame: <code>${master}</code>${
+            (layout?.activeFrameZoneIds ?? []).length
+              ? ` · outlets: ${(layout?.activeFrameZoneIds ?? []).map((id) => `<code>${escapeHtml(id)}</code>`).join(", ")}`
+              : " · no content zones on this frame"
+          }.</p>`
+        : `<p class="w3-small w3-text-grey">This page has no master frame. Saved frame zones stay on the page until a frame declares them.</p>`
+    }`;
+  return `${frameNote(zoneLayout)}
+    ${banner}
+    <div class="editor-compose-layout">
+      ${palette}
+      <div class="editor-zones">
+        ${zones.length ? zones.map((zone) => zoneBlock(zone)).join("") : `<p class="w3-text-grey">No frame zones on this page yet. Add one below.</p>`}
+        ${locked ? "" : addZoneControls(layout, zones.map((zone) => zone.name))}
+      </div>
+    </div>`;
+}
+
+function composePalette(): string {
+  return `<div class="editor-palette">
+        <p><button type="button" class="w3-button w3-white w3-border" data-compose-list aria-pressed="false">List</button></p>
+        ${PALETTE.map((item) => `<button type="button" class="w3-button w3-white w3-border" draggable="true" data-palette="${item.kind}">${item.label}</button>`).join("")}
+      </div>`;
+}
+
+function addZoneControls(layout?: PageLayoutHint, usedIds: readonly string[] = []): string {
+  const catalog = layout?.frameZoneCatalog ?? [];
+  const used = new Set(usedIds);
+  const options = catalog
+    .filter((id) => !used.has(id))
+    .map((id) => `<option value="${escapeHtml(id)}">${escapeHtml(id)}</option>`)
+    .join("");
+  const pick =
+    options.length > 0
+      ? `<label class="editor-add-zone-pick">Frame zone
+          <select name="frame-zone-pick" class="w3-select w3-border">
+            <option value="">Choose…</option>
+            ${options}
+          </select>
+        </label>`
+      : "";
+  return `<section class="editor-zone editor-add-frame-zone">
+      <h2 class="w3-medium">Add zone</h2>
+      <p class="w3-small w3-text-grey">Pick a zone from any frame layout, or type a custom id. Content is saved on this page and used only when a layout declares that id.</p>
+      <p class="editor-add-zone-row">
+        ${pick}
+        <label class="editor-add-zone-custom">Custom id
+          <input name="frame-zone-id" class="w3-input w3-border" autocomplete="off" spellcheck="false" placeholder="Zone id" />
+        </label>
+        <button type="button" class="w3-button w3-theme" data-action="add-frame-zone">Add zone</button>
+      </p>
+      <p class="w3-small w3-pale-red w3-padding" data-add-frame-zone-error hidden></p>
+    </section>`;
 }
 
 export function htmlByZone(record: Record<string, unknown>, layout?: PageLayoutHint): Record<string, string> {
+  return htmlByZoneForMode(record, layout, "compose");
+}
+
+export function htmlByZoneForMode(
+  record: Record<string, unknown>,
+  layout: PageLayoutHint | undefined,
+  mode: "compose" | "frame",
+): Record<string, string> {
   const html: Record<string, string> = {};
-  for (const zone of zoneViews(record, layout)) {
+  const views = mode === "frame" ? frameZoneViews(record, layout) : pageLayoutZoneViews(record, layout);
+  for (const zone of views) {
     if (zone.kind === "html") html[zone.name] = zone.html;
   }
   return html;
@@ -137,8 +189,11 @@ export function readContentDocument(
     if (!read || typeof read !== "object" || Array.isArray(read)) {
       return { ok: false, error: "Could not read this page." };
     }
+    const cleaned = dropFrameUiFields(read as Record<string, unknown>);
     const draft =
-      mode === "compose" ? withZoneHtml(read as Record<string, unknown>, readComposeHtml(form)) : (read as Record<string, unknown>);
+      mode === "compose" || mode === "frame"
+        ? withZoneHtml(cleaned, readComposeHtml(form))
+        : cleaned;
     return { ok: true, draft, fromEditor: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Could not read this page." };
@@ -166,25 +221,70 @@ export function rawText(fromEditor: boolean, draft: Record<string, unknown>, bas
   return fromEditor ? draftYaml(draft) : baselineRaw;
 }
 
+/** Validate and return a new frame zone id, or an error message. */
+export function validateFrameZoneId(
+  raw: string,
+  record: Record<string, unknown>,
+  layout?: PageLayoutHint,
+): { ok: true; id: string } | { ok: false; error: string } {
+  const id = raw.trim();
+  if (!id) return { ok: false, error: "Enter a zone id." };
+  if (!/^[a-zA-Z][\w-]*$/.test(id)) {
+    return { ok: false, error: "Use a letter first, then letters, digits, underscore, or hyphen." };
+  }
+  const declared = new Set(layout?.declaredZones ?? []);
+  if (record.type === "article") {
+    // Article compose only edits main; title is the record title.
+    if (id === "main") return { ok: false, error: "Body content belongs on Compose." };
+  } else if (declared.has(id)) {
+    return { ok: false, error: "That zone is on the page layout. Edit it on Compose." };
+  }
+  const zones = zonesOf(record);
+  if (id in zones) return { ok: false, error: "This page already has that zone." };
+  return { ok: true, id };
+}
+
+export function addFrameZoneToRecord(record: Record<string, unknown>, id: string): Record<string, unknown> {
+  const zones = { ...zonesOf(record), [id]: { html: "" } };
+  return { ...record, zones };
+}
+
 function zoneBlock(zone: ZoneView): string {
   if (zone.kind === "note") {
     return `<section class="editor-zone"><h2 class="w3-medium">${escapeHtml(zone.label)}</h2></section>`;
   }
-  return `<section class="editor-zone"><h2 class="w3-medium">${escapeHtml(zone.label)}</h2><div class="editor-canvas" data-canvas data-zone="${escapeHtml(zone.name)}"></div></section>`;
+  const note =
+    zone.active === undefined
+      ? ""
+      : zone.active
+        ? `<p class="w3-small w3-text-grey">On current frame.</p>`
+        : `<p class="w3-small w3-text-grey">Not on current frame — saved but unused until a layout declares this id.</p>`;
+  return `<section class="editor-zone"><h2 class="w3-medium">${escapeHtml(zone.label)}</h2>${note}<div class="editor-canvas" data-canvas data-zone="${escapeHtml(zone.name)}"></div></section>`;
 }
 
-function zoneViews(record: Record<string, unknown>, layout?: PageLayoutHint): ZoneView[] {
+function pageLayoutZoneViews(record: Record<string, unknown>, layout?: PageLayoutHint): ZoneView[] {
   const zones = zonesOf(record);
   const declared = layout?.declaredZones ?? [];
-  const declaredSet = new Set(declared);
   const onNames = declared.length ? declared : Object.keys(zones);
-  const offNames = (declared.length ? Object.keys(zones).filter((name) => !declaredSet.has(name)) : []).filter(
-    (name) => record.type !== "article" || name !== "title",
-  );
-  return [
-    ...onNames.map((name) => zoneView(name, zones[name], false)),
-    ...offNames.map((name) => zoneView(name, zones[name], true)),
-  ];
+  return onNames.map((name) => zoneView(name, zones[name], false));
+}
+
+function frameZoneViews(record: Record<string, unknown>, layout?: PageLayoutHint): ZoneView[] {
+  const zones = zonesOf(record);
+  const declared = new Set(layout?.declaredZones ?? []);
+  const active = new Set(layout?.activeFrameZoneIds ?? []);
+  // Prefer the draft’s keys so Add zone shows a canvas before the next API hint.
+  const fromRecord = Object.keys(zones).filter((name) => {
+    if (declared.has(name)) return false;
+    if (record.type === "article" && name === "title") return false;
+    return true;
+  });
+  const hinted = (layout?.frameEditorZones ?? []).filter((name) => fromRecord.includes(name));
+  const names = [...hinted, ...fromRecord.filter((name) => !hinted.includes(name))];
+  return names.map((name) => {
+    const view = zoneView(name, zones[name], false, true);
+    return { ...view, active: active.has(name) };
+  });
 }
 
 const ZONE_LABELS: Record<string, string> = {
@@ -197,13 +297,13 @@ const ZONE_LABELS: Record<string, string> = {
   footer: "Footer",
 };
 
-function zoneLabel(name: string, off: boolean): string {
-  if (off) return `Off layout: ${name}`;
+function zoneLabel(name: string, frame: boolean): string {
+  if (frame) return ZONE_LABELS[name] ?? `Frame: ${name}`;
   return ZONE_LABELS[name] ?? `Zone: ${name}`;
 }
 
-function zoneView(name: string, zone: unknown, off: boolean): ZoneView {
-  const label = zoneLabel(name, off);
+function zoneView(name: string, zone: unknown, off: boolean, frame = false): ZoneView {
+  const label = zoneLabel(name, frame);
   if (zone === undefined || (isRecord(zone) && "html" in zone && !("json" in zone) && !("blocks" in zone) && !("component" in zone))) {
     return { name, label, off, kind: "html", html: isRecord(zone) ? String(zone.html ?? "") : "" };
   }
@@ -218,42 +318,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
-function contentSchema(
-  kind: string,
-  record: Record<string, unknown>,
-  layout?: PageLayoutHint,
-  types?: readonly string[],
-  pageIds?: readonly string[],
-) {
-  let schema = schemaFor(kind, record);
-  if (!schema) return schema;
-  if ((kind === "content" || kind === "templates") && types) {
-    schema = withTypeChoices(schema, types, typeof record.type === "string" ? record.type : undefined);
+function dropFrameUiFields(record: Record<string, unknown>): Record<string, unknown> {
+  let changed = false;
+  const next = { ...record };
+  for (const key of FRAME_UI_FIELDS) {
+    if (key in next) {
+      delete next[key];
+      changed = true;
+    }
   }
-  if (kind === "content" && pageIds) {
-    const excludeId = typeof record.id === "string" ? record.id : undefined;
-    const current = typeof record.parentId === "string" ? record.parentId : undefined;
-    schema = withParentChoices(schema, pageIds, excludeId, current);
-  }
-  if (kind === "content" && layout?.frames) {
-    const current = typeof record.masterLayoutId === "string" ? record.masterLayoutId : undefined;
-    schema = withFrameChoices(schema, layout.frames, current);
-  }
-  if (kind === "content" && layout?.aspects !== undefined) {
-    schema = withAspectChoices(
-      schema,
-      layout.aspects,
-      typeof record.aspectId === "string" ? record.aspectId : undefined,
-    );
-  }
-  return schema;
-}
-
-function stringField(record: Record<string, unknown>, id: string): string {
-  const fields = record.fields;
-  if (!fields || typeof fields !== "object" || Array.isArray(fields)) return "";
-  const value = (fields as Record<string, unknown>)[id];
-  return typeof value === "string" ? value : "";
+  return changed ? next : record;
 }
 
 function layoutBanner(_record: Record<string, unknown>, _layout?: PageLayoutHint): string {
