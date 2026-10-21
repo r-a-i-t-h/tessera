@@ -324,16 +324,37 @@ describe("compose drag ghost", () => {
 });
 
 describe("section kind labels", () => {
-  it("shows a content hint so list mode can tell sections apart", () => {
+  it("keeps kind-only headers and updates list previews separately", () => {
     const form = mountZone(`<h2>Market</h2><p>Opens at nine.</p><h2>Hours</h2>`);
     const kinds = [...form.querySelectorAll(".editor-section-kind")].map((node) => node.textContent);
-    expect(kinds).toEqual(["Text · Market", "Heading · Hours"]);
+    expect(kinds).toEqual(["Text", "Heading"]);
+
+    const previews = [...form.querySelectorAll("[data-list-preview]")].map((node) => node.textContent);
+    expect(previews).toEqual(["Market", "Hours"]);
+
+    const section = form.querySelector(".editor-section");
+    const widget = section?.querySelector(".editor-section-widget");
+    const preview = section?.querySelector("[data-list-preview]");
+    if (!(section instanceof dom.HTMLElement) || !(widget instanceof dom.HTMLElement) || !preview) {
+      throw new Error("widget/preview");
+    }
+    expect(widget.contains(section.querySelector(".editor-text-body")!)).toBe(true);
+    expect(preview.previousElementSibling).toBe(widget);
+
+    form.classList.add("editor-compose-list");
+    expect(form.classList.contains("editor-compose-list")).toBe(true);
+    expect(preview.textContent).toBe("Market");
 
     const heading = form.querySelector<HTMLElement>("[data-field=heading]");
     if (!heading) throw new Error("heading");
     heading.textContent = "Saturday market";
     heading.dispatchEvent(new dom.Event("input", { bubbles: true }));
-    expect(form.querySelector(".editor-section-kind")?.textContent).toBe("Text · Saturday market");
+    expect(form.querySelector(".editor-section-kind")?.textContent).toBe("Text");
+    expect(form.querySelector("[data-list-preview]")?.textContent).toBe("Saturday market");
+
+    form.classList.remove("editor-compose-list");
+    expect(form.classList.contains("editor-compose-list")).toBe(false);
+    expect(widget.querySelector(".editor-text-body")).not.toBeNull();
   });
 });
 
@@ -388,7 +409,9 @@ describe("section actions", () => {
     icon.dispatchEvent(new dom.MouseEvent("click", { bubbles: true }));
 
     const kinds = [...form.querySelectorAll(".editor-section-kind")].map((node) => node.textContent);
-    expect(kinds[0]).toBe("Heading · Second");
+    expect(kinds[0]).toBe("Heading");
+    const previews = [...form.querySelectorAll("[data-list-preview]")].map((node) => node.textContent);
+    expect(previews[0]).toBe("Second");
     const headings = [...form.querySelectorAll("[data-field=text]")].map((node) => node.textContent);
     expect(headings).toEqual(["Second", "First"]);
   });
@@ -540,7 +563,8 @@ describe("card container", () => {
     const card = form.querySelector(".w3-card");
     const slot = card?.querySelector<HTMLElement>("[data-drop]");
     if (!card || !slot) throw new Error("card");
-    expect(card.querySelector(".editor-section-kind")?.textContent).toBe("Text · Open at nine.");
+    expect(card.querySelector(".editor-section-kind")?.textContent).toBe("Text");
+    expect(card.querySelector("[data-list-preview]")?.textContent).toBe("Open at nine.");
     dropPalette(slot, "columns");
     const html = readComposeHtml(form).main ?? "";
     const sections = parseSections(html);
@@ -565,7 +589,8 @@ describe("panel container", () => {
     const panel = form.querySelector(".w3-panel");
     const slot = panel?.querySelector<HTMLElement>("[data-drop]");
     if (!panel || !slot) throw new Error("panel");
-    expect(panel.querySelector(".editor-section-kind")?.textContent).toBe("Text · Note.");
+    expect(panel.querySelector(".editor-section-kind")?.textContent).toBe("Text");
+    expect(panel.querySelector("[data-list-preview]")?.textContent).toBe("Note.");
     dropPalette(slot, "columns");
     const html = readComposeHtml(form).main ?? "";
     const sections = parseSections(html);

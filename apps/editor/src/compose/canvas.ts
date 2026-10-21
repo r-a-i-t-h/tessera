@@ -373,14 +373,18 @@ function choicesFor(host: HTMLElement): Choices {
 function renderItem(node: EditNode, choices: Choices, zone: string, locked: boolean, index = 0, count = 1): string {
   const drag = locked ? "" : `<span class="editor-handle" draggable="true" data-drag title="Drag to move">Drag</span>`;
   const actions = locked ? "" : sectionActions(index, count);
+  const preview = escapeText(listPreviewText(node, choices));
   return `<article class="editor-section" data-item-id="${node.uid}" data-zone="${escapeAttr(zone)}">
     <div class="editor-section-bar">
       ${drag}
-      <span class="editor-section-kind">${escapeText(labelFor(node, choices))}</span>
+      <span class="editor-section-kind">${escapeText(labelFor(node))}</span>
       ${propsFor(node, choices, locked)}
       ${actions}
     </div>
-    <div class="editor-section-body">${bodyFor(node, choices, zone, locked)}</div>
+    <div class="editor-section-body">
+      <div class="editor-section-widget">${bodyFor(node, choices, zone, locked)}</div>
+      <div class="editor-section-list-preview" data-list-preview>${preview}</div>
+    </div>
   </article>`;
 }
 
@@ -415,49 +419,55 @@ function kindName(node: EditNode): string {
   }
 }
 
-function labelFor(node: EditNode, choices?: Choices): string {
+function labelFor(node: EditNode): string {
+  return kindName(node);
+}
+
+function dragLabelFor(node: EditNode, choices?: Choices): string {
   const kind = kindName(node);
-  const hint = labelHint(node, choices);
+  const hint = clipLabel(listPreviewText(node, choices));
   return hint ? `${kind} · ${hint}` : kind;
 }
 
-function labelHint(node: EditNode, choices?: Choices): string {
+function listPreviewText(node: EditNode, choices?: Choices): string {
   switch (node.kind) {
     case "heading":
-      return clipLabel(node.text);
+      return normalizePreview(node.text);
     case "text":
-      return clipLabel(node.heading) || clipLabel(plainFromHtml(node.html));
+      return normalizePreview(node.heading) || normalizePreview(htmlToPlainText(node.html));
     case "quote":
-      return clipLabel(node.text) || clipLabel(node.attribution);
+      return normalizePreview(node.text) || normalizePreview(node.attribution);
     case "imgbox":
-      return clipLabel(node.alt) || clipLabel(node.caption) || clipLabel(fileNameHint(node.src));
+      return normalizePreview(node.alt) || normalizePreview(node.caption) || normalizePreview(fileNameHint(node.src));
     case "card":
-      return clipLabel(node.title);
+      return normalizePreview(node.title);
     case "insert": {
       const title = choices?.bindings.find((binding) => binding.id === node.id)?.title;
-      return clipLabel(title && title !== node.id ? title : node.id);
+      return normalizePreview(title && title !== node.id ? title : node.id);
     }
     case "subpages":
-      return clipLabel(node.title);
+      return normalizePreview(node.title);
     case "youtube":
-      return clipLabel(node.title) || clipLabel(youtubeVideoId(node.videoId) || node.videoId);
+      return normalizePreview(node.title) || normalizePreview(youtubeVideoId(node.videoId) || node.videoId);
     case "gallery":
-      return clipLabel(node.folder);
+      return normalizePreview(node.folder);
     case "pasted":
-      return clipLabel(plainFromHtml(node.html));
+      return normalizePreview(htmlToPlainText(node.html));
+    case "html":
+      return normalizePreview(htmlToPlainText(node.html));
     default:
       return "";
   }
 }
 
-function clipLabel(value: string, max = 36): string {
-  const text = value.replace(/\s+/g, " ").trim();
-  if (!text) return "";
-  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+function normalizePreview(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
 }
 
-function plainFromHtml(html: string): string {
-  return html.replace(/<[^>]+>/g, " ").replace(/&nbsp;/gi, " ");
+function clipLabel(value: string, max = 36): string {
+  const text = normalizePreview(value);
+  if (!text) return "";
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
 
 function fileNameHint(src: string): string {
@@ -468,9 +478,12 @@ function fileNameHint(src: string): string {
   return name;
 }
 
-function refreshKindLabel(article: HTMLElement | null | undefined, node: EditNode, choices?: Choices): void {
-  const kind = article?.querySelector(".editor-section-kind");
-  if (kind) kind.textContent = labelFor(node, choices);
+function refreshSectionChrome(article: HTMLElement | null | undefined, node: EditNode, choices?: Choices): void {
+  if (!article) return;
+  const kind = article.querySelector(".editor-section-kind");
+  if (kind) kind.textContent = labelFor(node);
+  const preview = article.querySelector("[data-list-preview]");
+  if (preview) preview.textContent = listPreviewText(node, choices);
 }
 
 function propsFor(node: EditNode, choices: Choices, locked: boolean): string {
@@ -791,7 +804,7 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
     if (node.kind === "quote" && field === "attribution") {
       node.attribution = value;
       syncQuoteAttribution(article, value);
-      refreshKindLabel(article, node);
+      refreshSectionChrome(article, node);
       return;
     }
     if (node.kind === "imgbox") {
@@ -854,7 +867,7 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
       if (fromChange) rerenderArticle(form, node.uid);
     }
   } finally {
-    refreshKindLabel(article, node, {
+    refreshSectionChrome(article, node, {
       bindings: state.bindings,
       folders: state.folders,
       panelTones: state.panelTones,
@@ -1251,7 +1264,17 @@ function onDragStart(form: HTMLFormElement, event: DragEvent): void {
   event.dataTransfer.setData("application/x-tessera-item", `${zone}\t${uid}`);
   event.dataTransfer.setData("text/plain", uid);
   event.dataTransfer.effectAllowed = "move";
-  setDragGhost(event.dataTransfer, article.querySelector(".editor-section-kind")?.textContent ?? "");
+  const dragged = findNode(allItems(state), uid);
+  setDragGhost(
+    event.dataTransfer,
+    dragged
+      ? dragLabelFor(dragged, {
+          bindings: state.bindings,
+          folders: state.folders,
+          panelTones: state.panelTones,
+        })
+      : "",
+  );
   beginComposeDrag(form, state);
   event.stopPropagation();
 }

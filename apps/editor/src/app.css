@@ -1099,8 +1099,25 @@ img[data-hero-preview] {
   display: contents;
 }
 
-.editor-compose-list .editor-section-body {
+.editor-section-list-preview {
   display: none;
+  margin: 0;
+  padding: 0.25rem 0.35rem;
+  color: #666;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  outline: 1px dashed #ddd;
+}
+
+.editor-compose-list .editor-section-widget {
+  display: none;
+}
+
+.editor-compose-list .editor-section-list-preview:not(:empty) {
+  display: block;
 }
 
 .editor-section-bar {
