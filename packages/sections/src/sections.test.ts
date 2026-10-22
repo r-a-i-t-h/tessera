@@ -430,6 +430,12 @@ describe("paintSections", () => {
     expect(paintSections([{ kind: "insert", id: "people-preview" }])).toBe("{{people-preview}}");
   });
 
+  it("paints and parses a table of contents marker", () => {
+    const html = paintSections([{ kind: "toc" }]);
+    expect(html).toContain('data-tessera="toc"');
+    expect(parseSections(html)).toEqual([{ kind: "toc" }]);
+  });
+
   it("paints subpages, youtube, gallery, and a pasted note with stable markers", () => {
     const html = paintSections([
       { kind: "subpages", title: "Visit" },

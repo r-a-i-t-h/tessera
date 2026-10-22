@@ -1,12 +1,14 @@
 import { gallery } from "./builtins/gallery.js";
 import { subpageList } from "./builtins/nav.js";
+import { expandToc } from "./toc.js";
 import type { RenderContext } from "./types.js";
 
 const MARKER = /<(nav|div)\b[^>]*\bdata-tessera="(subpages|gallery)"[^>]*>(?:\s*)<\/\1>/gi;
 
 /** Replace subpages and gallery markers left in authored HTML. */
 export function expandPageElements(html: string, ctx: RenderContext): string {
-  return html.replace(MARKER, (full, _tag: string, kind: string) => {
+  const withToc = expandToc(html);
+  return withToc.replace(MARKER, (full, _tag: string, kind: string) => {
     if (kind === "subpages") return subpageList(ctx, { title: attr(full, "data-title") }) ?? "";
     if (kind === "gallery") {
       const mode = attr(full, "data-mode") === "slides" ? "slides" : "grid";

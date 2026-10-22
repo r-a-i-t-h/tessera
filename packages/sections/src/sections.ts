@@ -180,6 +180,7 @@ export type Section =
   | { kind: "columns"; layout: ColumnLayoutId; cells: ColumnCell[] }
   | { kind: "insert"; id: string }
   | { kind: "subpages"; title: string }
+  | { kind: "toc" }
   | { kind: "youtube"; videoId: string; /** iframe `title` for accessibility */ title: string }
   | { kind: "gallery"; folder: string; mode: GalleryMode }
   | { kind: "pasted"; html: string }
@@ -195,6 +196,7 @@ export type PaletteKind =
   | "columns"
   | "insert"
   | "subpages"
+  | "toc"
   | "youtube"
   | "gallery"
   | "pasted";
@@ -208,6 +210,7 @@ export const PALETTE: { kind: PaletteKind; label: string }[] = [
   { kind: "card", label: "Card" },
   { kind: "columns", label: "Side by side" },
   { kind: "subpages", label: "Subpages" },
+  { kind: "toc", label: "Contents" },
   { kind: "youtube", label: "YouTube" },
   { kind: "gallery", label: "Gallery" },
   { kind: "pasted", label: "Pasted note" },
@@ -308,6 +311,8 @@ export function blankSection(kind: PaletteKind): Section {
       return { kind: "insert", id: "" };
     case "subpages":
       return { kind: "subpages", title: "" };
+    case "toc":
+      return { kind: "toc" };
     case "youtube":
       return { kind: "youtube", videoId: "", title: "" };
     case "gallery":
@@ -368,6 +373,8 @@ export function paintSection(section: Section, lookup: ToneLookup = EMPTY_LOOKUP
       return INSERT_ID.test(section.id) ? `{{${section.id}}}` : "";
     case "subpages":
       return `<nav class="${joinClass(BLOCK_CLASS, "tessera-subpages")}" data-tessera="subpages" data-title="${escapeAttr(section.title)}"></nav>`;
+    case "toc":
+      return `<nav class="${joinClass(BLOCK_CLASS, "tessera-toc")}" data-tessera="toc"></nav>`;
     case "youtube":
       return paintYoutube(section);
     case "gallery":
@@ -618,6 +625,9 @@ function asPageElement(el: ElNode): Section | null {
   const marker = attr(el, "data-tessera");
   if (marker === "subpages" || (el.tag === "nav" && hasClass(el, "tessera-subpages"))) {
     return { kind: "subpages", title: attr(el, "data-title") };
+  }
+  if (marker === "toc" || (el.tag === "nav" && hasClass(el, "tessera-toc"))) {
+    return { kind: "toc" };
   }
   if (marker === "gallery" || hasClass(el, "tessera-page-gallery")) {
     return {

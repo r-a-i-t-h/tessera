@@ -20,6 +20,23 @@
   --tessera-muted: #666666;
   --tessera-accent: #009688;
   --tessera-link: #00796b;
+  --tessera-toc-bg: rgba(0, 150, 136, 0.06);
+  --tessera-toc-border: rgba(0, 150, 136, 0.2);
+  --tessera-toc-accent-bar: var(--tessera-accent);
+  --tessera-toc-radius: 0.45rem;
+  --tessera-toc-padding-y: 0.85rem;
+  --tessera-toc-padding-x: 1.15rem;
+  --tessera-toc-max-width: none;
+  --tessera-toc-title-size: 0.78rem;
+  --tessera-toc-title-tracking: 0.07em;
+  --tessera-toc-title-color: var(--tessera-muted);
+  --tessera-toc-item-gap: 0.3rem;
+  --tessera-toc-list-padding-left: 1.2rem;
+  --tessera-toc-indent-step: 1.1rem;
+  --tessera-toc-list-style: disc;
+  --tessera-toc-bullet-color: var(--tessera-accent);
+  --tessera-toc-link-color: var(--tessera-link);
+  --tessera-toc-link-hover-color: var(--tessera-accent);
 }
 
 /* Keep the vertical bar present so short and tall pages share one width. */
@@ -460,6 +477,66 @@ body.footer-fixed .wh-main {
 
 .tessera-main a {
   color: var(--tessera-link);
+}
+
+.tessera-toc {
+  box-sizing: border-box;
+  max-width: var(--tessera-toc-max-width);
+  padding: var(--tessera-toc-padding-y) var(--tessera-toc-padding-x);
+  border: 1px solid var(--tessera-toc-border);
+  border-left-width: 0.28rem;
+  border-left-color: var(--tessera-toc-accent-bar);
+  border-radius: var(--tessera-toc-radius);
+  background: var(--tessera-toc-bg);
+}
+
+.tessera-toc-title {
+  margin: 0 0 0.55rem;
+  font-family: var(--tessera-font-a);
+  font-size: var(--tessera-toc-title-size);
+  font-weight: 700;
+  letter-spacing: var(--tessera-toc-title-tracking);
+  text-transform: uppercase;
+  color: var(--tessera-toc-title-color);
+}
+
+.tessera-toc-list {
+  list-style-type: var(--tessera-toc-list-style);
+  list-style-position: outside;
+  margin: 0;
+  padding: 0 0 0 var(--tessera-toc-list-padding-left);
+}
+
+.tessera-toc-list > li {
+  margin: var(--tessera-toc-item-gap) 0;
+  padding-left: 0.2rem;
+}
+
+.tessera-toc-list > li::marker {
+  color: var(--tessera-toc-bullet-color);
+}
+
+.tessera-toc-list a {
+  color: var(--tessera-toc-link-color);
+  text-decoration: none;
+  text-underline-offset: 0.12em;
+}
+
+.tessera-toc-list a:hover {
+  color: var(--tessera-toc-link-hover-color);
+  text-decoration: underline;
+}
+
+.tessera-toc-list > li.tessera-toc-indent-1 {
+  margin-left: calc(var(--tessera-toc-indent-step) * 1);
+}
+
+.tessera-toc-list > li.tessera-toc-indent-2 {
+  margin-left: calc(var(--tessera-toc-indent-step) * 2);
+}
+
+.tessera-toc-list > li.tessera-toc-indent-3 {
+  margin-left: calc(var(--tessera-toc-indent-step) * 3);
 }
 
 a.tessera-page-missing,

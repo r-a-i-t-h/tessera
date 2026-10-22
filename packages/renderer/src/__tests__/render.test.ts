@@ -257,6 +257,31 @@ describe("authored zone HTML", () => {
     expect(html).not.toContain("{{people-preview}}");
   });
 
+  it("expands a contents marker into links to later headings", () => {
+    const doc = makeFixtureDoc();
+    const home = doc.pages.find((page) => page.id === "home");
+    home!.zones.main = [
+      {
+        type: "text",
+        html: [
+          '<nav class="tessera-block tessera-toc" data-tessera="toc"></nav>',
+          '<h2 class="tessera-block">First</h2>',
+          '<div class="tessera-block tessera-text"><h3>Nested</h3><p>Body</p></div>',
+        ].join("\n"),
+      },
+    ];
+    const html = renderPage({
+      document: doc,
+      pageId: "home",
+      registry: registryWithDefaults(),
+    });
+    expect(html).toContain('class="tessera-toc-list"');
+    expect(html).toContain('href="#first"');
+    expect(html).toContain('href="#nested"');
+    expect(html).toContain('id="first"');
+    expect(html).not.toContain('data-tessera="toc"');
+  });
+
   it("expands a subpages marker into a W3CSS list of child pages", () => {
     const doc = makeFixtureDoc();
     const about = doc.pages.find((page) => page.id === "about");

@@ -408,6 +408,8 @@ function kindName(node: EditNode): string {
       return "Insert";
     case "subpages":
       return "Subpages";
+    case "toc":
+      return "Contents";
     case "youtube":
       return "YouTube";
     case "gallery":
@@ -447,6 +449,8 @@ function listPreviewText(node: EditNode, choices?: Choices): string {
     }
     case "subpages":
       return normalizePreview(node.title);
+    case "toc":
+      return "Table of contents";
     case "youtube":
       return normalizePreview(node.title) || normalizePreview(youtubeVideoId(node.videoId) || node.videoId);
     case "gallery":
@@ -509,6 +513,8 @@ function propsFor(node: EditNode, choices: Choices, locked: boolean): string {
         : `<label class="editor-prop">Binding id <input data-field="id" class="w3-input" value="${escapeAttr(node.id)}" placeholder="Binding id"></label>`;
     case "subpages":
       return `<label class="editor-prop">Heading <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}" placeholder="Optional"></label>`;
+    case "toc":
+      return "";
     case "youtube":
       return youtubeProps(node);
     case "gallery":
@@ -654,6 +660,8 @@ function bodyFor(node: EditNode, choices: Choices, zone: string, locked: boolean
     }
     case "subpages":
       return `<p class="w3-panel w3-pale-blue">Subpages${node.title ? `: ${escapeText(node.title)}` : ""}. The published page lists this page's children.</p>`;
+    case "toc":
+      return `<p class="w3-panel w3-pale-blue">Table of contents. The published page lists headings below this block.</p>`;
     case "youtube":
       return youtubeBody(node);
     case "gallery": {
