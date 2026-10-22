@@ -2150,3 +2150,216 @@ button.editor-picker-asset:hover {
   }
 }
 
+.editor-nav-build {
+  --nav-build-page-min-height: 1.5rem;
+  --nav-build-page-pad-y: 0.25rem;
+  --nav-build-page-pad-x: 0.4rem;
+  --nav-build-page-font-size: 0.8125rem;
+  --nav-build-page-line-height: 1.25;
+  --nav-build-page-stack-gap: 0.2rem;
+}
+
+.nav-build-options {
+  margin: 0 0 0.35rem;
+  font-size: 0.9rem;
+}
+
+.editor-nav-build-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.65rem;
+  align-items: stretch;
+  height: min(72vh, calc(100dvh - 11rem));
+  min-height: 18rem;
+}
+
+.editor-nav-build-scroll {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid #ddd;
+  border-radius: 2px;
+  background: #fff;
+  padding: 0.3rem 0.45rem;
+}
+
+.editor-nav-build-palette .nav-build-palette-item {
+  display: block;
+  width: 100%;
+  margin: 0.2rem 0;
+  text-align: left;
+  cursor: grab;
+  border: none !important;
+  background: #f0f0f0;
+  box-shadow: none;
+}
+
+.editor-nav-build-palette .nav-build-palette-item:hover {
+  background: #e8e8e8 !important;
+  color: inherit;
+}
+
+.editor-nav-build-palette .nav-build-palette-item.nav-build-page-item,
+.nav-build-node[data-kind="link"] > .nav-build-bar {
+  min-height: var(--nav-build-page-min-height);
+  padding: var(--nav-build-page-pad-y) var(--nav-build-page-pad-x);
+  margin: var(--nav-build-page-stack-gap) 0;
+  font-size: var(--nav-build-page-font-size);
+  line-height: var(--nav-build-page-line-height);
+  box-sizing: border-box;
+}
+
+.editor-nav-build-palette .nav-build-palette-item.nav-build-page-item {
+  padding: var(--nav-build-page-pad-y) var(--nav-build-page-pad-x) !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-build-node[data-kind="link"] .nav-build-grip {
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.editor-nav-build .nav-build-node[data-kind="link"] .editor-section-icon {
+  width: 1.2rem;
+  height: 1.2rem;
+  flex-shrink: 0;
+}
+
+.editor-nav-build .nav-build-node[data-kind="link"] .editor-section-icon svg {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.nav-build-palette-item-hidden,
+.nav-build-palette-list [data-nav-palette-filter-text][hidden] {
+  display: none !important;
+}
+
+.nav-build-palette-filter {
+  margin: 0.15rem 0 0.35rem;
+}
+
+.nav-build-palette-filter label {
+  display: block;
+  margin-bottom: 0.15rem;
+}
+
+.nav-build-palette-filter .w3-input {
+  margin: 0;
+}
+
+.nav-build-palette-section h3 {
+  margin: 0.35rem 0 0.15rem;
+}
+
+.nav-build-empty {
+  margin: 0 0 0.25rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.nav-build-node {
+  margin: 0;
+  background: transparent;
+}
+
+.nav-build-bar {
+  display: flex;
+  gap: 0.2rem;
+  align-items: center;
+  background: #f0f0f0;
+  border-radius: 2px;
+}
+
+.nav-build-node:not([data-kind="link"]) > .nav-build-bar {
+  padding: 0.12rem 0.35rem;
+}
+
+.nav-build-node.is-selected .nav-build-bar {
+  box-shadow: inset 0 0 0 2px #009688;
+}
+
+.nav-build-grip {
+  flex: 1;
+  cursor: grab;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-build-grip-handle {
+  flex: 0 0 1.25rem;
+  text-align: center;
+  color: #777;
+  user-select: none;
+}
+
+.nav-build-heading-input {
+  flex: 1;
+  min-width: 0;
+  margin: 0 !important;
+  padding: 0.1rem 0.35rem !important;
+  font-size: inherit;
+  line-height: inherit;
+  border: 1px solid transparent;
+  background: transparent;
+}
+
+.nav-build-heading-input:hover,
+.nav-build-heading-input:focus {
+  border-color: #bbb;
+  background: #fff;
+}
+
+.nav-build-bar-group {
+  gap: 0.15rem;
+}
+
+.nav-build-node:not([data-kind="link"]) .nav-build-grip {
+  font-size: 0.85rem;
+  line-height: 1.3;
+}
+
+.nav-build-children {
+  padding: 0 0 0 0.45rem;
+}
+
+.nav-build-gap {
+  height: 0;
+  margin: 0;
+  padding: var(--tessera-drop-slot-pad) 0;
+  box-sizing: border-box;
+}
+
+.nav-build-gap.is-over,
+.nav-build-children.is-over,
+.nav-build-well.is-over {
+  background: #e0f2f1;
+}
+
+.nav-build-well {
+  border: none;
+  background: #f5f5f5;
+  color: #666;
+  font-size: 0.8rem;
+  margin: 0;
+  padding: 0.2rem 0.4rem;
+  line-height: 1.25;
+  border-radius: 2px;
+}
+
+@media (max-width: 900px) {
+  .editor-nav-build-layout {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 0;
+  }
+
+  .editor-nav-build-scroll {
+    max-height: min(50vh, 24rem);
+  }
+}
+

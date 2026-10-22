@@ -94,6 +94,9 @@ import {
   type ControlValue,
   type PageChoice,
 } from "./forms/nav.js";
+import { loadNavBuildPalette } from "./nav-build/palette.js";
+import { mountNavBuild, navBuildMarkup, readNavBuildRoot } from "./nav-build/canvas.js";
+import { parseNavTree, serializeNavTree } from "./nav-build/tree.js";
 import { articleMeta, blogMeta, heroField, indexNote } from "./forms/article.js";
 import { formatJsonText, itemContent, itemZoneError, jsonText, newItemBody, tidyItemRecord, zonesDeclaredBy } from "./forms/item.js";
 import { newPageBody, newTemplateBody, pageFromTemplate, pageIdError, withSidebarLink } from "./forms/page.js";
@@ -321,7 +324,7 @@ async function render(root: HTMLElement): Promise<void> {
 
 const previewUrl = "/preview/";
 
-type EditMode = "arrange" | "compose" | "frame" | "fields" | "raw";
+type EditMode = "arrange" | "build" | "compose" | "frame" | "fields" | "raw";
 
 /** Set just before opening a newly created page, so that page starts on Compose. */
 let pendingEdit: { mode: EditMode; notice: string } | undefined;
@@ -339,6 +342,16 @@ let contentSession: ContentSession | undefined;
 
 /** Unsaved layout. Tab changes read and write this instead of the saved file. */
 let layoutSession: ContentSession | undefined;
+
+type NavSession = {
+  key: string;
+  payload: RecordPayload;
+  draft: unknown[];
+  fromEditor: boolean;
+};
+
+/** Unsaved navigation list. Tab changes read and write this instead of the saved file. */
+let navSession: NavSession | undefined;
 
 /** True while undo or redo is redrawing the open record. */
 let historyRestore = false;
@@ -946,7 +959,7 @@ async function bindList(
   if (active === "blogs") bindBlogs(root, user, listing);
   if (active === "site" || active === "nav") {
     const row = listing.records.find((item) => item.kind === active);
-    if (row) await bindEdit(root, user, active, row.id, "fields", "", false, "tab");
+    if (row) await bindEdit(root, user, active, row.id, initialEditMode(active, undefined), "", false, "tab");
   }
   bindEntryFilter(root);
   root.querySelector("[data-action=new-page]")?.addEventListener("click", () => {
@@ -2536,6 +2549,10 @@ function initialEditMode(kind: string, pending: { mode: EditMode } | undefined):
     if (mode === "arrange" || mode === "fields" || mode === "raw") return mode;
     return "arrange";
   }
+  if (kind === "nav") {
+    if (mode === "build" || mode === "fields" || mode === "raw") return mode;
+    return "build";
+  }
   if (kind === "bindings" && (mode === "fields" || mode === "raw")) return mode;
   return "fields";
 }
@@ -2629,6 +2646,55 @@ function layoutDraftChanged(draft: Record<string, unknown>, baselineData: unknow
   const { root: _next, ...rest } = draft;
   const { root: _base, ...baseRest } = baseline;
   return JSON.stringify(cleanNode(nextRoot)) !== JSON.stringify(cleanNode(baseRoot)) || JSON.stringify(rest) !== JSON.stringify(baseRest);
+}
+
+function navDraftChanged(draft: unknown[], baselineData: unknown): boolean {
+  if (!Array.isArray(baselineData)) return true;
+  return JSON.stringify(draft) !== JSON.stringify(baselineData);
+}
+
+function readNavDocument(
+  form: HTMLFormElement,
+  mode: EditMode,
+  current: unknown[],
+  baselineRaw: string,
+  baselineData: unknown,
+): { ok: true; draft: unknown[]; baseline: boolean } | { ok: false; error: string } {
+  if (mode === "raw") {
+    const text = form.querySelector<HTMLTextAreaElement>("#raw-file")?.value ?? "";
+    if (text === baselineRaw) return { ok: true, draft: current, baseline: true };
+    try {
+      const parsed = parseYaml(text) as unknown;
+      if (!Array.isArray(parsed)) return { ok: false, error: "Navigation must be a YAML list." };
+      return { ok: true, draft: parsed, baseline: false };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : "Could not read this YAML." };
+    }
+  }
+  if (mode === "build") {
+    const roots = readNavBuildRoot(form);
+    if (!roots) return { ok: false, error: "Could not read navigation." };
+    const draft = serializeNavTree(roots);
+    return { ok: true, draft, baseline: !navDraftChanged(draft, baselineData) };
+  }
+  const draft = navEntries(rowsFromControls(navControls(form)));
+  return { ok: true, draft, baseline: !navDraftChanged(draft, baselineData) };
+}
+
+function readNavDraft(
+  form: HTMLFormElement,
+  mode: EditMode,
+  current: unknown[],
+  baselineRaw: string,
+  baselineData: unknown,
+):
+  | { ok: true; unchanged: true }
+  | { ok: true; unchanged: false; draft: unknown[]; fromEditor: boolean }
+  | { ok: false; error: string } {
+  const read = readNavDocument(form, mode, current, baselineRaw, baselineData);
+  if (!read.ok) return read;
+  if (read.baseline) return { ok: true, unchanged: true };
+  return { ok: true, unchanged: false, draft: read.draft, fromEditor: mode !== "raw" };
 }
 
 function homeListBoundaryIndex(listed: readonly ListedPage[], homePageId: string): number {
@@ -2823,6 +2889,8 @@ async function bindEdit(
     payload = contentSession.payload;
   } else if (kind === "layouts" && keepDraft && layoutSession?.key === key) {
     payload = layoutSession.payload;
+  } else if (kind === "nav" && keepDraft && navSession?.key === key) {
+    payload = navSession.payload;
   } else {
     payload = await getRecord(kind, id);
     const loaded = asRecord(payload.data);
@@ -2836,6 +2904,11 @@ async function bindEdit(
     } else if (kind === "layouts") {
       layoutSession = undefined;
     }
+    if (kind === "nav" && Array.isArray(payload.data)) {
+      navSession = { key, payload, draft: structuredClone(payload.data), fromEditor: false };
+    } else if (kind === "nav") {
+      navSession = undefined;
+    }
   }
   const session = editsBody(kind) ? contentSession : kind === "layouts" ? layoutSession : undefined;
   const record = session?.draft ?? asRecord(payload.data);
@@ -2845,14 +2918,20 @@ async function bindEdit(
       ? "fields"
       : mode === "arrange" && kind !== "layouts"
         ? "fields"
-        : mode;
+        : mode === "build" && kind !== "nav"
+          ? "fields"
+          : mode;
   if (record?.type === "blog-index" && (editMode === "compose" || editMode === "frame")) editMode = "fields";
   const bodyLayout = kind === "templates" ? templateBodyLayout() : payload.layout;
   const showFrameTab =
     editsBody(kind) && record?.type !== "blog-index" && (bodyLayout?.frames?.length ?? 0) > 0;
   if (editMode === "frame" && !showFrameTab) editMode = "compose";
-  const navList = kind === "nav" && editMode === "fields" && Array.isArray(payload.data);
+  const navDraft =
+    kind === "nav" ? (navSession?.draft ?? (Array.isArray(payload.data) ? payload.data : undefined)) : undefined;
+  const navList = kind === "nav" && editMode === "fields" && Array.isArray(navDraft);
+  const navBuild = kind === "nav" && editMode === "build" && Array.isArray(navDraft);
   const pages: PageChoice[] = navList ? await contentPages() : [];
+  const navPalette = navBuild ? await loadNavBuildPalette() : undefined;
   const navNote = "";
   const assisted = kind === "bindings" && editMode === "fields" && bindingKind(record) !== "other";
   const bindingChoices = assisted ? await loadBindingChoices() : undefined;
@@ -2883,9 +2962,11 @@ async function bindEdit(
         ? composeFormInner(kind, record, bodyLayout, typeIds, contentExtras, pageIds)
       : editMode === "frame" && record
         ? frameFormInner(kind, record, bodyLayout, typeIds, contentExtras, pageIds)
-      : navList
-        ? `<div id="nav-editor">${renderNavList(navRows(payload.data), pages)}</div>`
-        : typeEditor
+      : navBuild && navPalette
+        ? navBuildMarkup(navPalette)
+        : navList
+          ? `<div id="nav-editor">${renderNavList(navRows(navDraft), pages)}</div>`
+          : typeEditor
           ? `<div id="type-editor">${renderTypeForm(typeDraft(record), typeLayouts)}</div>`
           : assisted && record && bindingChoices
             ? renderBindingForm(id, record, bindingChoices)
@@ -2915,6 +2996,11 @@ async function bindEdit(
        ${
          kind === "layouts"
            ? `<button type="button" class="w3-button ${editMode === "arrange" ? "w3-theme" : "w3-white"}" data-mode="arrange" aria-pressed="${editMode === "arrange"}">Arrange</button>`
+           : ""
+       }
+       ${
+         kind === "nav"
+           ? `<button type="button" class="w3-button ${editMode === "build" ? "w3-theme" : "w3-white"}" data-mode="build" aria-pressed="${editMode === "build"}">Build</button>`
            : ""
        }
        <button type="button" class="w3-button ${editMode === "fields" ? "w3-theme" : "w3-white"}" data-mode="fields" aria-pressed="${editMode === "fields"}">${fieldsTabLabel}</button>
@@ -2962,7 +3048,7 @@ async function bindEdit(
     );
     bindChrome(root);
   }
-  if (editMode === "compose" || editMode === "frame" || editMode === "arrange") {
+  if (editMode === "compose" || editMode === "frame" || editMode === "arrange" || editMode === "build") {
     root.querySelector(".editor-main")?.classList.add("editor-compose");
   }
   const form = scope.querySelector<HTMLFormElement>("#record-form");
@@ -2982,13 +3068,18 @@ async function bindEdit(
     await mountPageCanvas(form, record, bodyLayout, editMode, checkpoint);
   }
   if (form && editMode === "arrange" && layoutRoot && arrangeInfo) mountArrange(form, layoutRoot, arrangeInfo, checkpoint);
+  if (form && navBuild && navPalette) {
+    mountNavBuild(form, parseNavTree(navDraft), navPalette, () => {
+      form.dataset.dirty = "true";
+    });
+  }
   if (form && editMode === "frame" && contentSession && record) {
     bindAddFrameZone(form, root, user, kind, id, host, contentSession, bodyLayout);
   }
   for (const button of scope.querySelectorAll<HTMLButtonElement>("[data-mode]")) {
     button.addEventListener("click", () => {
       const next = button.dataset.mode;
-      if (next !== "arrange" && next !== "compose" && next !== "frame" && next !== "fields" && next !== "raw") return;
+      if (next !== "arrange" && next !== "build" && next !== "compose" && next !== "frame" && next !== "fields" && next !== "raw") return;
       if (next === editMode) return;
       if (
         editsBody(kind) &&
@@ -3017,6 +3108,19 @@ async function bindEdit(
         if (!taken.unchanged) {
           layoutSession.draft = taken.draft;
           layoutSession.fromEditor = taken.fromEditor;
+        }
+        void bindEdit(root, user, kind, id, next, "", true, host);
+        return;
+      }
+      if (kind === "nav" && navSession && form && (editMode === "build" || editMode === "fields" || editMode === "raw")) {
+        const taken = readNavDraft(form, editMode, navSession.draft, navSession.payload.raw, navSession.payload.data);
+        if (!taken.ok) {
+          showSaveError(root, taken.error);
+          return;
+        }
+        if (!taken.unchanged) {
+          navSession.draft = taken.draft;
+          navSession.fromEditor = taken.fromEditor;
         }
         void bindEdit(root, user, kind, id, next, "", true, host);
         return;
@@ -3080,6 +3184,7 @@ async function bindEdit(
     if (!window.confirm("Discard unsaved edits and restore the last saved file?")) return;
     contentSession = undefined;
     layoutSession = undefined;
+    navSession = undefined;
     void bindEdit(root, user, kind, id, editMode, "", false, host);
   });
   scope.querySelector<HTMLFormElement>("#item-tools")?.addEventListener("submit", (event) => {
@@ -3163,6 +3268,21 @@ async function bindEdit(
           editMode === "raw"
             ? await saveRawRecord(kind, id, form.querySelector<HTMLTextAreaElement>("#raw-file")?.value ?? "")
             : await saveRecord(kind, id, layoutSession.draft);
+      } else if (kind === "nav" && navSession && form && (editMode === "build" || editMode === "fields" || editMode === "raw")) {
+        const taken = readNavDraft(form, editMode, navSession.draft, navSession.payload.raw, navSession.payload.data);
+        if (!taken.ok) {
+          showSaveError(root, taken.error);
+          if (button) (button as HTMLButtonElement).disabled = false;
+          return;
+        }
+        if (!taken.unchanged) {
+          navSession.draft = taken.draft;
+          navSession.fromEditor = taken.fromEditor;
+        }
+        saved =
+          editMode === "raw"
+            ? await saveRawRecord(kind, id, form.querySelector<HTMLTextAreaElement>("#raw-file")?.value ?? "")
+            : await saveRecord(kind, id, navSession.draft);
       } else if (
         editsBody(kind) &&
         contentSession &&
@@ -3195,7 +3315,9 @@ async function bindEdit(
                 id,
                 navList
                   ? navEntries(rowsFromControls(navControls(form)))
-                  : kind === "types" && editMode === "fields"
+                  : navBuild
+                    ? serializeNavTree(readNavBuildRoot(form) ?? parseNavTree(navDraft ?? []))
+                    : kind === "types" && editMode === "fields"
                     ? typeBody(id, form)
                     : kind === "bindings" && editMode === "fields"
                       ? bindingBody(id, form, payload.data)

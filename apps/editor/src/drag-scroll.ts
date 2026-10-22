@@ -13,7 +13,27 @@ export type DragScroll = {
  * Uses rAF so motion continues even when browsers throttle `dragover`.
  */
 export function startDragScroll(from: Element): DragScroll {
-  const scroller = from.closest(".editor-scroll");
+  return startDragScrollTarget(() => from.closest(".editor-scroll"));
+}
+
+/** Edge-scroll the pane under the pointer (nav build) or fall back to the main editor scroller. */
+export function startDragScrollNavBuild(from: Element): DragScroll {
+  return startDragScrollTarget((clientY) => {
+    const layout = from.closest(".editor-nav-build-layout");
+    if (layout) {
+      for (const pane of layout.querySelectorAll<HTMLElement>(".editor-nav-build-scroll")) {
+        const rect = pane.getBoundingClientRect();
+        if (clientY >= rect.top && clientY <= rect.bottom) return pane;
+      }
+    }
+    return from.closest(".editor-scroll");
+  });
+}
+
+function startDragScrollTarget(
+  resolveScroller: ((clientY: number) => Element | null) | (() => Element | null),
+): DragScroll {
+  let scroller: HTMLElement | null = null;
   let raf = 0;
   let direction = 0;
   let speed = 0;
@@ -35,7 +55,12 @@ export function startDragScroll(from: Element): DragScroll {
 
   return {
     update(clientY: number) {
-      if (!(scroller instanceof HTMLElement)) return;
+      const next =
+        resolveScroller.length >= 1
+          ? (resolveScroller as (clientY: number) => Element | null)(clientY)
+          : (resolveScroller as () => Element | null)();
+      scroller = next instanceof HTMLElement ? next : null;
+      if (!scroller) return;
       const rect = scroller.getBoundingClientRect();
       const topDist = clientY - rect.top;
       const bottomDist = rect.bottom - clientY;
