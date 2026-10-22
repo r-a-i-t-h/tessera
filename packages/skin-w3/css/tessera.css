@@ -183,8 +183,41 @@ body.fontD h6 {
   color: var(--tessera-bar-text) !important;
 }
 
-/* Current group: siblings after the section entry (Sub-level menu uses nested ul). */
-.tessera-nav-sublinks .w3-bar-item {
+/* Sub-level (navTree) and grouped sublinks: drop W3 .w3-ul row chrome; match Top-level bar items. */
+.tessera-sidebar .tessera-nav-tree.w3-ul li,
+.tessera-sidebar .tessera-nav-collapse-root .tessera-nav-sublinks.w3-ul li {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+}
+
+.tessera-sidebar .tessera-nav-tree a.w3-bar-item,
+.tessera-sidebar .tessera-nav-tree a.w3-button,
+.tessera-sidebar .tessera-nav-collapse-root .tessera-nav-sublinks a.w3-bar-item,
+.tessera-sidebar .tessera-nav-collapse-root .tessera-nav-sublinks a.w3-button {
+  display: block;
+  width: 100%;
+  float: none;
+  text-align: left;
+  padding: 8px 16px;
+}
+
+.tessera-sidebar .tessera-nav-branch > .w3-text-theme {
+  display: block;
+  font-size: 0.85em;
+  font-weight: 600;
+  opacity: 0.85;
+  padding: 0.75rem 16px 0.25rem;
+  margin: 0;
+}
+
+.tessera-sidebar .tessera-nav-tree ul.tessera-nav-tree {
+  margin: 0;
+  padding: 0 0 0 0.75rem;
+}
+
+.tessera-sidebar .tessera-nav-sublinks .w3-bar-item {
   font-size: 0.92em;
 }
 
@@ -442,8 +475,18 @@ body.footer-fixed .wh-main {
   list-style: none;
 }
 
+.tessera-nav-footer.w3-ul > li {
+  border-bottom: none;
+}
+
 .tessera-nav-footer > li {
   padding: 0.15rem 0.75rem 0.5rem;
+}
+
+.tessera-nav-footer .tessera-nav-tree.w3-ul li {
+  padding: 0;
+  margin: 0;
+  border: 0;
 }
 
 .tessera-nav-footer > .tessera-nav-branch > span {
