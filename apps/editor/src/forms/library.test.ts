@@ -103,6 +103,16 @@ describe("library browser", () => {
     expect(sizedDetail).toContain('data-preview-asset="porch"');
     const datedDetail = assetDetail({ ...listing.assets[0]!, addedAt: "2024-06-15T08:00:00.000Z" }, listing.folders);
     expect(datedDetail).toContain("<strong>Added</strong> 2024-06-15");
+    const sizedList = renderLibrary(
+      {
+        ...listing,
+        assets: [{ ...listing.assets[0]!, bytes: 1536 }],
+      },
+      "hall",
+    );
+    expect(sizedList).toContain("Image · 1.5 KB");
+    const sizedBytesDetail = assetDetail({ ...listing.assets[0]!, bytes: 512 }, listing.folders);
+    expect(sizedBytesDetail).toContain("<strong>Size</strong> 512 B");
   });
 
   it("maps browse ids and hash routes", () => {

@@ -440,6 +440,7 @@ export type LibraryAsset = {
   sort?: number;
   width?: number;
   height?: number;
+  bytes?: number;
   addedAt?: string;
   url: string;
 };

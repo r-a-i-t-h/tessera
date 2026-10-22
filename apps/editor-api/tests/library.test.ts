@@ -110,6 +110,9 @@ describe("asset library", () => {
     expect(porch?.url).toBe(`./media/${porch?.id}.png`);
     expect(porch?.width).toBe(1);
     expect(porch?.height).toBe(1);
+    expect(porch?.bytes).toBeGreaterThan(0);
+    const notes = listing.assets.find((asset) => asset.name === "notes.pdf");
+    expect(notes?.bytes).toBeGreaterThan(0);
     expect(await readFile(join(root, "files", `${porch?.id}.thumb.webp`))).toBeTruthy();
     const doc = await site.flatten();
     expect(doc?.media.find((item) => item.id === porch?.id)?.url).toBe(porch?.url);

@@ -24,6 +24,7 @@ export type AssetRow = {
   sort?: number;
   width?: number;
   height?: number;
+  bytes?: number;
   addedAt?: string;
   url: string;
 };
@@ -209,7 +210,7 @@ export function renderLibrary(
         <button type="button" class="editor-library-row" data-edit-asset="${escapeHtml(asset.id)}">
           ${thumb}
           <span class="editor-library-name">${escapeHtml(assetLabel(asset))}</span>
-          <span class="w3-text-grey w3-small">${asset.kind === "document" ? "Document" : "Image"}</span>
+          <span class="w3-text-grey w3-small">${assetKindLabel(asset)}</span>
         </button>
       </li>`;
     }),
@@ -257,6 +258,17 @@ export function renderLibrary(
         </details>
       </div>
     </div>`;
+}
+
+function formatBytes(size: number): string {
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(size < 10 * 1024 ? 1 : 0)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function assetKindLabel(asset: AssetRow): string {
+  const kind = asset.kind === "document" ? "Document" : "Image";
+  return asset.bytes !== undefined ? `${kind} · ${formatBytes(asset.bytes)}` : kind;
 }
 
 function assetLabel(asset: AssetRow): string {
@@ -311,9 +323,11 @@ export function assetDetail(asset: AssetRow, folders: FolderRow[]): string {
     asset.addedAt && !Number.isNaN(Date.parse(asset.addedAt))
       ? `<p><strong>Added</strong> ${escapeHtml(asset.addedAt.slice(0, 10))}</p>`
       : "";
+  const size = asset.bytes !== undefined ? `<p><strong>Size</strong> ${escapeHtml(formatBytes(asset.bytes))}</p>` : "";
   return `<form id="asset-detail" data-asset="${escapeHtml(asset.id)}">
     <p><strong>Details</strong></p>
     ${added}
+    ${size}
     <p><label>Name <input name="name" class="w3-input w3-border" value="${escapeHtml(asset.name)}" /></label></p>
     <p><label>Title <input name="title" class="w3-input w3-border" value="${escapeHtml(asset.title ?? "")}" /></label></p>
     <p><label>Alt <input name="alt" class="w3-input w3-border" value="${escapeHtml(asset.alt ?? "")}" /></label></p>

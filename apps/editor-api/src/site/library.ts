@@ -33,6 +33,7 @@ export type LibraryAsset = {
   sort?: number;
   width?: number;
   height?: number;
+  bytes?: number;
   addedAt?: string;
 };
 
@@ -140,12 +141,17 @@ export function parseLibraryAsset(row: Record<string, unknown>): LibraryAsset | 
     ...(typeof row.sort === "number" ? { sort: row.sort } : {}),
     ...(pixelSize(row.width) !== undefined ? { width: pixelSize(row.width) } : {}),
     ...(pixelSize(row.height) !== undefined ? { height: pixelSize(row.height) } : {}),
+    ...(byteSize(row.bytes) !== undefined ? { bytes: byteSize(row.bytes) } : {}),
     ...(typeof row.addedAt === "string" && row.addedAt.trim() ? { addedAt: row.addedAt.trim() } : {}),
   };
 }
 
 function pixelSize(value: unknown): number | undefined {
   return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : undefined;
+}
+
+function byteSize(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : undefined;
 }
 
 function toMedia(asset: LibraryAsset): Media {

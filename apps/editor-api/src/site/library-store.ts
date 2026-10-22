@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { mkdir, readFile, readdir, rename, unlink, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, stat, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import sharp from "sharp";
 import { isRecordId } from "./kinds.js";
@@ -40,6 +40,7 @@ export type AssetView = {
   sort?: number;
   width?: number;
   height?: number;
+  bytes?: number;
   addedAt?: string;
   url: string;
 };
@@ -146,6 +147,9 @@ export class AssetLibrary {
       if (asset.kind === "image" && (asset.width === undefined || asset.height === undefined)) {
         asset = await this.rememberSize(row, asset);
       }
+      if (asset.bytes === undefined) {
+        asset = await this.rememberBytes(row, asset);
+      }
       assets.push({
         ...asset,
         folderId: asset.folderId ?? null,
@@ -158,10 +162,33 @@ export class AssetLibrary {
   private async rememberSize(row: Record<string, unknown>, asset: LibraryAsset): Promise<LibraryAsset> {
     try {
       const bytes = await readFile(join(this.filesDir, `${asset.id}.${asset.ext}`));
-      const size = await imageSize(bytes);
-      if (!size) return asset;
-      await this.site.writeLibraryRecord("media", asset.id, { ...row, width: size.width, height: size.height }, { rebuild: false });
-      return { ...asset, width: size.width, height: size.height };
+      const dimensions = await imageSize(bytes);
+      const patch: Record<string, unknown> = { ...row };
+      let next = asset;
+      if (dimensions) {
+        patch.width = dimensions.width;
+        patch.height = dimensions.height;
+        next = { ...next, width: dimensions.width, height: dimensions.height };
+      }
+      if (asset.bytes === undefined) {
+        patch.bytes = bytes.length;
+        next = { ...next, bytes: bytes.length };
+      }
+      if (dimensions || asset.bytes === undefined) {
+        await this.site.writeLibraryRecord("media", asset.id, patch, { rebuild: false });
+      }
+      return next;
+    } catch {
+      return asset;
+    }
+  }
+
+  private async rememberBytes(row: Record<string, unknown>, asset: LibraryAsset): Promise<LibraryAsset> {
+    try {
+      const { size } = await stat(join(this.filesDir, `${asset.id}.${asset.ext}`));
+      if (!Number.isInteger(size) || size < 0) return asset;
+      await this.site.writeLibraryRecord("media", asset.id, { ...row, bytes: size }, { rebuild: false });
+      return { ...asset, bytes: size };
     } catch {
       return asset;
     }
@@ -353,7 +380,7 @@ export class AssetLibrary {
         await this.site.writeLibraryRecord(
           "media",
           id,
-          { id, name, kind, ext, folderId: parent, sort, addedAt, ...(size ?? {}) },
+          { id, name, kind, ext, folderId: parent, sort, addedAt, bytes: file.bytes.length, ...(size ?? {}) },
           { rebuild: false },
         );
       } catch (err) {
@@ -544,12 +571,23 @@ export class AssetLibrary {
             if (kind === "image" && bytes) {
               thumb = await writeThumbnail(bytes, join(this.filesDir, `${id}${THUMB_SUFFIX}`));
             }
-            const size = bytes ? await imageSize(bytes) : undefined;
+            const dimensions = bytes ? await imageSize(bytes) : undefined;
+            const fileBytes = bytes?.length ?? (await stat(dest)).size;
             const addedAt = new Date().toISOString();
             await this.site.writeLibraryRecord(
               "media",
               id,
-              { id, name, kind, ext, folderId: SCANNED_ID, sort, addedAt, ...(size ?? {}) },
+              {
+                id,
+                name,
+                kind,
+                ext,
+                folderId: SCANNED_ID,
+                sort,
+                addedAt,
+                bytes: fileBytes,
+                ...(dimensions ?? {}),
+              },
               { rebuild: false },
             );
           } catch (err) {
