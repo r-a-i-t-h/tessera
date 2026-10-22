@@ -1589,7 +1589,7 @@ const ALLOWED = new Set(["strong", "b", "em", "i", "u", "s", "code", "a", "br", 
 const MARKDOWN_LINK_SELECTION = /^\[([^\]\n]+)\]\(([^)\s]+)\)$/;
 
 function htmlForEditing(stored: string): string {
-  return stored;
+  return normalizeLiteralNewlines(stored);
 }
 
 function htmlFromEditing(innerHTML: string, blocks: boolean, titles?: Map<string, string>): string {
@@ -1688,9 +1688,31 @@ function paragraphsFromPlain(text: string): string {
 }
 
 function readTextHtml(html: string): string {
-  const doc = new DOMParser().parseFromString(`<div>${html}</div>`, "text/html");
+  const normalized = normalizeLiteralNewlines(html);
+  const doc = new DOMParser().parseFromString(`<div>${normalized}</div>`, "text/html");
   const root = doc.body.firstElementChild;
   return root ? blocksIn(root) : "";
+}
+
+/** Map YAML / plain-text newlines to `<br>` and `<p>`, matching {@link paragraphsFromPlain}. */
+function normalizeLiteralNewlines(html: string): string {
+  if (!html.includes("\n")) return html;
+  if (!/<\s*(p|div|ul|ol|pre|h[1-6]|li|table|blockquote)\b/i.test(html)) {
+    return paragraphsFromPlain(html);
+  }
+  return html.replace(/<p(\s[^>]*)?>([\s\S]*?)<\/p>/gi, (full, attrs, inner: string) => {
+    if (/<\s*(p|div|ul|ol|pre)\b/i.test(inner)) return full;
+    if (!inner.includes("\n")) return full;
+    const a = attrs ?? "";
+    return inner
+      .split(/\n\n+/)
+      .map((part) => {
+        const body = part.replace(/\n/g, "<br>");
+        if (!body.replace(/<br\s*\/?>/gi, "").trim()) return `<p${a}><br></p>`;
+        return `<p${a}>${body}</p>`;
+      })
+      .join("");
+  });
 }
 
 function blocksIn(parent: Element): string {

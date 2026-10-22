@@ -486,6 +486,21 @@ describe("text spacing", () => {
     expect(html).toContain("<p>Line one<br>Line two</p>");
   });
 
+  it("turns YAML literal newlines into br and blank lines into paragraphs", () => {
+    const form = mountZone(`<div class="tessera-text"><p>Line one
+Line two</p><p>Second</p></div>`);
+    const body = form.querySelector<HTMLElement>(".editor-text-body");
+    if (!body) throw new Error("body");
+    expect(body.innerHTML).toContain("Line one<br>Line two");
+    const html = readComposeHtml(form).main ?? "";
+    expect(html).toContain("<p>Line one<br>Line two</p>");
+
+    const split = mountZone(`<div class="tessera-text"><p>First
+
+Second</p></div>`);
+    expect(readComposeHtml(split).main ?? "").toContain("<p>First</p><p>Second</p>");
+  });
+
   it("keeps a bordered code block with newlines", () => {
     const form = mountZone(`<div class="tessera-text"><p>Hello</p></div>`);
     const body = form.querySelector<HTMLElement>(".editor-text-body");
