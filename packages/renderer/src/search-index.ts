@@ -122,7 +122,6 @@ export function isSearchQueryLongEnough(query: string): boolean {
 }
 
 const WORD_RE = /[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*/gu;
-const FRAGMENT_CONTEXT_WORDS = 3;
 
 type WordSpan = { text: string; index: number };
 
@@ -192,36 +191,9 @@ function buildTextFragmentDirective(text: string, terms: string[]): string | nul
     searchFrom = index + 1;
   }
 
-  if (matchIndices.length === 1) {
-    const highlightIndex = matchIndices[0]!;
-    const windowEnd = Math.min(
-      spans.length - 1,
-      highlightIndex + FRAGMENT_CONTEXT_WORDS,
-    );
-    const prefixStart = Math.max(0, highlightIndex - FRAGMENT_CONTEXT_WORDS);
-    const prefix = joinSpanText(spans, prefixStart, highlightIndex - 1);
-    const match = spans[highlightIndex]!.text;
-    const suffix = joinSpanText(spans, highlightIndex + 1, windowEnd);
-    if (!match) return null;
-
-    const parts: string[] = [];
-    if (prefix) parts.push(`${encodeTextFragmentPart(prefix)}-`);
-    parts.push(encodeTextFragmentPart(match));
-    if (suffix) parts.push(`-${encodeTextFragmentPart(suffix)}`);
-    return parts.join(",");
-  }
-
   return matchIndices
     .map((index) => encodeTextFragmentPart(spans[index]!.text))
     .join("&text=");
-}
-
-function joinSpanText(spans: WordSpan[], from: number, to: number): string {
-  if (to < from) return "";
-  return spans
-    .slice(from, to + 1)
-    .map((s) => s.text)
-    .join(" ");
 }
 
 /** Build a MiniSearch instance ready to serialize or query. */

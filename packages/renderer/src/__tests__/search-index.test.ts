@@ -105,8 +105,18 @@ describe("textFragmentDirective", () => {
       title: "Home",
       body: "Welcome to the garden with willow trees nearby.",
     });
-    expect(fragment).toContain("willow");
+    expect(fragment).toBe("#:~:text=willow");
     expect(fragment).not.toMatch(/Welcome/i);
+  });
+
+  it("does not add prefix or suffix context around the matched word", () => {
+    const fragment = textFragmentDirective("willow", {
+      title: "Home",
+      body: "First paragraph about trees.\n\nSecond paragraph with willow planting tips.",
+    });
+    expect(fragment).toBe("#:~:text=willow");
+    expect(fragment).not.toContain("-");
+    expect(fragment).not.toContain("paragraph");
   });
 
   it("uses separate text directives for multi-term queries", () => {
