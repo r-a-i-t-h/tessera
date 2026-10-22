@@ -48,6 +48,17 @@ export function pageIdError(id: string, existingIds: readonly string[]): string 
   return undefined;
 }
 
+/** Default id for a duplicate when the author does not pick one. */
+export function suggestDuplicateId(id: string, existingIds: readonly string[]): string {
+  const base = `${id}-copy`;
+  if (!existingIds.includes(base)) return base;
+  for (let n = 2; n < 10_000; n++) {
+    const candidate = `${id}-copy-${n}`;
+    if (!existingIds.includes(candidate)) return candidate;
+  }
+  return `${id}-copy-${Date.now()}`;
+}
+
 /** A first version of a page: title zone plus an empty body, matching a blank home page. */
 export function newPageBody(id: string, title: string): NewPageBody {
   const pageId = id.trim();

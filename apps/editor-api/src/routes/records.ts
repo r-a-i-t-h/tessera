@@ -193,6 +193,40 @@ recordRoutes.delete("/records/items/:id", async (c) => {
   }
 });
 
+const DUPLICATABLE_KINDS = new Set<RecordKind>([
+  "layouts",
+  "types",
+  "bindings",
+  "items",
+  "templates",
+  "content",
+]);
+
+recordRoutes.post("/records/:kind/:id/duplicate", async (c) => {
+  const kind = c.req.param("kind");
+  if (!isRecordKind(kind) || !DUPLICATABLE_KINDS.has(kind)) {
+    return apiError(c, 400, "This record kind cannot be duplicated.");
+  }
+  const denied = assertRecordKindWritable(c, kind);
+  if (denied) return denied;
+  const site = c.get("requiredSite");
+  const id = c.req.param("id");
+  if (!isRecordId(id)) return apiError(c, 400, "Invalid record id.");
+  let body: { id?: unknown };
+  try {
+    body = (await c.req.json()) as { id?: unknown };
+  } catch {
+    return apiError(c, 400, "Send the new id.");
+  }
+  if (typeof body.id !== "string" || !isRecordId(body.id)) return apiError(c, 400, "Invalid record id.");
+  try {
+    await site.duplicateRecord(kind, id, body.id);
+    return c.json({ ok: true, id: body.id });
+  } catch (err) {
+    return apiError(c, 400, err instanceof Error ? err.message : "Could not duplicate that record.");
+  }
+});
+
 recordRoutes.post("/records/items/:id/rename", async (c) => {
   const denied = assertFullAdmin(c);
   if (denied) return denied;

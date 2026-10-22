@@ -1,7 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { newPageBody, newTemplateBody, pageFromTemplate, pageIdError, withSidebarLink } from "./page.js";
+import {
+  newPageBody,
+  newTemplateBody,
+  pageFromTemplate,
+  pageIdError,
+  suggestDuplicateId,
+  withSidebarLink,
+} from "./page.js";
 
 describe("new page", () => {
+  it("suggests a free duplicate id", () => {
+    expect(suggestDuplicateId("about", ["home"])).toBe("about-copy");
+    expect(suggestDuplicateId("about", ["home", "about-copy"])).toBe("about-copy-2");
+  });
+
   it("accepts a fresh id and rejects blanks, punctuation, and duplicates", () => {
     expect(pageIdError("about", ["home"])).toBeUndefined();
     expect(pageIdError("  events.2026 ", ["home"])).toBeUndefined();

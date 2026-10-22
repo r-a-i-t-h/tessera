@@ -880,6 +880,33 @@ export class SiteStore {
     return users;
   }
 
+  /** Copy a record to a new id. Content pages and articles only; not blogs or the home page. */
+  async duplicateRecord(kind: RecordKind, fromId: string, toId: string): Promise<void> {
+    this.assertId(fromId);
+    this.assertId(toId);
+    if (fromId === toId) throw new Error("Choose a different id.");
+    const existing = await this.listIds(kind);
+    if (existing.includes(toId)) throw new Error(`A record with id ${toId} already exists.`);
+    if (kind === "content") {
+      const source = (await this.read("content", fromId)) as AuthoredPage;
+      if (source.type === "blog" || source.type === "blog-index") {
+        throw new Error("Blogs cannot be duplicated here.");
+      }
+      const site = await this.readSite();
+      if (site.homePageId === fromId) throw new Error("The home page cannot be duplicated.");
+      const next: Record<string, unknown> = structuredClone(source);
+      next.id = toId;
+      next.published = false;
+      if (typeof next.title === "string" && next.title.trim()) {
+        next.title = `${next.title.trim()} (copy)`;
+      }
+      await this.write("content", toId, next);
+      return;
+    }
+    const source = await this.read(kind, fromId);
+    await this.write(kind, toId, { ...source, id: toId });
+  }
+
   /** Refused while a page or layout still inserts the binding. */
   async deleteBinding(id: string): Promise<void> {
     this.assertId(id);

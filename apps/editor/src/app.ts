@@ -8,6 +8,7 @@ import {
   deleteContent,
   deleteItem,
   deleteBlog,
+  duplicateRecord,
   deleteLibraryAsset,
   deleteLibraryFolder,
   getHistoryEntry,
@@ -102,7 +103,14 @@ import { mountNavBuild, navBuildMarkup, readNavBuildRoot } from "./nav-build/can
 import { parseNavTree, serializeNavTree } from "./nav-build/tree.js";
 import { articleMeta, blogMeta, heroField, indexNote } from "./forms/article.js";
 import { formatJsonText, itemContent, itemZoneError, jsonText, newItemBody, tidyItemRecord, zonesDeclaredBy } from "./forms/item.js";
-import { newPageBody, newTemplateBody, pageFromTemplate, pageIdError, withSidebarLink } from "./forms/page.js";
+import {
+  newPageBody,
+  newTemplateBody,
+  pageFromTemplate,
+  pageIdError,
+  suggestDuplicateId,
+  withSidebarLink,
+} from "./forms/page.js";
 import {
   applyTypeAction,
   draftFromControls,
@@ -3088,6 +3096,10 @@ async function bindEdit(
             : `${navNote}${fieldsHtml(kind, record ?? payload.data, payload.layout, typeIds, contentExtras, pageIds)}`;
   const place = editPlace(kind, id, record);
   const homeId = kind === "content" ? await loadHomePageId() : "";
+  const listingForDuplicate = await listRecords();
+  const existingIdsForKind = listingForDuplicate.records.filter((row) => row.kind === kind).map((row) => row.id);
+  const duplicateSuggested = suggestDuplicateId(id, existingIdsForKind);
+  const showDuplicateTools = duplicateToolsVisible(kind, id, record, editMode, homeId);
   const pageHost = host === "page";
   const fieldsTabLabel = editsBody(kind) ? "Page" : "Fields";
   const showContentRename =
@@ -3138,8 +3150,9 @@ async function bindEdit(
        ${formInner}
        ${pageHost ? "" : `${saveStatus}${actionRow}`}
      </form>
-     ${kind === "items" ? itemToolsHtml(id) : ""}
-     ${showContentRename ? contentToolsHtml(id) : ""}
+     ${kind === "items" ? itemToolsHtml(id, showDuplicateTools ? duplicateSuggested : undefined) : ""}
+     ${showContentRename ? contentToolsHtml(id, showDuplicateTools ? duplicateSuggested : undefined) : ""}
+     ${showDuplicateTools && kind !== "items" && kind !== "content" ? recordDuplicateToolsHtml(duplicateSuggested) : ""}
      ${historyHtml(payload)}`;
   let scope: ParentNode = root;
   if (host === "tab") {
@@ -3376,6 +3389,7 @@ async function bindEdit(
         showSaveError(root, err instanceof Error ? err.message : "Could not delete that binding.");
       });
   });
+  bindDuplicateRecord(scope, root, kind, id, existingIdsForKind);
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const button = scope.querySelector<HTMLButtonElement>("#record-save");
@@ -3575,23 +3589,117 @@ async function mountPageCanvas(
   });
 }
 
-function itemToolsHtml(id: string): string {
+function duplicateToolsRow(suggestedId: string): string {
+  return `<p class="editor-rename-row">
+      <label for="duplicate-id">Duplicate as</label>
+      <input id="duplicate-id" name="duplicate-id" class="w3-input w3-border" value="${escapeHtml(suggestedId)}" autocomplete="off" spellcheck="false" />
+      <button type="button" class="w3-button w3-white" data-action="duplicate-record">Duplicate</button>
+    </p>`;
+}
+
+function recordDuplicateToolsHtml(suggestedId: string): string {
+  return `<form id="record-tools" class="w3-card w3-white w3-padding editor-card">
+    ${duplicateToolsRow(suggestedId)}
+  </form>`;
+}
+
+function duplicateToolsVisible(
+  kind: string,
+  id: string,
+  record: Record<string, unknown> | undefined,
+  editMode: EditMode,
+  homeId: string,
+): boolean {
+  if (kind === "layouts" || kind === "types" || kind === "bindings" || kind === "items" || kind === "templates") {
+    return true;
+  }
+  if (kind !== "content" || !record) return false;
+  if (record.type === "blog" || record.type === "blog-index") return false;
+  if (id === homeId) return false;
+  return editMode === "fields";
+}
+
+function duplicateIdError(kind: string, nextId: string, existingIds: readonly string[]): string | undefined {
+  const problem = pageIdError(nextId, existingIds);
+  if (!problem || kind === "content") return problem;
+  const noun =
+    kind === "items"
+      ? "item"
+      : kind === "layouts"
+        ? "layout"
+        : kind === "types"
+          ? "type"
+          : kind === "bindings"
+            ? "binding"
+            : kind === "templates"
+              ? "template"
+              : "record";
+  return problem.replace("A page with id", `A ${noun} with id`);
+}
+
+function duplicateDestination(kind: string, nextId: string): { hash: string; mode: EditMode } {
+  const hash = `#/${encodeURIComponent(kind)}/${encodeURIComponent(nextId)}`;
+  if (kind === "layouts") return { hash, mode: "arrange" };
+  if (kind === "content" || kind === "templates") return { hash, mode: "compose" };
+  return { hash, mode: "fields" };
+}
+
+function bindDuplicateRecord(
+  scope: ParentNode,
+  root: HTMLElement,
+  kind: string,
+  id: string,
+  existingIds: readonly string[],
+): void {
+  scope.querySelector<HTMLButtonElement>("[data-action=duplicate-record]")?.addEventListener("click", () => {
+    const input = scope.querySelector<HTMLInputElement>("[name=duplicate-id]");
+    const nextId = input?.value.trim() ?? "";
+    const problem = duplicateIdError(kind, nextId, existingIds);
+    if (problem) {
+      showSaveError(root, problem);
+      return;
+    }
+    if (nextId === id) {
+      showSaveError(root, "Choose a different id.");
+      return;
+    }
+    if (!window.confirm(`Duplicate ${id} as ${nextId}?`)) return;
+    void duplicateRecord(kind, id, nextId)
+      .then(() => {
+        contentSession = undefined;
+        layoutSession = undefined;
+        const destination = duplicateDestination(kind, nextId);
+        pendingEdit = { mode: destination.mode, notice: `Duplicated ${id} as ${nextId}.` };
+        if (window.location.hash === destination.hash) void render(root);
+        else window.location.hash = destination.hash;
+      })
+      .catch((err: unknown) => {
+        showSaveError(root, err instanceof Error ? err.message : "Could not duplicate that record.");
+      });
+  });
+}
+
+function itemToolsHtml(id: string, duplicateSuggested?: string): string {
+  const duplicate = duplicateSuggested ? duplicateToolsRow(duplicateSuggested) : "";
   return `<form id="item-tools" class="w3-card w3-white w3-padding editor-card">
     <p><label for="item-rename-id">New id <input id="item-rename-id" name="item-rename-id" class="w3-input w3-border" value="${escapeHtml(id)}" autocomplete="off" spellcheck="false" /></label></p>
     <p class="editor-actions">
       <button type="submit" class="w3-button w3-white">Rename</button>
       <button type="button" class="w3-button w3-white" data-action="delete-item">Delete</button>
     </p>
+    ${duplicate}
   </form>`;
 }
 
-function contentToolsHtml(id: string): string {
+function contentToolsHtml(id: string, duplicateSuggested?: string): string {
+  const duplicate = duplicateSuggested ? duplicateToolsRow(duplicateSuggested) : "";
   return `<form id="content-tools" class="w3-card w3-white w3-padding editor-card">
     <p class="editor-rename-row">
       <label for="content-rename-id">New id</label>
       <input id="content-rename-id" name="content-rename-id" class="w3-input w3-border" value="${escapeHtml(id)}" autocomplete="off" spellcheck="false" />
       <button type="submit" class="w3-button w3-white">Rename</button>
     </p>
+    ${duplicate}
   </form>`;
 }
 

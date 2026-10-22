@@ -320,6 +320,17 @@ export function deleteBinding(id: string): Promise<{ ok: true }> {
   return request(`/api/records/bindings/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
 
+export function duplicateRecord(
+  kind: string,
+  id: string,
+  nextId: string,
+): Promise<{ ok: true; id: string }> {
+  return request(`/api/records/${encodeURIComponent(kind)}/${encodeURIComponent(id)}/duplicate`, {
+    method: "POST",
+    body: JSON.stringify({ id: nextId }),
+  });
+}
+
 export function renameItem(id: string, nextId: string): Promise<{ ok: true; id: string }> {
   return request(`/api/records/items/${encodeURIComponent(id)}/rename`, {
     method: "POST",

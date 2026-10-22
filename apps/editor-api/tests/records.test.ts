@@ -487,6 +487,42 @@ describe("record routes", () => {
     expect(await site.readNav()).toEqual([{ id: "home", title: "Home" }]);
   });
 
+  it("duplicates pages, items, and bindings under a new id", async () => {
+    await site.write("items", "footer", { zones: { footer: { html: "<p>Hi</p>" } } });
+    await site.write("bindings", "list", { component: "datedList", props: { types: ["event"] } });
+    await site.write("content", "about", {
+      title: "About",
+      published: true,
+      zones: { main: { html: "<p>About</p>" } },
+    });
+
+    await site.duplicateRecord("items", "footer", "footer-copy");
+    expect(await site.read("items", "footer-copy")).toMatchObject({
+      zones: { footer: { html: "<p>Hi</p>" } },
+    });
+
+    await site.duplicateRecord("bindings", "list", "list-copy");
+    expect(await site.read("bindings", "list-copy")).toMatchObject({
+      component: "datedList",
+      props: { types: ["event"] },
+    });
+
+    await site.duplicateRecord("content", "about", "about-copy");
+    expect(await site.read("content", "about-copy")).toMatchObject({
+      title: "About (copy)",
+      published: false,
+      zones: { main: { html: "<p>About</p>" } },
+    });
+
+    const res = await app().request("/api/records/content/about/duplicate", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ id: "about-copy-2" }),
+    });
+    expect(res.status).toBe(200);
+    expect(await site.read("content", "about-copy-2")).toMatchObject({ title: "About (copy)" });
+  });
+
   it("deletes bindings when unused and refuses when inserted on a page", async () => {
     await site.write("bindings", "orphan", { component: "datasetTable", props: { dataset: "demo" } });
     await site.deleteBinding("orphan");
