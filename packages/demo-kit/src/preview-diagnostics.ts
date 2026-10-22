@@ -189,7 +189,7 @@ function ensureStyles(): void {
 }
 #${ROOT_ID} {
   position: fixed;
-  bottom: 12px;
+  top: 12px;
   right: 12px;
   z-index: 100000;
   font-size: 13px;
@@ -216,7 +216,7 @@ function ensureStyles(): void {
 #${PANEL_ID} {
   display: none;
   position: absolute;
-  bottom: 48px;
+  top: 48px;
   right: 0;
   width: min(360px, calc(100vw - 24px));
   max-height: min(70vh, 520px);
@@ -305,7 +305,7 @@ function ensureRoot(): { panel: HTMLElement; toggle: HTMLButtonElement } {
       toggle.setAttribute("aria-expanded", open ? "true" : "false");
     });
 
-    root.append(panel, toggle);
+    root.append(toggle, panel);
     document.body.append(root);
     return { panel, toggle };
   }
