@@ -3,6 +3,7 @@ import {
   createDefaultRegistry,
   SiteRenderer,
   readSiteDocumentUrl,
+  syncSiteBackToTop,
 } from "@r-a-i-t-h/tessera-renderer";
 import { w3Skin } from "@r-a-i-t-h/tessera-skin-w3";
 import {
@@ -34,6 +35,7 @@ const renderer = await SiteRenderer.create({
     applyAspectClass(page ? resolveAspect(doc, page).aspectId : undefined);
     document.title = page ? `${page.title} · ${doc.site.title}` : doc.site.title;
     insertHeadingsMenu(document.getElementById("app") ?? document);
+    syncSiteBackToTop(doc.site.backToTop === true);
     bootBlog(document);
     bootSearch(document);
     updatePreviewDiagnostics(pageId, doc);

@@ -42,7 +42,7 @@ const SITE_FIELD_HELP: Record<string, string> = {
 
 function withSiteFieldHelp(fields: FieldSchema[]): FieldSchema[] {
   return fields.map((field) => {
-    const helpHtml = SITE_FIELD_HELP[field.name];
+    const helpHtml = field.helpHtml ?? SITE_FIELD_HELP[field.name];
     return helpHtml ? { ...field, helpHtml } : field;
   });
 }
@@ -67,6 +67,13 @@ export const SITE_FORM: FormSchema = {
         { value: "pages", label: "Pages" },
         { value: "snapshot", label: "Snapshot" },
       ],
+    },
+    {
+      name: "backToTop",
+      label: "Back to top",
+      type: "Checkbox",
+      helpHtml:
+        "Shows a small fixed button while visitors scroll down. The editor always has its own back-to-top control; this setting applies to the preview and published site.",
     },
     { name: "historyMaxAgeDays", label: "History max age (days)", type: "number" },
     { name: "version", label: "Version", type: "number", readOnly: true },

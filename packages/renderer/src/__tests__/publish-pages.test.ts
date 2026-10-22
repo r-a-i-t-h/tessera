@@ -312,6 +312,25 @@ describe("publishPages style", () => {
   });
 });
 
+describe("publishPages back to top", () => {
+  it("writes the control when backToTop is enabled", () => {
+    const withControl = parseSiteDocument({
+      ...document,
+      site: { ...document.site, backToTop: true },
+    });
+    const home = publishPages(withControl, { origin: "https://example.test" }).find(
+      (file) => file.path === "index.html",
+    )!;
+    expect(home.contents).toContain('class="tessera-back-to-top"');
+    expect(home.contents).toContain('aria-label="Back to top"');
+  });
+
+  it("omits the control by default", () => {
+    const home = publishPages(document, { origin: "https://example.test" }).find((file) => file.path === "index.html")!;
+    expect(home.contents).not.toContain("tessera-back-to-top");
+  });
+});
+
 describe("publishPages catalogue", () => {
   it("writes nav links as page paths and leaves an unknown component as a mount", () => {
     const registry = new ComponentRegistry();

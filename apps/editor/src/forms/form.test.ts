@@ -25,6 +25,7 @@ describe("schema forms", () => {
       "publishTo",
       "defaultAspectId",
       "delivery",
+      "backToTop",
       "historyMaxAgeDays",
       "version",
       "historyMaxEntries",
@@ -33,6 +34,7 @@ describe("schema forms", () => {
 
   it("offers flavour and origin on a site that has neither", () => {
     const html = renderForm(SITE_FORM, { id: "hall", title: "Hall", homePageId: "home" });
+    expect(html).toContain("Back to top");
     expect(html).toContain("Flavour");
     expect(html).toContain('value="pages"');
     expect(html).toContain("selected");

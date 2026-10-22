@@ -1,5 +1,6 @@
 import { parseSiteDocument, type SiteDocument } from "@r-a-i-t-h/tessera-model";
 import {
+  bindBackToTop,
   bootSearch,
   ComponentRegistry,
   createDefaultRegistry,
@@ -69,6 +70,8 @@ function hydrate(): void {
   }
   bootBlog(document);
   bootSearch(document);
+  const backToTop = document.querySelector<HTMLButtonElement>(".tessera-back-to-top");
+  if (backToTop) bindBackToTop({ button: backToTop });
 }
 
 function cssEscape(value: string): string {

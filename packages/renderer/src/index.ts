@@ -151,6 +151,12 @@ export {
   searchResults,
   bootSearch,
 } from "./builtins/search.js";
+export {
+  BACK_TO_TOP_SHOW_PX,
+  backToTopHtml,
+  bindBackToTop,
+  syncSiteBackToTop,
+} from "./back-to-top.js";
 export type {
   RenderContext,
   ComponentFn,

@@ -399,6 +399,8 @@ export const SiteMetaSchema = z.object({
    */
   historyMaxEntries: z.number().int().positive().optional(),
   historyMaxAgeDays: z.number().int().positive().optional(),
+  /** Fixed control that scrolls to the top of the page after the visitor scrolls down. */
+  backToTop: z.boolean().optional(),
   settings: z.record(z.unknown()).optional(),
 });
 

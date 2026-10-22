@@ -9,6 +9,7 @@ import {
   siteStyleOverrideCss,
   type PageTreeNode,
 } from "@r-a-i-t-h/tessera-model";
+import { backToTopHtml } from "./back-to-top.js";
 import { ComponentRegistry } from "./registry.js";
 import { escapeHtml, renderPage, type Skin } from "./render.js";
 import type { MicroAppMount } from "./types.js";
@@ -120,6 +121,7 @@ function pageHtml(input: {
   const bodyClass = document.site.style ? ` class="${siteBodyClass(document.site.style)}"` : "";
   const aspect = resolveAspect(document, node.page);
   const htmlClass = aspect.aspectId ? ` class="${aspectClassName(aspect.aspectId)}"` : "";
+  const backToTop = document.site.backToTop ? `\n    ${backToTopHtml()}` : "";
   return `<!DOCTYPE html>
 <html lang="${escapeHtml(lang)}"${htmlClass}>
   <head>
@@ -129,7 +131,7 @@ function pageHtml(input: {
     <link rel="canonical" href="${escapeHtml(canonical)}" />${styleTags}${chrome}
   </head>
   <body${bodyClass}>
-    ${body}${microAppScript}${scriptTag}
+    ${body}${backToTop}${microAppScript}${scriptTag}
   </body>
 </html>
 `;
