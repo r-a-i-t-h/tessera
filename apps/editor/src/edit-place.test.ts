@@ -40,4 +40,12 @@ describe("editPlace", () => {
       heading: "layouts / master",
     });
   });
+
+  it("returns navigation to the Navigation section", () => {
+    expect(editPlace("nav", "nav", undefined)).toEqual({
+      section: "navigation",
+      back: "#/navigation",
+      heading: "Navigation",
+    });
+  });
 });

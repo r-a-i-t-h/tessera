@@ -295,6 +295,7 @@ async function render(root: HTMLElement): Promise<void> {
     else if (route.page === "maintenance") await bindMaintenance(root, user, route.tab);
     else if (route.page === "pages") await bindPages(root, user);
     else if (route.page === "articles") await bindArticles(root, user, route.blog);
+    else if (route.page === "navigation") await bindNavigation(root, user);
     else if (route.page === "records") await bindList(root, user, route.kind);
     else if (route.page === "datasets") await mountDatasets(root, user, route.datasetId, bindChrome);
     else if (route.page === "edit") {
@@ -923,6 +924,20 @@ async function bindHome(root: HTMLElement, user: PublicUser, notice = "", error 
   bindInitSite(root, (nextNotice, nextError) => bindHome(root, user, nextNotice, nextError));
 }
 
+async function bindNavigation(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {
+  const listing = await listRecords();
+  const row = listing.records.find((item) => item.kind === "nav");
+  root.innerHTML = chrome(
+    user,
+    `<h1 class="w3-large">Navigation</h1>${statusPanels(notice, error)}<section class="editor-kind" aria-label="Navigation">${singletonEditorMount("nav", row)}</section>`,
+    true,
+    "navigation",
+  );
+  bindChrome(root);
+  bindInitSite(root, (nextNotice, nextError) => bindNavigation(root, user, nextNotice, nextError));
+  if (row) await bindEdit(root, user, "nav", row.id, initialEditMode("nav", undefined), "", false, "tab");
+}
+
 async function bindList(
   root: HTMLElement,
   user: PublicUser,
@@ -936,6 +951,10 @@ async function bindList(
   }
   if (kind === "content") {
     window.location.hash = "#/pages";
+    return;
+  }
+  if (kind === "nav") {
+    window.location.hash = "#/navigation";
     return;
   }
   const listing = await listRecords();
@@ -957,9 +976,9 @@ async function bindList(
   bindChrome(root);
   bindInitSite(root, (nextNotice, nextError) => bindList(root, user, kind, nextNotice, nextError));
   if (active === "blogs") bindBlogs(root, user, listing);
-  if (active === "site" || active === "nav") {
-    const row = listing.records.find((item) => item.kind === active);
-    if (row) await bindEdit(root, user, active, row.id, initialEditMode(active, undefined), "", false, "tab");
+  if (active === "site") {
+    const row = listing.records.find((item) => item.kind === "site");
+    if (row) await bindEdit(root, user, "site", row.id, initialEditMode("site", undefined), "", false, "tab");
   }
   bindEntryFilter(root);
   root.querySelector("[data-action=new-page]")?.addEventListener("click", () => {
@@ -1787,10 +1806,13 @@ const LIBRARY_RECORD_KINDS = new Set(["media", "folders"]);
 function recordTabs(listing: RecordList): { kind: string; label: string }[] {
   const rank = new Map(RECORD_TAB_ORDER.map((kind, index) => [kind, index]));
   const tabs = listing.kinds
-    .filter((item) => !LIBRARY_RECORD_KINDS.has(item.kind) && item.kind !== "content")
+    .filter(
+      (item) => !LIBRARY_RECORD_KINDS.has(item.kind) && item.kind !== "content" && item.kind !== "nav",
+    )
     .sort((a, b) => (rank.get(a.kind) ?? RECORD_TAB_ORDER.length) - (rank.get(b.kind) ?? RECORD_TAB_ORDER.length));
-  const nav = tabs.findIndex((item) => item.kind === "nav");
-  tabs.splice(nav + 1, 0, { kind: "blogs", label: "Blogs" });
+  const site = tabs.findIndex((item) => item.kind === "site");
+  const blogsAt = site === -1 ? 0 : site + 1;
+  tabs.splice(blogsAt, 0, { kind: "blogs", label: "Blogs" });
   return tabs;
 }
 
@@ -1867,7 +1889,7 @@ function recordTab(
               ? bindingSection(rows, siteReady, layoutNotes)
               : kind.kind === "items"
                 ? itemSection(rows, siteReady, itemZones)
-                : kind.kind === "site" || kind.kind === "nav"
+                : kind.kind === "site"
           ? singletonEditorMount(kind.kind, rows[0])
           : kindPanel(rows);
   return `<section class="editor-kind" aria-label="${escapeHtml(kind.label)}">${body}</section>`;

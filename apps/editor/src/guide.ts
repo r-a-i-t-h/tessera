@@ -41,7 +41,7 @@ export function guideHtml(): string {
     <p>Save on the <strong>Page</strong> tab (labelled Fields on other records) rewrites a file at two spaces. The Raw file tab keeps the spaces you typed. On a content page, title, type, parent, frame, tags, and id rename live on Page; Compose and Frame are zone canvases only.</p>
 
     <h2 id="menus">Menus</h2>
-    <p>Links live on the Nav record (<a href="#/records/nav">Records → Nav</a>, file <code>records/nav.yaml</code>). Each row has three places: <strong>Sidebar</strong>, <strong>Top bar</strong>, and <strong>Footer</strong>. A place shows the row only when the master layout draws a menu component for that place.</p>
+    <p>Links live on the Nav record (<a href="#/navigation">Navigation</a>, file <code>records/nav.yaml</code>). Each row has three places: <strong>Sidebar</strong>, <strong>Top bar</strong>, and <strong>Footer</strong>. A place shows the row only when the master layout draws a menu component for that place.</p>
     <p>Willow’s master layout (<a href="#/records/layouts">Records → Layouts</a>, then <a href="#/layouts/master"><code>master</code></a>) has two:</p>
     <ul>
       <li><code>navFlat</code> with <code>scope: topbar</code> is the row of links under the logo.</li>
@@ -70,7 +70,7 @@ export function guideHtml(): string {
       <li><code>searchBox</code> is typeahead search for the frame. Place it on the master layout. The index loads only on first use. Enter opens the <a href="#/content/search">Search page</a>.</li>
       <li><code>searchResults</code> is the full results UI on the <a href="#/content/search">Search page</a> (refine, tag/type filter, relevance or title sort).</li>
   </ul>
-    <p>A blank site already puts <code>searchBox</code> in the sidebar and a <a href="#/content/search">Search page</a> on the <a href="#/records/nav">Nav record</a>. Keep the menu sparse for wiki-style sites; reach other pages by cross-links and search.</p>
+    <p>A blank site already puts <code>searchBox</code> in the sidebar and a <a href="#/content/search">Search page</a> on the <a href="#/navigation">Nav record</a>. Keep the menu sparse for wiki-style sites; reach other pages by cross-links and search.</p>
 
     <h2 id="frame-zones">Frame zones</h2>
     <p>A master layout can declare content <strong>zones</strong> outside the page slot (for example a sidebar outlet). Those ids are not on the page layout, so they do not appear on <strong>Compose</strong>. Use the page’s <strong>Frame</strong> tab: <strong>Add zone</strong> lists every zone id from any frame layout, or type a custom id. Content is stored on the page under that name and paints only when a layout declares the id. If the page inherits a different master, unused content stays until a layout uses it again.</p>
@@ -157,7 +157,7 @@ export function guideHtml(): string {
     <h2 id="a-different-frame-for-a-section">A different frame for a section</h2>
     <p>The <a href="#/records/site">site record</a> names the frame every page uses until a page names another. On that page, <strong>Frame</strong> is the layout. Leave it as <strong>Inherit</strong> on the children: they use the nearest parent that set one. A page further down can name its own, and that starts again. Naming the site's frame on a nested page steps that subtree back to the site frame.</p>
     <p>The parent is the same parent that builds the URL. A winter fair whose parent is Events publishes at <code>/events/event-winter-fair</code> and wears the Events frame. A page that is not under Events keeps the site frame, even when it uses the same page layout. The home page does not inherit from a parent.</p>
-    <p>The page layout does not follow the frame. Style tokens stay on the site. Both frames' classes live in ${sheetLink("site", "site layout")}. Each frame places its own menu components, and those components still read the one <a href="#/records/nav">Nav record</a>.</p>
+    <p>The page layout does not follow the frame. Style tokens stay on the site. Both frames' classes live in ${sheetLink("site", "site layout")}. Each frame places its own menu components, and those components still read the one <a href="#/navigation">Nav record</a>.</p>
 
     <h2 id="maintenance">Maintenance</h2>
     <p>The editor’s <a href="#/maintenance">Maintenance</a> overview shows how many findings each report has; open a report for the full list. Each row links to the record to fix. Sidebar items:</p>

@@ -188,7 +188,7 @@ function componentFields(node: Extract<LayoutNode, { type: "component" }>, used:
       ? `<p><label>Place <select class="w3-select w3-border" data-field="prop:scope">
         ${["sidebar", "topbar", "footer"].map((value) => `<option value="${value}"${value === scope ? " selected" : ""}>${value === "sidebar" ? "Sidebar" : value === "topbar" ? "Top bar" : "Footer"}</option>`).join("")}
       </select></label></p>
-      <p class="w3-small w3-text-grey">Links come from <a href="#/records/nav">Nav</a>. A row shows here only when that place is ticked.</p>`
+      <p class="w3-small w3-text-grey">Links come from <a href="#/navigation">Nav</a>. A row shows here only when that place is ticked.</p>`
       : "";
   const pickerLabel = MENU_SHAPES.some((item) => item.name === node.name) ? "List" : "Component";
   const shape = `<p><label>${pickerLabel} <select class="w3-select w3-border" data-field="componentName">${options}</select></label></p>

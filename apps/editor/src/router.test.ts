@@ -27,6 +27,7 @@ describe("parseRoute", () => {
     ["#/users", { page: "users" }],
     ["#/users/alice", { page: "user", username: "alice" }],
     ["#/pages", { page: "pages" }],
+    ["#/navigation", { page: "navigation" }],
     ["#/articles", { page: "articles", blog: undefined }],
     ["#/articles/hall", { page: "articles", blog: "hall" }],
     ["#/articles/hall/extra", { page: "missing" }],
@@ -47,9 +48,9 @@ describe("parseRoute", () => {
     },
   );
 
-  it("keeps the legacy site and navigation links on their embedded record tabs", () => {
+  it("keeps the legacy site link on its embedded record tab and sends nav links to Navigation", () => {
     expect(parseRoute("#/site/demo")).toEqual({ page: "records", kind: "site" });
-    expect(parseRoute("#/nav/nav")).toEqual({ page: "records", kind: "nav" });
+    expect(parseRoute("#/nav/nav")).toEqual({ page: "navigation" });
     expect(parseRoute("#/site")).toEqual({ page: "missing" });
     expect(parseRoute("#/nav/nav/extra")).toEqual({ page: "missing" });
   });

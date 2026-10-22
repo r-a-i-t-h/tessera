@@ -8,6 +8,9 @@ export type EditPlace = {
 
 /** Where Save’s neighbour returns, and which top-level item stays current. */
 export function editPlace(kind: string, id: string, record: Record<string, unknown> | undefined): EditPlace {
+  if (kind === "nav") {
+    return { section: "navigation", back: "#/navigation", heading: "Navigation" };
+  }
   if (kind !== "content") {
     return { section: "records", back: `#/records/${encodeURIComponent(kind)}`, heading: `${kind} / ${id}` };
   }

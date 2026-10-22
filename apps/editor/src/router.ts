@@ -2,6 +2,7 @@ export type Route =
   | { page: "home" }
   | { page: "pages" }
   | { page: "articles"; blog?: string }
+  | { page: "navigation" }
   | { page: "records"; kind?: string }
   | { page: "datasets"; datasetId?: string }
   | { page: "library"; id: string | null }
@@ -61,6 +62,7 @@ export function parseRoute(hash: string): Route {
   const head = decodeURIComponent(slash === -1 ? path : path.slice(0, slash));
   const rest = slash === -1 ? "" : decodeURIComponent(path.slice(slash + 1));
   if (head === "pages") return rest ? { page: "missing" } : { page: "pages" };
+  if (head === "navigation") return rest ? { page: "missing" } : { page: "navigation" };
   if (head === "articles") {
     if (rest.includes("/")) return { page: "missing" };
     return { page: "articles", blog: rest || undefined };
@@ -73,7 +75,11 @@ export function parseRoute(hash: string): Route {
     if (rest.includes("/")) return { page: "missing" };
     return { page: "datasets", datasetId: rest || undefined };
   }
-  if (head === "site" || head === "nav") {
+  if (head === "nav") {
+    if (!rest || rest.includes("/")) return { page: "missing" };
+    return { page: "navigation" };
+  }
+  if (head === "site") {
     if (!rest || rest.includes("/")) return { page: "missing" };
     return { page: "records", kind: head };
   }

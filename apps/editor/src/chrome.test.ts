@@ -8,14 +8,18 @@ describe("editor chrome", () => {
     document.body.innerHTML = "";
   });
 
-  it("lists Records above Pages in the sidebar", () => {
+  it("lists Records, Navigation, and Pages in order in the sidebar", () => {
     const html = editorChrome(
       { ok: true, username: "alice", createdAt: "2026-01-01" },
       "<h1>Pages</h1>",
       false,
       "pages",
     );
-    expect(html.indexOf('href="#/records"')).toBeLessThan(html.indexOf('href="#/pages"'));
+    const records = html.indexOf('href="#/records"');
+    const navigation = html.indexOf('href="#/navigation"');
+    const pages = html.indexOf('href="#/pages"');
+    expect(records).toBeLessThan(navigation);
+    expect(navigation).toBeLessThan(pages);
   });
 
   it("marks the current section and escapes the account name", () => {

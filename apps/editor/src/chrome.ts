@@ -9,6 +9,7 @@ export type EditorSection =
   | "home"
   | "pages"
   | "articles"
+  | "navigation"
   | "records"
   | "datasets"
   | "library"
@@ -123,6 +124,7 @@ export function editorChrome(
           ${sectionLink("#/", "Tessera editor", "home", false, "editor-nav-brand w3-theme-d3")}
           ${sectionLink("#/records", "Records", "records", recordsChildOn)}
           ${recordsChildren}
+          ${sectionLink("#/navigation", "Navigation", "navigation")}
           ${sectionLink("#/pages", "Pages", "pages")}
           ${sectionLink("#/articles", "Articles", "articles", articlesBlogOn)}
           ${articlesChildren}
