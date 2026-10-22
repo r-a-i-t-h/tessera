@@ -6,6 +6,7 @@ import {
 } from "@r-a-i-t-h/tessera-skin-w3";
 import { codeWrapClass, codeWrapToggle } from "../code-wrap.js";
 import { escapeHtml } from "../dom.js";
+import { REORDER_ICONS } from "../editor-icons.js";
 import {
   COMPONENT_CHOICES,
   COMPONENT_UNSET,
@@ -243,7 +244,13 @@ function widthOptions(current: string): string {
     .join("");
 }
 
-function nodeHtml(node: LayoutNode, path: number[], selected: string): string {
+function nodeHtml(
+  node: LayoutNode,
+  path: number[],
+  selected: string,
+  siblingIndex = 0,
+  siblingCount = 1,
+): string {
   const key = pathKey(path);
   const kids = childList(node);
   const drawer = drawerState(node);
@@ -256,12 +263,7 @@ function nodeHtml(node: LayoutNode, path: number[], selected: string): string {
   ]
     .filter(Boolean)
     .join(" ");
-  const buttons =
-    path.length === 0
-      ? ""
-      : `<button type="button" class="w3-button w3-tiny w3-white" data-move="up" data-path="${escapeHtml(key)}">Up</button>
-         <button type="button" class="w3-button w3-tiny w3-white" data-move="down" data-path="${escapeHtml(key)}">Down</button>
-         <button type="button" class="w3-button w3-tiny w3-white" data-remove data-path="${escapeHtml(key)}">Remove</button>`;
+  const buttons = path.length === 0 ? "" : reorderActions(key, siblingIndex, siblingCount);
   const body = kids
     ? childrenHtml(kids, path, selected, node.type === "component")
     : `<div class="arrange-body">${escapeHtml(leafText(node))}</div>`;
@@ -277,7 +279,10 @@ function nodeHtml(node: LayoutNode, path: number[], selected: string): string {
 function childrenHtml(kids: LayoutNode[], parent: number[], selected: string, component: boolean): string {
   const parentKey = escapeHtml(pathKey(parent));
   const inner = kids
-    .map((kid, index) => `${gap(parent, index)}${nodeHtml(kid, [...parent, index], selected)}`)
+    .map(
+      (kid, index) =>
+        `${gap(parent, index)}${nodeHtml(kid, [...parent, index], selected, index, kids.length)}`,
+    )
     .join("");
   const hint = kids.length === 0 ? (component ? "Drop inside this component" : "Drop a piece here") : "";
   const well = hint
@@ -288,6 +293,17 @@ function childrenHtml(kids: LayoutNode[], parent: number[], selected: string, co
 
 function gap(parent: number[], index: number): string {
   return `<div class="arrange-gap" data-drop-parent="${escapeHtml(pathKey(parent))}" data-drop-index="${index}"></div>`;
+}
+
+function reorderActions(key: string, index: number, count: number): string {
+  const path = ` data-path="${escapeHtml(key)}"`;
+  const up = index <= 0 ? " disabled" : "";
+  const down = index >= count - 1 ? " disabled" : "";
+  return `<span class="editor-section-actions">${reorderIconButton("Up", REORDER_ICONS.up, `data-move="up"${up}${path}`)}${reorderIconButton("Down", REORDER_ICONS.down, `data-move="down"${down}${path}`)}${reorderIconButton("Remove", REORDER_ICONS.remove, `data-remove${path}`)}</span>`;
+}
+
+function reorderIconButton(label: string, icon: string, attributes: string): string {
+  return `<button type="button" class="editor-section-icon" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}" ${attributes}>${icon}</button>`;
 }
 
 function leafText(node: LayoutNode): string {

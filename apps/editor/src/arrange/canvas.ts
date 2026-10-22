@@ -104,8 +104,12 @@ function bind(form: HTMLFormElement, state: State, onEdit?: (burstId?: string) =
       onEdit?.();
       return;
     }
-    const move = target.closest<HTMLElement>("[data-move]");
-    if (move?.dataset.path !== undefined && (move.dataset.move === "up" || move.dataset.move === "down")) {
+    const move = target.closest<HTMLButtonElement>("[data-move]");
+    if (
+      move?.dataset.path !== undefined &&
+      (move.dataset.move === "up" || move.dataset.move === "down") &&
+      !move.disabled
+    ) {
       event.preventDefault();
       const path = parsePath(move.dataset.path);
       const dir = move.dataset.move === "up" ? -1 : 1;
