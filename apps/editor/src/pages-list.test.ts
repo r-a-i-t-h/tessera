@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { RecordSummary } from "./api.js";
 import { buildContentCreationRank } from "./creation-rank.js";
-import { buildNavSortDocument, sortPages } from "./pages-list.js";
+import { buildNavSortDocument, parentPageIds, sortPages } from "./pages-list.js";
 
 function row(id: string, patch: Partial<RecordSummary> = {}): RecordSummary {
   return { kind: "content", id, title: id, ...patch };
@@ -10,6 +10,19 @@ function row(id: string, patch: Partial<RecordSummary> = {}): RecordSummary {
 function ranks(ids: string[]): Map<string, number> {
   return buildContentCreationRank(ids.map((id) => row(id)));
 }
+
+describe("parentPageIds", () => {
+  it("lists site-tree content ids and omits articles and blog indexes", () => {
+    const ids = parentPageIds([
+      row("home"),
+      row("news", { type: "blog" }),
+      row("news-index", { type: "blog-index", parentId: "news" }),
+      row("fair", { type: "article", parentId: "news" }),
+      row("about"),
+    ]);
+    expect(ids).toEqual(["about", "home", "news"]);
+  });
+});
 
 describe("sortPages", () => {
   it("reverses creation order for created mode", () => {

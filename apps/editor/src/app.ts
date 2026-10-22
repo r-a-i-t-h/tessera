@@ -222,6 +222,8 @@ import {
 } from "./library-list-order.js";
 import {
   buildNavSortDocument,
+  isParentPageCandidate,
+  parentPageIds,
   readPageListOrder,
   sortPages,
   writePageListOrder,
@@ -1438,10 +1440,7 @@ async function loadTypeIds(): Promise<string[]> {
 async function loadContentPageIds(): Promise<string[]> {
   try {
     const listing = await listRecords();
-    return listing.records
-      .filter((row) => row.kind === "content")
-      .map((row) => row.id)
-      .sort((a, b) => a.localeCompare(b));
+    return parentPageIds(listing.records);
   } catch {
     return [];
   }
@@ -1555,7 +1554,7 @@ async function uploadHero(form: HTMLFormElement): Promise<void> {
 async function contentPages(): Promise<PageChoice[]> {
   const listing = await listRecords();
   return listing.records
-    .filter((row) => row.kind === "content" && row.type !== "article" && row.type !== "blog-index")
+    .filter(isParentPageCandidate)
     .map((row) => ({ id: row.id, title: row.title }));
 }
 

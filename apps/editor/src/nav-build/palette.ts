@@ -1,5 +1,6 @@
 import { escapeHtml } from "../dom.js";
 import type { RecordList, RecordSummary } from "../api.js";
+import { isParentPageCandidate } from "../pages-list.js";
 import { listRecords, getRecord } from "../api.js";
 
 export type NavBuildPaletteInfo = {
@@ -56,7 +57,7 @@ async function collectItemTags(items: RecordSummary[]): Promise<string[]> {
 
 function contentPages(records: RecordSummary[]): { id: string; title?: string }[] {
   return records
-    .filter((row) => row.kind === "content" && row.type !== "article" && row.type !== "blog-index")
+    .filter(isParentPageCandidate)
     .map((row) => ({ id: row.id, title: row.title }))
     .sort((a, b) => (a.title ?? a.id).localeCompare(b.title ?? b.id, undefined, { sensitivity: "base" }));
 }

@@ -187,8 +187,9 @@ export function withTypeChoices(schema: FormSchema, types: readonly string[], cu
 }
 
 /**
- * Replace the Parent text field with None plus other page ids.
- * `excludeId` is the current page (no self-parent). An orphan current parent is kept in the list.
+ * Replace the Parent text field with None plus site-tree page ids.
+ * Excludes articles and blog indexes (see `parentPageIds`). `excludeId` is the current page.
+ * An orphan current parent is kept in the list.
  */
 export function withParentChoices(
   schema: FormSchema,

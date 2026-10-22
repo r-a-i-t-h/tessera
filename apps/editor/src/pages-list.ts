@@ -9,6 +9,19 @@ import {
 import type { RecordSummary } from "./api.js";
 import { buildContentCreationRank, compareAlpha } from "./creation-rank.js";
 
+/** Site-tree pages that may be a content page's `parentId` (not articles or blog indexes). */
+export function isParentPageCandidate(row: RecordSummary): boolean {
+  return row.kind === "content" && row.type !== "article" && row.type !== "blog-index";
+}
+
+/** Sorted ids for the Page tab parent control. */
+export function parentPageIds(rows: readonly RecordSummary[]): string[] {
+  return rows
+    .filter(isParentPageCandidate)
+    .map((row) => row.id)
+    .sort((a, b) => a.localeCompare(b));
+}
+
 export type PageListOrder = "created" | "alpha" | "nested" | "nav";
 
 export type ListedPage = { row: RecordSummary; depth: number };
