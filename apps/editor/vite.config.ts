@@ -17,6 +17,7 @@ export default defineConfig({
   build: {
     target: "es2022",
     assetsDir: "assets",
+    chunkSizeWarningLimit: 1000,
   },
   server: {
     port: 7355,

@@ -3,6 +3,7 @@ import { emptyRootRecordDraft, fieldById, formatRecordDisplayName } from "@r-a-i
 import {
   appendDatasetRecord,
   createDataset,
+  datasetRootRecords,
   deleteDataset,
   deleteDatasetRecord,
   getDataset,
@@ -205,7 +206,7 @@ async function mountDatasetGrid(
   const loadRefTitles = async (ds: string) => {
     if (refCache.has(ds)) return;
     try {
-      const { records } = await import("../api.js").then((m) => m.datasetRootRecords(ds));
+      const { records } = await datasetRootRecords(ds);
       refCache.set(ds, new Map(records.map((r) => [r.uid, r.displayName])));
     } catch {
       refCache.set(ds, new Map());
