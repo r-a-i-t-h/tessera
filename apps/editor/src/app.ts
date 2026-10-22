@@ -597,6 +597,11 @@ async function bindUsers(root: HTMLElement, user: PublicUser, notice = "", error
   root.innerHTML = chrome(user, usersHtml(listing.users, user, notice, error), true, "users");
   bindChrome(root);
   const form = root.querySelector<HTMLFormElement>("#new-user-form");
+  root.querySelector("[data-action=new-user]")?.addEventListener("click", () => {
+    if (!form) return;
+    form.hidden = false;
+    form.querySelector<HTMLInputElement>("#new-username")?.focus();
+  });
   form?.addEventListener("submit", (event) => {
     event.preventDefault();
     const data = new FormData(form);
@@ -605,11 +610,11 @@ async function bindUsers(root: HTMLElement, user: PublicUser, notice = "", error
     const confirm = String(data.get("confirmPassword") ?? "");
     const problem = usernameError(username) || passwordPairError(password, confirm, true);
     if (problem) {
-      void bindUsers(root, user, "", problem);
+      showFormError(form, problem);
       return;
     }
-    const button = form.querySelector("button");
-    if (button) button.disabled = true;
+    const button = form.querySelector("button[type=submit]");
+    if (button instanceof HTMLButtonElement) button.disabled = true;
     void (async () => {
       try {
         await createUser(username, password);
@@ -619,31 +624,11 @@ async function bindUsers(root: HTMLElement, user: PublicUser, notice = "", error
           bindLogin(root, "Sign in again.");
           return;
         }
-        await bindUsers(root, user, "", err instanceof Error ? err.message : "Could not add that user.");
+        if (button instanceof HTMLButtonElement) button.disabled = false;
+        showFormError(form, err instanceof Error ? err.message : "Could not add that user.");
       }
     })();
   });
-  for (const button of root.querySelectorAll<HTMLButtonElement>("[data-user-disable]")) {
-    button.addEventListener("click", () => {
-      const username = button.dataset.userDisable ?? "";
-      if (!username || !window.confirm(`Disable ${username}? They will be signed out and cannot sign in.`)) return;
-      void runUserAction(root, user, () => updateUser(username, { disabled: true }), `Disabled ${username}.`);
-    });
-  }
-  for (const button of root.querySelectorAll<HTMLButtonElement>("[data-user-enable]")) {
-    button.addEventListener("click", () => {
-      const username = button.dataset.userEnable ?? "";
-      if (!username) return;
-      void runUserAction(root, user, () => updateUser(username, { disabled: false }), `Enabled ${username}.`);
-    });
-  }
-  for (const button of root.querySelectorAll<HTMLButtonElement>("[data-user-delete]")) {
-    button.addEventListener("click", () => {
-      const username = button.dataset.userDelete ?? "";
-      if (!username || !window.confirm(`Delete ${username}? This cannot be undone.`)) return;
-      void runUserAction(root, user, () => deleteUser(username), `Deleted ${username}.`);
-    });
-  }
 }
 
 async function runUserAction(
@@ -651,14 +636,23 @@ async function runUserAction(
   user: PublicUser,
   action: () => Promise<unknown>,
   notice: string,
+  stayOnUsername?: string,
 ): Promise<void> {
   try {
     await action();
     const fresh = await me();
+    if (stayOnUsername) {
+      await bindUser(root, fresh, stayOnUsername, notice);
+      return;
+    }
     await bindUsers(root, fresh, notice);
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) {
       bindLogin(root, "Sign in again.");
+      return;
+    }
+    if (stayOnUsername) {
+      await bindUser(root, user, stayOnUsername, "", err instanceof Error ? err.message : "Could not update that user.");
       return;
     }
     await bindUsers(root, user, "", err instanceof Error ? err.message : "Could not update that user.");
@@ -677,15 +671,27 @@ async function bindUser(
   if (!target) {
     root.innerHTML = chrome(
       user,
-      `<h1 class="w3-large">User not found</h1><p><a href="#/users">Back to users</a></p>`,
+      `<div class="editor-toolbar">
+         <div class="editor-toolbar-row">
+           <a class="w3-button w3-white editor-back" href="#/users" aria-label="Back" title="Back (Escape)">←</a>
+           <h1 class="w3-large">User not found</h1>
+         </div>
+       </div>
+       <p class="w3-text-grey">No editor matches that username.</p>`,
       false,
       "users",
     );
     bindChrome(root);
     return;
   }
-  root.innerHTML = chrome(user, userEditHtml(target, user, notice, error), false, "users");
+  root.innerHTML = chrome(
+    user,
+    `${userDetailToolbar(target, user)}${userEditHtml(target, user, notice, error)}`,
+    false,
+    "users",
+  );
   bindChrome(root);
+  bindUserToolbarActions(root, user, target.username);
   const form = root.querySelector<HTMLFormElement>("#edit-user-form");
   form?.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -702,7 +708,7 @@ async function bindUser(
     const patch: { username: string; password?: string; disabled?: boolean } = { username: nextName };
     if (password) patch.password = password;
     if (!self) patch.disabled = data.get("disabled") === "on";
-    const button = form.querySelector("button");
+    const button = root.querySelector<HTMLButtonElement>('button[form="edit-user-form"]');
     if (button) button.disabled = true;
     void (async () => {
       try {
@@ -716,6 +722,7 @@ async function bindUser(
           bindLogin(root, "Sign in again.");
           return;
         }
+        if (button) button.disabled = false;
         await bindUser(
           root,
           user,
@@ -734,8 +741,8 @@ function usersHtml(users: ManagedUser[], actor: PublicUser, notice: string, erro
     : `<p class="w3-text-grey">No editors yet.</p>`;
   return `<h1 class="w3-large">Users</h1>
     ${statusPanels(notice, error)}
-    <form id="new-user-form" class="w3-card w3-white w3-padding-large editor-card">
-      <h2 class="w3-medium">Add user</h2>
+    <p><button type="button" class="w3-button w3-theme" data-action="new-user">New user</button></p>
+    <form id="new-user-form" class="editor-new-page" hidden>
       <p>
         <label for="new-username">Username</label>
         <input id="new-username" name="username" class="w3-input w3-border w3-margin-top" autocomplete="off" required />
@@ -748,7 +755,8 @@ function usersHtml(users: ManagedUser[], actor: PublicUser, notice: string, erro
         <label for="new-user-confirm">Confirm password</label>
         <input id="new-user-confirm" name="confirmPassword" type="password" class="w3-input w3-border w3-margin-top" autocomplete="new-password" minlength="6" required />
       </p>
-      <p><button type="submit" class="w3-button w3-theme">Add user</button></p>
+      ${formErrorPanel()}
+      <p><button type="submit" class="w3-button w3-theme">Create user</button></p>
     </form>
     ${rows}`;
 }
@@ -757,35 +765,70 @@ function userRow(item: ManagedUser, actor: PublicUser): string {
   const self = item.username === actor.username;
   const name = escapeHtml(item.username);
   const since = escapeHtml(item.createdAt.slice(0, 10));
-  const state = item.disabled ? `<span class="w3-text-red">Disabled</span>` : "";
-  const you = self ? `<span class="w3-text-grey">Signed in</span>` : "";
-  const toggle = self
-    ? ""
-    : item.disabled
-      ? `<button type="button" class="w3-button w3-small w3-white" data-user-enable="${name}">Enable</button>`
-      : `<button type="button" class="w3-button w3-small w3-white" data-user-disable="${name}">Disable</button>`;
-  const remove = self
-    ? ""
-    : `<button type="button" class="w3-button w3-small w3-white" data-user-delete="${name}">Delete</button>`;
+  const state = item.disabled ? `<span class="w3-text-red w3-small">Disabled</span>` : "";
+  const you = self ? `<span class="w3-text-grey w3-small">Signed in</span>` : "";
   return `<li class="editor-user">
       <a href="#/users/${encodeURIComponent(item.username)}">${name}</a>
       <span class="w3-text-grey w3-small">${since}</span>
       ${state}
       ${you}
-      <a class="w3-button w3-small w3-white" href="#/users/${encodeURIComponent(item.username)}">Edit</a>
-      ${toggle}
-      ${remove}
     </li>`;
+}
+
+function userDetailToolbar(target: ManagedUser, actor: PublicUser): string {
+  const self = target.username === actor.username;
+  const name = escapeHtml(target.username);
+  const toggle = self
+    ? ""
+    : target.disabled
+      ? `<button type="button" class="w3-button w3-white" data-user-enable="${name}">Enable</button>`
+      : `<button type="button" class="w3-button w3-white" data-user-disable="${name}">Disable</button>`;
+  const remove = self
+    ? ""
+    : `<button type="button" class="w3-button w3-white w3-border w3-border-red" data-user-delete="${name}">Delete</button>`;
+  return `<div class="editor-toolbar">
+      <div class="editor-toolbar-row">
+        <a class="w3-button w3-white editor-back" href="#/users" aria-label="Back" title="Back (Escape)">←</a>
+        <h1 class="w3-large">${name}</h1>
+        <p class="editor-actions">
+          <button type="submit" form="edit-user-form" class="w3-button w3-theme">Save</button>
+          ${toggle}
+          ${remove}
+        </p>
+      </div>
+    </div>`;
+}
+
+function bindUserToolbarActions(root: HTMLElement, user: PublicUser, username: string): void {
+  for (const button of root.querySelectorAll<HTMLButtonElement>("[data-user-disable]")) {
+    button.addEventListener("click", () => {
+      const target = button.dataset.userDisable ?? "";
+      if (!target || !window.confirm(`Disable ${target}? They will be signed out and cannot sign in.`)) return;
+      void runUserAction(root, user, () => updateUser(target, { disabled: true }), `Disabled ${target}.`, username);
+    });
+  }
+  for (const button of root.querySelectorAll<HTMLButtonElement>("[data-user-enable]")) {
+    button.addEventListener("click", () => {
+      const target = button.dataset.userEnable ?? "";
+      if (!target) return;
+      void runUserAction(root, user, () => updateUser(target, { disabled: false }), `Enabled ${target}.`, username);
+    });
+  }
+  for (const button of root.querySelectorAll<HTMLButtonElement>("[data-user-delete]")) {
+    button.addEventListener("click", () => {
+      const target = button.dataset.userDelete ?? "";
+      if (!target || !window.confirm(`Delete ${target}? This cannot be undone.`)) return;
+      void runUserAction(root, user, () => deleteUser(target), `Deleted ${target}.`);
+    });
+  }
 }
 
 function userEditHtml(target: ManagedUser, actor: PublicUser, notice: string, error: string): string {
   const self = target.username === actor.username;
   const disabled = target.disabled ? " checked" : "";
   const lock = self ? " disabled" : "";
-  const note = "";
-  return `<h1 class="w3-large">Edit ${escapeHtml(target.username)}</h1>
-    ${statusPanels(notice, error)}
-    <form id="edit-user-form" class="w3-card w3-white w3-padding-large editor-card">
+  return `${statusPanels(notice, error)}
+    <form id="edit-user-form" class="editor-form-scope">
       <p>
         <label for="edit-username">Username</label>
         <input id="edit-username" name="username" class="w3-input w3-border w3-margin-top" autocomplete="off" required value="${escapeHtml(target.username)}" />
@@ -799,10 +842,7 @@ function userEditHtml(target: ManagedUser, actor: PublicUser, notice: string, er
         <input id="edit-confirm" name="confirmPassword" type="password" class="w3-input w3-border w3-margin-top" autocomplete="new-password" minlength="6" />
       </p>
       <p class="editor-check"><label><input id="user-disabled" name="disabled" type="checkbox"${disabled}${lock} /> Disabled</label></p>
-      ${note}
-      <p><button type="submit" class="w3-button w3-theme">Save</button></p>
-    </form>
-    <p><a href="#/users">Back to users</a></p>`;
+    </form>`;
 }
 
 function passwordPairError(password: string, confirm: string, required: boolean): string {

@@ -30,3 +30,10 @@ export function statusPanels(notice: string, error: string): string {
 export function formErrorPanel(): string {
   return `<p data-form-error class="w3-panel w3-pale-red" role="alert" hidden></p>`;
 }
+
+export function showFormError(form: HTMLFormElement, message: string): void {
+  const error = form.querySelector<HTMLElement>("[data-form-error]");
+  if (!error) return;
+  error.hidden = false;
+  error.textContent = message;
+}

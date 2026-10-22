@@ -17,7 +17,7 @@ import {
 } from "../api.js";
 import { editorChrome, type EditorNavDataset, type EditorSection } from "../chrome.js";
 import { activateDialog } from "../dialog.js";
-import { escapeHtml } from "../dom.js";
+import { escapeHtml, formErrorPanel, showFormError } from "../dom.js";
 import { hasOpenModal } from "../escape-key.js";
 import { mountHtmlEditor, readHtmlEditor, renderHtmlEditor } from "../html-editor.js";
 import { openLibraryPicker } from "../library-picker.js";
@@ -113,12 +113,18 @@ async function mountDatasetList(root: HTMLElement, user: PublicUser, bindChrome:
   root.innerHTML = editorChrome(
     user,
     `<h1 class="w3-large">Datasets</h1>
-     <form id="dataset-create" class="editor-dataset-create">
-       <label for="new-dataset-title">Title</label>
-       <input id="new-dataset-title" name="title" class="w3-input w3-border" />
-       <label for="new-dataset-id">Id</label>
-       <input id="new-dataset-id" name="id" class="w3-input w3-border" required autocomplete="off" spellcheck="false" />
-       <button type="submit" class="w3-button w3-theme">New dataset</button>
+     <p><button type="button" class="w3-button w3-theme" data-action="new-dataset">New dataset</button></p>
+     <form id="new-dataset-form" class="editor-new-page" hidden>
+       <p>
+         <label for="new-dataset-title">Title</label>
+         <input id="new-dataset-title" name="title" class="w3-input w3-border w3-margin-top" />
+       </p>
+       <p>
+         <label for="new-dataset-id">Id</label>
+         <input id="new-dataset-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
+       </p>
+       ${formErrorPanel()}
+       <p><button type="submit" class="w3-button w3-theme">Create dataset</button></p>
      </form>
      <table class="w3-table w3-bordered w3-striped"><thead><tr><th>Title</th><th>Id</th><th>Records</th><th>Invalid</th></tr></thead><tbody>${rows || "<tr><td colspan=\"4\" class=\"w3-text-grey\">No datasets yet.</td></tr>"}</tbody></table>`,
     true,
@@ -126,14 +132,30 @@ async function mountDatasetList(root: HTMLElement, user: PublicUser, bindChrome:
     { datasets: datasetNavItems(datasets) },
   );
   bindChrome(root);
-  root.querySelector<HTMLFormElement>("#dataset-create")?.addEventListener("submit", (event) => {
+  const form = root.querySelector<HTMLFormElement>("#new-dataset-form");
+  root.querySelector("[data-action=new-dataset]")?.addEventListener("click", () => {
+    if (!form) return;
+    form.hidden = false;
+    form.querySelector<HTMLInputElement>("#new-dataset-id")?.focus();
+  });
+  form?.addEventListener("submit", (event) => {
     event.preventDefault();
-    const form = event.target as HTMLFormElement;
     const id = String(new FormData(form).get("id") ?? "").trim();
     const title = String(new FormData(form).get("title") ?? "").trim();
-    void createDataset(id, title).then(() => {
-      window.location.hash = `#/datasets/${encodeURIComponent(id)}`;
-    });
+    if (!id) {
+      showFormError(form, "Id is required.");
+      return;
+    }
+    const button = form.querySelector("button[type=submit]");
+    if (button instanceof HTMLButtonElement) button.disabled = true;
+    void createDataset(id, title)
+      .then(() => {
+        window.location.hash = `#/datasets/${encodeURIComponent(id)}`;
+      })
+      .catch((err) => {
+        if (button instanceof HTMLButtonElement) button.disabled = false;
+        showFormError(form, err instanceof Error ? err.message : "Could not create that dataset.");
+      });
   });
 }
 

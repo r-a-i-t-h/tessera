@@ -255,7 +255,7 @@ body {
 }
 
 .editor-toolbar .editor-actions {
-  margin: 0 0 0 auto;
+  margin: 0 0.35rem 0 auto;
 }
 
 .editor-toolbar #save-status {
@@ -507,8 +507,18 @@ textarea.w3-input[data-kind="json"]::-webkit-scrollbar-track,
   margin-top: 0.5rem;
 }
 
-.editor-new-page {
+.editor-new-page,
+.editor-form-scope {
+  box-sizing: border-box;
   margin: 0.25rem 0 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.editor-form-scope .w3-medium {
+  margin-top: 0;
 }
 
 .editor-nav {
@@ -1774,39 +1784,6 @@ button.editor-library-row:hover,
 
 .editor-dataset-schema .editor-type-actions {
   flex-shrink: 0;
-}
-
-.editor-dataset-create {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 0.75rem;
-  margin: 0 0 1rem;
-  padding: 0.65rem 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 0.25rem;
-  background: #fafafa;
-  max-width: 48rem;
-}
-
-.editor-dataset-create label {
-  flex: 0 0 auto;
-  margin: 0;
-  font-size: 0.85rem;
-  white-space: nowrap;
-}
-
-.editor-dataset-create .w3-input {
-  flex: 1 1 8rem;
-  min-width: 6rem;
-  max-width: 14rem;
-  margin-top: 0 !important;
-  padding: 0.35rem 0.5rem;
-  box-sizing: border-box;
-}
-
-.editor-dataset-create .w3-button {
-  flex: 0 0 auto;
 }
 
 .editor-dataset-columns,
