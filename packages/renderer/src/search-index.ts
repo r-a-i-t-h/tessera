@@ -135,8 +135,27 @@ function wordSpans(text: string): WordSpan[] {
   return spans;
 }
 
-function wordMatchesQueryTerm(word: string, term: string): boolean {
-  return word.toLowerCase().startsWith(term.toLowerCase());
+/** Prefer exact token matches, then the tightest prefix match (avoids e.g. "will" → "Welcome"). */
+function bestSpanIndexForTerm(
+  spans: WordSpan[],
+  term: string,
+  startAt = 0,
+): number {
+  const needle = term.toLowerCase();
+  let best = -1;
+  let bestScore = -1;
+  for (let i = startAt; i < spans.length; i++) {
+    const word = spans[i]!.text;
+    const hay = word.toLowerCase();
+    if (!hay.startsWith(needle)) continue;
+    let score = needle.length / hay.length;
+    if (hay === needle) score += 1;
+    if (score > bestScore) {
+      bestScore = score;
+      best = i;
+    }
+  }
+  return best;
 }
 
 function encodeTextFragmentPart(value: string): string {
@@ -164,48 +183,37 @@ function buildTextFragmentDirective(text: string, terms: string[]): string | nul
   const spans = wordSpans(trimmed);
   if (!spans.length) return null;
 
-  let anchor = -1;
-  for (let i = 0; i < spans.length; i++) {
-    if (terms.some((term) => wordMatchesQueryTerm(spans[i]!.text, term))) {
-      anchor = i;
-      break;
-    }
-  }
-  if (anchor < 0) return null;
-
-  let highlightStart = anchor;
-  let highlightEnd = anchor;
-  const windowStart = Math.max(0, anchor - FRAGMENT_CONTEXT_WORDS);
-  let windowEnd = Math.min(spans.length - 1, anchor + FRAGMENT_CONTEXT_WORDS);
-
+  const matchIndices: number[] = [];
+  let searchFrom = 0;
   for (const term of terms) {
-    for (let i = windowStart; i <= windowEnd; i++) {
-      if (!wordMatchesQueryTerm(spans[i]!.text, term)) continue;
-      highlightStart = Math.min(highlightStart, i);
-      highlightEnd = Math.max(highlightEnd, i);
-    }
+    const index = bestSpanIndexForTerm(spans, term, searchFrom);
+    if (index < 0) return null;
+    matchIndices.push(index);
+    searchFrom = index + 1;
   }
 
-  windowEnd = Math.min(spans.length - 1, highlightEnd + FRAGMENT_CONTEXT_WORDS);
-  for (const term of terms) {
-    for (let i = highlightStart; i <= windowEnd; i++) {
-      if (!wordMatchesQueryTerm(spans[i]!.text, term)) continue;
-      highlightEnd = Math.max(highlightEnd, i);
-    }
+  if (matchIndices.length === 1) {
+    const highlightIndex = matchIndices[0]!;
+    const windowEnd = Math.min(
+      spans.length - 1,
+      highlightIndex + FRAGMENT_CONTEXT_WORDS,
+    );
+    const prefixStart = Math.max(0, highlightIndex - FRAGMENT_CONTEXT_WORDS);
+    const prefix = joinSpanText(spans, prefixStart, highlightIndex - 1);
+    const match = spans[highlightIndex]!.text;
+    const suffix = joinSpanText(spans, highlightIndex + 1, windowEnd);
+    if (!match) return null;
+
+    const parts: string[] = [];
+    if (prefix) parts.push(`${encodeTextFragmentPart(prefix)}-`);
+    parts.push(encodeTextFragmentPart(match));
+    if (suffix) parts.push(`-${encodeTextFragmentPart(suffix)}`);
+    return parts.join(",");
   }
-  windowEnd = Math.min(spans.length - 1, highlightEnd + FRAGMENT_CONTEXT_WORDS);
 
-  const prefixStart = Math.max(0, highlightStart - FRAGMENT_CONTEXT_WORDS);
-  const prefix = joinSpanText(spans, prefixStart, highlightStart - 1);
-  const match = joinSpanText(spans, highlightStart, highlightEnd);
-  const suffix = joinSpanText(spans, highlightEnd + 1, windowEnd);
-  if (!match) return null;
-
-  const parts: string[] = [];
-  if (prefix) parts.push(`${encodeTextFragmentPart(prefix)}-`);
-  parts.push(encodeTextFragmentPart(match));
-  if (suffix) parts.push(`-${encodeTextFragmentPart(suffix)}`);
-  return parts.join(",");
+  return matchIndices
+    .map((index) => encodeTextFragmentPart(spans[index]!.text))
+    .join("&text=");
 }
 
 function joinSpanText(spans: WordSpan[], from: number, to: number): string {

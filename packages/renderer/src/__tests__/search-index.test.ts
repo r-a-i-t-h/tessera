@@ -99,4 +99,24 @@ describe("textFragmentDirective", () => {
       textFragmentDirective("zzz", { title: "Home", body: "Hello world." }),
     ).toBe("");
   });
+
+  it("highlights only the best matching word, not a span through filler", () => {
+    const fragment = textFragmentDirective("will", {
+      title: "Home",
+      body: "Welcome to the garden with willow trees nearby.",
+    });
+    expect(fragment).toContain("willow");
+    expect(fragment).not.toMatch(/Welcome/i);
+  });
+
+  it("uses separate text directives for multi-term queries", () => {
+    const fragment = textFragmentDirective("garden will", {
+      title: "Home",
+      body: "Welcome to the garden with willow trees nearby.",
+    });
+    expect(fragment).toContain("&text=");
+    expect(fragment).toContain("garden");
+    expect(fragment).toContain("willow");
+    expect(fragment).not.toContain("with");
+  });
 });
