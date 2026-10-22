@@ -41,7 +41,9 @@ function mountView(ctx: RenderContext, props: Record<string, unknown>, variant: 
   const payload = buildDatasetViewPayload(ctx, props, variant, display);
   if (!payload) return `<!-- dataset view: missing dataset -->`;
   if (!payload.rows.length) {
-    return `<p class="wh-muted"><em>${ctx.escapeHtml(payload.empty)}</em></p>`;
+    const text = payload.empty.trim();
+    if (!text) return "";
+    return `<p class="wh-muted"><em>${ctx.escapeHtml(text)}</em></p>`;
   }
   return mountDatasetViewMarkup(payload);
 }

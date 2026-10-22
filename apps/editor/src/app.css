@@ -820,7 +820,8 @@ img[data-hero-preview] {
   min-width: 0;
 }
 
-.editor-props > .editor-prop-wide {
+.editor-props > .editor-prop-wide,
+.editor-props > fieldset.editor-prop-wide {
   grid-column: 1 / -1;
 }
 

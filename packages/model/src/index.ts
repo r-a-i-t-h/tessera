@@ -150,6 +150,8 @@ export {
   expandDatasetIdsWithRefs,
   queryDatasetRecords,
   documentDatasetMap,
+  parseDatasetFilters,
+  evaluationDay,
 } from "./dataset-query.js";
 export type {
   DatasetScalarKind,

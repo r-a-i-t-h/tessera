@@ -174,6 +174,7 @@ import {
   syncDatasetPresentation,
   syncDatasetCatalogFields,
   bindDatasetColumnChecklist,
+  bindDatasetFilters,
 } from "./forms/dataset-binding.js";
 import { datasetFieldCatalog } from "./dataset-field-catalog.js";
 import {
@@ -1261,6 +1262,7 @@ function bindNewBinding(root: HTMLElement, listing: RecordList, choices: Binding
     if (error) showFormError(form, error);
     form.querySelector<HTMLElement>("[data-binding-focus]")?.focus();
     syncDatasetPresentation(form);
+    bindDatasetFilters(form, choices);
   };
 
   open.addEventListener("click", () => {
@@ -1277,7 +1279,7 @@ function bindNewBinding(root: HTMLElement, listing: RecordList, choices: Binding
     const target = event.target;
     if (!(target instanceof HTMLSelectElement)) return;
     if (target.name === "binding-kind") {
-      state = readNewBinding(bindingControls(form), folderSelection(form));
+      state = readNewBinding(bindingControls(form), folderSelection(form), choices, form);
       state.step = 1;
       paint();
       return;
@@ -1288,7 +1290,7 @@ function bindNewBinding(root: HTMLElement, listing: RecordList, choices: Binding
     if (target.name === "dataset-dataset") {
       void enrichBindingChoices(choices, target.value).then((next) => {
         Object.assign(choices, next);
-        state = readNewBinding(bindingControls(form), folderSelection(form));
+        state = readNewBinding(bindingControls(form), folderSelection(form), choices, form);
         paint();
       });
     }
@@ -1303,13 +1305,13 @@ function bindNewBinding(root: HTMLElement, listing: RecordList, choices: Binding
     }
     if (button.dataset.bindingStep !== "back") return;
     event.preventDefault();
-    state = readNewBinding(bindingControls(form), folderSelection(form));
+    state = readNewBinding(bindingControls(form), folderSelection(form), choices, form);
     state.step = state.step === 3 ? 2 : 1;
     paint();
   });
   form.addEventListener("submit", (event) => {
     event.preventDefault();
-    state = readNewBinding(bindingControls(form), folderSelection(form));
+    state = readNewBinding(bindingControls(form), folderSelection(form), choices, form);
     if (state.kind === "gallery" && state.step < 3) {
       const problem = state.step === 1 ? bindingIdError(state.id, existing) : undefined;
       if (problem) {
@@ -1330,7 +1332,7 @@ function bindNewBinding(root: HTMLElement, listing: RecordList, choices: Binding
       paint();
       return;
     }
-    void createBinding(root, form, state, existing);
+    void createBinding(root, form, state, existing, choices);
   });
 }
 
@@ -1339,8 +1341,9 @@ async function createBinding(
   form: HTMLFormElement,
   state: NewBinding,
   existing: readonly string[],
+  bindingChoices: BindingChoices,
 ): Promise<void> {
-  const problem = newBindingError(state, existing);
+  const problem = newBindingError(state, existing, bindingChoices);
   if (problem) {
     showFormError(form, problem);
     return;
@@ -3446,7 +3449,7 @@ async function bindEdit(
                     : kind === "types" && editMode === "fields"
                     ? typeBody(id, form)
                     : kind === "bindings" && editMode === "fields"
-                      ? bindingBody(id, form, payload.data)
+                      ? bindingBody(id, form, payload.data, bindingChoices)
                       : saveRecordBody(kind, form, payload.data),
               );
       }
@@ -3966,7 +3969,7 @@ function bindingFields(record: Record<string, unknown>): string {
   return schema ? renderForm(schema, record) : "";
 }
 
-function bindingBody(id: string, form: HTMLFormElement, original: unknown): unknown {
+function bindingBody(id: string, form: HTMLFormElement, original: unknown, choices?: BindingChoices): unknown {
   const kind = bindingKind(original);
   const controls = bindingControls(form);
   if (kind === "gallery") return galleryRecord(id, galleryDraftFromForm(controls, folderSelection(form) ?? []));
@@ -3991,8 +3994,8 @@ function bindingBody(id: string, form: HTMLFormElement, original: unknown): unkn
   if (kind === "imageReveal") return imageRevealRecord(id, imageRevealDraftFromForm(controls));
   if (kind === "embed") return embedRecord(id, embedDraftFromForm(controls));
   if (kind === "dataset") {
-    const draft = datasetDraftFromForm(controls);
-    const problem = datasetBindingError(draft);
+    const draft = datasetDraftFromForm(controls, choices, form);
+    const problem = datasetBindingError(draft, choices);
     if (problem) throw new Error(problem);
     return datasetRecord(id, draft);
   }
@@ -4001,6 +4004,7 @@ function bindingBody(id: string, form: HTMLFormElement, original: unknown): unkn
 
 function bindBindingForm(form: HTMLFormElement, choices?: BindingChoices): void {
   bindDatasetColumnChecklist(form);
+  bindDatasetFilters(form, choices);
   syncDatasetPresentation(form);
   form.addEventListener("change", (event) => {
     const target = event.target;
@@ -4011,7 +4015,7 @@ function bindBindingForm(form: HTMLFormElement, choices?: BindingChoices): void 
     if (target.name === "dataset-dataset" && choices) {
       void enrichBindingChoices(choices, target.value).then((next) => {
         Object.assign(choices, next);
-        const draft = datasetDraftFromForm(bindingControls(form));
+        const draft = datasetDraftFromForm(bindingControls(form), choices, form);
         syncDatasetCatalogFields(form, draft, choices);
       });
     }

@@ -110,7 +110,7 @@ export function buildDatasetViewPayload(
 
   return {
     variant,
-    empty: typeof props.empty === "string" ? props.empty : "Nothing listed yet.",
+    empty: typeof props.empty === "string" ? props.empty : "",
     showHeader: props.showHeader !== false,
     headingField,
     compact: props.compact === true,

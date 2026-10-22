@@ -40,6 +40,19 @@ abstract class DatasetViewElement extends WCBase {
     return sortRowsClient(payload.rows, this.#sort.field, this.#sort.dir);
   }
 
+  #paintEmpty(): void {
+    const text = this.#payload?.empty.trim() ?? "";
+    if (!text) {
+      this.rootEl.replaceChildren();
+      return;
+    }
+    const p = this.e("p", { className: "wh-muted" });
+    const em = this.e("em");
+    em.textContent = text;
+    p.append(em);
+    this.rootEl.replaceChildren(p);
+  }
+
   #setSort(field: string): void {
     const payload = this.#payload;
     if (!payload?.interactiveSort) return;
@@ -134,7 +147,7 @@ abstract class DatasetViewElement extends WCBase {
     if (!payload) return;
     const rows = this.#sortedRows();
     if (!rows.length) {
-      this.rootEl.innerHTML = `<p class="wh-muted"><em>${escapeHtml(payload.empty)}</em></p>`;
+      this.#paintEmpty();
       return;
     }
     const table = this.e("table", {
@@ -178,12 +191,7 @@ abstract class DatasetViewElement extends WCBase {
     const sortBar = this.#paintSortBar();
     if (sortBar) wrap.append(sortBar);
     if (!rows.length) {
-      const empty = this.e("p", { className: "wh-muted" });
-      const em = this.e("em");
-      em.textContent = payload.empty;
-      empty.append(em);
-      wrap.append(empty);
-      this.rootEl.replaceChildren(wrap);
+      this.#paintEmpty();
       return;
     }
     const headingId = payload.headingField;
@@ -227,12 +235,7 @@ abstract class DatasetViewElement extends WCBase {
     const sortBar = this.#paintSortBar();
     if (sortBar) wrap.append(sortBar);
     if (!rows.length) {
-      const empty = this.e("p", { className: "wh-muted" });
-      const em = this.e("em");
-      em.textContent = payload.empty;
-      empty.append(em);
-      wrap.append(empty);
-      this.rootEl.replaceChildren(wrap);
+      this.#paintEmpty();
       return;
     }
     const ul = this.e("ul", { className: "tessera-dataset-list" });
@@ -260,10 +263,6 @@ abstract class DatasetViewElement extends WCBase {
 class TesseraDatasetTable extends DatasetViewElement {}
 class TesseraDatasetCards extends DatasetViewElement {}
 class TesseraDatasetList extends DatasetViewElement {}
-
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
-}
 
 export function mountDatasetViewMarkup(payload: DatasetViewPayload): string {
   const json = escapeJsonScript(JSON.stringify(payload));

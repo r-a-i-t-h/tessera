@@ -17,7 +17,61 @@ export function documentDatasetMap(document: Pick<SiteDocument, "datasets">): Re
 
 export type DatasetSortDir = "asc" | "desc";
 
-export type DatasetFilterOp = "eq" | "neq" | "empty" | "notEmpty" | "gte" | "lte";
+export type DatasetFilterOp =
+  | "eq"
+  | "neq"
+  | "empty"
+  | "notEmpty"
+  | "hasValue"
+  | "gte"
+  | "lte"
+  | "future"
+  | "past"
+  | "contains";
+
+const DATASET_FILTER_OPS = new Set<string>([
+  "eq",
+  "neq",
+  "empty",
+  "notEmpty",
+  "hasValue",
+  "gte",
+  "lte",
+  "future",
+  "past",
+  "contains",
+]);
+
+/** Local calendar day `YYYY-MM-DD` for date-relative filters. */
+export function evaluationDay(now = new Date()): string {
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
+function isDateOnly(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+/** Parse binding `props.filter` into validated rules. `notEmpty` is kept as authored. */
+export function parseDatasetFilters(raw: unknown): DatasetFilter[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const out: DatasetFilter[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const field = typeof (item as { field?: unknown }).field === "string" ? (item as { field: string }).field.trim() : "";
+    const opRaw = (item as { op?: unknown }).op;
+    if (!field || typeof opRaw !== "string" || !DATASET_FILTER_OPS.has(opRaw)) continue;
+    const op = opRaw as DatasetFilterOp;
+    const needsValue = op === "eq" || op === "neq" || op === "gte" || op === "lte" || op === "contains";
+    out.push({
+      field,
+      op,
+      ...(needsValue && "value" in (item as object) ? { value: (item as { value?: unknown }).value } : {}),
+    });
+  }
+  return out.length ? out : undefined;
+}
 
 export type DatasetFilter = {
   field: string;
@@ -31,6 +85,8 @@ export type DatasetQueryOptions = {
   sort?: { field: string; dir?: DatasetSortDir };
   limit?: number;
   filter?: readonly DatasetFilter[];
+  /** Fixed “today” for `future` / `past` filters (tests and preview hooks). */
+  asOf?: Date;
 };
 
 export type DatasetFieldCell = {
@@ -73,13 +129,14 @@ function compareValues(a: unknown, b: unknown): number {
   return String(a ?? "").localeCompare(String(b ?? ""), undefined, { numeric: true });
 }
 
-function matchesFilter(record: DatasetRootRecord, filter: DatasetFilter): boolean {
+function matchesFilter(record: DatasetRootRecord, filter: DatasetFilter, asOf: Date): boolean {
   const raw = record[filter.field];
   const empty = raw === undefined || raw === null || raw === "";
   switch (filter.op) {
     case "empty":
       return empty;
     case "notEmpty":
+    case "hasValue":
       return !empty;
     case "eq":
       return !empty && raw === filter.value;
@@ -89,6 +146,19 @@ function matchesFilter(record: DatasetRootRecord, filter: DatasetFilter): boolea
       return !empty && compareValues(raw, filter.value) >= 0;
     case "lte":
       return !empty && compareValues(raw, filter.value) <= 0;
+    case "contains":
+      return (
+        !empty &&
+        String(raw).toLowerCase().includes(String(filter.value ?? "").toLowerCase())
+      );
+    case "past":
+    case "future": {
+      if (empty) return false;
+      const fieldDay = String(raw).slice(0, 10);
+      if (!isDateOnly(fieldDay)) return false;
+      const today = evaluationDay(asOf);
+      return filter.op === "past" ? fieldDay < today : fieldDay >= today;
+    }
     default:
       return true;
   }
@@ -147,8 +217,9 @@ export function queryDatasetRecords(
   let rows: DatasetRootRecord[] = [...snapshot.records];
   const schemaFields = snapshot.schema.fields;
 
+  const asOf = options.asOf ?? new Date();
   for (const rule of options.filter ?? []) {
-    rows = rows.filter((record) => matchesFilter(record, rule));
+    rows = rows.filter((record) => matchesFilter(record, rule, asOf));
   }
 
   if (options.sort?.field) {

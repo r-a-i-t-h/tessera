@@ -106,4 +106,44 @@ describe("dataset presentations", () => {
     expect(html).toContain("Alpha");
     expect(html).not.toContain("<tbody>");
   });
+
+  it("shows the binding empty message when the query returns no rows", () => {
+    const registry = new ComponentRegistry();
+    registerExtras((name, fn) => registry.define(name, fn));
+    const ctx = {
+      document: {
+        version: 2,
+        site: { id: "t", title: "T", homePageId: "home", defaultLayoutId: "l" },
+        layouts: [{ id: "l", root: { type: "region", role: "main", children: [{ type: "page" }] } }],
+        pages: [{ id: "home", title: "Home", zones: {} }],
+        datasets: {
+          items: {
+            id: "items",
+            title: "Items",
+            view: { columns: ["label"], displayName: "{label}" },
+            schema: parseDatasetSchema({
+              fields: [{ key: "f1", id: "label", label: "Label", kind: "string" }],
+            }),
+            records: [],
+          },
+        },
+        items: [],
+        media: [],
+        folders: [],
+        nav: [],
+        bindings: [],
+        types: [],
+      },
+      page: { id: "home", title: "Home", zones: {} },
+      profile: { layoutId: "l", layoutSource: "site" },
+      zones: new Map(),
+      registry,
+      renderBlocks: () => "",
+      zoneJson: () => [],
+      mediaHtml: () => "",
+      escapeHtml: (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;"),
+    };
+    expect(datasetTable(ctx, { dataset: "items", empty: "No matches." })).toContain("No matches.");
+    expect(datasetTable(ctx, { dataset: "items" })).toBe("");
+  });
 });

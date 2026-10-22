@@ -27,7 +27,7 @@ import {
   renderNewBinding,
   blankNewBinding,
 } from "./binding.js";
-import { datasetDraft } from "./dataset-binding.js";
+import { blankDataset, datasetDraft, datasetPhrase, datasetRecord } from "./dataset-binding.js";
 
 const hall = {
   id: "hall-gallery",
@@ -274,6 +274,7 @@ describe("binding records", () => {
         showHeader: false,
         compact: true,
         headingField: "",
+        filters: [],
         propsExtra: {},
         recordExtra: {},
       },
@@ -293,6 +294,54 @@ describe("binding records", () => {
       },
     });
     expect(datasetDraft(record).datasetId).toBe("members");
+  });
+
+  it("round-trips dataset row filters and normalizes notEmpty to hasValue", () => {
+    const raw = {
+      id: "branch-table",
+      component: "datasetTable",
+      props: {
+        dataset: "branches",
+        filter: [
+          { field: "open", op: "eq", value: true },
+          { field: "email", op: "notEmpty" },
+          { field: "when", op: "future" },
+        ],
+      },
+    };
+    const draft = datasetDraft(raw);
+    expect(draft.filters).toEqual([
+      { field: "open", op: "eq", value: true },
+      { field: "email", op: "notEmpty" },
+      { field: "when", op: "future" },
+    ]);
+    expect(datasetRecord("branch-table", draft).props).toEqual({
+      dataset: "branches",
+      filter: [
+        { field: "open", op: "eq", value: true },
+        { field: "email", op: "hasValue" },
+        { field: "when", op: "future" },
+      ],
+    });
+    const catalog = {
+      branches: [
+        { id: "open", label: "Open", kind: "boolean" as const },
+        { id: "email", label: "Email", kind: "string" as const },
+        { id: "when", label: "When", kind: "date" as const },
+      ],
+    };
+    expect(
+      datasetPhrase(
+        {
+          ...blankDataset(),
+          presentation: "table",
+          datasetId: "branches",
+          filters: [{ field: "open", op: "eq", value: true }],
+        },
+        [{ id: "branches", title: "Branches" }],
+        { datasetFields: catalog },
+      ),
+    ).toBe("Dataset table for Branches, filtered by Open equals Yes.");
   });
 
   it("omits an empty people type list and drops a link type when the source is children", () => {

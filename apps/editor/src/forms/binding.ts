@@ -590,7 +590,12 @@ function newBindingActions(submitLabel: string, options?: { back?: boolean }): s
  * Read the new-binding form. `folderIds` is the checklist when it is on the page;
  * otherwise folders travel in hidden `gallery-folder` inputs.
  */
-export function readNewBinding(controls: readonly ControlValue[], folderIds?: readonly string[]): NewBinding {
+export function readNewBinding(
+  controls: readonly ControlValue[],
+  folderIds?: readonly string[],
+  choices?: BindingChoices,
+  form?: HTMLFormElement,
+): NewBinding {
   const kind = parseKind(valueOf(controls, "binding-kind"));
   const step = parseStep(valueOf(controls, "binding-step"));
   const folders = folderIds ? [...folderIds] : valuesOf(controls, "gallery-folder");
@@ -617,7 +622,7 @@ export function readNewBinding(controls: readonly ControlValue[], folderIds?: re
       : blankImageReveal(),
     embed: controls.some((control) => control.name === "embed-html") ? embedDraftFromForm(controls) : blankEmbed(),
     dataset: controls.some((control) => control.name === "dataset-dataset" || control.name === "dataset-presentation")
-      ? datasetDraftFromForm(controls)
+      ? datasetDraftFromForm(controls, choices, form)
       : blankDataset(),
   };
 }
@@ -634,7 +639,11 @@ export function newBindingRecord(state: NewBinding): Record<string, unknown> {
   return { id, component: state.component.trim() };
 }
 
-export function newBindingError(state: NewBinding, existingIds: readonly string[]): string | undefined {
+export function newBindingError(
+  state: NewBinding,
+  existingIds: readonly string[],
+  choices?: BindingChoices,
+): string | undefined {
   const idProblem = bindingIdError(state.id, existingIds);
   if (idProblem) return idProblem;
   if (state.kind === "dated") return limitError(state.dated.limit);
@@ -642,7 +651,7 @@ export function newBindingError(state: NewBinding, existingIds: readonly string[
   if (state.kind === "links" && state.links.source === "type" && !state.links.type.trim()) return "Choose a type.";
   if (state.kind === "links" && state.links.source === "nav" && !state.links.heading.trim()) return "Enter a menu heading.";
   if (state.kind === "imageReveal") return imageRevealError(state.imageReveal);
-  if (state.kind === "dataset") return datasetBindingError(state.dataset);
+  if (state.kind === "dataset") return datasetBindingError(state.dataset, choices);
   if (state.kind === "other" && !state.component.trim()) return "Enter a component name.";
   return undefined;
 }
