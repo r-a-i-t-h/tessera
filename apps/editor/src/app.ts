@@ -3070,7 +3070,7 @@ async function bindEdit(
        }
        ${
          showFrameTab
-           ? `<button type="button" class="w3-button ${editMode === "frame" ? "w3-theme" : "w3-white"}" data-mode="frame" aria-pressed="${editMode === "frame"}">Frame</button>`
+           ? `<button type="button" class="w3-button ${editMode === "frame" ? "w3-theme" : "w3-white"}" data-mode="frame" aria-pressed="${editMode === "frame"}">Frame zones</button>`
            : ""
        }
        <button type="button" class="w3-button ${editMode === "raw" ? "w3-theme" : "w3-white"}" data-mode="raw" aria-pressed="${editMode === "raw"}">Raw file</button>
