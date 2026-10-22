@@ -2052,30 +2052,45 @@ async function bindArticles(root: HTMLElement, user: PublicUser, blog?: string, 
     articlesBlog: blog,
   });
   bindChrome(root);
-  const filter = root.querySelector<HTMLInputElement>("#article-tag");
-  const list = root.querySelector<HTMLUListElement>("#article-list");
-  const applyArticleTagFilter = () => {
-    const needle = filter?.value.trim().toLowerCase() ?? "";
-    let shown = 0;
-    list?.querySelectorAll("li").forEach((item) => {
-      const tags = (item.getAttribute("data-tags") ?? "").toLowerCase();
-      const hide = Boolean(needle) && !tags.split("\u001f").some((tag) => tag.includes(needle));
-      (item as HTMLElement).hidden = hide;
-      if (!hide) shown += 1;
-    });
+  const bar = root.querySelector<HTMLElement>("#article-filter");
+  const applyArticleFilter = () => {
+    const list = root.querySelector<HTMLUListElement>("#article-list");
     const empty = root.querySelector<HTMLElement>("#article-filter-empty");
+    if (!list) return;
+    const query = {
+      type: "",
+      tag: bar?.querySelector<HTMLInputElement>("#article-tag")?.value ?? "",
+      title: bar?.querySelector<HTMLInputElement>("[name=title]")?.value ?? "",
+    };
+    let shown = 0;
+    for (const item of list.querySelectorAll<HTMLLIElement>("li")) {
+      const visible = entryVisible(
+        {
+          tags: (item.dataset.tags ?? "").split("\u001f").filter(Boolean),
+          title: item.dataset.title,
+        },
+        query,
+      );
+      item.hidden = !visible;
+      if (visible) shown += 1;
+    }
     if (empty) empty.hidden = shown !== 0;
   };
-  filter?.addEventListener("input", applyArticleTagFilter);
+  bar?.addEventListener("input", applyArticleFilter);
+  bar?.querySelector("[data-action=clear-article-filter]")?.addEventListener("click", () => {
+    for (const input of bar.querySelectorAll("input")) input.value = "";
+    applyArticleFilter();
+  });
   root.querySelector<HTMLSelectElement>("#article-list-order")?.addEventListener("change", (event) => {
     const select = event.currentTarget;
+    const list = root.querySelector<HTMLUListElement>("#article-list");
     if (!(select instanceof HTMLSelectElement) || !blog || !list) return;
     const order = select.value as ArticleListOrder;
     if (order !== "created" && order !== "date" && order !== "alpha") return;
     writeArticleListOrder(order);
     const articles = blogArticles(listing, blog, order);
     list.innerHTML = renderArticleListItems(articles);
-    applyArticleTagFilter();
+    applyArticleFilter();
   });
   root.querySelector("[data-action=new-article]")?.addEventListener("click", () => {
     const form = root.querySelector<HTMLFormElement>("#new-article-form");
@@ -2100,18 +2115,25 @@ function renderArticleListItems(articles: RecordSummary[]): string {
   return articles
     .map((row) => {
       const when = row.date ? ` <span class="w3-text-grey w3-small">${escapeHtml(row.date)}</span>` : "";
-      return `<li data-tags="${escapeHtml((row.tags ?? []).join("\u001f"))}"><a href="#/content/${encodeURIComponent(row.id)}">${escapeHtml(row.title ?? row.id)}</a>${when}</li>`;
+      return `<li data-tags="${escapeHtml((row.tags ?? []).join("\u001f"))}" data-title="${escapeHtml(row.title ?? row.id)}"><a href="#/content/${encodeURIComponent(row.id)}">${escapeHtml(row.title ?? row.id)}</a>${when}</li>`;
     })
     .join("");
 }
 
 function articleListToolbar(order: ArticleListOrder): string {
-  return `<div class="editor-entry-filter">${articleTagFilter()}${articleListOrderSelect(order)}</div>`;
+  return `<div class="editor-entry-filter" id="article-filter">${articleTagFilter()}${articleTitleFilter()}${articleListOrderSelect(order)}
+    <button type="button" class="w3-button w3-white" data-action="clear-article-filter">Clear</button>
+  </div>`;
 }
 
 function articleTagFilter(): string {
   return `<p class="editor-entry-filter-field"><label for="article-tag">Tag</label>
     <input id="article-tag" class="w3-input w3-border" autocomplete="off" /></p>`;
+}
+
+function articleTitleFilter(): string {
+  return `<p class="editor-entry-filter-field"><label for="article-title">Title</label>
+    <input id="article-title" name="title" class="w3-input w3-border" autocomplete="off" /></p>`;
 }
 
 function articleListOrderSelect(order: ArticleListOrder): string {
@@ -2155,7 +2177,7 @@ function articlesHtml(
       <p><button type="submit" class="w3-button w3-theme">Create article</button></p>
     </form>
     ${articleListToolbar(listOrder)}
-    ${items ? `<ul class="w3-ul" id="article-list">${items}</ul><p id="article-filter-empty" class="w3-text-grey" hidden>No articles with that tag.</p>` : `<p class="w3-text-grey">No articles for this blog yet.</p>`}`;
+    ${items ? `<ul class="w3-ul" id="article-list">${items}</ul><p id="article-filter-empty" class="w3-text-grey" hidden>No articles match.</p>` : `<p class="w3-text-grey">No articles for this blog yet.</p>`}`;
 }
 
 async function createArticle(root: HTMLElement, listing: RecordList, blogId: string): Promise<void> {
