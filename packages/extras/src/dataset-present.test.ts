@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseDatasetSchema } from "@r-a-i-t-h/tessera-model";
-import { ComponentRegistry } from "@r-a-i-t-h/tessera-renderer";
+import { ComponentRegistry, type RenderContext } from "@r-a-i-t-h/tessera-renderer";
 import { datasetColumnAlign, datasetRowTitle, resolveCardHeadingField } from "./dataset-payload.js";
 import { datasetTable } from "./dataset-present.js";
 import { registerExtras } from "./index.js";
@@ -38,7 +38,7 @@ describe("dataset presentations", () => {
   });
 
   it("uses column values for list titles when display name is unset", () => {
-    const columns = [{ id: "label", label: "Label", sortable: true }];
+    const columns = [{ id: "label", label: "Label", sortable: true, align: "left" as const }];
     expect(
       datasetRowTitle(
         { uid: 1, displayName: "#1", values: { label: "Alpha" } },
@@ -110,7 +110,7 @@ describe("dataset presentations", () => {
   it("shows the binding empty message when the query returns no rows", () => {
     const registry = new ComponentRegistry();
     registerExtras((name, fn) => registry.define(name, fn));
-    const ctx = {
+    const ctx: RenderContext = {
       document: {
         version: 2,
         site: { id: "t", title: "T", homePageId: "home", defaultLayoutId: "l" },

@@ -9,7 +9,7 @@ import type { SiteDocument } from "@r-a-i-t-h/tessera-model";
 const baseDoc = (): SiteDocument => ({
   version: 2,
   site: { id: "t", title: "T", homePageId: "home", defaultLayoutId: "l" },
-  layouts: [{ id: "l", root: { type: "region", role: "main", children: [{ type: "pageSlot" }] } }],
+  layouts: [{ id: "l", root: { type: "region", role: "main", children: [{ type: "page" }] } }],
   pages: [{ id: "home", title: "Home", zones: {} }],
   items: [],
   media: [],
