@@ -36,19 +36,17 @@ describe("published page tree", () => {
     ]);
   });
 
-  it("keeps description and nav visibility on the page record", () => {
+  it("keeps description on the page record", () => {
     const parsed = doc([
       {
         id: "home",
         title: "Home",
         description: "The hall",
-        showInNav: false,
         zones: {},
       },
     ]);
     expect(parsed.pages[0]).toMatchObject({
       description: "The hall",
-      showInNav: false,
     });
   });
 

@@ -217,11 +217,6 @@ export const PageSchema = z.object({
    */
   aspectId: AspectIdSchema.optional(),
   /**
-   * When `false`, the page still has a URL and an HTML file, and is omitted from nav.
-   * Omitted means the page appears in nav. History is not stored here.
-   */
-  showInNav: z.boolean().optional(),
-  /**
    * Site-defined type id. The type supplies the layout and the field list.
    * Omitted means a free-form page: site default layout, reached through the page tree.
    */

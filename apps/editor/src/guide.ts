@@ -47,7 +47,6 @@ export function guideHtml(): string {
       <li><code>navFlat</code> with <code>scope: topbar</code> is the row of links under the logo.</li>
       <li><code>navFlat</code> with <code>scope: sidebar</code> is the drawer. On a wide window the Menu button is hidden and the drawer stays closed. Narrow the window and Menu opens it.</li>
     </ul>
-    <p><strong>Show in nav</strong> on a page stores a flag. Clearing it writes <code>showInNav: false</code>. The menu components do not read that flag, so ticking it does not add a link. Add the page on the Nav record, or add a heading that pulls a whole type.</p>
     <p>A heading can fill itself. <strong>Type</strong> <code>meeting</code> lists every page whose type is <code>meeting</code>. <strong>Items</strong> lists pages whose id matches an item carrying that tag. Willow’s “This term” heading uses Type <code>meeting</code> and Sidebar only, which is why meetings appear in the drawer and stay off the top bar. Events have no such heading, so an event page stays out of both menus until you add one:</p>
     <pre>- heading: What's on
   sidebar: true

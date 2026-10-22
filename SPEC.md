@@ -132,7 +132,7 @@ Folder-relative URLs (`./…`) and Vite `base: "./"` keep a published site porta
 #### Pages
 
 - A **tree of pages**. `parentId` is the parent. The home page is the site root (`index.html`). Every other page is `{path}/index.html`, where the path is the chain of page `id` segments under the home page.
-- Each file contains that page’s prose, `<title>`, optional meta description, canonical URL, and that page’s frame: the site master, or the frame set on the page or its nearest ancestor. `showInNav: false` keeps the URL and the file. A menu link appears only when that frame's nav component includes that page.
+- Each file contains that page’s prose, `<title>`, optional meta description, canonical URL, and that page’s frame: the site master, or the frame set on the page or its nearest ancestor. A menu link appears only when that page is listed on the site nav record and the frame’s nav component includes it.
 - Micro-app regions are empty `data-tessera-microapp` mounts plus a JSON description. They run in the browser.
 - `sitemap.xml` lists every published page URL.
 - `search-index.json` is a publish-time MiniSearch index of page titles, tags, descriptions, and zone plain text. The layout `searchBox` component lazy-loads it on first use.
@@ -345,7 +345,7 @@ Criteria define “done enough,” not a build order (see [ROADMAP.md](./ROADMAP
 
 ### Pages flavour
 
-- [x] A published page record is `id`, `title`, optional `description`, optional `parentId`, optional `masterLayoutId`, optional `showInNav`, and the existing body zones. `locked`, `templateId`, and history are not on that record.
+- [x] A published page record is `id`, `title`, optional `description`, optional `parentId`, optional `masterLayoutId`, and the existing body zones. `locked`, `templateId`, and history are not on that record.
 - [x] `publishPages` writes one HTML file per page, with prose, title, canonical URL, and that page’s frame.
 - [x] Micro-apps are `data-tessera-microapp` mounts plus JSON. The publisher does not run them.
 - [x] `sitemap.xml` lists every published page URL, including pages omitted from nav.

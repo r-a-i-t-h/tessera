@@ -102,10 +102,6 @@ function renderPanelContent(info: PageDiagnostics, document: SiteDocument): stri
       pageBits.push(`<li><strong>${escapeHtml(key)}</strong> ${escapeHtml(value)}</li>`);
     }
   }
-  if (page.showInNav !== undefined) {
-    pageBits.push(`<li><strong>In nav</strong> ${page.showInNav ? "yes" : "no"}</li>`);
-  }
-
   const layoutBits: string[] = [
     `<li>${linkRow("Page layout", info.pageLayoutId, editorUrl("layouts", info.pageLayoutId)).replace(/^<li>|<\/li>$/g, "")} <span class="tessera-preview-diag-meta">via ${escapeHtml(layoutSourceLabel(profile.layoutSource))}</span></li>`,
   ];

@@ -81,7 +81,6 @@ const document = parseSiteDocument({
     {
       id: "draft-hidden",
       title: "Private",
-      showInNav: false,
       layoutId: "L",
       zones: {
         title: [{ type: "text", html: "Private" }],

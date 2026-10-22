@@ -56,7 +56,7 @@ describe("schema forms", () => {
     expect(next.id).toBe("hall");
   });
 
-  it("orders content fields as id/parent, title/frame, type/aspect, description/nav, tags/published", () => {
+  it("orders content fields as id/parent, title/frame, type/aspect, description/published, tags", () => {
     expect(CONTENT_FORM.fields.map((field) => field.name)).toEqual([
       "id",
       "parentId",
@@ -65,9 +65,8 @@ describe("schema forms", () => {
       "type",
       "aspectId",
       "description",
-      "showInNav",
-      "tags",
       "published",
+      "tags",
     ]);
   });
 
@@ -119,24 +118,17 @@ describe("schema forms", () => {
     expect(set.parentId).toBe("events");
   });
 
-  it("shows showInNav checked when the key is missing and omits it when checked", () => {
+  it("renders published before tags and omits published when checked", () => {
     const html = renderForm(CONTENT_FORM, { id: "home", title: "Home" });
-    expect(html).toContain("Show in nav");
-    expect(html).toContain('name="showInNav"');
     expect(html).toContain('name="published"');
-    expect(html).toContain("checked");
-    const kept = applySubmitted(CONTENT_FORM, { id: "home", title: "Home" }, { title: "Home", showInNav: true, tags: "" });
-    expect(kept).not.toHaveProperty("showInNav");
-    const hidden = applySubmitted(
-      CONTENT_FORM,
-      { id: "home", title: "Home" },
-      { title: "Home", showInNav: false, tags: "news, hall" },
-    );
-    expect(hidden.showInNav).toBe(false);
-    expect(hidden).not.toHaveProperty("published");
-    expect(hidden.tags).toEqual(["news", "hall"]);
-    const draft = applySubmitted(CONTENT_FORM, { id: "home", title: "Home" }, { title: "Home", published: false });
+    expect(html).toContain('name="tags"');
+    expect(html).not.toContain('name="showInNav"');
+    expect(html.indexOf('name="published"')).toBeLessThan(html.indexOf('name="tags"'));
+    const kept = applySubmitted(CONTENT_FORM, { id: "home", title: "Home" }, { title: "Home", published: true, tags: "" });
+    expect(kept).not.toHaveProperty("published");
+    const draft = applySubmitted(CONTENT_FORM, { id: "home", title: "Home" }, { title: "Home", published: false, tags: "news, hall" });
     expect(draft.published).toBe(false);
+    expect(draft.tags).toEqual(["news", "hall"]);
   });
 
   it("offers inherit for the page frame and omits it when blank", () => {
@@ -276,7 +268,7 @@ describe("schema forms", () => {
       zones: { main: { html: "<p>Hi</p>" } },
       meta: { role: "Host" },
     });
-    expect(schema?.fields.some((field) => field.name === "showInNav")).toBe(true);
+    expect(schema?.fields.some((field) => field.name === "published")).toBe(true);
     expect(schema?.fields.some((field) => field.name === "meta" && field.type === "yaml")).toBe(true);
     expect(schema?.fields.some((field) => field.name === "zones")).toBe(false);
   });

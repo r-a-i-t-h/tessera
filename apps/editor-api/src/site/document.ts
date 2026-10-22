@@ -38,7 +38,6 @@ export type AuthoredPage = {
   parentId?: string;
   masterLayoutId?: string;
   aspectId?: string;
-  showInNav?: boolean;
   /** Absent means published. `false` keeps the file and leaves the page out of the site. */
   published?: boolean;
   type?: string;
@@ -122,7 +121,6 @@ export function pageToAuthoring(page: Page): AuthoredPage {
     ...(page.parentId ? { parentId: page.parentId } : {}),
     ...(page.masterLayoutId ? { masterLayoutId: page.masterLayoutId } : {}),
     ...(page.aspectId ? { aspectId: page.aspectId } : {}),
-    ...(page.showInNav === false ? { showInNav: false } : {}),
     ...(page.type ? { type: page.type } : {}),
     ...(page.fields && Object.keys(page.fields).length ? { fields: page.fields } : {}),
     ...(page.tags?.length ? { tags: page.tags } : {}),
@@ -147,7 +145,6 @@ export function authoredPageToPage(raw: AuthoredPage): Page {
     ...(raw.parentId ? { parentId: raw.parentId } : {}),
     ...(raw.masterLayoutId ? { masterLayoutId: raw.masterLayoutId } : {}),
     ...(raw.aspectId ? { aspectId: raw.aspectId } : {}),
-    ...(raw.showInNav === false ? { showInNav: false } : {}),
     ...(raw.type ? { type: raw.type } : {}),
     ...(raw.fields && Object.keys(raw.fields).length ? { fields: raw.fields } : {}),
     ...(raw.tags ? { tags: raw.tags } : {}),

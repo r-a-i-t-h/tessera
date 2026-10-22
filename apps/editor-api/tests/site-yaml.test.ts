@@ -30,6 +30,21 @@ describe("site YAML flatten", () => {
     expect(home.id).toBe("home");
   });
 
+  it("drops legacy showInNav on content save", async () => {
+    dir = await mkdtemp(join(tmpdir(), "tessera-showinnav-"));
+    const store = new SiteStore(dir);
+    await store.write("content", "home", {
+      title: "Home",
+      showInNav: false,
+      zones: { main: { html: "<p>Hi</p>" } },
+    });
+    const record = await store.read("content", "home");
+    expect(record).not.toHaveProperty("showInNav");
+    const { readText } = await import("../src/store/fs.js");
+    const yaml = await readText(join(dir, "content", "home.yaml"));
+    expect(yaml).not.toMatch(/showInNav/);
+  });
+
   it("stores HTML zones without JSON string escaping", async () => {
     dir = await mkdtemp(join(tmpdir(), "tessera-zone-"));
     const store = new SiteStore(dir);

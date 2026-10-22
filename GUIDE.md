@@ -43,8 +43,6 @@ Willow’s master layout ([Records → Layouts](#/records/layouts), then [`maste
 - `navFlat` with `scope: topbar` is the row of links under the logo.
 - `navFlat` with `scope: sidebar` is the drawer. On a wide window the Menu button is hidden and the drawer stays closed. Narrow the window and Menu opens it.
 
-**Show in nav** on a page stores a flag. Clearing it writes `showInNav: false`. The menu components do not read that flag, so ticking it does not add a link. Add the page on the Nav record, or add a heading that pulls a whole type.
-
 A heading can fill itself. **Type** `meeting` lists every page whose type is `meeting`. **Items** lists pages whose id matches an item carrying that tag. Willow’s “This term” heading uses Type `meeting` and Sidebar only, which is why meetings appear in the drawer and stay off the top bar. Events have no such heading, so an event page stays out of both menus until you add one:
 
 ```yaml

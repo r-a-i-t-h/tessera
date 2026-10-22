@@ -702,6 +702,7 @@ export class SiteStore {
   private async finalizeContent(id: string, record: Record<string, unknown>): Promise<Record<string, unknown>> {
     const next: Record<string, unknown> = { ...record, id };
     delete next.slug;
+    delete next.showInNav;
     const type = record.type;
     if (type !== "article" && type !== "blog" && type !== "blog-index") return next;
     if (type === "article") {
@@ -1110,6 +1111,7 @@ export class SiteStore {
 
   private async moveContentRecord(from: string, to: string, record: AuthoredPage): Promise<void> {
     if (from === to) return;
+    delete (record as Record<string, unknown>).showInNav;
     const order = await this.readOrder("content");
     const idx = order.indexOf(from);
     if (idx >= 0) order[idx] = to;

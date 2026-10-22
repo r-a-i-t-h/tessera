@@ -59,7 +59,6 @@ export type PageDiagnosticsPage = {
   parentId?: string;
   tags?: string[];
   fields?: Record<string, string>;
-  showInNav?: boolean;
   previewHash: string;
 };
 
@@ -299,7 +298,6 @@ export function analyzePageDiagnostics(
       ...(page.parentId ? { parentId: page.parentId } : {}),
       ...(page.tags?.length ? { tags: page.tags } : {}),
       ...(page.fields && Object.keys(page.fields).length ? { fields: page.fields } : {}),
-      ...(page.showInNav !== undefined ? { showInNav: page.showInNav } : {}),
       previewHash: `#${page.id}`,
     },
     profile,

@@ -112,9 +112,8 @@ export const CONTENT_FORM: FormSchema = {
     { name: "type", label: "Type", type: "string" },
     { name: "aspectId", label: "Aspect", type: "string" },
     { name: "description", label: "Description", type: "string" },
-    { name: "showInNav", label: "Show in nav", type: "Checkbox", defaultChecked: true },
-    { name: "tags", label: "Tags", type: "string", list: true },
     { name: "published", label: "Published", type: "Checkbox", defaultChecked: true },
+    { name: "tags", label: "Tags", type: "string", list: true },
   ],
 };
 
