@@ -4,6 +4,12 @@ import { apiError } from "../http.js";
 import { authenticatedSiteRoot } from "../middleware/editor-site.js";
 import { datasetStoreForSiteRoot, ValidationError } from "../site/dataset-store.js";
 import { isRecordId } from "../site/kinds.js";
+import type { SiteStore } from "../site/store.js";
+
+async function rebuildPreview(c: { get: (key: "site") => SiteStore | undefined }): Promise<void> {
+  const site = c.get("site");
+  if (site) await site.rebuild();
+}
 
 export const datasetRoutes = new Hono();
 datasetRoutes.use("/datasets", authenticatedSiteRoot);
@@ -34,6 +40,7 @@ datasetRoutes.post("/datasets", async (c) => {
   if (!isRecordId(id)) return apiError(c, 400, "Dataset id is invalid.");
   try {
     const file = await store(c).create(id, title);
+    await rebuildPreview(c);
     return c.json({ ok: true, file });
   } catch (err) {
     return apiError(c, 400, err instanceof Error ? err.message : "Could not create dataset.");
@@ -71,6 +78,7 @@ datasetRoutes.put("/datasets/:id", async (c) => {
     body && typeof body === "object" && "title" in body ? String((body as { title: unknown }).title ?? "") : "";
   try {
     const file = await store(c).updateTitle(id, title);
+    await rebuildPreview(c);
     return c.json({ ok: true, file });
   } catch (err) {
     return apiError(c, 400, err instanceof Error ? err.message : "Could not update dataset.");
@@ -91,6 +99,7 @@ datasetRoutes.put("/datasets/:id/view", async (c) => {
       : undefined;
   try {
     const file = await store(c).updateView(id, { columns, displayName });
+    await rebuildPreview(c);
     return c.json({ ok: true, file });
   } catch (err) {
     return apiError(c, 400, err instanceof Error ? err.message : "Could not update view.");
@@ -104,6 +113,7 @@ datasetRoutes.put("/datasets/:id/schema", async (c) => {
   const schema = body && typeof body === "object" ? (body as { schema?: unknown }).schema : undefined;
   try {
     const { file, summary } = await store(c).updateSchema(id, schema ?? { fields: [] });
+    await rebuildPreview(c);
     return c.json({ ok: true, file, summary });
   } catch (err) {
     return apiError(c, 400, err instanceof Error ? err.message : "Could not update schema.");
@@ -120,6 +130,7 @@ datasetRoutes.post("/datasets/:id/records", async (c) => {
   }
   try {
     const file = await store(c).appendRecord(id, record as Record<string, unknown>);
+    await rebuildPreview(c);
     return c.json({ ok: true, file });
   } catch (err) {
     if (err instanceof ValidationError) return c.json({ ok: false, error: err.message, issues: err.issues }, 400);
@@ -138,6 +149,7 @@ datasetRoutes.put("/datasets/:id/records/:uid", async (c) => {
   }
   try {
     const file = await store(c).replaceRecord(id, uid, record as Record<string, unknown>);
+    await rebuildPreview(c);
     return c.json({ ok: true, file });
   } catch (err) {
     if (err instanceof ValidationError) return c.json({ ok: false, error: err.message, issues: err.issues }, 400);
@@ -166,6 +178,7 @@ datasetRoutes.patch("/datasets/:id/records", async (c) => {
   }
   try {
     const file = await store(c).patchRecords(id, parsed);
+    await rebuildPreview(c);
     return c.json({ ok: true, file });
   } catch (err) {
     if (err instanceof ValidationError) return c.json({ ok: false, error: err.message, issues: err.issues }, 400);
@@ -179,6 +192,7 @@ datasetRoutes.delete("/datasets/:id/records/:uid", async (c) => {
   if (!isRecordId(id) || !Number.isInteger(uid) || uid < 1) return apiError(c, 400, "Invalid dataset or record uid.");
   try {
     const file = await store(c).deleteRecord(id, uid);
+    await rebuildPreview(c);
     return c.json({ ok: true, file });
   } catch (err) {
     return apiError(c, 400, err instanceof Error ? err.message : "Could not delete record.");
@@ -190,6 +204,7 @@ datasetRoutes.delete("/datasets/:id", async (c) => {
   if (!isRecordId(id)) return apiError(c, 400, "Dataset id is invalid.");
   try {
     await store(c).deleteDataset(id);
+    await rebuildPreview(c);
     return c.json({ ok: true });
   } catch (err) {
     return apiError(c, 400, err instanceof Error ? err.message : "Could not delete dataset.");

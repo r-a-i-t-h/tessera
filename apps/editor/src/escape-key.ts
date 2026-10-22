@@ -26,7 +26,7 @@ export function handleEscape(root: ParentNode, handlers?: EscapeHandlers): boole
 }
 
 function cancelCreationForm(root: ParentNode): boolean {
-  const form = root.querySelector<HTMLFormElement>("form.editor-new-page:not([hidden])");
+  const form = root.querySelector<HTMLFormElement>("form.editor-new-page:not([hidden]):not(#new-binding-form)");
   if (!form) return false;
   form.hidden = true;
   clearFormError(form);
@@ -34,16 +34,22 @@ function cancelCreationForm(root: ParentNode): boolean {
   return true;
 }
 
-function cancelBindingWizard(root: ParentNode): boolean {
-  const form = root.querySelector<HTMLFormElement>("#new-binding-form");
-  if (!form || form.hidden) return false;
+/** Same action as Escape on the new-binding form (step back, or close on the first step). */
+export function cancelNewBindingForm(form: HTMLFormElement): boolean {
   const back = form.querySelector<HTMLButtonElement>('[data-binding-step="back"]');
   if (back) {
     back.click();
     return true;
   }
   form.hidden = true;
+  clearFormError(form);
   return true;
+}
+
+function cancelBindingWizard(root: ParentNode): boolean {
+  const form = root.querySelector<HTMLFormElement>("#new-binding-form");
+  if (!form || form.hidden) return false;
+  return cancelNewBindingForm(form);
 }
 
 function cancelLibraryAssetDetail(root: ParentNode): boolean {

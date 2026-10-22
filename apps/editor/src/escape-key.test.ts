@@ -22,7 +22,7 @@ describe("handleEscape", () => {
 
   it("steps the binding wizard back before hiding it", () => {
     const root = document.createElement("div");
-    root.innerHTML = `<form id="new-binding-form">
+    root.innerHTML = `<form id="new-binding-form" class="editor-new-page">
         <button type="button" data-binding-step="back">Back</button>
       </form>`;
     let clicks = 0;

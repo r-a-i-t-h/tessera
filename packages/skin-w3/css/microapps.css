@@ -1,5 +1,180 @@
 /* Micro-apps. The gallery is light DOM, so these rules apply from the page. */
 
+.tessera-dataset-th-inner {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  padding-right: 0.75em;
+}
+
+.tessera-dataset-table thead .tessera-dataset-sort-btn,
+.tessera-dataset-table thead .tessera-dataset-sort-static {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0.35em 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+.tessera-dataset-table thead .tessera-dataset-sort-static {
+  cursor: default;
+}
+
+.tessera-dataset-table thead .tessera-dataset-sort-label {
+  display: block;
+  width: 100%;
+  text-align: inherit;
+}
+
+.tessera-dataset-table thead .tessera-dataset-th-inner .tessera-dataset-sort-glyph {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  margin-top: -0.25em;
+}
+
+.w3-table.tessera-dataset-table th[data-align="left"] .tessera-dataset-th-inner {
+  text-align: left;
+}
+
+.w3-table.tessera-dataset-table th[data-align="center"] .tessera-dataset-th-inner {
+  text-align: center;
+}
+
+.w3-table.tessera-dataset-table th[data-align="right"] .tessera-dataset-th-inner {
+  text-align: right;
+}
+
+.w3-table.tessera-dataset-table th.tessera-dataset-align-left,
+.w3-table.tessera-dataset-table td.tessera-dataset-align-left {
+  text-align: left;
+}
+
+.w3-table.tessera-dataset-table th.tessera-dataset-align-center,
+.w3-table.tessera-dataset-table td.tessera-dataset-align-center {
+  text-align: center;
+}
+
+.w3-table.tessera-dataset-table th.tessera-dataset-align-right,
+.w3-table.tessera-dataset-table td.tessera-dataset-align-right {
+  text-align: right;
+}
+
+.tessera-dataset-sort-glyph {
+  width: 0.5em;
+  height: 0.5em;
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.tessera-dataset-sort-glyph::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  margin-left: -0.28em;
+  border-left: 0.28em solid transparent;
+  border-right: 0.28em solid transparent;
+  border-bottom: 0.38em solid currentColor;
+  transform: translateY(-55%);
+}
+
+.tessera-dataset-sort-glyph.is-desc::after {
+  border-bottom-color: transparent;
+  border-top: 0.38em solid currentColor;
+  transform: translateY(-45%);
+}
+
+.tessera-dataset-sort-glyph.is-idle::after {
+  visibility: hidden;
+}
+
+.w3-table.tessera-dataset-table thead.w3-theme th.tessera-dataset-table__th {
+  vertical-align: middle;
+  background-color: transparent;
+  color: inherit;
+}
+
+.w3-table.tessera-dataset-table th,
+.w3-table.tessera-dataset-table td {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.w3-table.tessera-dataset-table th:first-child,
+.w3-table.tessera-dataset-table td:first-child {
+  padding-left: 8px;
+}
+
+.w3-table.tessera-dataset-table thead.w3-theme th {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.w3-table.tessera-dataset-table tbody tr {
+  border-bottom: 1px solid #e6e6e6;
+}
+
+.w3-table.tessera-dataset-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.w3-table.tessera-dataset-table--compact td,
+.w3-table.tessera-dataset-table--compact th {
+  padding-top: 0.35em;
+  padding-bottom: 0.35em;
+}
+
+.tessera-dataset-card .tessera-dataset-card-fields {
+  margin: 0;
+  width: 100%;
+  border: none;
+}
+
+.tessera-dataset-card-fields th {
+  font-weight: 600;
+  vertical-align: top;
+  padding-right: 0.85rem;
+  white-space: nowrap;
+  width: 1%;
+}
+
+.tessera-dataset-card-fields td {
+  vertical-align: top;
+}
+
+.tessera-dataset-sort {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem 1.25rem;
+}
+
+.tessera-dataset-sort-field {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.tessera-dataset-sort-field label {
+  font-size: 0.85rem;
+}
+
+.tessera-dataset-sort-field .w3-select {
+  min-width: 9rem;
+  max-width: 100%;
+}
+
 tessera-gallery .tessera-gallery-thumb {
   cursor: pointer;
 }

@@ -15,7 +15,7 @@ import {
   updatePreviewDiagnostics,
 } from "@r-a-i-t-h/tessera-demo-kit";
 import { resolveAspect } from "@r-a-i-t-h/tessera-model";
-import { bootBlog, registerExtras } from "@r-a-i-t-h/tessera-extras";
+import { bootBlog, bootDatasetViews, registerExtras } from "@r-a-i-t-h/tessera-extras";
 
 installChromeGlobals();
 
@@ -37,6 +37,7 @@ const renderer = await SiteRenderer.create({
     insertHeadingsMenu(document.getElementById("app") ?? document);
     syncSiteBackToTop(doc.site.backToTop === true);
     bootBlog(document);
+    bootDatasetViews(document);
     bootSearch(document);
     updatePreviewDiagnostics(pageId, doc);
   },

@@ -314,6 +314,20 @@ export const BindingSchema = z.object({
   props: z.record(z.unknown()).optional(),
 });
 
+/** Dataset snapshots embedded at flatten time for bindings that reference `datasets/`. */
+export const DatasetSnapshotSchema = z.object({
+  id: z.string().min(1),
+  title: z.string(),
+  view: z
+    .object({
+      columns: z.array(z.string()).default([]),
+      displayName: z.string().optional(),
+    })
+    .default({ columns: [] }),
+  schema: z.object({ fields: z.array(z.record(z.unknown())) }),
+  records: z.array(z.record(z.unknown())),
+});
+
 /**
  * Dynamic children for a nav node — content-implied links.
  * Presentation (tags / tree / collapse) is chosen by a nav *component*, not the system.
@@ -418,6 +432,8 @@ export const SiteDocumentSchema = z
     nav: z.array(NavEntrySchema).default([]),
     /** Named bindings of data → component for insertion in content. */
     bindings: z.array(BindingSchema).default([]),
+    /** Dataset snapshots referenced by bindings (flatten embeds from `datasets/`). */
+    datasets: z.record(z.string(), DatasetSnapshotSchema).optional(),
     /** Site-defined types. An entry's `type` picks one. Layout comes from that record. */
     types: z.array(TypeSchema).default([]),
   })

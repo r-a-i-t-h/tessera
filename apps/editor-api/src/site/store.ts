@@ -44,6 +44,8 @@ import { validateAuthoredRecord } from "./authored-schema.js";
 import { isSystemLibraryFolder } from "./library.js";
 import { rewriteLibraryFolderRefs } from "./library-folder-refs.js";
 import { rewritePageIdProps, rewriteZonesPageRefs } from "./page-ref-rewrite.js";
+import { embedDatasetsInDocument } from "./dataset-embed.js";
+import { recordUsesBinding } from "./binding-refs.js";
 
 export type SnapshotRef = { hash: string; file: string };
 
@@ -433,8 +435,10 @@ export class SiteStore {
   }> {
     const doc = await this.loadReadyDocument();
     if (!doc) return {};
-    const outputs = await this.writeOutputs(doc);
-    return { doc, ...outputs };
+    const siteRoot = dirname(this.recordsDir);
+    const withDatasets = await embedDatasetsInDocument(siteRoot, doc);
+    const outputs = await this.writeOutputs(withDatasets);
+    return { doc: withDatasets, ...outputs };
   }
 
   /**
@@ -862,6 +866,29 @@ export class SiteStore {
     }
 
     await this.removeRecord("folders", from);
+  }
+
+  private async bindingUsers(bindingId: string): Promise<string[]> {
+    const users: string[] = [];
+    for (const kind of ["content", "items", "templates", "layouts"] as const) {
+      for (const recordId of await this.listIds(kind)) {
+        const record = await this.read(kind, recordId);
+        if (recordUsesBinding(record, bindingId)) users.push(recordId);
+      }
+    }
+    return users;
+  }
+
+  /** Refused while a page or layout still inserts the binding. */
+  async deleteBinding(id: string): Promise<void> {
+    this.assertId(id);
+    await this.read("bindings", id);
+    const users = await this.bindingUsers(id);
+    if (users.length) {
+      throw new Error(`Binding ${id} is still used by ${users.join(", ")}.`);
+    }
+    await this.removeRecord("bindings", id);
+    await this.rebuild();
   }
 
   /** Refused while a page, layout, template, or binding still names the item. */

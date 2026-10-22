@@ -4,8 +4,21 @@ import { serializePageTargetChoices } from "./page-target.js";
 import { pageIdError } from "./page.js";
 import { folderChecklist } from "./picker.js";
 import type { ControlValue } from "./nav.js";
+import {
+  blankDataset,
+  datasetDraft,
+  datasetDraftFromForm,
+  datasetFields,
+  datasetPhrase,
+  datasetRecord,
+  datasetBindingError,
+  presentationForComponent,
+  renderDatasetForm,
+  type DatasetBindingChoices,
+  type DatasetDraft,
+} from "./dataset-binding.js";
 
-export type BindingKind = "gallery" | "dated" | "people" | "links" | "imageReveal" | "embed" | "other";
+export type BindingKind = "gallery" | "dated" | "people" | "links" | "imageReveal" | "embed" | "dataset" | "other";
 
 const IMAGE_REVEAL_SLOT_COUNT = 6;
 
@@ -76,7 +89,7 @@ export type EmbedDraft = {
 
 export type PageUse = { id: string; title?: string };
 
-export type BindingChoices = {
+export type BindingChoices = DatasetBindingChoices & {
   folders: readonly { id: string }[];
   types: readonly string[];
   headings: readonly string[];
@@ -94,6 +107,7 @@ export type NewBinding = {
   links: LinksDraft;
   imageReveal: ImageRevealDraft;
   embed: EmbedDraft;
+  dataset: DatasetDraft;
 };
 
 const TOKEN = /\{\{([a-zA-Z0-9_-]+)\}\}/g;
@@ -106,6 +120,7 @@ export function bindingKind(data: unknown): BindingKind {
   if (data.component === "linkCluster") return "links";
   if (data.component === "imageRevealGallery") return "imageReveal";
   if (data.component === "htmlEmbed") return "embed";
+  if (presentationForComponent(data.component)) return "dataset";
   return "other";
 }
 
@@ -121,6 +136,7 @@ export function blankNewBinding(): NewBinding {
     links: blankLinks(),
     imageReveal: blankImageReveal(),
     embed: blankEmbed(),
+    dataset: blankDataset(),
   };
 }
 
@@ -269,7 +285,7 @@ export function embedDraftFromForm(controls: readonly ControlValue[]): EmbedDraf
   };
 }
 
-const BINDING_CONTROL_PREFIXES = ["binding-", "gallery-", "dated-", "people-", "links-", "ir-", "embed-"] as const;
+const BINDING_CONTROL_PREFIXES = ["binding-", "gallery-", "dated-", "people-", "links-", "ir-", "embed-", "dataset-"] as const;
 
 /** Named controls on binding create/edit forms (excludes unrelated fields on the same page). */
 export function bindingControls(form: HTMLFormElement): ControlValue[] {
@@ -422,7 +438,9 @@ export function bindingSentence(data: unknown, pages: readonly PageUse[] = []): 
               ? imageRevealPhrase(imageRevealDraft(data))
               : kind === "embed"
                 ? embedPhrase(embedDraft(data))
-                : otherPhrase(data);
+                : kind === "dataset"
+                  ? datasetPhrase(datasetDraft(data))
+                  : otherPhrase(data);
   return `${detail}${usagePhrase(pages)}`;
 }
 
@@ -478,6 +496,7 @@ export function renderBindingForm(id: string, data: unknown, choices: BindingCho
   if (kind === "links") return renderLinksForm(id, linksDraft(data), choices);
   if (kind === "imageReveal") return renderImageRevealForm(id, imageRevealDraft(data), choices);
   if (kind === "embed") return renderEmbedForm(id, embedDraft(data));
+  if (kind === "dataset") return renderDatasetForm(id, datasetDraft(data), choices);
   return "";
 }
 
@@ -557,7 +576,14 @@ export function renderNewBinding(state: NewBinding, choices: BindingChoices): st
     ${idField(state)}
     ${state.kind === "gallery" ? `${carryPictures(state.gallery)}${carryLook(state.gallery)}` : kindBody(state, choices)}
     ${formErrorPanel()}
-    <p><button type="submit" class="w3-button w3-theme">${multiStep ? "Next" : "Create binding"}</button></p>`;
+    ${newBindingActions(multiStep ? "Next" : "Create binding")}`;
+}
+
+function newBindingActions(submitLabel: string, options?: { back?: boolean }): string {
+  const lead = options?.back
+    ? `<button type="button" class="w3-button w3-white" data-binding-step="back">Back</button> `
+    : `<button type="button" class="w3-button w3-white" data-binding-cancel>Cancel</button> `;
+  return `<p>${lead}<button type="submit" class="w3-button w3-theme">${submitLabel}</button></p>`;
 }
 
 /**
@@ -590,6 +616,9 @@ export function readNewBinding(controls: readonly ControlValue[], folderIds?: re
       ? imageRevealDraftFromForm(controls)
       : blankImageReveal(),
     embed: controls.some((control) => control.name === "embed-html") ? embedDraftFromForm(controls) : blankEmbed(),
+    dataset: controls.some((control) => control.name === "dataset-dataset" || control.name === "dataset-presentation")
+      ? datasetDraftFromForm(controls)
+      : blankDataset(),
   };
 }
 
@@ -601,6 +630,7 @@ export function newBindingRecord(state: NewBinding): Record<string, unknown> {
   if (state.kind === "links") return linksRecord(id, state.links);
   if (state.kind === "imageReveal") return imageRevealRecord(id, state.imageReveal);
   if (state.kind === "embed") return embedRecord(id, state.embed);
+  if (state.kind === "dataset") return datasetRecord(id, state.dataset);
   return { id, component: state.component.trim() };
 }
 
@@ -612,6 +642,7 @@ export function newBindingError(state: NewBinding, existingIds: readonly string[
   if (state.kind === "links" && state.links.source === "type" && !state.links.type.trim()) return "Choose a type.";
   if (state.kind === "links" && state.links.source === "nav" && !state.links.heading.trim()) return "Enter a menu heading.";
   if (state.kind === "imageReveal") return imageRevealError(state.imageReveal);
+  if (state.kind === "dataset") return datasetBindingError(state.dataset);
   if (state.kind === "other" && !state.component.trim()) return "Enter a component name.";
   return undefined;
 }
@@ -631,8 +662,7 @@ function imageRevealWizard(state: NewBinding, choices: BindingChoices): string {
       ${imageRevealPanelFields(state.imageReveal.panels, true)}
     </fieldset>
     ${formErrorPanel()}
-    <p><button type="button" class="w3-button w3-white" data-binding-step="back">Back</button>
-      <button type="submit" class="w3-button w3-theme">Create binding</button></p>`;
+    ${newBindingActions("Create binding", { back: true })}`;
 }
 
 function galleryWizard(state: NewBinding, choices: BindingChoices): string {
@@ -647,8 +677,7 @@ function galleryWizard(state: NewBinding, choices: BindingChoices): string {
         ${pictureFields(state.gallery, choices.folders, true)}
       </fieldset>
       ${formErrorPanel()}
-      <p><button type="button" class="w3-button w3-white" data-binding-step="back">Back</button>
-        <button type="submit" class="w3-button w3-theme">Next</button></p>`;
+      ${newBindingActions("Next", { back: true })}`;
   }
   return `<p>Gallery <code>${escapeHtml(token)}</code></p>
     <input type="hidden" name="binding-kind" value="gallery" />
@@ -659,8 +688,7 @@ function galleryWizard(state: NewBinding, choices: BindingChoices): string {
       ${lookFields(state.gallery, true)}
     </fieldset>
     ${formErrorPanel()}
-    <p><button type="button" class="w3-button w3-white" data-binding-step="back">Back</button>
-      <button type="submit" class="w3-button w3-theme">Create binding</button></p>`;
+    ${newBindingActions("Create binding", { back: true })}`;
 }
 
 function kindField(state: NewBinding): string {
@@ -671,6 +699,7 @@ function kindField(state: NewBinding): string {
     { value: "links", label: "Link group" },
     { value: "imageReveal", label: "Reveal banner" },
     { value: "embed", label: "Embed" },
+    { value: "dataset", label: "Dataset list" },
     { value: "other", label: "Something else" },
   ];
   return `<input type="hidden" name="binding-step" value="1" />
@@ -700,6 +729,9 @@ function kindBody(state: NewBinding, choices: BindingChoices): string {
   if (state.kind === "embed") {
     return `<p class="w3-small w3-text-grey">Paste embed code from a ticket vendor, payment provider, or similar. Insert with Compose → Insert after saving.</p>
     <p><label>HTML <textarea class="w3-input w3-border editor-html" name="embed-html" rows="14" spellcheck="false">${escapeHtml(state.embed.html)}</textarea></label></p>`;
+  }
+  if (state.kind === "dataset") {
+    return datasetFields(state.dataset, choices);
   }
   return `<div class="editor-props"><p><label for="new-binding-component">Component</label>
     <input id="new-binding-component" name="binding-component" class="w3-input w3-border" spellcheck="false" autocomplete="off" value="${escapeHtml(state.component)}" /></p>
@@ -1135,6 +1167,7 @@ function parseKind(value: string): BindingKind {
     value === "links" ||
     value === "imageReveal" ||
     value === "embed" ||
+    value === "dataset" ||
     value === "other"
   ) {
     return value;

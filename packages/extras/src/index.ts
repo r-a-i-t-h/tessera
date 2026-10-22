@@ -1,10 +1,11 @@
 import type { ComponentFn } from "@r-a-i-t-h/tessera-renderer";
 import { blogArticle, blogFeed, blogIndex } from "./blog.js";
-import { bootBlog } from "./blog-runtime.js";
 import { openDaysTable } from "./open-days.js";
 import { aboutRenderer, eventList, infoCard, now, pageNav } from "./pure.js";
 import { randomCells } from "./random-cells.js";
 import { registerCardElement } from "./rt-card.js";
+import { registerDatasetElements } from "./dataset-element.js";
+import { datasetCards, datasetPlainList, datasetTable } from "./dataset-present.js";
 import {
   agendaList,
   articleByline,
@@ -20,7 +21,8 @@ import {
  * Shared component catalogue. Every site may name these. A site does not
  * ship its own implementations.
  */
-export { bootBlog };
+export { bootBlog } from "./blog-runtime.js";
+export { bootDatasetViews, registerDatasetElements } from "./dataset-element.js";
 
 export function registerExtras(define: (name: string, fn: ComponentFn) => unknown): void {
   registerCardElement();
@@ -32,6 +34,9 @@ export function registerExtras(define: (name: string, fn: ComponentFn) => unknow
   define("randomCells", randomCells);
   define("openDaysTable", openDaysTable);
   define("datedList", datedList);
+  define("datasetTable", datasetTable);
+  define("datasetCards", datasetCards);
+  define("datasetPlainList", datasetPlainList);
   define("peopleGrid", peopleGrid);
   define("articleByline", articleByline);
   define("profileKicker", profileKicker);
@@ -42,4 +47,5 @@ export function registerExtras(define: (name: string, fn: ComponentFn) => unknow
   define("blogArticle", blogArticle);
   define("blogFeed", blogFeed);
   define("blogIndex", blogIndex);
+  registerDatasetElements();
 }

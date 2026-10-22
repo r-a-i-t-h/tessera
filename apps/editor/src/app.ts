@@ -4,6 +4,7 @@ import {
   cascadeBlog,
   createBackup,
   deleteBackup,
+  deleteBinding,
   deleteContent,
   deleteItem,
   deleteBlog,
@@ -58,6 +59,7 @@ import {
   type PublishResult,
   type RenderResult,
   type SaveResult,
+  listDatasets,
 } from "./api";
 import { entryVisible } from "./forms/entries.js";
 import { arrangeMarkup, mountArrange, readArrangeRoot } from "./arrange/canvas.js";
@@ -165,6 +167,16 @@ import {
   type NewBinding,
 } from "./forms/binding.js";
 import {
+  datasetBindingError,
+  datasetDraft,
+  datasetDraftFromForm,
+  datasetRecord,
+  syncDatasetPresentation,
+  syncDatasetCatalogFields,
+  bindDatasetColumnChecklist,
+} from "./forms/dataset-binding.js";
+import { datasetFieldCatalog } from "./dataset-field-catalog.js";
+import {
   checkedFolderIds,
   documentLink,
   imageSlideSnippet,
@@ -221,7 +233,7 @@ import {
   stylesPageHtml,
 } from "./styles-page.js";
 import { usernameError } from "./username.js";
-import { handleEscape, hasOpenModal } from "./escape-key.js";
+import { cancelNewBindingForm, handleEscape, hasOpenModal } from "./escape-key.js";
 import { mountDatasets } from "./datasets/view.js";
 
 let libraryAddOpen = true;
@@ -1239,6 +1251,7 @@ function bindNewBinding(root: HTMLElement, listing: RecordList, choices: Binding
   const open = root.querySelector<HTMLButtonElement>("[data-action=new-binding]");
   if (!form || !open) return;
   bindPickers(form);
+  bindDatasetColumnChecklist(form);
   const existing = listing.records.filter((row) => row.kind === "bindings").map((row) => row.id);
   let state = blankNewBinding();
 
@@ -1247,6 +1260,7 @@ function bindNewBinding(root: HTMLElement, listing: RecordList, choices: Binding
     form.innerHTML = renderNewBinding(state, choices);
     if (error) showFormError(form, error);
     form.querySelector<HTMLElement>("[data-binding-focus]")?.focus();
+    syncDatasetPresentation(form);
   };
 
   open.addEventListener("click", () => {
@@ -1270,10 +1284,24 @@ function bindNewBinding(root: HTMLElement, listing: RecordList, choices: Binding
     }
     if (target.name === "links-source") syncLinkSource(form);
     if (target.name === "gallery-mode") syncGalleryMode(form);
+    if (target.name === "dataset-presentation") syncDatasetPresentation(form);
+    if (target.name === "dataset-dataset") {
+      void enrichBindingChoices(choices, target.value).then((next) => {
+        Object.assign(choices, next);
+        state = readNewBinding(bindingControls(form), folderSelection(form));
+        paint();
+      });
+    }
   });
   form.addEventListener("click", (event) => {
     const button = event.target instanceof Element ? event.target.closest("button") : null;
-    if (!(button instanceof HTMLButtonElement) || button.dataset.bindingStep !== "back") return;
+    if (!(button instanceof HTMLButtonElement)) return;
+    if (button.hasAttribute("data-binding-cancel")) {
+      event.preventDefault();
+      cancelNewBindingForm(form);
+      return;
+    }
+    if (button.dataset.bindingStep !== "back") return;
     event.preventDefault();
     state = readNewBinding(bindingControls(form), folderSelection(form));
     state.step = state.step === 3 ? 2 : 1;
@@ -1328,7 +1356,7 @@ async function createBinding(
     return;
   }
   const notice =
-    state.kind === "gallery" || state.kind === "embed"
+    state.kind === "gallery" || state.kind === "embed" || state.kind === "dataset"
       ? `Created ${id}. Put it on a page with Compose → Insert.`
       : `Created ${id}.`;
   pendingEdit = { mode: state.kind === "other" ? "raw" : "fields", notice };
@@ -1351,13 +1379,17 @@ async function loadBindingListInfo(listing: RecordList): Promise<{ notes: Map<st
   const bindings = listing.records.filter((row) => row.kind === "bindings");
   const content = listing.records.filter((row) => row.kind === "content");
   const types = listing.records.filter((row) => row.kind === "types").map((row) => row.id);
-  const empty = { notes: new Map<string, string>(), choices: { folders: [], types, headings: [] } };
+  const empty = {
+    notes: new Map<string, string>(),
+    choices: { folders: [], types, headings: [], datasets: [], datasetFields: {} },
+  };
   try {
-    const [bindingPayloads, contentPayloads, library, nav] = await Promise.all([
+    const [bindingPayloads, contentPayloads, library, nav, datasetList] = await Promise.all([
       Promise.all(bindings.map((row) => getRecord("bindings", row.id))),
       Promise.all(content.map((row) => getRecord("content", row.id))),
       getLibrary().catch(() => ({ folders: [], assets: [] })),
       getRecord("nav", "nav").catch(() => undefined),
+      listDatasets().catch(() => ({ ok: true as const, datasets: [] })),
     ]);
     const notes = new Map<string, string>();
     bindings.forEach((row, index) => {
@@ -1369,11 +1401,18 @@ async function loadBindingListInfo(listing: RecordList): Promise<{ notes: Map<st
     const siteData = await loadSiteData(listing);
     return {
       notes,
-      choices: bindingChoicesPayload(listing, library.folders, types, nav?.data, siteData),
+      choices: bindingChoicesPayload(listing, library.folders, types, nav?.data, siteData, datasetList.datasets),
     };
   } catch {
     return empty;
   }
+}
+
+async function enrichBindingChoices(choices: BindingChoices, datasetId: string): Promise<BindingChoices> {
+  const id = datasetId.trim();
+  if (!id || id in choices.datasetFields) return choices;
+  const fields = await datasetFieldCatalog(id);
+  return { ...choices, datasetFields: { ...choices.datasetFields, [id]: fields } };
 }
 
 async function loadTypeIds(): Promise<string[]> {
@@ -1406,9 +1445,10 @@ async function loadBindingChoices(): Promise<BindingChoices> {
       getRecord("nav", "nav").catch(() => undefined),
       loadSiteData(listing),
     ]);
-    return bindingChoicesPayload(listing, library.folders, types, nav?.data, siteData);
+    const datasets = await listDatasets().catch(() => ({ ok: true as const, datasets: [] }));
+    return bindingChoicesPayload(listing, library.folders, types, nav?.data, siteData, datasets.datasets);
   } catch {
-    return { folders: [], types: [], headings: [] };
+    return { folders: [], types: [], headings: [], datasets: [], datasetFields: {} };
   }
 }
 
@@ -1418,6 +1458,7 @@ function bindingChoicesPayload(
   types: readonly string[],
   navData: unknown,
   siteData: Record<string, unknown> | undefined,
+  datasets: BindingChoices["datasets"] = [],
 ): BindingChoices {
   const navEntries = Array.isArray(navData) ? (navData as NavEntry[]) : [];
   const site =
@@ -1432,6 +1473,8 @@ function bindingChoicesPayload(
     types,
     headings: navHeadings(navData),
     pageTargets: buildPageTargetChoices(listing, site, navEntries),
+    datasets,
+    datasetFields: {},
   };
 }
 
@@ -3000,7 +3043,10 @@ async function bindEdit(
   const navPalette = navBuild ? await loadNavBuildPalette() : undefined;
   const navNote = "";
   const assisted = kind === "bindings" && editMode === "fields" && bindingKind(record) !== "other";
-  const bindingChoices = assisted ? await loadBindingChoices() : undefined;
+  let bindingChoices = assisted ? await loadBindingChoices() : undefined;
+  if (bindingChoices && record && bindingKind(record) === "dataset") {
+    bindingChoices = await enrichBindingChoices(bindingChoices, datasetDraft(record).datasetId);
+  }
   const arrangeInfo = kind === "layouts" ? await loadArrangeInfo(id) : undefined;
   const layoutRoot = kind === "layouts" ? asLayoutNode(record?.root) : undefined;
   const typeEditor = kind === "types" && editMode === "fields" && !!record;
@@ -3053,7 +3099,9 @@ async function bindEdit(
   const deleteAction =
     kind === "content" && id !== homeId
       ? `<button type="button" class="w3-button w3-white" data-action="delete-content">Delete</button>`
-      : "";
+      : kind === "bindings"
+        ? `<button type="button" class="w3-button w3-white" data-action="delete-binding">Delete</button>`
+        : "";
   const actionRow = `<p class="editor-actions"><button type="submit" id="record-save"${pageHost ? ' form="record-form"' : ""} class="w3-button w3-theme">Save</button>${sessionActions}${deleteAction}</p>`;
   const saveStatus = `<p id="save-status" class="w3-text-grey" hidden></p>`;
   const editor = `${lifecycleHtml(payload)}
@@ -3211,7 +3259,7 @@ async function bindEdit(
   }
   if (form && navList) bindNavEditor(form, pages);
   if (form && typeEditor) bindTypeEditor(form, id, typeLayouts);
-  if (form && assisted) bindBindingForm(form);
+  if (form && assisted) bindBindingForm(form, bindingChoices);
   if (form) {
     bindPickers(form);
     bindJsonFormat(form);
@@ -3311,6 +3359,18 @@ async function bindEdit(
       })
       .catch((err: unknown) => {
         showSaveError(root, err instanceof Error ? err.message : "Could not delete that page.");
+      });
+  });
+  scope.querySelector<HTMLButtonElement>("[data-action=delete-binding]")?.addEventListener("click", () => {
+    if (!window.confirm(`Delete binding ${id}? This cannot be undone.`)) return;
+    void deleteBinding(id)
+      .then(() => {
+        const next = place.back;
+        if (window.location.hash === next) void render(root);
+        else window.location.hash = next;
+      })
+      .catch((err: unknown) => {
+        showSaveError(root, err instanceof Error ? err.message : "Could not delete that binding.");
       });
   });
   form?.addEventListener("submit", async (event) => {
@@ -3930,15 +3990,31 @@ function bindingBody(id: string, form: HTMLFormElement, original: unknown): unkn
   }
   if (kind === "imageReveal") return imageRevealRecord(id, imageRevealDraftFromForm(controls));
   if (kind === "embed") return embedRecord(id, embedDraftFromForm(controls));
+  if (kind === "dataset") {
+    const draft = datasetDraftFromForm(controls);
+    const problem = datasetBindingError(draft);
+    if (problem) throw new Error(problem);
+    return datasetRecord(id, draft);
+  }
   return saveRecordBody("bindings", form, original);
 }
 
-function bindBindingForm(form: HTMLFormElement): void {
+function bindBindingForm(form: HTMLFormElement, choices?: BindingChoices): void {
+  bindDatasetColumnChecklist(form);
+  syncDatasetPresentation(form);
   form.addEventListener("change", (event) => {
     const target = event.target;
     if (!(target instanceof HTMLSelectElement)) return;
     if (target.name === "gallery-mode") syncGalleryMode(form);
     if (target.name === "links-source") syncLinkSource(form);
+    if (target.name === "dataset-presentation") syncDatasetPresentation(form);
+    if (target.name === "dataset-dataset" && choices) {
+      void enrichBindingChoices(choices, target.value).then((next) => {
+        Object.assign(choices, next);
+        const draft = datasetDraftFromForm(bindingControls(form));
+        syncDatasetCatalogFields(form, draft, choices);
+      });
+    }
   });
 }
 

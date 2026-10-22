@@ -165,6 +165,20 @@ recordRoutes.put("/records/:kind/:id", async (c) => {
   }
 });
 
+recordRoutes.delete("/records/bindings/:id", async (c) => {
+  const denied = assertFullAdmin(c);
+  if (denied) return denied;
+  const site = c.get("requiredSite");
+  const id = c.req.param("id");
+  if (!isRecordId(id)) return apiError(c, 400, "Invalid binding id.");
+  try {
+    await site.deleteBinding(id);
+    return c.json({ ok: true, id });
+  } catch (err) {
+    return apiError(c, 400, err instanceof Error ? err.message : "Could not delete that binding.");
+  }
+});
+
 recordRoutes.delete("/records/items/:id", async (c) => {
   const denied = assertFullAdmin(c);
   if (denied) return denied;

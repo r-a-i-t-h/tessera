@@ -486,4 +486,20 @@ describe("record routes", () => {
     await expect(site.read("content", "about")).rejects.toThrow();
     expect(await site.readNav()).toEqual([{ id: "home", title: "Home" }]);
   });
+
+  it("deletes bindings when unused and refuses when inserted on a page", async () => {
+    await site.write("bindings", "orphan", { component: "datasetTable", props: { dataset: "demo" } });
+    await site.deleteBinding("orphan");
+    await expect(site.read("bindings", "orphan")).rejects.toThrow();
+
+    await site.write("bindings", "in-use", { component: "datedList", props: { types: ["event"] } });
+    await site.write("content", "home", {
+      title: "Home",
+      tags: ["page"],
+      zones: { main: { html: "<p>{{in-use}}</p>" } },
+    });
+    await expect(site.deleteBinding("in-use")).rejects.toThrow(/still used/);
+    await site.deleteBinding("in-use").catch(() => undefined);
+    expect(await site.read("bindings", "in-use")).toBeDefined();
+  });
 });

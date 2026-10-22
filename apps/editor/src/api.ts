@@ -316,6 +316,10 @@ export function deleteItem(id: string): Promise<{ ok: true }> {
   return request(`/api/records/items/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
 
+export function deleteBinding(id: string): Promise<{ ok: true }> {
+  return request(`/api/records/bindings/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
 export function renameItem(id: string, nextId: string): Promise<{ ok: true; id: string }> {
   return request(`/api/records/items/${encodeURIComponent(id)}/rename`, {
     method: "POST",

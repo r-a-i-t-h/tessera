@@ -141,7 +141,16 @@ export {
   displayNamePlaceholders,
   validateDisplayNameTemplate,
   formatRecordDisplayName,
+  formatDatasetFieldDisplay,
+  datasetFileToSnapshot,
 } from "./dataset.js";
+export {
+  DATASET_PRESENTATION_COMPONENTS,
+  collectBindingDatasetIds,
+  expandDatasetIdsWithRefs,
+  queryDatasetRecords,
+  documentDatasetMap,
+} from "./dataset-query.js";
 export type {
   DatasetScalarKind,
   DatasetFieldKind,
@@ -155,4 +164,14 @@ export type {
   AdaptRecordsContext,
   SchemaAdaptationSummary,
   RecordDisplayContext,
+  DatasetSnapshot,
 } from "./dataset.js";
+export type {
+  DatasetSortDir,
+  DatasetFilterOp,
+  DatasetFilter,
+  DatasetQueryOptions,
+  DatasetFieldCell,
+  DatasetRowView,
+  DatasetQueryResult,
+} from "./dataset-query.js";

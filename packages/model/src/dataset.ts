@@ -73,6 +73,25 @@ export type DatasetFile = {
   records: DatasetRootRecord[];
 };
 
+/** Dataset payload embedded in a flattened site document (no `nextUid`). */
+export type DatasetSnapshot = {
+  id: string;
+  title: string;
+  view: DatasetView;
+  schema: DatasetSchemaBody;
+  records: DatasetRootRecord[];
+};
+
+export function datasetFileToSnapshot(file: DatasetFile): DatasetSnapshot {
+  return {
+    id: file.id,
+    title: file.title,
+    view: file.view,
+    schema: file.schema,
+    records: file.records,
+  };
+}
+
 export type DatasetValidationIssue = { path: string; message: string };
 
 export type AdaptRecordsContext = {
@@ -279,6 +298,15 @@ export function validateDisplayNameTemplate(
     if (!allowed.has(key)) return `Unknown field {${key}} in display name template.`;
   }
   return undefined;
+}
+
+/** Plain-text display for a scalar field value (HTML is stripped). */
+export function formatDatasetFieldDisplay(
+  record: Record<string, unknown>,
+  field: DatasetField,
+  ctx?: RecordDisplayContext,
+): string {
+  return scalarDisplayValue(record, field, ctx);
 }
 
 function scalarDisplayValue(

@@ -27,6 +27,7 @@ import {
   renderNewBinding,
   blankNewBinding,
 } from "./binding.js";
+import { datasetDraft } from "./dataset-binding.js";
 
 const hall = {
   id: "hall-gallery",
@@ -133,6 +134,21 @@ describe("binding sentences", () => {
       }),
     ).toBe("Reveal banner with 2 panels, 3 per row.");
   });
+
+  it("describes a dataset binding", () => {
+    expect(
+      bindingSentence({
+        component: "datasetTable",
+        props: { dataset: "members", sort: { field: "name", dir: "desc" }, limit: 10, interactiveSort: true },
+      }),
+    ).toBe("Dataset table for members, sorted by name desc, limit 10, visitor can re-sort.");
+    expect(
+      bindingSentence(
+        { component: "datasetCards", props: { dataset: "members" } },
+        [],
+      ),
+    ).toBe("Dataset cards for members.");
+  });
 });
 
 describe("binding records", () => {
@@ -159,6 +175,8 @@ describe("binding records", () => {
       folders: [],
       types: [],
       headings: [],
+      datasets: [],
+      datasetFields: {},
       pageTargets: { nav: [{ id: "home", depth: 0, title: "Home" }], articles: [] },
     };
     const html = renderBindingForm(
@@ -239,6 +257,44 @@ describe("binding records", () => {
     });
   });
 
+  it("writes datasetTable props from a dataset draft", () => {
+    const record = newBindingRecord({
+      ...blankNewBinding(),
+      kind: "dataset",
+      id: "member-table",
+      dataset: {
+        presentation: "table",
+        datasetId: "members",
+        fields: ["email"],
+        sortField: "name",
+        sortDir: "asc",
+        limit: "25",
+        empty: "No members.",
+        interactiveSort: true,
+        showHeader: false,
+        compact: true,
+        headingField: "",
+        propsExtra: {},
+        recordExtra: {},
+      },
+    });
+    expect(record).toEqual({
+      id: "member-table",
+      component: "datasetTable",
+      props: {
+        dataset: "members",
+        fields: ["email"],
+        sort: { field: "name", dir: "asc" },
+        limit: 25,
+        empty: "No members.",
+        interactiveSort: true,
+        showHeader: false,
+        compact: true,
+      },
+    });
+    expect(datasetDraft(record).datasetId).toBe("members");
+  });
+
   it("omits an empty people type list and drops a link type when the source is children", () => {
     expect(peopleRecord("people-grid", { types: [], limit: "", propsExtra: {}, recordExtra: {} })).toEqual({
       id: "people-grid",
@@ -296,20 +352,34 @@ describe("binding forms", () => {
         propsExtra: {},
         recordExtra: {},
       },
-      { folders: [], types: ["event"], headings: ["What's on"] },
+      { folders: [], types: ["event"], headings: ["What's on"], datasets: [], datasetFields: {} },
     );
     expect(links).toContain("data-links-type hidden");
-    expect(renderBindingForm("upcoming-events", upcoming, { folders: [], types: ["event"], headings: [] })).toContain(
+    expect(
+      renderBindingForm("upcoming-events", upcoming, {
+        folders: [],
+        types: ["event"],
+        headings: [],
+        datasets: [],
+        datasetFields: {},
+      }),
+    ).toContain(
       "dated-when",
     );
   });
 
   it("walks a new gallery from the id to the pictures, then writes a folder list", () => {
-    const start = renderNewBinding(blankNewBinding(), { folders: [], types: [], headings: [] });
+    const start = renderNewBinding(blankNewBinding(), {
+      folders: [],
+      types: [],
+      headings: [],
+      datasets: [],
+      datasetFields: {},
+    });
     expect(start).toContain(">Next</button>");
     const pictures = renderNewBinding(
       { ...blankNewBinding(), id: "lambs", step: 2, gallery: { ...galleryDraft({}), folders: ["lambs"] } },
-      { folders: [{ id: "lambs" }], types: [], headings: [] },
+      { folders: [{ id: "lambs" }], types: [], headings: [], datasets: [], datasetFields: {} },
     );
     expect(pictures).toContain('data-folder-id="lambs"');
     const created = readNewBinding(
@@ -348,7 +418,7 @@ describe("binding forms", () => {
     const html = renderBindingForm(
       "ticket-widget",
       { component: "htmlEmbed", props: { html: "<iframe></iframe>" } },
-      { folders: [], types: [], headings: [] },
+      { folders: [], types: [], headings: [], datasets: [], datasetFields: {} },
     );
     expect(html).toContain('name="embed-html"');
     expect(html).toContain("&lt;iframe&gt;&lt;/iframe&gt;");
