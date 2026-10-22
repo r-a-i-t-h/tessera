@@ -1000,9 +1000,15 @@ async function bindList(
   const bindingInfo = active === "bindings" ? await loadBindingListInfo(listing) : undefined;
   const itemZones = active === "items" ? await loadItemZones(listing) : [];
   const listNotes = bindingInfo?.notes ?? layoutNotes;
-  root.innerHTML = chrome(user, listHtml(listing, kind, notice, error, listNotes, itemZones), true, "records", {
-    recordsKind: active,
-  });
+  root.innerHTML = chrome(
+    user,
+    listHtml(listing, kind, notice, error, listNotes, itemZones, isFullAdmin(user)),
+    true,
+    "records",
+    {
+      recordsKind: active,
+    },
+  );
   bindChrome(root);
   bindInitSite(
     root,
@@ -1879,6 +1885,7 @@ function listHtml(
   error = "",
   layoutNotes: Map<string, string> = new Map(),
   itemZones: readonly string[] = [],
+  canInitSite = true,
 ): string {
   const byKind = new Map<string, RecordSummary[]>();
   for (const rec of listing.records) {
@@ -1890,7 +1897,7 @@ function listHtml(
   const siteReady = listing.records.some((row) => row.kind === "site");
   return `<h1 class="w3-large">${escapeHtml(recordsPageHeading(listing, active))}</h1>
     ${statusPanels(notice, error)}
-    ${siteReady ? "" : startSiteHtml()}
+    ${siteReady ? "" : startSiteHtml(canInitSite)}
     ${recordTab(listing, active, byKind, siteReady, layoutNotes, itemZones)}`;
 }
 
