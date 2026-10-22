@@ -153,6 +153,7 @@ describe("editor route orchestration", () => {
     navigate("#/records/site");
     await vi.waitFor(() => {
       expect(root.querySelector("#record-editor #record-form")).toBeTruthy();
+      expect(root.querySelector("h1")?.textContent).toBe("Records : Site");
     });
     expect(root.querySelector("#record-editor")?.getAttribute("data-kind")).toBe("site");
     expect(root.querySelector(".editor-back")).toBeNull();
@@ -230,5 +231,29 @@ describe("editor route orchestration", () => {
   }
 ]`);
     expect(root.querySelector("[data-json-format]")?.textContent).toBe("Pretty-print");
+  });
+
+  it("opens Site when Records is opened without a record type", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path === "/auth/me") {
+        return json({ ok: true, username: "alice", createdAt: "2026-01-01T00:00:00.000Z" });
+      }
+      if (path === "/api/records") return json(listing);
+      if (path === "/api/records/site/demo") return json(site);
+      if (path === "/api/library") return json({ ok: true, folders: [], assets: [] });
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    document.body.innerHTML = `<div id="app"></div>`;
+    const root = document.querySelector<HTMLElement>("#app");
+    if (!root) throw new Error("app");
+    navigate("#/records");
+
+    await mount(root);
+    await vi.waitFor(() => {
+      expect(window.location.hash).toBe("#/records/site");
+      expect(root.querySelector("#record-editor")?.getAttribute("data-kind")).toBe("site");
+    });
   });
 });

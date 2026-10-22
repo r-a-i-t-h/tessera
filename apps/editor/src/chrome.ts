@@ -121,12 +121,12 @@ export function editorChrome(
       <aside class="editor-sidebar w3-theme">
         <nav class="w3-bar-block editor-nav-block" aria-label="Editor">
           ${sectionLink("#/", "Tessera editor", "home", false, "editor-nav-brand w3-theme-d3")}
+          ${sectionLink("#/records", "Records", "records", recordsChildOn)}
+          ${recordsChildren}
           ${sectionLink("#/pages", "Pages", "pages")}
           ${sectionLink("#/articles", "Articles", "articles", articlesBlogOn)}
           ${articlesChildren}
           ${sectionLink("#/library", "Library", "library")}
-          ${sectionLink("#/records", "Records", "records", recordsChildOn)}
-          ${recordsChildren}
           ${sectionLink("#/datasets", "Datasets", "datasets", datasetsChildOn)}
           ${datasetsChildren}
           ${sectionLink("#/styles", "Styles", "styles")}

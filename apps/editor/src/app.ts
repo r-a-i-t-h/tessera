@@ -79,7 +79,7 @@ import {
 import { announceRoute, editorChrome as chrome, loginView, type EditorNavContext } from "./chrome.js";
 import { tesseraLogo3x5 } from "./logo-3x5.js";
 import { editPlace, type EditPlace } from "./edit-place.js";
-import { RECORD_TAB_ORDER } from "./record-nav.js";
+import { RECORD_NAV_ITEMS, RECORD_TAB_ORDER } from "./record-nav.js";
 import { createRecord, type CreateRecordDestination } from "./create-record.js";
 import { activateDialog, type DialogController } from "./dialog.js";
 import { readFormValues, renderForm } from "./forms/form.js";
@@ -886,6 +886,13 @@ async function bindList(
     return;
   }
   const listing = await listRecords();
+  if (kind === undefined) {
+    const defaultKind = activeRecordKind(listing);
+    if (defaultKind) {
+      window.location.hash = `#/records/${encodeURIComponent(defaultKind)}`;
+      return;
+    }
+  }
   const active = activeRecordKind(listing, kind);
   const layoutNotes = active === "layouts" ? await loadLayoutListNotes(listing) : new Map<string, string>();
   const bindingInfo = active === "bindings" ? await loadBindingListInfo(listing) : undefined;
@@ -1742,6 +1749,17 @@ function activeRecordKind(listing: RecordList, selected?: string): string | unde
   return kinds[0]?.kind;
 }
 
+function recordKindLabel(listing: RecordList, kind: string): string {
+  const fromNav = RECORD_NAV_ITEMS.find((item) => item.kind === kind)?.label;
+  if (fromNav) return fromNav;
+  return listing.kinds.find((item) => item.kind === kind)?.label ?? kind;
+}
+
+function recordsPageHeading(listing: RecordList, active?: string): string {
+  if (!active) return "Records";
+  return `Records : ${recordKindLabel(listing, active)}`;
+}
+
 function listHtml(
   listing: RecordList,
   selected?: string,
@@ -1758,7 +1776,7 @@ function listHtml(
   }
   const active = activeRecordKind(listing, selected);
   const siteReady = listing.records.some((row) => row.kind === "site");
-  return `<h1 class="w3-large">Records</h1>
+  return `<h1 class="w3-large">${escapeHtml(recordsPageHeading(listing, active))}</h1>
     ${statusPanels(notice, error)}
     ${siteReady ? "" : startSiteHtml()}
     ${recordTab(listing, active, byKind, siteReady, layoutNotes, itemZones)}`;
