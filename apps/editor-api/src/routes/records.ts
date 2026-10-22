@@ -1,4 +1,11 @@
 import { Hono } from "hono";
+import {
+  assertFullAdmin,
+  assertRecordKindReadable,
+  assertRecordKindWritable,
+  filterRecordListingForLimitedEditor,
+  isFullAdmin,
+} from "../access/level.js";
 import { apiError } from "../http.js";
 import { authenticatedSite } from "../middleware/editor-site.js";
 import { AuthoredRecordError } from "../site/authored-schema.js";
@@ -10,7 +17,11 @@ recordRoutes.use("/records/*", authenticatedSite);
 
 recordRoutes.get("/records", async (c) => {
   const site = c.get("requiredSite");
-  const records = await site.list();
+  const editor = c.get("editor");
+  let records = await site.list();
+  if (!isFullAdmin(editor)) {
+    records = filterRecordListingForLimitedEditor(records);
+  }
   return c.json({
     ok: true,
     kinds: [
@@ -48,6 +59,8 @@ recordRoutes.get("/records/:kind/:id", async (c) => {
 
   const kind = c.req.param("kind");
   const id = c.req.param("id");
+  const denied = assertRecordKindReadable(c, kind);
+  if (denied) return denied;
   try {
     const meta = await recordMeta(site);
     if (kind === "site") {
@@ -101,6 +114,8 @@ recordRoutes.put("/records/:kind/:id", async (c) => {
 
   const kind = c.req.param("kind");
   const id = c.req.param("id");
+  const denied = assertRecordKindWritable(c, kind);
+  if (denied) return denied;
   const body = await readBody(c);
   if (!body) return apiError(c, 400, "JSON body with data or raw is required.");
   if (body.raw !== undefined && body.data !== undefined) {
@@ -151,6 +166,8 @@ recordRoutes.put("/records/:kind/:id", async (c) => {
 });
 
 recordRoutes.delete("/records/items/:id", async (c) => {
+  const denied = assertFullAdmin(c);
+  if (denied) return denied;
   const site = c.get("requiredSite");
   const id = c.req.param("id");
   if (!isRecordId(id)) return apiError(c, 400, "Invalid item id.");
@@ -163,6 +180,8 @@ recordRoutes.delete("/records/items/:id", async (c) => {
 });
 
 recordRoutes.post("/records/items/:id/rename", async (c) => {
+  const denied = assertFullAdmin(c);
+  if (denied) return denied;
   const site = c.get("requiredSite");
   const id = c.req.param("id");
   if (!isRecordId(id)) return apiError(c, 400, "Invalid item id.");
@@ -194,6 +213,8 @@ recordRoutes.delete("/records/content/:id", async (c) => {
 });
 
 recordRoutes.delete("/records/blogs/:id", async (c) => {
+  const denied = assertFullAdmin(c);
+  if (denied) return denied;
   const site = c.get("requiredSite");
   const id = c.req.param("id");
   if (!isRecordId(id)) return apiError(c, 400, "Invalid blog id.");
@@ -206,6 +227,8 @@ recordRoutes.delete("/records/blogs/:id", async (c) => {
 });
 
 recordRoutes.post("/records/blogs/:id/cascade", async (c) => {
+  const denied = assertFullAdmin(c);
+  if (denied) return denied;
   const site = c.get("requiredSite");
   const id = c.req.param("id");
   if (!isRecordId(id)) return apiError(c, 400, "Invalid blog id.");
@@ -237,6 +260,8 @@ recordRoutes.post("/records/content/:id/rename", async (c) => {
 });
 
 recordRoutes.post("/records/blogs/:id/rename", async (c) => {
+  const denied = assertFullAdmin(c);
+  if (denied) return denied;
   const site = c.get("requiredSite");
   const id = c.req.param("id");
   if (!isRecordId(id)) return apiError(c, 400, "Invalid blog id.");

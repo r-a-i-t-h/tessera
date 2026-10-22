@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { assertFullAdmin } from "../access/level.js";
 import { apiError } from "../http.js";
 import { authenticatedSiteRoot } from "../middleware/editor-site.js";
 import { reseedSite } from "../site/backup.js";
@@ -9,6 +10,8 @@ siteRoutes.use("/site/*", authenticatedSiteRoot);
 
 /** Create a shell, master layout, home page, and a blog for tenant blogger in an empty instance. */
 siteRoutes.post("/site/init", async (c) => {
+  const denied = assertFullAdmin(c);
+  if (denied) return denied;
   const site = c.get("requiredSite");
   const siteRoot = c.get("requiredSiteRoot");
 
@@ -31,6 +34,8 @@ siteRoutes.post("/site/init", async (c) => {
 
 /** Replace the open site with the starter. Editors stay. A safety archive is written first. */
 siteRoutes.post("/site/reseed", async (c) => {
+  const denied = assertFullAdmin(c);
+  if (denied) return denied;
   const site = c.get("requiredSite");
   const siteRoot = c.get("requiredSiteRoot");
   const backupDir = c.get("backupDir");

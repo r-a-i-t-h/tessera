@@ -3,14 +3,15 @@ import type { Context } from "hono";
 import { normalizedUsername, usernameError } from "../auth/username.js";
 import { hashPassword } from "../auth/password.js";
 import { apiError, managedUser } from "../http.js";
-import { authenticatedEditor } from "../middleware/editor-site.js";
+import { parseRestrictAccessLevel } from "../access/level.js";
+import { authenticatedFullAdmin } from "../middleware/editor-site.js";
 import type { UserRecord } from "../model.js";
 import { requestSessionToken } from "../middleware/auth.js";
 import type { SessionStore } from "../auth/sessions.js";
 
 export const userRoutes = new Hono();
-userRoutes.use("/users", authenticatedEditor);
-userRoutes.use("/users/*", authenticatedEditor);
+userRoutes.use("/users", authenticatedFullAdmin);
+userRoutes.use("/users/*", authenticatedFullAdmin);
 
 userRoutes.get("/users", (c) => {
   return c.json({
@@ -31,7 +32,10 @@ userRoutes.post("/users", async (c) => {
   if (users.findUser(name)) return apiError(c, 409, "That username is already in use.");
   try {
     const { hash, salt } = await hashPassword(body.password ?? "");
-    const created = await users.createUser(name, hash, salt);
+    const level = body.restrictAccessLevel;
+    const created = await users.createUser(name, hash, salt, {
+      restrictAccessLevel: level === "editor" ? "editor" : undefined,
+    });
     return c.json({ ok: true, user: managedUser(created) });
   } catch (err) {
     return storeFailure(c, err);
@@ -73,6 +77,12 @@ userRoutes.patch("/users/:username", async (c) => {
     }
     if (body.disabled !== undefined) {
       record = await users.setDisabled(record.username, body.disabled);
+    }
+    if (body.restrictAccessLevel !== undefined) {
+      record = await users.setRestrictAccessLevel(
+        record.username,
+        body.restrictAccessLevel === "editor" ? "editor" : undefined,
+      );
     }
     if (nextName !== record.username) {
       const from = record.username;
@@ -136,6 +146,7 @@ async function readUserBody(c: Context): Promise<{
   username?: string;
   password?: string;
   disabled?: boolean;
+  restrictAccessLevel?: "editor" | null;
 }> {
   let raw: Record<string, unknown>;
   try {
@@ -143,9 +154,18 @@ async function readUserBody(c: Context): Promise<{
   } catch {
     raw = {};
   }
+  let restrictAccessLevel: "editor" | null | undefined;
+  if (raw.restrictAccessLevel === null || raw.restrictAccessLevel === false) {
+    restrictAccessLevel = null;
+  } else if (raw.restrictAccessLevel !== undefined) {
+    restrictAccessLevel = parseRestrictAccessLevel(raw.restrictAccessLevel) ?? null;
+  } else {
+    restrictAccessLevel = undefined;
+  }
   return {
     username: raw.username !== undefined ? String(raw.username) : undefined,
     password: raw.password !== undefined ? String(raw.password) : undefined,
     disabled: typeof raw.disabled === "boolean" ? raw.disabled : undefined,
+    restrictAccessLevel,
   };
 }

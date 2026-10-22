@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { assertFullAdmin } from "../access/level.js";
 import { apiError } from "../http.js";
 import { authenticatedEditor, authenticatedSiteRoot } from "../middleware/editor-site.js";
 import { applyThemeKit, listThemeKits, resetThemeDemo } from "../site/theme-kit.js";
@@ -14,6 +15,8 @@ themeRoutes.get("/themes", authenticatedEditor, async (c) => {
 });
 
 themeRoutes.post("/themes/:id/apply", async (c) => {
+  const denied = assertFullAdmin(c);
+  if (denied) return denied;
   const kitId = c.req.param("id");
   const site = c.get("requiredSite");
   const siteRoot = c.get("requiredSiteRoot");
@@ -47,6 +50,8 @@ themeRoutes.post("/themes/:id/apply", async (c) => {
 });
 
 themeRoutes.post("/themes/:id/reset-demo", async (c) => {
+  const denied = assertFullAdmin(c);
+  if (denied) return denied;
   const kitId = c.req.param("id");
   const site = c.get("requiredSite");
   const siteRoot = c.get("requiredSiteRoot");

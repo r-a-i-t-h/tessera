@@ -1,12 +1,12 @@
 import type { Context } from "hono";
 import { Hono } from "hono";
 import { apiError, isResponse } from "../http.js";
-import { authenticatedEditor } from "../middleware/editor-site.js";
+import { authenticatedFullAdmin } from "../middleware/editor-site.js";
 import { listStylesheets, saveStylesheet, StylesheetError } from "../site/stylesheets.js";
 
 export const stylesheetRoutes = new Hono();
-stylesheetRoutes.use("/stylesheets", authenticatedEditor);
-stylesheetRoutes.use("/stylesheets/*", authenticatedEditor);
+stylesheetRoutes.use("/stylesheets", authenticatedFullAdmin);
+stylesheetRoutes.use("/stylesheets/*", authenticatedFullAdmin);
 
 stylesheetRoutes.get("/stylesheets", async (c) => {
   const roots = sheetRoots(c);

@@ -50,6 +50,7 @@ import {
   type BackupList,
   type ManagedUser,
   type PublicUser,
+  type UserWrite,
   type PageLayoutHint,
   type RecordList,
   type RecordPayload,
@@ -207,6 +208,7 @@ import {
   type PageListOrder,
 } from "./pages-list.js";
 import type { NavEntry } from "@r-a-i-t-h/tessera-model";
+import { isFullAdmin, routeAllowedForUser } from "./access.js";
 import { guideSectionQuery, parseRoute, stylesSheetQuery } from "./router.js";
 import {
   bindStylePanels,
@@ -279,6 +281,11 @@ async function render(root: HTMLElement): Promise<void> {
   const route = parseRoute(window.location.hash);
   const pending = pendingEdit;
   pendingEdit = undefined;
+  if (!routeAllowedForUser(route, user)) {
+    if (window.location.hash !== "#/") window.location.hash = "#/";
+    await bindHome(root, user, "", "That area needs admin access.");
+    return;
+  }
   try {
     if (route.page === "account") await bindAccount(root, user);
     else if (route.page === "users") await bindUsers(root, user);
@@ -622,6 +629,7 @@ async function bindUsers(root: HTMLElement, user: PublicUser, notice = "", error
     const username = String(data.get("username") ?? "").trim();
     const password = String(data.get("password") ?? "");
     const confirm = String(data.get("confirmPassword") ?? "");
+    const limited = data.get("limitedEditor") === "on";
     const problem = usernameError(username) || passwordPairError(password, confirm, true);
     if (problem) {
       showFormError(form, problem);
@@ -631,7 +639,7 @@ async function bindUsers(root: HTMLElement, user: PublicUser, notice = "", error
     if (button instanceof HTMLButtonElement) button.disabled = true;
     void (async () => {
       try {
-        await createUser(username, password);
+        await createUser(username, password, limited ? { restrictAccessLevel: "editor" } : undefined);
         await bindUsers(root, user, `Added ${username}.`);
       } catch (err) {
         if (err instanceof ApiError && err.status === 401) {
@@ -719,9 +727,12 @@ async function bindUser(
       return;
     }
     const self = target.username === user.username;
-    const patch: { username: string; password?: string; disabled?: boolean } = { username: nextName };
+    const patch: UserWrite & { username: string } = { username: nextName };
     if (password) patch.password = password;
     if (!self) patch.disabled = data.get("disabled") === "on";
+    if (isFullAdmin(user)) {
+      patch.restrictAccessLevel = data.get("limitedEditor") === "on" ? "editor" : null;
+    }
     const button = root.querySelector<HTMLButtonElement>('button[form="edit-user-form"]');
     if (button) button.disabled = true;
     void (async () => {
@@ -770,6 +781,7 @@ function usersHtml(users: ManagedUser[], actor: PublicUser, notice: string, erro
         <input id="new-user-confirm" name="confirmPassword" type="password" class="w3-input w3-border w3-margin-top" autocomplete="new-password" minlength="6" required />
       </p>
       ${formErrorPanel()}
+      <p class="editor-check"><label><input id="new-user-limited" name="limitedEditor" type="checkbox" /> Limited editor</label></p>
       <p><button type="submit" class="w3-button w3-theme">Create user</button></p>
     </form>
     ${rows}`;
@@ -780,11 +792,14 @@ function userRow(item: ManagedUser, actor: PublicUser): string {
   const name = escapeHtml(item.username);
   const since = escapeHtml(item.createdAt.slice(0, 10));
   const state = item.disabled ? `<span class="w3-text-red w3-small">Disabled</span>` : "";
+  const limited =
+    item.restrictAccessLevel === "editor" ? `<span class="w3-text-grey w3-small">Limited editor</span>` : "";
   const you = self ? `<span class="w3-text-grey w3-small">Signed in</span>` : "";
   return `<li class="editor-user">
       <a href="#/users/${encodeURIComponent(item.username)}">${name}</a>
       <span class="w3-text-grey w3-small">${since}</span>
       ${state}
+      ${limited}
       ${you}
     </li>`;
 }
@@ -841,6 +856,10 @@ function userEditHtml(target: ManagedUser, actor: PublicUser, notice: string, er
   const self = target.username === actor.username;
   const disabled = target.disabled ? " checked" : "";
   const lock = self ? " disabled" : "";
+  const limited = target.restrictAccessLevel === "editor" ? " checked" : "";
+  const limitedField = isFullAdmin(actor)
+    ? `<p class="editor-check"><label><input id="user-limited" name="limitedEditor" type="checkbox"${limited} /> Limited editor</label></p>`
+    : "";
   return `${statusPanels(notice, error)}
     <form id="edit-user-form" class="editor-form-scope">
       <p>
@@ -856,6 +875,7 @@ function userEditHtml(target: ManagedUser, actor: PublicUser, notice: string, er
         <input id="edit-confirm" name="confirmPassword" type="password" class="w3-input w3-border w3-margin-top" autocomplete="new-password" minlength="6" />
       </p>
       <p class="editor-check"><label><input id="user-disabled" name="disabled" type="checkbox"${disabled}${lock} /> Disabled</label></p>
+      ${limitedField}
     </form>`;
 }
 
@@ -899,7 +919,9 @@ function bindLogin(root: HTMLElement, error?: string, username = ""): void {
 function bindInitSite(
   root: HTMLElement,
   again: (notice: string, error: string) => Promise<void>,
+  allowInit = true,
 ): void {
+  if (!allowInit) return;
   root.querySelector("[data-action=init-site]")?.addEventListener("click", () => {
     void (async () => {
       const button = root.querySelector<HTMLButtonElement>("[data-action=init-site]");
@@ -919,9 +941,13 @@ function bindInitSite(
 
 async function bindHome(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {
   const listing = await listRecords();
-  root.innerHTML = chrome(user, homeHtml(listing, notice, error), false, "home");
+  root.innerHTML = chrome(user, homeHtml(listing, notice, error, isFullAdmin(user)), false, "home");
   bindChrome(root);
-  bindInitSite(root, (nextNotice, nextError) => bindHome(root, user, nextNotice, nextError));
+  bindInitSite(
+    root,
+    (nextNotice, nextError) => bindHome(root, user, nextNotice, nextError),
+    isFullAdmin(user),
+  );
 }
 
 async function bindNavigation(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {
@@ -934,7 +960,11 @@ async function bindNavigation(root: HTMLElement, user: PublicUser, notice = "", 
     "navigation",
   );
   bindChrome(root);
-  bindInitSite(root, (nextNotice, nextError) => bindNavigation(root, user, nextNotice, nextError));
+  bindInitSite(
+    root,
+    (nextNotice, nextError) => bindNavigation(root, user, nextNotice, nextError),
+    isFullAdmin(user),
+  );
   if (row) await bindEdit(root, user, "nav", row.id, initialEditMode("nav", undefined), "", false, "tab");
 }
 
@@ -974,7 +1004,11 @@ async function bindList(
     recordsKind: active,
   });
   bindChrome(root);
-  bindInitSite(root, (nextNotice, nextError) => bindList(root, user, kind, nextNotice, nextError));
+  bindInitSite(
+    root,
+    (nextNotice, nextError) => bindList(root, user, kind, nextNotice, nextError),
+    isFullAdmin(user),
+  );
   if (active === "blogs") bindBlogs(root, user, listing);
   if (active === "site") {
     const row = listing.records.find((item) => item.kind === "site");
@@ -1785,18 +1819,21 @@ function formatBytes(size: number): string {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function homeHtml(listing: RecordList, notice = "", error = ""): string {
+function homeHtml(listing: RecordList, notice = "", error = "", canInitSite = true): string {
   const site = listing.records.find((row) => row.kind === "site");
   const body = site
     ? `<p>This site is <strong>${escapeHtml(site.title ?? site.id)}</strong>.</p>
        <p><a class="w3-button w3-theme" href="${previewUrl}">Open preview</a></p>`
-    : startSiteHtml();
+    : startSiteHtml(canInitSite);
   return `${tesseraLogo3x5()}
     ${statusPanels(notice, error)}
     ${body}`;
 }
 
-function startSiteHtml(): string {
+function startSiteHtml(canInitSite: boolean): string {
+  if (!canInitSite) {
+    return `<p class="w3-text-grey">No site has been started yet. Ask an admin to initialize it.</p>`;
+  }
   return `<p><button type="button" class="w3-button w3-theme" data-action="init-site">Start an empty site</button></p>`;
 }
 

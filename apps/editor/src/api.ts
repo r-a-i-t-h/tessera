@@ -4,6 +4,7 @@ export type PublicUser = {
   ok: true;
   username: string;
   createdAt: string;
+  restrictAccessLevel?: "editor";
 };
 
 export type PingResult = {
@@ -90,6 +91,7 @@ export type ManagedUser = {
   username: string;
   createdAt: string;
   disabled: boolean;
+  restrictAccessLevel?: "editor";
 };
 
 export type UserList = {
@@ -101,16 +103,25 @@ export type UserWrite = {
   username?: string;
   password?: string;
   disabled?: boolean;
+  restrictAccessLevel?: "editor" | null;
 };
 
 export function listUsers(): Promise<UserList> {
   return request("/api/users");
 }
 
-export function createUser(username: string, password: string): Promise<{ ok: true; user: ManagedUser }> {
+export function createUser(
+  username: string,
+  password: string,
+  options?: { restrictAccessLevel?: "editor" },
+): Promise<{ ok: true; user: ManagedUser }> {
   return request("/api/users", {
     method: "POST",
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({
+      username,
+      password,
+      ...(options?.restrictAccessLevel === "editor" ? { restrictAccessLevel: "editor" } : {}),
+    }),
   });
 }
 

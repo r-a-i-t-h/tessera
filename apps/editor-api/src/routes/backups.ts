@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { apiError, isResponse } from "../http.js";
-import { authenticatedEditor } from "../middleware/editor-site.js";
+import { authenticatedFullAdmin } from "../middleware/editor-site.js";
 import {
   backupPath,
   createDataBackup,
@@ -15,9 +15,9 @@ import {
 } from "../site/backup.js";
 
 export const backupRoutes = new Hono();
-backupRoutes.use("/backups", authenticatedEditor);
-backupRoutes.use("/backups/*", authenticatedEditor);
-backupRoutes.use("/examples/*", authenticatedEditor);
+backupRoutes.use("/backups", authenticatedFullAdmin);
+backupRoutes.use("/backups/*", authenticatedFullAdmin);
+backupRoutes.use("/examples/*", authenticatedFullAdmin);
 
 backupRoutes.get("/backups", async (c) => {
   const dirs = configured(c);

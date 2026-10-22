@@ -141,6 +141,21 @@ describe("editor chrome", () => {
     expect(document.title).toBe("Library · Tessera editor");
   });
 
+  it("hides admin nav items for limited editors but keeps Navigation", () => {
+    const html = editorChrome(
+      { ok: true, username: "editor", createdAt: "2026-01-01", restrictAccessLevel: "editor" },
+      "<h1>Pages</h1>",
+      false,
+      "pages",
+    );
+    expect(html).not.toContain('href="#/records"');
+    expect(html).not.toContain('href="#/styles"');
+    expect(html).not.toContain('href="#/users"');
+    expect(html).not.toContain('href="#/backups"');
+    expect(html).toContain('href="#/navigation"');
+    expect(html).toContain('href="#/pages"');
+  });
+
   it("keeps login errors escaped", () => {
     expect(loginView("<Nope>", "a&b")).toContain("&lt;Nope&gt;");
     expect(loginView("<Nope>", "a&b")).toContain('value="a&amp;b"');

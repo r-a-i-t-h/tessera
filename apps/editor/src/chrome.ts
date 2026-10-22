@@ -1,6 +1,7 @@
 import { version as tesseraVersion } from "../../../package.json";
 import { backToTopHtml } from "./back-to-top.js";
 import type { PublicUser } from "./api.js";
+import { isFullAdmin } from "./access.js";
 import { escapeHtml } from "./dom.js";
 import { MAINTENANCE_TABS } from "./maintenance.js";
 import { RECORD_NAV_ITEMS } from "./record-nav.js";
@@ -54,6 +55,7 @@ export function editorChrome(
   const maintenanceOpen = section === "maintenance";
   const recordsChildOn = recordsOpen && Boolean(nav.recordsKind);
   const maintenanceChildOn = maintenanceOpen && Boolean(nav.maintenanceTab);
+  const admin = isFullAdmin(user);
 
   const sectionLink = (
     href: string,
@@ -122,8 +124,8 @@ export function editorChrome(
       <aside class="editor-sidebar w3-theme">
         <nav class="w3-bar-block editor-nav-block" aria-label="Editor">
           ${sectionLink("#/", "Tessera editor", "home", false, "editor-nav-brand w3-theme-d3")}
-          ${sectionLink("#/records", "Records", "records", recordsChildOn)}
-          ${recordsChildren}
+          ${admin ? sectionLink("#/records", "Records", "records", recordsChildOn) : ""}
+          ${admin ? recordsChildren : ""}
           ${sectionLink("#/navigation", "Navigation", "navigation")}
           ${sectionLink("#/pages", "Pages", "pages")}
           ${sectionLink("#/articles", "Articles", "articles", articlesBlogOn)}
@@ -131,11 +133,11 @@ export function editorChrome(
           ${sectionLink("#/library", "Library", "library")}
           ${sectionLink("#/datasets", "Datasets", "datasets", datasetsChildOn)}
           ${datasetsChildren}
-          ${sectionLink("#/styles", "Styles", "styles")}
-          ${sectionLink("#/users", "Users", "users")}
+          ${admin ? sectionLink("#/styles", "Styles", "styles") : ""}
+          ${admin ? sectionLink("#/users", "Users", "users") : ""}
           ${sectionLink("#/maintenance", "Maintenance", "maintenance", maintenanceChildOn)}
           ${maintenanceChildren}
-          ${sectionLink("#/backups", "Backups", "backups")}
+          ${admin ? sectionLink("#/backups", "Backups", "backups") : ""}
           <button type="button" class="w3-bar-item w3-button" data-action="render-site">Render preview</button>
           <button type="button" class="w3-bar-item w3-button" data-action="publish-site">Publish site</button>
           ${sectionLink("#/guide", "Guide", "guide")}

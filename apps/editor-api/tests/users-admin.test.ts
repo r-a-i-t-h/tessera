@@ -147,6 +147,39 @@ describe("user admin routes", () => {
     expect(still.status).toBe(200);
   });
 
+  it("creates and updates limited editors", async () => {
+    const token = sessions.create("alice").token;
+    const created = await app().request("/api/users", {
+      method: "POST",
+      headers: auth(token),
+      body: JSON.stringify({ username: "limited", password: "secret2", restrictAccessLevel: "editor" }),
+    });
+    expect(created.status).toBe(200);
+    expect(await created.json()).toMatchObject({
+      ok: true,
+      user: { username: "limited", restrictAccessLevel: "editor" },
+    });
+
+    const promoted = await app().request("/api/users/limited", {
+      method: "PATCH",
+      headers: auth(token),
+      body: JSON.stringify({ restrictAccessLevel: null }),
+    });
+    expect(promoted.status).toBe(200);
+    const promotedBody = (await promoted.json()) as { user: { username: string; restrictAccessLevel?: string } };
+    expect(promotedBody.user.username).toBe("limited");
+    expect(promotedBody.user.restrictAccessLevel).toBeUndefined();
+    expect(users.getUser("limited")?.restrictAccessLevel).toBeUndefined();
+  });
+
+  it("rejects limited editors from user admin routes", async () => {
+    const password = await hashPassword("secret2");
+    await users.createUser("limited", password.hash, password.salt, { restrictAccessLevel: "editor" });
+    const token = sessions.create("limited").token;
+    const res = await app().request("/api/users", { headers: auth(token) });
+    expect(res.status).toBe(403);
+  });
+
   it("keeps your session when you rename yourself from the users page", async () => {
     const token = sessions.create("alice").token;
     const res = await app().request("/api/users/alice", {

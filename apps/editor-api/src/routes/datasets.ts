@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { assertFullAdmin } from "../access/level.js";
 import { apiError } from "../http.js";
 import { authenticatedSiteRoot } from "../middleware/editor-site.js";
 import { datasetStoreForSiteRoot, ValidationError } from "../site/dataset-store.js";
@@ -24,6 +25,8 @@ datasetRoutes.get("/datasets", async (c) => {
 });
 
 datasetRoutes.post("/datasets", async (c) => {
+  const denied = assertFullAdmin(c);
+  if (denied) return denied;
   const body: unknown = await c.req.json().catch(() => ({}));
   const id = body && typeof body === "object" && "id" in body ? String((body as { id: unknown }).id ?? "").trim() : "";
   const title =

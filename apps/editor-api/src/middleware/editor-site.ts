@@ -1,5 +1,6 @@
 import type { MiddlewareHandler } from "hono";
 import { requireEditor } from "../access/editor.js";
+import { requireFullAdmin } from "../access/level.js";
 import { apiError, isResponse } from "../http.js";
 
 export const authenticatedEditor: MiddlewareHandler = async (c, next) => {
@@ -28,5 +29,14 @@ export const authenticatedSiteRoot: MiddlewareHandler = async (c, next) => {
   c.set("editor", editor);
   c.set("requiredSite", site);
   c.set("requiredSiteRoot", siteRoot);
+  await next();
+};
+
+export const authenticatedFullAdmin: MiddlewareHandler = async (c, next) => {
+  const editor = requireEditor(c);
+  if (isResponse(editor)) return editor;
+  c.set("editor", editor);
+  const admin = requireFullAdmin(c);
+  if (isResponse(admin)) return admin;
   await next();
 };

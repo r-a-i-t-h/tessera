@@ -13,14 +13,23 @@ export function isResponse(value: unknown): value is Response {
   return value instanceof Response;
 }
 
-export function publicUser(user: UserRecord): { username: string; createdAt: string } {
-  return { username: user.username, createdAt: user.createdAt };
+export function publicUser(user: UserRecord): {
+  username: string;
+  createdAt: string;
+  restrictAccessLevel?: "editor";
+} {
+  return {
+    username: user.username,
+    createdAt: user.createdAt,
+    ...(user.restrictAccessLevel === "editor" ? { restrictAccessLevel: "editor" as const } : {}),
+  };
 }
 
 export type ManagedUser = {
   username: string;
   createdAt: string;
   disabled: boolean;
+  restrictAccessLevel?: "editor";
 };
 
 export function managedUser(user: UserRecord): ManagedUser {
@@ -28,5 +37,6 @@ export function managedUser(user: UserRecord): ManagedUser {
     username: user.username,
     createdAt: user.createdAt,
     disabled: user.disabled === true,
+    ...(user.restrictAccessLevel === "editor" ? { restrictAccessLevel: "editor" as const } : {}),
   };
 }

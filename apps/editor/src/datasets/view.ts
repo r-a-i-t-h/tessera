@@ -15,6 +15,7 @@ import {
   updateDatasetView,
   type PublicUser,
 } from "../api.js";
+import { isFullAdmin } from "../access.js";
 import { editorChrome, type EditorNavDataset, type EditorSection } from "../chrome.js";
 import { activateDialog } from "../dialog.js";
 import { escapeHtml, formErrorPanel, showFormError } from "../dom.js";
@@ -104,16 +105,9 @@ export async function mountDatasets(
 
 async function mountDatasetList(root: HTMLElement, user: PublicUser, bindChrome: BindChrome): Promise<void> {
   const { datasets } = await listDatasets();
-  const rows = datasets
-    .map(
-      (d) =>
-        `<tr><td><a href="#/datasets/${encodeURIComponent(d.id)}">${escapeHtml(d.title.trim() || d.id)}</a></td><td>${escapeHtml(d.id)}</td><td>${d.recordCount}</td><td>${d.invalidCount || ""}</td></tr>`,
-    )
-    .join("");
-  root.innerHTML = editorChrome(
-    user,
-    `<h1 class="w3-large">Datasets</h1>
-     <p><button type="button" class="w3-button w3-theme" data-action="new-dataset">New dataset</button></p>
+  const canCreate = isFullAdmin(user);
+  const newDatasetUi = canCreate
+    ? `<p><button type="button" class="w3-button w3-theme" data-action="new-dataset">New dataset</button></p>
      <form id="new-dataset-form" class="editor-new-page" hidden>
        <p>
          <label for="new-dataset-title">Title</label>
@@ -125,7 +119,18 @@ async function mountDatasetList(root: HTMLElement, user: PublicUser, bindChrome:
        </p>
        ${formErrorPanel()}
        <p><button type="submit" class="w3-button w3-theme">Create dataset</button></p>
-     </form>
+     </form>`
+    : "";
+  const rows = datasets
+    .map(
+      (d) =>
+        `<tr><td><a href="#/datasets/${encodeURIComponent(d.id)}">${escapeHtml(d.title.trim() || d.id)}</a></td><td>${escapeHtml(d.id)}</td><td>${d.recordCount}</td><td>${d.invalidCount || ""}</td></tr>`,
+    )
+    .join("");
+  root.innerHTML = editorChrome(
+    user,
+    `<h1 class="w3-large">Datasets</h1>
+     ${newDatasetUi}
      <table class="w3-table w3-bordered w3-striped"><thead><tr><th>Title</th><th>Id</th><th>Records</th><th>Invalid</th></tr></thead><tbody>${rows || "<tr><td colspan=\"4\" class=\"w3-text-grey\">No datasets yet.</td></tr>"}</tbody></table>`,
     true,
     "datasets" as EditorSection,

@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { cp, mkdir, readdir, rename, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { normalizedUsername, usernameError } from "../auth/username.js";
+import { parseRestrictAccessLevel } from "../access/level.js";
 import type { UserRecord } from "../model.js";
 import { readJson, writeJsonAtomic } from "./fs.js";
 
@@ -21,6 +22,8 @@ function normalizeUser(raw: Record<string, unknown>): UserRecord | undefined {
     createdAt: String(raw.createdAt ?? nowIso()),
   };
   if (raw.disabled === true) user.disabled = true;
+  const level = parseRestrictAccessLevel(raw.restrictAccessLevel);
+  if (level) user.restrictAccessLevel = level;
   return user;
 }
 
@@ -106,7 +109,12 @@ export class UserStore {
     this.indexUser(user);
   }
 
-  async createUser(username: string, passwordHash: string, passwordSalt: string): Promise<UserRecord> {
+  async createUser(
+    username: string,
+    passwordHash: string,
+    passwordSalt: string,
+    options?: { restrictAccessLevel?: "editor" },
+  ): Promise<UserRecord> {
     const name = checkedUsername(username);
     if (this.findUser(name)) throw new Error("Username already taken");
     const user: UserRecord = {
@@ -114,6 +122,7 @@ export class UserStore {
       passwordHash,
       passwordSalt,
       createdAt: nowIso(),
+      ...(options?.restrictAccessLevel === "editor" ? { restrictAccessLevel: "editor" } : {}),
     };
     await this.saveUser(user);
     return user;
@@ -153,6 +162,19 @@ export class UserStore {
     const existing = this.users.get(username);
     if (!existing) throw new Error("User not found");
     const updated: UserRecord = { ...existing, disabled: disabled ? true : undefined };
+    await this.saveUser(updated);
+    return updated;
+  }
+
+  async setRestrictAccessLevel(
+    username: string,
+    restrictAccessLevel: "editor" | undefined,
+  ): Promise<UserRecord> {
+    const existing = this.users.get(username);
+    if (!existing) throw new Error("User not found");
+    const updated: UserRecord = { ...existing };
+    if (restrictAccessLevel) updated.restrictAccessLevel = restrictAccessLevel;
+    else delete updated.restrictAccessLevel;
     await this.saveUser(updated);
     return updated;
   }
