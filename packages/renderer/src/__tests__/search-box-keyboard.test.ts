@@ -3,7 +3,10 @@ import { bootSearch } from "../builtins/search.js";
 import { searchIndexPayload } from "../search-index.js";
 import { makeFixtureDoc } from "./fixtures.js";
 
-function mountSearchBox(indexUrl: string): {
+function mountSearchBox(
+  indexUrl: string,
+  resultsHref = "#search",
+): {
   host: HTMLElement;
   input: HTMLInputElement;
   suggest: HTMLElement;
@@ -12,7 +15,7 @@ function mountSearchBox(indexUrl: string): {
     <div class="tessera-search tessera-search-box" data-tessera-search="box"
       data-search-index="${indexUrl}"
       data-search-results-page="search"
-      data-search-results-href="#search">
+      data-search-results-href="${resultsHref}">
       <label class="tessera-search-label w3-hide">Search</label>
       <input type="search" class="w3-input w3-border tessera-search-input" placeholder="Search…" autocomplete="off" enterkeyhint="search" aria-label="Search" role="combobox" aria-autocomplete="list" aria-expanded="false" />
       <ul class="tessera-search-suggest w3-ul w3-card w3-white" hidden role="listbox"></ul>
@@ -157,6 +160,85 @@ describe("search box keyboard", () => {
 
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "/", bubbles: true }));
     expect(document.activeElement).toBe(field);
+  });
+
+  it("does not open suggestions for one- or two-character queries", async () => {
+    const payload = searchIndexPayload(makeFixtureDoc());
+    const indexUrl = `./search-index-kb-${Math.random().toString(36).slice(2)}.json`;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => payload,
+      })),
+    );
+
+    const { input, suggest } = mountSearchBox(indexUrl);
+    bootSearch(document);
+
+    input.value = "ho";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 200));
+    expect(suggest.hidden).toBe(true);
+    expect(suggest.querySelectorAll('[role="option"]').length).toBe(0);
+  });
+
+  it("adds a text fragment on Pages-style result links", async () => {
+    const doc = makeFixtureDoc();
+    const about = doc.pages.find((p) => p.id === "about");
+    if (about) {
+      about.zones = {
+        main: [{ type: "text", html: "<p>Notes about willow planting.</p>" }],
+      };
+    }
+    const payload = searchIndexPayload(doc);
+    const indexUrl = `./search-index-kb-${Math.random().toString(36).slice(2)}.json`;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => payload,
+      })),
+    );
+
+    const { input, suggest } = mountSearchBox(indexUrl, "./search/");
+    bootSearch(document);
+
+    input.value = "willow";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    const options = await waitForOptions(suggest, 1);
+    const href = options[0].querySelector("a")!.getAttribute("href")!;
+    expect(href).toContain("#:~:text=");
+    expect(href).not.toMatch(/^#/);
+  });
+
+  it("keeps snapshot hash links without a text fragment", async () => {
+    const doc = makeFixtureDoc();
+    const about = doc.pages.find((p) => p.id === "about");
+    if (about) {
+      about.zones = {
+        main: [{ type: "text", html: "<p>Notes about willow planting.</p>" }],
+      };
+    }
+    const payload = searchIndexPayload(doc);
+    const indexUrl = `./search-index-kb-${Math.random().toString(36).slice(2)}.json`;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => payload,
+      })),
+    );
+
+    const { input, suggest } = mountSearchBox(indexUrl, "#search");
+    bootSearch(document);
+
+    input.value = "willow";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    const options = await waitForOptions(suggest, 1);
+    const href = options[0].querySelector("a")!.getAttribute("href")!;
+    expect(href).toBe("#about");
+    expect(href).not.toContain(":~:text");
   });
 
   it("ArrowUp from the first option clears the highlight", async () => {

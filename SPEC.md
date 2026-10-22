@@ -351,6 +351,8 @@ Criteria define “done enough,” not a build order (see [ROADMAP.md](./ROADMAP
 - [x] `sitemap.xml` lists every published page URL, including pages omitted from nav.
 - [x] `search-index.json` is written on preview emit and on publish (both flavours).
 - [x] Layout `searchBox` typeahead and page `searchResults` refine UI; index is fetched only on first search use.
+- [x] Search ignores queries shorter than 3 characters (typeahead and results).
+- [x] On the pages flavour, search result links append a `#:~:text=` fragment from indexed body text so the browser can scroll to the match; snapshot `#pageId` links stay unchanged.
 
 ### Wiki links
 

@@ -33,6 +33,9 @@ const FIELD_BOOSTS = {
   body: 1,
 } as const;
 
+/** Minimum trimmed query length before search runs (prefix matching is too broad below this). */
+export const MIN_SEARCH_QUERY_LENGTH = 3;
+
 const STOP_WORDS = new Set([
   "a",
   "an",
@@ -114,11 +117,110 @@ function tokenize(text: string): string[] {
     .filter((t) => t.length > 0 && !STOP_WORDS.has(t));
 }
 
+export function isSearchQueryLongEnough(query: string): boolean {
+  return query.trim().length >= MIN_SEARCH_QUERY_LENGTH;
+}
+
+const WORD_RE = /[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*/gu;
+const FRAGMENT_CONTEXT_WORDS = 3;
+
+type WordSpan = { text: string; index: number };
+
+function wordSpans(text: string): WordSpan[] {
+  const spans: WordSpan[] = [];
+  let index = 0;
+  for (const match of text.matchAll(WORD_RE)) {
+    spans.push({ text: match[0], index: index++ });
+  }
+  return spans;
+}
+
+function wordMatchesQueryTerm(word: string, term: string): boolean {
+  return word.toLowerCase().startsWith(term.toLowerCase());
+}
+
+function encodeTextFragmentPart(value: string): string {
+  return encodeURIComponent(value).replace(/-/g, "%2D");
+}
+
+/** Build a `:~:text=` suffix for published Pages links, or empty when not applicable. */
+export function textFragmentDirective(
+  query: string,
+  hit: Pick<SearchHit, "body" | "title">,
+): string {
+  if (!isSearchQueryLongEnough(query)) return "";
+  const terms = tokenize(query.trim());
+  if (!terms.length) return "";
+
+  const directive =
+    buildTextFragmentDirective(hit.body, terms) ?? buildTextFragmentDirective(hit.title, terms);
+  return directive ? `#:~:text=${directive}` : "";
+}
+
+function buildTextFragmentDirective(text: string, terms: string[]): string | null {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+
+  const spans = wordSpans(trimmed);
+  if (!spans.length) return null;
+
+  let anchor = -1;
+  for (let i = 0; i < spans.length; i++) {
+    if (terms.some((term) => wordMatchesQueryTerm(spans[i]!.text, term))) {
+      anchor = i;
+      break;
+    }
+  }
+  if (anchor < 0) return null;
+
+  let highlightStart = anchor;
+  let highlightEnd = anchor;
+  const windowStart = Math.max(0, anchor - FRAGMENT_CONTEXT_WORDS);
+  let windowEnd = Math.min(spans.length - 1, anchor + FRAGMENT_CONTEXT_WORDS);
+
+  for (const term of terms) {
+    for (let i = windowStart; i <= windowEnd; i++) {
+      if (!wordMatchesQueryTerm(spans[i]!.text, term)) continue;
+      highlightStart = Math.min(highlightStart, i);
+      highlightEnd = Math.max(highlightEnd, i);
+    }
+  }
+
+  windowEnd = Math.min(spans.length - 1, highlightEnd + FRAGMENT_CONTEXT_WORDS);
+  for (const term of terms) {
+    for (let i = highlightStart; i <= windowEnd; i++) {
+      if (!wordMatchesQueryTerm(spans[i]!.text, term)) continue;
+      highlightEnd = Math.max(highlightEnd, i);
+    }
+  }
+  windowEnd = Math.min(spans.length - 1, highlightEnd + FRAGMENT_CONTEXT_WORDS);
+
+  const prefixStart = Math.max(0, highlightStart - FRAGMENT_CONTEXT_WORDS);
+  const prefix = joinSpanText(spans, prefixStart, highlightStart - 1);
+  const match = joinSpanText(spans, highlightStart, highlightEnd);
+  const suffix = joinSpanText(spans, highlightEnd + 1, windowEnd);
+  if (!match) return null;
+
+  const parts: string[] = [];
+  if (prefix) parts.push(`${encodeTextFragmentPart(prefix)}-`);
+  parts.push(encodeTextFragmentPart(match));
+  if (suffix) parts.push(`-${encodeTextFragmentPart(suffix)}`);
+  return parts.join(",");
+}
+
+function joinSpanText(spans: WordSpan[], from: number, to: number): string {
+  if (to < from) return "";
+  return spans
+    .slice(from, to + 1)
+    .map((s) => s.text)
+    .join(" ");
+}
+
 /** Build a MiniSearch instance ready to serialize or query. */
 export function createSearchEngine(docs?: SearchIndexDocument[]): MiniSearch<SearchIndexDocument> {
   const mini = new MiniSearch<SearchIndexDocument>({
     fields: ["title", "tags", "description", "precis", "body"],
-    storeFields: ["id", "title", "description", "precis", "path", "type", "tagList"],
+    storeFields: ["id", "title", "description", "precis", "body", "path", "type", "tagList"],
     searchOptions: {
       boost: { ...FIELD_BOOSTS },
       prefix: true,
@@ -161,7 +263,7 @@ export function searchIndexJson(document: SiteDocument): string {
 export function loadSearchEngine(payload: SearchIndexPayload): MiniSearch<SearchIndexDocument> {
   return MiniSearch.loadJSON<SearchIndexDocument>(JSON.stringify(payload.index), {
     fields: ["title", "tags", "description", "precis", "body"],
-    storeFields: ["id", "title", "description", "precis", "path", "type", "tagList"],
+    storeFields: ["id", "title", "description", "precis", "body", "path", "type", "tagList"],
     searchOptions: {
       boost: { ...FIELD_BOOSTS },
       prefix: true,
@@ -178,6 +280,7 @@ export type SearchHit = {
   title: string;
   description: string;
   precis: string;
+  body: string;
   path: string;
   type: string;
   tagList: string[];
@@ -198,7 +301,7 @@ export function runSearch(
   options: SearchQueryOptions,
 ): SearchHit[] {
   const q = options.query.trim();
-  if (!q) return [];
+  if (!q || q.length < MIN_SEARCH_QUERY_LENGTH) return [];
 
   const raw = mini.search(q, {
     boost: { ...FIELD_BOOSTS },
@@ -212,6 +315,7 @@ export function runSearch(
     title: String(row.title ?? ""),
     description: String(row.description ?? ""),
     precis: String(row.precis ?? ""),
+    body: String(row.body ?? ""),
     path: String(row.path ?? ""),
     type: String(row.type ?? ""),
     tagList: Array.isArray(row.tagList) ? (row.tagList as string[]) : [],

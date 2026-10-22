@@ -1,8 +1,11 @@
 import type { ComponentFn } from "../types.js";
 import { hrefForPage } from "../page-href.js";
 import {
+  isSearchQueryLongEnough,
   loadSearchEngine,
+  MIN_SEARCH_QUERY_LENGTH,
   runSearch,
+  textFragmentDirective,
   type SearchHit,
   type SearchIndexPayload,
 } from "../search-index.js";
@@ -168,7 +171,7 @@ function wireBox(host: HTMLElement): void {
   const run = () => {
     void (async () => {
       const q = input.value.trim();
-      if (!q) {
+      if (!q || !isSearchQueryLongEnough(q)) {
         suggest.innerHTML = "";
         hideSuggest();
         return;
@@ -191,7 +194,7 @@ function wireBox(host: HTMLElement): void {
       const resultsPageId = host.dataset.searchResultsPage ?? "search";
       const missing = host.dataset.searchResultsMissing === "1";
       suggest.innerHTML =
-        hits.map((hit, i) => suggestRow(hit, pageHrefFromHost(host, hit), listId, i)).join("") +
+        hits.map((hit, i) => suggestRow(hit, hitPageHref(host, hit, q), listId, i)).join("") +
         (missing
           ? ""
           : `<li role="option" id="${escapeAttr(`${listId}-opt-${hits.length}`)}" aria-selected="false"><a class="tessera-search-see-all" href="${escapeAttr(withQuery(resultsHrefBase, resultsPageId, q))}" tabindex="-1">See all results</a></li>`);
@@ -237,7 +240,7 @@ function wireBox(host: HTMLElement): void {
         return;
       }
       const q = input.value.trim();
-      if (!q) return;
+      if (!q || !isSearchQueryLongEnough(q)) return;
       if (host.dataset.searchResultsMissing === "1") return;
       const resultsHrefBase = host.dataset.searchResultsHref ?? "#search";
       const resultsPageId = host.dataset.searchResultsPage ?? "search";
@@ -345,6 +348,12 @@ async function applyResults(host: HTMLElement, pushUrl: boolean): Promise<void> 
     return;
   }
 
+  if (!isSearchQueryLongEnough(q)) {
+    list.innerHTML = "";
+    if (status) status.textContent = `Type at least ${MIN_SEARCH_QUERY_LENGTH} characters to search.`;
+    return;
+  }
+
   if (status) status.textContent = "Searching…";
   const loaded = await ensureIndex(host);
   if (!loaded) {
@@ -364,7 +373,7 @@ async function applyResults(host: HTMLElement, pushUrl: boolean): Promise<void> 
     ...(type ? { type } : {}),
     sort,
   });
-  list.innerHTML = hits.map((hit) => resultRow(hit, pageHrefFromHost(host, hit))).join("");
+  list.innerHTML = hits.map((hit) => resultRow(hit, hitPageHref(host, hit, q))).join("");
   if (status) {
     status.textContent = hits.length
       ? `${hits.length} result${hits.length === 1 ? "" : "s"}`
@@ -412,6 +421,13 @@ async function ensureIndex(host: HTMLElement): Promise<LoadedIndex | null> {
     }
   })();
   return indexPromise;
+}
+
+function hitPageHref(host: HTMLElement, hit: SearchHit, query: string): string {
+  const href = pageHrefFromHost(host, hit);
+  if (href.startsWith("#")) return href;
+  const fragment = textFragmentDirective(query, hit);
+  return fragment ? `${href}${fragment}` : href;
 }
 
 /** Build a visitor href from the index file's relative prefix and the hit path. */
