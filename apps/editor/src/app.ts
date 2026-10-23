@@ -43,6 +43,7 @@ import {
   listStylesheets,
   saveStylesheet,
   updateLibraryAsset,
+  replaceLibraryAsset,
   updateUser,
   uploadLibrary,
   uploadBackup,
@@ -4500,6 +4501,20 @@ async function bindLibrary(root: HTMLElement, user: PublicUser, routeOpenId: str
       slot.querySelector<HTMLButtonElement>("[data-delete-asset]")?.addEventListener("click", () => {
         if (!window.confirm("Delete this file?")) return;
         void deleteLibraryAsset(asset.id).then(() => bindLibrary(root, user, openId, "File deleted."));
+      });
+      const replaceInput = slot.querySelector<HTMLInputElement>("[data-replace-input]");
+      slot.querySelector<HTMLButtonElement>("[data-replace-asset]")?.addEventListener("click", () => {
+        replaceInput?.click();
+      });
+      replaceInput?.addEventListener("change", () => {
+        const file = replaceInput.files?.[0];
+        replaceInput.value = "";
+        if (!file) return;
+        const body = new FormData();
+        body.append("file", file);
+        void replaceLibraryAsset(asset.id, body)
+          .then(() => bindLibrary(root, user, openId, "File replaced."))
+          .catch((err) => bindLibrary(root, user, openId, err instanceof Error ? err.message : "Could not replace the file."));
       });
       slot.querySelector<HTMLButtonElement>("[data-preview-asset]")?.addEventListener("click", () => {
         openAssetPreview(root, asset.id, asset.name);

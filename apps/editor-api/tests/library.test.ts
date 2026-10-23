@@ -158,6 +158,99 @@ describe("asset library", () => {
     expect(thumb.headers.get("content-type")).toMatch(/webp/);
   });
 
+  it("replaces a file in place while keeping id and url", async () => {
+    const { site, library } = await setup();
+    const uploaded = await library.upload({
+      files: [
+        {
+          filename: "porch.png",
+          relativePath: "porch.png",
+          bytes: Buffer.from(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+            "base64",
+          ),
+        },
+      ],
+    });
+    const id = uploaded.created[0]!.id;
+    const before = (await library.list()).assets.find((asset) => asset.id === id);
+    const url = before?.url;
+    const newBytes = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAAB6XAEJVAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      "base64",
+    );
+    await library.replaceAsset(id, { filename: "porch.png", relativePath: "porch.png", bytes: newBytes });
+    const blobPath = join(root, "files", `${id}.png`);
+    expect(await readFile(blobPath)).toEqual(newBytes);
+    const after = (await library.list()).assets.find((asset) => asset.id === id);
+    expect(after?.url).toBe(url);
+    expect(after?.bytes).toBe(newBytes.length);
+    expect(after?.width).toBe(1);
+    expect(after?.height).toBe(1);
+    const doc = await site.flatten();
+    expect(doc?.media.find((item) => item.id === id)?.url).toBe(url);
+  });
+
+  it("rejects replace when the extension differs", async () => {
+    const { library } = await setup();
+    const uploaded = await library.upload({
+      files: [
+        {
+          filename: "porch.png",
+          relativePath: "porch.png",
+          bytes: Buffer.from(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+            "base64",
+          ),
+        },
+      ],
+    });
+    const id = uploaded.created[0]!.id;
+    const blobPath = join(root, "files", `${id}.png`);
+    const beforeBlob = await readFile(blobPath);
+    await expect(
+      library.replaceAsset(id, {
+        filename: "porch.webp",
+        relativePath: "porch.webp",
+        bytes: Buffer.from("UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAQAcJaQAA3AA/vuUAAA=", "base64"),
+      }),
+    ).rejects.toThrow(/Replace with a \.png file\./);
+    expect(await readFile(blobPath)).toEqual(beforeBlob);
+  });
+
+  it("restores blob and metadata when rebuilding a replace fails", async () => {
+    const { site, library } = await setup();
+    const uploaded = await library.upload({
+      files: [
+        {
+          filename: "porch.png",
+          relativePath: "porch.png",
+          bytes: Buffer.from(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+            "base64",
+          ),
+        },
+      ],
+    });
+    const id = uploaded.created[0]!.id;
+    const recordPath = join(root, "records", "media", `${id}.yaml`);
+    const blobPath = join(root, "files", `${id}.png`);
+    const beforeRecord = await readFile(recordPath, "utf8");
+    const beforeBlob = await readFile(blobPath);
+    vi.spyOn(site, "rebuild").mockRejectedValueOnce(new Error("rebuild blocked"));
+    const newBytes = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAAB6XAEJVAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      "base64",
+    );
+
+    await expect(
+      library.replaceAsset(id, { filename: "porch.png", relativePath: "porch.png", bytes: newBytes }),
+    ).rejects.toThrow("rebuild blocked");
+
+    expect(await readFile(recordPath, "utf8")).toBe(beforeRecord);
+    expect(await readFile(blobPath)).toEqual(beforeBlob);
+  });
+
   it("rejects too many or oversized files before storing upload bytes", async () => {
     const { site } = await setup();
     const { app, token } = await authenticatedApp(site, {

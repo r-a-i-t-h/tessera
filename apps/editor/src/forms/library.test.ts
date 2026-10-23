@@ -101,6 +101,8 @@ describe("library browser", () => {
     const sizedDetail = assetDetail({ ...listing.assets[0]!, width: 320, height: 240 }, listing.folders);
     expect(sizedDetail).toContain("320 x 240");
     expect(sizedDetail).toContain('data-preview-asset="porch"');
+    expect(sizedDetail).toContain("data-replace-asset");
+    expect(sizedDetail).toContain('accept=".svg"');
     const datedDetail = assetDetail({ ...listing.assets[0]!, addedAt: "2024-06-15T08:00:00.000Z" }, listing.folders);
     expect(datedDetail).toContain("<strong>Added</strong> 2024-06-15");
     const sizedList = renderLibrary(

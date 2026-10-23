@@ -520,6 +520,10 @@ export function updateLibraryAsset(
   });
 }
 
+export function replaceLibraryAsset(id: string, body: FormData): Promise<{ ok: true; id: string }> {
+  return request(`/api/library/assets/${encodeURIComponent(id)}/replace`, { method: "POST", body });
+}
+
 export function deleteLibraryAsset(id: string): Promise<{ ok: true }> {
   return request(`/api/library/assets/${encodeURIComponent(id)}`, { method: "DELETE" });
 }

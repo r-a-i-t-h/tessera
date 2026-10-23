@@ -78,6 +78,8 @@ export type RescanResult = {
 
 type MutationResult = { snapshot?: SnapshotRef };
 
+export type ReplaceResult = { id: string; snapshot?: SnapshotRef };
+
 const THUMB_SUFFIX = ".thumb.webp";
 
 export async function imageSize(bytes: Uint8Array): Promise<{ width: number; height: number } | undefined> {
@@ -450,6 +452,65 @@ export class AssetLibrary {
     if (patch.sort !== undefined) record.sort = patch.sort;
     const saved = await this.site.writeLibraryRecord("media", id, record);
     return saved.snapshot ? { snapshot: saved.snapshot } : {};
+  }
+
+  async replaceAsset(id: string, file: UploadFile): Promise<ReplaceResult> {
+    const listing = await this.list();
+    const asset = listing.assets.find((item) => item.id === id);
+    if (!asset) throw new Error(`Unknown file "${id}".`);
+
+    const ext = normalizeExt(file.filename);
+    const kind = kindForExt(ext);
+    if (!kind) throw new Error("Only images and PDF files can be added.");
+    if (ext !== asset.ext.toLowerCase()) throw new Error(`Replace with a .${asset.ext} file.`);
+
+    const blobPath = join(this.filesDir, `${id}.${asset.ext}`);
+    const thumbPath = join(this.filesDir, `${id}${THUMB_SUFFIX}`);
+    const beforeRecord = await this.site.read("media", id);
+    const beforeBlob = await readFile(blobPath);
+    let beforeThumb: Buffer | undefined;
+    let hadThumb = false;
+    try {
+      beforeThumb = await readFile(thumbPath);
+      hadThumb = true;
+    } catch {
+      // no thumbnail yet
+    }
+
+    const rollback = async () => {
+      await writeFile(blobPath, beforeBlob);
+      if (hadThumb && beforeThumb) await writeFile(thumbPath, beforeThumb);
+      else await unlink(thumbPath).catch(() => undefined);
+      await this.site.writeLibraryRecord("media", id, beforeRecord, { rebuild: false }).catch(() => undefined);
+    };
+
+    await mkdir(this.filesDir, { recursive: true });
+    await writeFile(blobPath, file.bytes);
+    if (asset.kind === "image") await writeThumbnail(file.bytes, thumbPath);
+    else await unlink(thumbPath).catch(() => undefined);
+
+    const nextRecord = { ...beforeRecord, bytes: file.bytes.length };
+    if (asset.kind === "image") {
+      const size = await imageSize(file.bytes);
+      if (size) {
+        nextRecord.width = size.width;
+        nextRecord.height = size.height;
+      }
+    }
+
+    try {
+      await this.site.writeLibraryRecord("media", id, nextRecord, { rebuild: false });
+    } catch (err) {
+      await rollback();
+      throw err;
+    }
+    try {
+      const rebuilt = await this.site.rebuild();
+      return { id, ...(rebuilt.snapshot ? { snapshot: rebuilt.snapshot } : {}) };
+    } catch (err) {
+      await rollback();
+      throw err;
+    }
   }
 
   async deleteAsset(id: string): Promise<MutationResult> {

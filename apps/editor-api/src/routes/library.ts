@@ -95,6 +95,21 @@ libraryRoutes.post("/library/upload", async (c) => {
   }
 });
 
+libraryRoutes.post("/library/assets/:id/replace", async (c) => {
+  const site = c.get("requiredSite");
+  try {
+    const form = await c.req.parseBody();
+    const files = await readUploads(form.file, undefined, c.get("uploadLimits"));
+    if (!files.length) return apiError(c, 400, "Choose a file.");
+    if (files.length > 1) return apiError(c, 400, "Choose one file.");
+    const result = await libraryFor(site, c.get("requiredSiteRoot")).replaceAsset(c.req.param("id"), files[0]!);
+    return c.json({ ok: true, ...result });
+  } catch (err) {
+    if (err instanceof UploadLimitError) return apiError(c, 413, err.message);
+    return apiError(c, 400, err instanceof Error ? err.message : "Could not replace the file.");
+  }
+});
+
 libraryRoutes.patch("/library/assets/:id", async (c) => {
   const site = c.get("requiredSite");
   const body = (await c.req.json().catch(() => null)) as Record<string, unknown> | null;

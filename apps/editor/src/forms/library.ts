@@ -312,6 +312,13 @@ export function folderDetail(folder: FolderRow, folders: FolderRow[]): string {
   </form>`;
 }
 
+function replaceFileAccept(ext: string): string {
+  const normalized = ext.toLowerCase();
+  if (normalized === "pdf") return ".pdf,application/pdf";
+  if (normalized === "jpg") return ".jpg,.jpeg,image/jpeg";
+  return `.${escapeHtml(normalized)}`;
+}
+
 export function assetDetail(asset: AssetRow, folders: FolderRow[]): string {
   const options = folders
     .map(
@@ -334,6 +341,12 @@ export function assetDetail(asset: AssetRow, folders: FolderRow[]): string {
     <p><label>Caption <input name="caption" class="w3-input w3-border" value="${escapeHtml(asset.caption ?? "")}" /></label></p>
     <p><label>Folder <select name="folderId" class="w3-select w3-border">${options}</select></label></p>
     ${assetSize(asset)}
+    <p><strong>Replace file</strong></p>
+    <p class="w3-text-grey w3-small">Upload a new file with the same .${escapeHtml(asset.ext)} extension. The asset id and public URL stay the same.</p>
+    <p class="editor-actions">
+      <input type="file" class="w3-hide" data-replace-input accept="${replaceFileAccept(asset.ext)}" />
+      <button type="button" class="w3-button w3-white" data-replace-asset>Replace file</button>
+    </p>
     <p class="editor-actions">
       <button type="submit" class="w3-button w3-theme">Save</button>
       <button type="button" class="w3-button w3-white" data-delete-asset="${escapeHtml(asset.id)}">Delete</button>
