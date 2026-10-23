@@ -15,5 +15,13 @@ describe("guideHtml", () => {
     expect(html).toContain(`href="${stylesSheetHref("local")}"`);
     expect(html).toContain(`href="${stylesSheetHref("theme")}"`);
     expect(html).toContain('href="#/styles">Styles</a>');
+    expect(html).toContain('href="#/records/items"');
+    expect(html).toContain('href="#/items/common-footer"');
+    expect(html).toContain('id="items"');
+    expect(html).toContain('href="#/records/datasets"');
+    expect(html).toContain('href="#/data"');
+    expect(html).toContain('href="#/records/runtimeModules"');
+    expect(html).toContain('id="datasets"');
+    expect(html).toContain('id="runtime-modules"');
   });
 });

@@ -18,8 +18,11 @@ export function guideHtml(): string {
         ${toc("YAML indentation", "yaml-indentation")}
         ${toc("Menus", "menus")}
         ${toc("Menu components", "menu-components")}
+        ${toc("Frame zones", "frame-zones")}
         ${toc("Page links (wiki-style)", "page-links-wiki-style")}
         ${toc("Articles", "articles")}
+        ${toc("Items", "items")}
+        ${toc("Datasets", "datasets")}
         ${toc("Bindings", "bindings")}
         ${toc("Stylesheets", "stylesheets")}
         ${toc("What the Styles page changes", "what-the-styles-page-changes")}
@@ -27,6 +30,7 @@ export function guideHtml(): string {
         ${toc("A different frame for a section", "a-different-frame-for-a-section")}
         ${toc("Maintenance", "maintenance")}
         ${toc("Aspects", "aspects")}
+        ${toc("Runtime modules", "runtime-modules")}
         ${toc("Panel tones", "panel-tones")}
       </ul>
     </nav>
@@ -47,7 +51,7 @@ export function guideHtml(): string {
       <li><code>navFlat</code> with <code>scope: topbar</code> is the row of links under the logo.</li>
       <li><code>navFlat</code> with <code>scope: sidebar</code> is the drawer. On a wide window the Menu button is hidden and the drawer stays closed. Narrow the window and Menu opens it.</li>
     </ul>
-    <p>A heading can fill itself. <strong>Type</strong> <code>meeting</code> lists every page whose type is <code>meeting</code>. <strong>Items</strong> lists pages whose id matches an item carrying that tag. Willow’s “This term” heading uses Type <code>meeting</code> and Sidebar only, which is why meetings appear in the drawer and stay off the top bar. Events have no such heading, so an event page stays out of both menus until you add one:</p>
+    <p>A heading can fill itself. <strong>Type</strong> <code>meeting</code> lists every page whose type is <code>meeting</code>. The nav <strong>Items</strong> field (tag name) lists pages whose id matches a shared <a href="${guideSectionHref("items")}">item</a> record carrying that tag — not the Records → Items list. Willow’s “This term” heading uses Type <code>meeting</code> and Sidebar only, which is why meetings appear in the drawer and stay off the top bar. Events have no such heading, so an event page stays out of both menus until you add one:</p>
     <pre>- heading: What's on
   sidebar: true
   source:
@@ -80,6 +84,23 @@ export function guideHtml(): string {
     <h2 id="articles">Articles</h2>
     <p><a href="#/pages">Pages</a> are ordinary pages. <a href="#/articles">Articles</a> expands each blog in the sidebar so you can pick which stream’s articles to edit. A blog is one dated stream: path, frame, page size, hero, and lead. Hero is full, banner, or side. Blog records are managed under <a href="#/records/blogs">Records → Blogs</a>. Creating a blog also creates its index. Place each blog on the Nav record yourself. The menu can add the index when the blog asks for it. Articles are not menu items.</p>
 
+    <h2 id="items">Items</h2>
+    <p>An <strong>item</strong> is reusable zone content with no URL of its own — a shared footer, JSON for a layout component, or a component mount reused on many pages. Records live under <a href="#/records/items">Records → Items</a> (<code>records/items/&lt;id&gt;.yaml</code>). Open <code>#/items/&lt;id&gt;</code> to edit <strong>tags</strong> and each zone’s <strong>HTML</strong>, <strong>JSON</strong>, <strong>blocks</strong> (a JSON array), or a named <strong>component</strong> plus props.</p>
+    <p><strong>Includes</strong> pull items into a page at render time. On a page, template, or layout, list item ids in <strong>Includes</strong>. Tessera merges zones in order: the page’s zones first, then the page’s includes, then the page layout’s includes, then the master frame’s includes when that layout differs. Each item id is merged once. Blocks in the same zone id are concatenated.</p>
+    <p>Willow’s <a href="#/items/common-footer"><code>common-footer</code></a> fills the layout <code>footer</code> zone. Most pages and templates include it:</p>
+    <pre>includes:
+  - common-footer</pre>
+    <p>Put the footer on a <strong>template</strong> or <strong>layout</strong> when every page in that family should share it without repeating the list.</p>
+    <p>A zone an item fills but the current layout does not declare stays off the painted page, yet its data remains on the merged zone map. A layout <strong>component</strong> can still read it (JSON in an <code>events</code> zone with <code>fromZone</code> on the component). Tabular catalogues with many rows are usually a <a href="${guideSectionHref("datasets")}">dataset</a> plus a binding instead.</p>
+    <p><strong>Bindings</strong> configure registered components (<code>{{id}}</code>). <strong>Items</strong> supply zone payloads those components or plain zone HTML can read. A binding may set <code>itemId</code> and <code>fromZone</code> in YAML to take JSON from an item zone.</p>
+    <p>Maintenance <strong>Unused items</strong> lists item records nothing includes. Themes may ship kit items.</p>
+
+    <h2 id="datasets">Datasets</h2>
+    <p>Structured tabular data (branch lists, product lines, reusable lookups) lives outside the page tree. <a href="#/records/datasets">Records → Datasets</a> lists every dataset. Create one, then open its setup to define the <strong>schema</strong> (field types, nested groups, <strong>ref</strong> links to other datasets), <strong>visible columns</strong> for the editor grid, and an optional <strong>display name</strong> template such as <code>{make} {model} {year}</code> for record labels in pickers and list headings.</p>
+    <p><a href="#/data">Data</a> appears in the sidebar once at least one dataset exists. Choose a dataset to add rows, edit in a dialog, filter columns, or switch to grid edit mode for bulk changes.</p>
+    <p>Visitors do not open dataset files directly. Put data on the site with a <strong>Dataset list</strong> binding (<a href="#/records/bindings">Records → Bindings</a>): pick the dataset, then <strong>Presentation</strong> — <strong>table</strong>, <strong>cards</strong>, <strong>plain list</strong>, or <strong>runtime module</strong> (custom markup from a <a href="${guideSectionHref("runtime-modules")}">runtime module</a> catalog entry). Set columns, default sort, limit, filters, and empty-state text in the wizard. Insert with <strong>Compose → Insert</strong> like any other binding (<code>{{id}}</code>).</p>
+    <p>On <strong>publish</strong>, Tessera embeds a snapshot of every dataset referenced by bindings, including datasets reached through <strong>ref</strong> fields.</p>
+
     <h2 id="bindings">Bindings</h2>
     <p>A <strong>binding</strong> is a named configuration for a registry component. It lives once under <a href="#/records/bindings">Records → Bindings</a> (<code>records/bindings/&lt;id&gt;.yaml</code>): the component name and its props. Pages store a token <code>{{id}}</code> that Tessera expands when the page is rendered.</p>
     <h3 class="w3-medium">Where bindings belong on a page</h3>
@@ -104,7 +125,9 @@ export function guideHtml(): string {
       <li><strong>People grid</strong> — Pages of a type with photo and role.</li>
       <li><strong>Link group</strong> — Children, pages of a type, or a menu heading.</li>
       <li><strong>Reveal banner</strong> — Cropped panels, hover grow, click-to-reveal, then link (Miller’s Ark homepage hero). Panel image: site-relative path; panel link: page id or external URL (Choose page in the binding editor). Insert only.</li>
+      <li><strong>Dataset list</strong> — Rows from a <a href="${guideSectionHref("datasets")}">dataset</a>: table, cards, or plain list; or the same data passed to a <strong>runtime module</strong> for a custom view. Sort, limit, column pick, and filters are binding props.</li>
       <li><strong>Embed</strong> — Raw HTML from a ticket vendor, payment provider, or similar (scripts and iframes kept on publish). Paste in the binding editor; insert with Compose → Insert. Not a layout Component.</li>
+      <li><strong>Runtime module</strong> — Client JavaScript from the catalog with binding props only (no dataset). See <a href="${guideSectionHref("runtime-modules")}">Runtime modules</a>.</li>
     </ul>
     <p>Menus, breadcrumbs, profile lines, and <strong>Subpages</strong> are not bindings. Unsupported components use the raw binding file.</p>
 
@@ -173,6 +196,10 @@ export function guideHtml(): string {
 
     <h2 id="aspects">Aspects</h2>
     <p>A theme that offers more than one look lists those looks as aspects. On a page, <strong>Aspect</strong> picks one. Leave it as <strong>Inherit</strong> and the page uses the nearest parent that set one, or the site default. The home page does not inherit from a parent. Choosing an aspect only adds a class on the document root for that theme's CSS. It does not change the layout or the frame.</p>
+
+    <h2 id="runtime-modules">Runtime modules</h2>
+    <p><strong>Runtime modules</strong> are small ES modules served from <code>./runtime-modules/</code> on the published site. Tessera stores the files under <a href="#/records/runtimeModules">Records → Runtime modules</a>; it does not run module code on the server. The site runtime <code>import()</code>s each module and calls <code>export default function mount(root, ctx)</code>.</p>
+    <p>Upload or edit a module, then wire it through a binding: <strong>Runtime module</strong> (props only) or <strong>Dataset list</strong> with presentation <strong>Runtime module</strong>. Insert the binding in Compose, preview, and publish. Use <code>ctx.host</code> in the module for DOM helpers (<code>el</code>, <code>text</code>, <code>ui.card</code>, and the rest) — do not import Tessera internals in v1. Dataset bindings also set <code>ctx.dataset</code> with the embedded snapshot.</p>
 
     <h2 id="panel-tones">Panel tones</h2>
     <p>The <a href="#/records/site">site record</a> may list extra tones for Compose <strong>Panel</strong> and <strong>Quote</strong> sections (<code>panelTones</code> on the Site form). They appear in the Tone dropdown and style that block only; they are not aspects and do not change the page chrome. Put their CSS in ${sheetLink("local", "site local")} so a theme reinstall does not wipe it. Theme apply does not clear the catalog. Panel is a nested-block container (like Card): the tone styles the shell, and you drop other Compose sections inside it.</p>

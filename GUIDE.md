@@ -9,14 +9,19 @@ Designers shipping a drop-in look should read [THEME-BUILDER.md](./THEME-BUILDER
 - [YAML indentation](#yaml-indentation)
 - [Menus](#menus)
 - [Menu components](#menu-components)
+- [Frame zones](#frame-zones)
 - [Page links (wiki-style)](#page-links-wiki-style)
 - [Articles](#articles)
+- [Items](#items)
+- [Datasets](#datasets)
 - [Bindings](#bindings)
 - [Stylesheets](#stylesheets)
 - [What the Styles page changes](#what-the-styles-page-changes)
 - [A standing side menu on Willow](#a-standing-side-menu-on-willow)
 - [A different frame for a section](#a-different-frame-for-a-section)
 - [Maintenance](#maintenance)
+- [Aspects](#aspects)
+- [Runtime modules](#runtime-modules)
 - [Panel tones](#panel-tones)
 
 ## YAML indentation
@@ -36,14 +41,14 @@ Save on the Page tab (Fields on other records) rewrites a file at two spaces. Th
 
 ## Menus
 
-Links live on the Nav record ([Records → Nav](#/records/nav), file `records/nav.yaml`). Each row has three places: **Sidebar**, **Top bar**, and **Footer**. A place shows the row only when the master layout draws a menu component for that place.
+Links live on the Nav record ([Navigation](#/navigation), file `records/nav.yaml`). Each row has three places: **Sidebar**, **Top bar**, and **Footer**. A place shows the row only when the master layout draws a menu component for that place.
 
 Willow’s master layout ([Records → Layouts](#/records/layouts), then [`master`](#/layouts/master)) has two:
 
 - `navFlat` with `scope: topbar` is the row of links under the logo.
 - `navFlat` with `scope: sidebar` is the drawer. On a wide window the Menu button is hidden and the drawer stays closed. Narrow the window and Menu opens it.
 
-A heading can fill itself. **Type** `meeting` lists every page whose type is `meeting`. **Items** lists pages whose id matches an item carrying that tag. Willow’s “This term” heading uses Type `meeting` and Sidebar only, which is why meetings appear in the drawer and stay off the top bar. Events have no such heading, so an event page stays out of both menus until you add one:
+A heading can fill itself. **Type** `meeting` lists every page whose type is `meeting`. The nav **Items** field (tag name) lists pages whose id matches a shared [item](#items) record carrying that tag — not the Records → Items list. Willow’s “This term” heading uses Type `meeting` and Sidebar only, which is why meetings appear in the drawer and stay off the top bar. Events have no such heading, so an event page stays out of both menus until you add one:
 
 ```yaml
 - heading: What's on
@@ -73,7 +78,7 @@ Put one of these in the master layout as a component. `scope` is `sidebar` (the 
 | `searchBox` | Typeahead search in the frame. Put it on the master layout. The index loads only when someone focuses or types. Enter opens the [Search page](#/content/search) (`search/?q=…`, or `#search?q=…` on a snapshot). |
 | `searchResults` | Full results on the [Search page](#/content/search): refine the query, filter by tag or type, sort by relevance or title. |
 
-A blank site already places `searchBox` in the sidebar and ships a [Search page](#/content/search) on the [Nav record](#/records/nav). Large wiki-style sites keep the menu sparse: a few entry pages plus Search; everything else is reached by cross-links and search.
+A blank site already places `searchBox` in the sidebar and ships a [Search page](#/content/search) on the [Nav record](#/navigation). Large wiki-style sites keep the menu sparse: a few entry pages plus Search; everything else is reached by cross-links and search.
 
 ## Frame zones
 
@@ -94,6 +99,37 @@ External URLs still use ordinary markdown/`href` links.
 ## Articles
 
 Pages are ordinary pages. [Articles](#/articles) expands each blog in the sidebar so you can pick which stream’s articles to edit. A blog is one dated stream: path, frame, page size, hero, and lead. Blog records are managed under [Records → Blogs](#/records/blogs). Creating a blog also creates its index. Place each blog on the Nav record yourself. The menu can add the index when the blog asks for it. Articles are not menu items.
+
+## Items
+
+An **item** is reusable zone content with no URL of its own — a shared footer, a JSON feed for a layout component, or a component mount reused on many pages. Records live under [Records → Items](#/records/items) (`records/items/<id>.yaml`). Open `#/items/<id>` to edit **tags** and each zone’s **HTML**, **JSON**, **blocks** (a JSON array), or a named **component** plus props.
+
+**Includes** pull items into a page at render time. On a page, template, or layout, list item ids in **Includes** (comma-separated on the form). Tessera merges zones in order: the page’s own zones first, then the page’s includes, then the page layout’s includes, then the master frame’s includes when that layout differs. Each item id is merged once. Blocks in the same zone id are concatenated — page body, then shared footer.
+
+Willow’s [`common-footer`](#/items/common-footer) fills the layout `footer` zone. Most pages and templates include it:
+
+```yaml
+includes:
+  - common-footer
+```
+
+Put the footer on a **template** or **layout** when every page in that family should share it without repeating the list.
+
+A zone an item fills but the current layout does not declare stays off the painted page, yet its data remains on the merged zone map. A layout **component** can still read it (for example JSON in an `events` zone consumed via `fromZone` on the component props). That pattern suits structured lists edited as item JSON; tabular catalogues with many rows are usually a [dataset](#datasets) plus a binding instead.
+
+**Bindings** configure registered components (`{{id}}`). **Items** supply zone payloads those components (or plain zone HTML) can read. A binding may also set `itemId` and `fromZone` in YAML to take JSON from an item zone rather than the current page.
+
+Maintenance **Unused items** lists item records nothing includes. Themes may ship kit items; apply copies the listed ids without touching your pages.
+
+## Datasets
+
+Structured tabular data (branch lists, product lines, reusable lookups) lives outside the page tree. **Records → Datasets** (`#/records/datasets`) lists every dataset. Create one, then open its setup to define the **schema** (field types, nested groups, **ref** links to other datasets), **visible columns** for the editor grid, and an optional **display name** template such as `{make} {model} {year}` for record labels in pickers and list headings.
+
+**Data** (`#/data`) appears in the sidebar once at least one dataset exists. Choose a dataset to add rows, edit in a dialog, filter columns, or switch to grid edit mode for bulk changes.
+
+Visitors do not open dataset files directly. Put data on the site with a **Dataset list** binding ([Records → Bindings](#/records/bindings)): pick the dataset, then **Presentation** — **table**, **cards**, **plain list**, or **runtime module** (custom markup from a [runtime module](#runtime-modules) catalog entry). Set columns, default sort, limit, filters, and empty-state text in the wizard. Insert with **Compose → Insert** like any other binding (`{{id}}`).
+
+On **publish**, Tessera embeds a snapshot of every dataset referenced by bindings, including datasets reached through **ref** fields.
 
 ## Bindings
 
@@ -127,6 +163,9 @@ Other binding kinds have **no** Compose section shortcut — configure them only
 - **People grid** — Pages of a type, using photo and role fields.
 - **Link group** — Titled links: this page’s children, every page of a type, or one menu heading.
 - **Reveal banner** — Grid of image panels (Miller’s Ark–style homepage hero): set banner width, height, and panels per row (2–6); optional title size (1–2 em) and expanded gap (default 10px, the space left beside a grown panel); up to six panels with image, title, and link. Each panel shows its slice of full-size artwork; hover to grow on desktop; click or tap to reveal the full banner, then navigate. Insert only; no Compose palette section. Panel **image** is a site-relative library path (e.g. `./media/hero/img1.jpg`). Panel **link** is a **page id** (same id as Pages or Nav) or a full external URL (`https://…`, `mailto:…`); use **Choose page** in the binding editor. Do not use `./` or publish paths for panel links.
+- **Dataset list** — Rows from a [dataset](#datasets): table, cards, or plain list; or the same data passed to a **runtime module** for a custom view. Sort, limit, column pick, and filters are binding props.
+- **Embed** — Raw HTML from a ticket vendor, payment form, or similar (scripts and iframes kept on publish). Paste in the binding editor; insert with Compose → Insert. Not a layout Component.
+- **Runtime module** — Client JavaScript from the catalog with binding props only (no dataset). See [Runtime modules](#runtime-modules).
 
 Create these from [Records → Bindings](#/records/bindings) (wizard) or edit the YAML. Unsupported components are edited as the raw file.
 
@@ -197,7 +236,7 @@ The [site record](#/records/site) names the frame every page uses until a page n
 
 The parent is the same parent that builds the URL. A winter fair whose parent is Events publishes at `/events/event-winter-fair` and wears the Events frame. A page that is not under Events keeps the site frame, even when it uses the same page layout. The home page does not inherit from a parent.
 
-The page layout does not follow the frame. Style tokens stay on the site. Both frames' classes live in [site layout](#/styles?sheet=site). Each frame places its own menu components, and those components still read the one [Nav record](#/records/nav).
+The page layout does not follow the frame. Style tokens stay on the site. Both frames' classes live in [site layout](#/styles?sheet=site). Each frame places its own menu components, and those components still read the one [Nav record](#/navigation).
 
 ## Maintenance
 
@@ -212,6 +251,16 @@ The editor’s **Maintenance** section (`#/maintenance`) lists site-health findi
 - **Rescan drift** — dangling media refs, plus assets sitting in the library’s `scanned` folder after a rescan.
 
 These reports are separate from the per-page preview diagnostics panel.
+
+## Aspects
+
+A theme that offers more than one look lists those looks as aspects. On a page, **Aspect** picks one. Leave it as **Inherit** and the page uses the nearest parent that set one, or the site default. The home page does not inherit from a parent. Choosing an aspect only adds a class on the document root for that theme's CSS. It does not change the layout or the frame.
+
+## Runtime modules
+
+**Runtime modules** are small ES modules served from `./runtime-modules/` on the published site. Tessera stores the files under **Records → Runtime modules** (`#/records/runtimeModules`); it does not run module code on the server. The site runtime `import()`s each module and calls `export default function mount(root, ctx)`.
+
+Upload or edit a module, then wire it through a binding: **Runtime module** (props only) or **Dataset list** with presentation **Runtime module**. Insert the binding in Compose, preview, and publish. Use `ctx.host` in the module for DOM helpers (`el`, `text`, `ui.card`, and the rest) — do not import Tessera internals in v1. Dataset bindings also set `ctx.dataset` with the embedded snapshot. Authoring detail lives in [docs/runtime-modules.md](./docs/runtime-modules.md).
 
 ## Panel tones
 
