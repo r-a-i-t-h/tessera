@@ -16,6 +16,7 @@ export function routeAllowedForUser(route: Route, user: { restrictAccessLevel?: 
   if (isFullAdmin(user)) return true;
   switch (route.page) {
     case "records":
+    case "runtime-modules":
     case "styles":
     case "users":
     case "user":

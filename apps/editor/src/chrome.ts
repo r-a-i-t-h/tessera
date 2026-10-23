@@ -14,7 +14,6 @@ export type EditorSection =
   | "records"
   | "datasets"
   | "library"
-  | "runtime-modules"
   | "maintenance"
   | "backups"
   | "styles"
@@ -132,7 +131,6 @@ export function editorChrome(
           ${sectionLink("#/articles", "Articles", "articles", articlesBlogOn)}
           ${articlesChildren}
           ${sectionLink("#/library", "Library", "library")}
-          ${sectionLink("#/runtime-modules", "Runtime modules", "runtime-modules")}
           ${sectionLink("#/datasets", "Datasets", "datasets", datasetsChildOn)}
           ${datasetsChildren}
           ${admin ? sectionLink("#/styles", "Styles", "styles") : ""}

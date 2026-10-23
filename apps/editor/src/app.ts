@@ -16,8 +16,10 @@ import {
   getRuntimeModules,
   getRuntimeModuleRaw,
   putRuntimeModuleRaw,
+  patchRuntimeModule,
   uploadRuntimeModule,
   deleteRuntimeModule,
+  duplicateRuntimeModule,
   getMaintenance,
   getRecord,
   listBackups,
@@ -152,9 +154,12 @@ import {
   type LibraryBrowseId,
 } from "./forms/library.js";
 import {
+  bindRuntimeModuleDuplicate,
   bindRuntimeModuleEditor,
-  renderRuntimeModuleDetail,
+  bindRuntimeModuleUpload,
+  renderRuntimeModulePage,
   renderRuntimeModulesList,
+  runtimeModulesRouteHash,
 } from "./forms/runtime-modules.js";
 import {
   bindingIdError,
@@ -4680,54 +4685,84 @@ async function submitLibraryUpload(
   }
 }
 
+const RUNTIME_MODULES_NAV = { recordsKind: "runtimeModules" } as const;
+
 async function bindRuntimeModules(root: HTMLElement, user: PublicUser, moduleId: string | null): Promise<void> {
   const { modules } = await getRuntimeModules();
-  root.innerHTML = chrome(user, renderRuntimeModulesList(modules, moduleId ?? undefined), true, "runtime-modules");
-  bindChrome(root);
-  const detail = root.querySelector<HTMLElement>("[data-runtime-detail]");
-  if (moduleId && detail) {
+  if (moduleId) {
     const mod = modules.find((row) => row.id === moduleId);
-    if (mod) {
-      const { text } = await getRuntimeModuleRaw(mod.id);
-      detail.innerHTML = renderRuntimeModuleDetail(mod, text);
-      bindRuntimeModuleEditor(detail);
-      const rawForm = detail.querySelector<HTMLFormElement>("[data-runtime-raw]");
-      rawForm?.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        const area = rawForm.querySelector<HTMLTextAreaElement>('textarea[name="text"]');
-        if (!area) return;
-        try {
-          await putRuntimeModuleRaw(mod.id, area.value);
-          await bindRuntimeModules(root, user, mod.id);
-        } catch (err) {
-          alert(err instanceof Error ? err.message : "Save failed.");
-        }
-      });
-      detail.querySelector<HTMLButtonElement>("[data-runtime-delete]")?.addEventListener("click", async () => {
-        if (!confirm(`Delete runtime module "${mod.id}"?`)) return;
-        try {
-          await deleteRuntimeModule(mod.id);
-          window.location.hash = "#/runtime-modules";
-          await bindRuntimeModules(root, user, null);
-        } catch (err) {
-          alert(err instanceof Error ? err.message : "Delete failed.");
-        }
-      });
+    if (!mod) {
+      root.innerHTML = chrome(
+        user,
+        `<h1 class="w3-large">Runtime modules</h1><p class="w3-text-grey">That module was not found. <a href="#/records/runtimeModules">Back</a></p>`,
+        true,
+        "records",
+        RUNTIME_MODULES_NAV,
+      );
+      bindChrome(root);
+      return;
     }
+    const { text } = await getRuntimeModuleRaw(mod.id);
+    const moduleIds = modules.map((row) => row.id);
+    const duplicateSuggested = suggestDuplicateId(mod.id, moduleIds);
+    root.innerHTML = chrome(user, renderRuntimeModulePage(mod, text, duplicateSuggested), true, "records", RUNTIME_MODULES_NAV);
+    bindChrome(root);
+    bindRuntimeModuleEditor(root);
+    bindRuntimeModuleDuplicate(
+      root,
+      mod.id,
+      moduleIds,
+      async (nextId) => {
+        await duplicateRuntimeModule(mod.id, nextId);
+        window.location.hash = runtimeModulesRouteHash(nextId);
+        await bindRuntimeModules(root, user, nextId);
+      },
+      (message) => alert(message),
+    );
+    const rawForm = root.querySelector<HTMLFormElement>("[data-runtime-raw]");
+    rawForm?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const area = rawForm.querySelector<HTMLTextAreaElement>('textarea[name="text"]');
+      if (!area) return;
+      try {
+        const titleField = rawForm.querySelector<HTMLInputElement>('[name="title"]');
+        const title = titleField?.value.trim() ?? "";
+        await putRuntimeModuleRaw(mod.id, area.value);
+        await patchRuntimeModule(mod.id, title ? { title } : { title: null });
+        await bindRuntimeModules(root, user, mod.id);
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "Save failed.");
+      }
+    });
+    root.querySelector<HTMLButtonElement>("[data-runtime-delete]")?.addEventListener("click", async () => {
+      if (!confirm(`Delete runtime module "${mod.id}"?`)) return;
+      try {
+        await deleteRuntimeModule(mod.id);
+        window.location.hash = runtimeModulesRouteHash();
+        await bindRuntimeModules(root, user, null);
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "Delete failed.");
+      }
+    });
+    return;
   }
-  root.querySelector<HTMLFormElement>("[data-runtime-upload]")?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    if (!(form instanceof HTMLFormElement)) return;
-    const fileInput = form.querySelector<HTMLInputElement>('input[name="file"]');
-    const file = fileInput?.files?.[0];
-    if (!file) return;
-    const body = new FormData();
-    body.append("file", file);
+  root.innerHTML = chrome(user, renderRuntimeModulesList(modules), true, "records", RUNTIME_MODULES_NAV);
+  bindChrome(root);
+  bindRuntimeModuleUpload(root, async (files) => {
     try {
-      const created = await uploadRuntimeModule(body);
-      window.location.hash = `#/runtime-modules/${encodeURIComponent(created.id)}`;
-      await bindRuntimeModules(root, user, created.id);
+      let lastId: string | null = null;
+      for (const file of files) {
+        const body = new FormData();
+        body.append("file", file);
+        const created = await uploadRuntimeModule(body);
+        lastId = created.id;
+      }
+      if (lastId) {
+        window.location.hash = runtimeModulesRouteHash(lastId);
+        await bindRuntimeModules(root, user, lastId);
+      } else {
+        await bindRuntimeModules(root, user, null);
+      }
     } catch (err) {
       alert(err instanceof Error ? err.message : "Upload failed.");
     }

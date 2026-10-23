@@ -128,6 +128,21 @@ export class RuntimeModuleLibrary {
     return { snapshot: rebuilt.snapshot };
   }
 
+  async duplicate(sourceId: string, nextId: string): Promise<{ id: string; snapshot?: SnapshotRef }> {
+    const id = nextId.trim();
+    if (!isRecordId(id)) throw new Error("Invalid module id.");
+    const taken = new Set(await listRecordIds(this.site, "runtimeModules"));
+    if (taken.has(id)) throw new Error(`A runtime module named "${id}" already exists.`);
+    const record = await this.requireRecord(sourceId);
+    const bytes = await readFile(this.blobPath(record.id, record.ext));
+    const copied: RuntimeModuleRecord = { id, ext: record.ext };
+    await mkdir(this.modulesDir, { recursive: true });
+    await writeFile(this.blobPath(id, copied.ext), bytes);
+    await this.site.write("runtimeModules", id, copied);
+    const rebuilt = await this.site.rebuild();
+    return { id, snapshot: rebuilt.snapshot };
+  }
+
   private blobPath(id: string, ext: string): string {
     return join(this.modulesDir, `${id}.${ext.replace(/^\./, "")}`);
   }

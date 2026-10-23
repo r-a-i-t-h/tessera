@@ -1,13 +1,15 @@
 import { join } from "node:path";
 import { Hono } from "hono";
 import { apiError } from "../http.js";
-import { authenticatedSiteRoot } from "../middleware/editor-site.js";
+import { authenticatedFullAdmin, authenticatedSiteRoot } from "../middleware/editor-site.js";
 import { RuntimeModuleLibrary } from "../site/runtime-module-store.js";
 import type { SiteStore } from "../site/store.js";
 
 export const runtimeModuleRoutes = new Hono();
 runtimeModuleRoutes.use("/runtime-modules", authenticatedSiteRoot);
 runtimeModuleRoutes.use("/runtime-modules/*", authenticatedSiteRoot);
+runtimeModuleRoutes.use("/runtime-modules", authenticatedFullAdmin);
+runtimeModuleRoutes.use("/runtime-modules/*", authenticatedFullAdmin);
 
 function libraryFor(site: SiteStore, siteRoot: string): RuntimeModuleLibrary {
   return new RuntimeModuleLibrary(site, join(siteRoot, "runtime-modules"));
@@ -82,5 +84,18 @@ runtimeModuleRoutes.delete("/runtime-modules/:id", async (c) => {
     return c.json({ ok: true, snapshot: result.snapshot });
   } catch (err) {
     return apiError(c, 400, err instanceof Error ? err.message : "Could not delete module.");
+  }
+});
+
+runtimeModuleRoutes.post("/runtime-modules/:id/duplicate", async (c) => {
+  const site = c.get("requiredSite");
+  const body = (await c.req.json().catch(() => null)) as { id?: unknown } | null;
+  const nextId = typeof body?.id === "string" ? body.id.trim() : "";
+  if (!nextId) return apiError(c, 400, "Body must include id.");
+  try {
+    const created = await libraryFor(site, c.get("requiredSiteRoot")).duplicate(c.req.param("id"), nextId);
+    return c.json({ ok: true, ...created });
+  } catch (err) {
+    return apiError(c, 400, err instanceof Error ? err.message : "Could not duplicate module.");
   }
 });

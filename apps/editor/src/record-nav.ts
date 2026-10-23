@@ -14,6 +14,7 @@ export const RECORD_NAV_ITEMS: { kind: string; label: string }[] = [
   { kind: "items", label: "Items" },
   { kind: "types", label: "Types" },
   { kind: "layouts", label: "Layouts" },
+  { kind: "runtimeModules", label: "Runtime modules" },
 ];
 
 export const RECORD_TAB_ORDER = RECORD_NAV_ITEMS.map((item) => item.kind);

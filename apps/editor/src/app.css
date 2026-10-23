@@ -1737,6 +1737,11 @@ img[data-hero-preview] {
   align-items: start;
 }
 
+.editor-runtime-modules-browse {
+  min-width: 0;
+}
+
+
 .editor-library-browse,
 .editor-library-panels {
   min-width: 0;

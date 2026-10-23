@@ -499,12 +499,26 @@ export function putRuntimeModuleRaw(id: string, text: string): Promise<{ ok: tru
   });
 }
 
+export function patchRuntimeModule(id: string, patch: { title?: string | null }): Promise<{ ok: true }> {
+  return request(`/api/runtime-modules/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+}
+
 export function uploadRuntimeModule(body: FormData): Promise<{ ok: true; id: string }> {
   return request("/api/runtime-modules/upload", { method: "POST", body });
 }
 
 export function deleteRuntimeModule(id: string): Promise<{ ok: true }> {
   return request(`/api/runtime-modules/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export function duplicateRuntimeModule(sourceId: string, nextId: string): Promise<{ ok: true; id: string }> {
+  return request(`/api/runtime-modules/${encodeURIComponent(sourceId)}/duplicate`, {
+    method: "POST",
+    body: JSON.stringify({ id: nextId }),
+  });
 }
 
 export function createLibraryFolder(id: string, parentId?: string): Promise<{ ok: true }> {

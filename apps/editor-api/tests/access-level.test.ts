@@ -80,6 +80,7 @@ describe("limited editor access", () => {
       (await app().request("/api/stylesheets", { headers: auth(editorToken) })).status,
     ).toBe(403);
     expect((await app().request("/api/backups", { headers: auth(editorToken) })).status).toBe(403);
+    expect((await app().request("/api/runtime-modules", { headers: auth(editorToken) })).status).toBe(403);
     expect(
       (
         await app().request("/api/datasets", {

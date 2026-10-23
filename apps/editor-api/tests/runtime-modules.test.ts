@@ -71,5 +71,27 @@ describe("runtime module API", () => {
 
     const listing = await library.list();
     expect(listing.modules.map((m) => m.id)).toEqual(["hello"]);
+
+    const dup = await app.request("/api/runtime-modules/hello/duplicate", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ id: "hello-copy" }),
+    });
+    expect(dup.status).toBe(200);
+    const copied = (await dup.json()) as { id: string };
+    expect(copied.id).toBe("hello-copy");
+    const copyRaw = await readFile(join(root, "runtime-modules", "hello-copy.mjs"), "utf8");
+    expect(copyRaw).toBe(source);
+
+    await library.patch("hello", { title: "Hello module" });
+    const dupTitled = await app.request("/api/runtime-modules/hello/duplicate", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ id: "hello-copy-2" }),
+    });
+    expect(dupTitled.status).toBe(200);
+    const listingAfter = await library.list();
+    const copy2 = listingAfter.modules.find((m) => m.id === "hello-copy-2");
+    expect(copy2?.title).toBeUndefined();
   });
 });

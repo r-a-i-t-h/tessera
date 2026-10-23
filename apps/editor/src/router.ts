@@ -69,6 +69,11 @@ export function parseRoute(hash: string): Route {
     return { page: "articles", blog: rest || undefined };
   }
   if (head === "records") {
+    if (rest === "runtimeModules" || rest.startsWith("runtimeModules/")) {
+      const idPart = rest === "runtimeModules" ? "" : rest.slice("runtimeModules/".length);
+      if (idPart.includes("/")) return { page: "missing" };
+      return { page: "runtime-modules", id: idPart || null };
+    }
     if (rest.includes("/")) return { page: "missing" };
     return { page: "records", kind: rest || undefined };
   }

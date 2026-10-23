@@ -152,8 +152,21 @@ describe("editor chrome", () => {
     expect(html).not.toContain('href="#/styles"');
     expect(html).not.toContain('href="#/users"');
     expect(html).not.toContain('href="#/backups"');
+    expect(html).not.toContain('href="#/records/runtimeModules"');
     expect(html).toContain('href="#/navigation"');
     expect(html).toContain('href="#/pages"');
+  });
+
+  it("lists Runtime modules under Records for admins", () => {
+    const html = editorChrome(
+      { ok: true, username: "alice", createdAt: "2026-01-01" },
+      "<h1>Runtime modules</h1>",
+      true,
+      "records",
+      { recordsKind: "runtimeModules" },
+    );
+    expect(html).not.toContain('href="#/runtime-modules"');
+    expect(html).toContain('href="#/records/runtimeModules" aria-current="page"');
   });
 
   it("keeps login errors escaped", () => {
