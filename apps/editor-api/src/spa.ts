@@ -8,6 +8,7 @@ const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
   ".ico": "image/x-icon",
   ".js": "text/javascript; charset=utf-8",
+  ".mjs": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".map": "application/json",
   ".png": "image/png",
@@ -15,7 +16,7 @@ const MIME: Record<string, string> = {
   ".woff2": "font/woff2",
 };
 
-const STATIC_EXT = /\.(css|html|ico|js|json|map|png|svg|woff2)$/i;
+const STATIC_EXT = /\.(css|html|ico|js|mjs|json|map|png|svg|woff2)$/i;
 
 /**
  * Serve a built Vite SPA from `spaDir` after JSON routes. Missing hashed

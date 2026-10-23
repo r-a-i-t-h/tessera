@@ -39,6 +39,7 @@ describe("editor preview host", () => {
     await mkdir(join(siteRoot, "publish", "media"), { recursive: true });
     await mkdir(join(siteRoot, "publish", "img"), { recursive: true });
     await mkdir(join(siteRoot, "files"), { recursive: true });
+    await mkdir(join(siteRoot, "runtime-modules"), { recursive: true });
     await mkdir(join(siteRoot, "records"), { recursive: true });
     await mkdir(bundleDir, { recursive: true });
     await mkdir(skinDir, { recursive: true });
@@ -50,6 +51,7 @@ describe("editor preview host", () => {
     await writeFile(join(siteRoot, "publish", "data", "site.abc123.json"), '{"from":"publish"}\n');
     await writeFile(join(siteRoot, "publish", "data", "only-publish.json"), '{"from":"publish-only"}\n');
     await writeFile(join(siteRoot, "files", "photo.png"), "from-files\n");
+    await writeFile(join(siteRoot, "runtime-modules", "demo.mjs"), "export default function mount() {}\n");
     await writeFile(join(siteRoot, "publish", "media", "photo.png"), "from-publish\n");
     await writeFile(join(siteRoot, "publish", "img", "logo.svg"), "<svg id=\"published\"/>\n");
     await writeFile(join(siteRoot, "publish", "site.css"), "body{color:publish}\n");
@@ -142,6 +144,10 @@ describe("editor preview host", () => {
     expect(await (await a.request("/preview/media/photo.png", { headers })).text()).toContain("from-files");
     expect(await (await a.request("/preview/site.css", { headers })).text()).toContain("color:shell");
     expect(await (await a.request("/preview/img/logo.svg", { headers })).text()).toContain("published");
+
+    const runtimeModule = await a.request("/preview/runtime-modules/demo.mjs", { headers });
+    expect(runtimeModule.status).toBe(200);
+    expect(runtimeModule.headers.get("content-type")).toMatch(/javascript/);
 
     const publishedOnly = await a.request("/preview/data/only-publish.json", { headers });
     expect(publishedOnly.status).toBe(404);

@@ -291,6 +291,16 @@ location /willow/ {
 
 `site.<hash>.json` can be cached like `/assets/` because the name changes when the bytes change. `rev.json` and HTML stay on the “ask every time” path. Pictures with a stable filename are checked every time unless they later move under a hashed name.
 
+Runtime modules under `runtime-modules/` are owner ESM (typically `.mjs`). The site runtime loads them with `import()`, which requires a JavaScript `Content-Type`, not `application/octet-stream`. Current nginx `mime.types` maps `.mjs` to `text/javascript` alongside `.js`. Older nginx builds may omit `.mjs`; add a type next to `include mime.types;` without replacing the file:
+
+```nginx
+types {
+    text/javascript mjs;
+}
+```
+
+The editor preview host and site dev server set the same MIME for `.mjs` when they serve `./runtime-modules/` from the instance tree.
+
 ## Examples
 
 ```bash
