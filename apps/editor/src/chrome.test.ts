@@ -178,18 +178,17 @@ describe("editor chrome", () => {
     expect(html.indexOf('aria-label="Setup"')).toBeLessThan(html.indexOf('aria-label="Admin"'));
   });
 
-  it("groups admin pages and expands maintenance report children", () => {
+  it("groups admin pages without nested maintenance report links", () => {
     const html = editorChrome(
       { ok: true, username: "alice", createdAt: "2026-01-01" },
       "<h1>Maintenance</h1>",
       true,
       "maintenance",
-      { maintenanceTab: "broken" },
     );
     expect(html).toContain('aria-label="Admin"');
-    expect(html).toContain('href="#/maintenance/broken" aria-current="page"');
-    expect(html).toContain('aria-label="Maintenance reports"');
-    expect(html).not.toContain('href="#/maintenance" aria-current="page"');
+    expect(html).toContain('href="#/maintenance"');
+    expect(html).not.toContain('href="#/maintenance/broken"');
+    expect(html).not.toContain('aria-label="Maintenance reports"');
     const styles = html.indexOf('href="#/styles"');
     const users = html.indexOf('href="#/users"');
     expect(styles).toBeLessThan(users);

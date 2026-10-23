@@ -2,7 +2,7 @@ import type { EditorNavContext, EditorSection } from "./chrome.js";
 
 export type SidebarLinkActive =
   | { recordsKind: string }
-  | { section: EditorSection; includeUser?: boolean; maintenanceParent?: boolean };
+  | { section: EditorSection; includeUser?: boolean };
 
 export type SidebarLink = {
   label: string;
@@ -43,11 +43,7 @@ export const ADMIN_MENU: SidebarGroup = {
   ariaLabel: "Admin",
   items: [
     { label: "Users", href: "#/users", whenActive: { section: "users", includeUser: true } },
-    {
-      label: "Maintenance",
-      href: "#/maintenance",
-      whenActive: { section: "maintenance", maintenanceParent: true },
-    },
+    { label: "Maintenance", href: "#/maintenance", whenActive: { section: "maintenance" } },
     { label: "Backups", href: "#/backups", whenActive: { section: "backups" } },
   ],
 };
@@ -60,6 +56,5 @@ export function isSidebarLinkCurrent(
   if (!whenActive) return false;
   if ("recordsKind" in whenActive) return nav.recordsKind === whenActive.recordsKind;
   if (whenActive.includeUser) return section === "users" || section === "user";
-  if (whenActive.maintenanceParent) return section === "maintenance" && !nav.maintenanceTab;
   return section === whenActive.section;
 }

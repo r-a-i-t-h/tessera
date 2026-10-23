@@ -101,17 +101,30 @@ function tabBody(report: MaintenanceReport, tab: MaintenanceTabId): string {
   }
 }
 
-function overviewBody(report: MaintenanceReport): string {
+function reportNav(report: MaintenanceReport, selected: MaintenanceTabId | undefined): string {
   const rows = MAINTENANCE_TABS.map((tab) => {
     const count = maintenanceTabCount(report, tab.id);
     const countHtml =
       count === 0
-        ? `<span class="w3-text-grey">0</span>`
-        : `<strong>${count}</strong>`;
-    return `<li><a href="#/maintenance/${encodeURIComponent(tab.id)}">${escapeHtml(tab.label)}</a> ${countHtml}</li>`;
+        ? `<span class="w3-text-grey editor-maintenance-count">0</span>`
+        : `<strong class="editor-maintenance-count">${count}</strong>`;
+    const on = selected === tab.id;
+    const current = on ? ' aria-current="true"' : "";
+    const className = on ? " editor-maintenance-nav-current" : "";
+    return `<li><a class="editor-maintenance-nav-link${className}" href="#/maintenance/${encodeURIComponent(tab.id)}"${current}>${escapeHtml(tab.label)}</a> ${countHtml}</li>`;
   }).join("");
-  return `<p class="w3-small w3-text-grey">Open a report for details and links to fix each finding.</p>
-    <ul class="w3-ul">${rows}</ul>`;
+  return `<nav class="editor-maintenance-nav" aria-label="Maintenance reports">
+    <ul class="w3-ul editor-maintenance-nav-list">${rows}</ul>
+  </nav>`;
+}
+
+function detailPanel(report: MaintenanceReport, tab: MaintenanceTabId | undefined): string {
+  if (!tab) {
+    return "";
+  }
+  const meta = MAINTENANCE_TABS.find((item) => item.id === tab)!;
+  return `<h2 class="w3-medium">${escapeHtml(meta.label)}</h2>
+    <section class="editor-kind">${tabBody(report, tab)}</section>`;
 }
 
 export function maintenanceHtml(
@@ -121,16 +134,10 @@ export function maintenanceHtml(
   error = "",
 ): string {
   const tab = maintenanceTabId(selected);
-  const detail = tab
-    ? (() => {
-        const meta = MAINTENANCE_TABS.find((item) => item.id === tab)!;
-        return `<p class="w3-small"><a href="#/maintenance">All reports</a></p>
-          <h2 class="w3-medium">${escapeHtml(meta.label)}</h2>
-          <section class="editor-kind">${tabBody(report, tab)}</section>`;
-      })()
-    : `<section class="editor-kind">${overviewBody(report)}</section>`;
   return `<h1 class="w3-large">Maintenance</h1>
     ${statusPanels(notice, error)}
-    <p class="w3-text-grey">Site health reports. Each finding links to the editor record to fix.</p>
-    ${detail}`;
+    <div class="editor-maintenance-split">
+      ${reportNav(report, tab)}
+      <div class="editor-maintenance-detail">${detailPanel(report, tab)}</div>
+    </div>`;
 }

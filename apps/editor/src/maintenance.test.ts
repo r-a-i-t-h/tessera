@@ -26,7 +26,7 @@ describe("maintenance tabs", () => {
     expect(maintenanceTabId("broken")).toBe("broken");
   });
 
-  it("overview lists report counts without findings", () => {
+  it("lists report counts in the nav without findings until a report is selected", () => {
     const html = maintenanceHtml(
       {
         ...emptyReport,
@@ -39,15 +39,16 @@ describe("maintenance tabs", () => {
       undefined,
     );
     expect(html).toContain("<h1 class=\"w3-large\">Maintenance</h1>");
-    expect(html).not.toContain('aria-label="Maintenance reports"');
+    expect(html).toContain('aria-label="Maintenance reports"');
+    expect(html).toContain("editor-maintenance-split");
     expect(html).not.toContain('<a href="#/content/lonely">Lonely</a>');
     expect(html).toContain('href="#/maintenance/orphans"');
-    expect(html).toContain("<strong>1</strong>");
-    expect(html).toContain("<strong>2</strong>");
-    expect(html).toContain('class="w3-text-grey">0</span>');
+    expect(html).toContain("<strong class=\"editor-maintenance-count\">1</strong>");
+    expect(html).toContain("<strong class=\"editor-maintenance-count\">2</strong>");
+    expect(html).toContain('class="w3-text-grey editor-maintenance-count">0</span>');
   });
 
-  it("renders findings on a report sub-page", () => {
+  it("renders findings in the detail panel when a report is selected", () => {
     const html = maintenanceHtml(
       {
         ...emptyReport,
@@ -55,7 +56,8 @@ describe("maintenance tabs", () => {
       },
       "orphans",
     );
-    expect(html).toContain('href="#/maintenance"');
+    expect(html).toContain('editor-maintenance-nav-current');
+    expect(html).toContain('href="#/maintenance/orphans" aria-current="true"');
     expect(html).toContain("Orphan pages");
     expect(html).toContain('<a href="#/content/lonely">Lonely</a>');
     expect(html).toContain("lonely");

@@ -159,7 +159,7 @@ export function guideHtml(): string {
     <p>The page layout does not follow the frame. Style tokens stay on the site. Both frames' classes live in ${sheetLink("site", "site layout")}. Each frame places its own menu components, and those components still read the one <a href="#/navigation">Nav record</a>.</p>
 
     <h2 id="maintenance">Maintenance</h2>
-    <p>The editor’s <a href="#/maintenance">Maintenance</a> overview shows how many findings each report has; open a report for the full list. Each row links to the record to fix. Sidebar items:</p>
+    <p>The editor’s <a href="#/maintenance">Maintenance</a> page lists reports on the left with finding counts; choose one to see the full list on the right. Each row links to the record to fix. Reports:</p>
     <ul>
       <li><strong>Orphan pages</strong> — not home, not on the Nav record (after expansion), and not linked from another page via a wiki link. Articles under a reachable blog are omitted.</li>
       <li><strong>Unused assets</strong> — library media nothing references.</li>

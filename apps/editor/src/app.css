@@ -1770,6 +1770,49 @@ img[data-hero-preview] {
   align-items: start;
 }
 
+.editor-maintenance-split {
+  display: grid;
+  grid-template-columns: minmax(11rem, 14rem) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+  margin-top: 0.75rem;
+}
+
+.editor-maintenance-nav,
+.editor-maintenance-detail {
+  min-width: 0;
+}
+
+.editor-maintenance-nav {
+  border-right: 1px solid #ccc;
+  padding-right: 1.25rem;
+}
+
+.editor-maintenance-nav-list {
+  margin: 0;
+}
+
+.editor-maintenance-nav-link {
+  display: inline-block;
+  text-decoration: none;
+  padding: 0.15rem 0.35rem;
+  margin: -0.15rem -0.35rem;
+  border-radius: 3px;
+}
+
+.editor-maintenance-nav-link:hover {
+  background: #ececea;
+}
+
+.editor-maintenance-nav-current {
+  font-weight: 600;
+  background: #e8e8e4;
+}
+
+.editor-maintenance-count {
+  float: right;
+}
+
 .editor-runtime-modules-browse {
   min-width: 0;
 }
@@ -1878,8 +1921,16 @@ button.editor-library-row:hover,
 }
 
 @media (max-width: 720px) {
-  .editor-library-split {
+  .editor-library-split,
+  .editor-maintenance-split {
     grid-template-columns: 1fr;
+  }
+
+  .editor-maintenance-nav {
+    border-right: none;
+    padding-right: 0;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 1rem;
   }
 }
 

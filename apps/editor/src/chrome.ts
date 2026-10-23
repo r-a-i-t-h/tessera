@@ -4,7 +4,6 @@ import type { PublicUser } from "./api.js";
 import { isFullAdmin } from "./access.js";
 import { escapeHtml } from "./dom.js";
 import { ADMIN_MENU, isSidebarLinkCurrent, SETUP_MENU } from "./editor-sidebar-menu.js";
-import { MAINTENANCE_TABS } from "./maintenance.js";
 
 export type EditorSection =
   | "home"
@@ -27,7 +26,6 @@ export type EditorNavDataset = { id: string; title: string };
 
 export type EditorNavContext = {
   recordsKind?: string;
-  maintenanceTab?: string;
   /** Blog records shown under Articles (which blog’s articles to edit). */
   blogs?: EditorNavBlog[];
   /** Active blog id when viewing or editing that blog’s articles. */
@@ -53,8 +51,6 @@ export function editorChrome(
   const datasetsChildOn = Boolean(nav.activeDataset);
   const datasetNav = nav.datasets;
   const showDataNav = datasetNav === undefined || datasetNav.length > 0;
-  const maintenanceOpen = section === "maintenance";
-  const maintenanceChildOn = maintenanceOpen && Boolean(nav.maintenanceTab);
   const admin = isFullAdmin(user);
 
   const sectionLink = (
@@ -99,24 +95,13 @@ export function editorChrome(
       </div>`
     : "";
 
-  const maintenanceChildren = maintenanceOpen
-    ? `<div class="editor-nav-children editor-nav-children-nested" role="group" aria-label="Maintenance reports">${MAINTENANCE_TABS.map((tab) =>
-        childLink(
-          `#/maintenance/${encodeURIComponent(tab.id)}`,
-          tab.label,
-          nav.maintenanceTab === tab.id,
-        ),
-      ).join("")}</div>`
-    : "";
-
   const adminNav = admin
     ? `${navGroupLabel(ADMIN_MENU.groupLabel)}
       <div class="editor-nav-children editor-nav-admin" role="group" aria-label="${ADMIN_MENU.ariaLabel}">
         ${ADMIN_MENU.items
           .map((item) => {
             const on = isSidebarLinkCurrent(item.whenActive, section, nav);
-            const nested = item.href === "#/maintenance" ? maintenanceChildren : "";
-            return childLink(item.href, item.label, on) + nested;
+            return childLink(item.href, item.label, on);
           })
           .join("")}
       </div>`
