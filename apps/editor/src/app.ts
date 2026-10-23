@@ -263,7 +263,8 @@ import {
 } from "./styles-page.js";
 import { usernameError } from "./username.js";
 import { cancelNewBindingForm, handleEscape, hasOpenModal } from "./escape-key.js";
-import { mountDatasets } from "./datasets/view.js";
+import { bindDatasetsSetup, datasetsSetupSection, mountDatasetSetup } from "./datasets/setup.js";
+import { mountData } from "./datasets/view.js";
 
 let libraryAddOpen = true;
 
@@ -346,8 +347,8 @@ async function render(root: HTMLElement): Promise<void> {
     else if (route.page === "pages") await bindPages(root, user);
     else if (route.page === "articles") await bindArticles(root, user, route.blog);
     else if (route.page === "navigation") await bindNavigation(root, user);
-    else if (route.page === "records") await bindList(root, user, route.kind);
-    else if (route.page === "datasets") await mountDatasets(root, user, route.datasetId, bindChrome);
+    else if (route.page === "records") await bindList(root, user, route.kind, "", "", route.setupDataset);
+    else if (route.page === "data") await mountData(root, user, route.datasetId, bindChrome);
     else if (route.page === "edit") {
       const mode = initialEditMode(route.kind, pending);
       await bindEdit(root, user, route.kind, route.id, mode, pending?.notice ?? "");
@@ -1020,6 +1021,7 @@ async function bindList(
   kind?: string,
   notice = "",
   error = "",
+  setupDataset?: string,
 ): Promise<void> {
   if (kind === "media" || kind === "folders") {
     window.location.hash = "#/library";
@@ -1042,13 +1044,21 @@ async function bindList(
     }
   }
   const active = activeRecordKind(listing, kind);
+  if (active === "datasets" && setupDataset) {
+    await mountDatasetSetup(root, user, setupDataset, bindChrome);
+    return;
+  }
   const layoutNotes = active === "layouts" ? await loadLayoutListNotes(listing) : new Map<string, string>();
   const bindingInfo = active === "bindings" ? await loadBindingListInfo(listing) : undefined;
   const itemZones = active === "items" ? await loadItemZones(listing) : [];
   const listNotes = bindingInfo?.notes ?? layoutNotes;
+  const datasetSummaries =
+    active === "datasets"
+      ? (await listDatasets().catch(() => ({ ok: true as const, datasets: [] }))).datasets
+      : undefined;
   root.innerHTML = chrome(
     user,
-    listHtml(listing, kind, notice, error, listNotes, itemZones, isFullAdmin(user)),
+    listHtml(listing, kind, notice, error, listNotes, itemZones, isFullAdmin(user), datasetSummaries),
     true,
     "records",
     {
@@ -1062,6 +1072,7 @@ async function bindList(
     isFullAdmin(user),
   );
   if (active === "blogs") bindBlogs(root, user, listing);
+  if (active === "datasets") bindDatasetsSetup(root);
   if (active === "site") {
     const row = listing.records.find((item) => item.kind === "site");
     if (row) await bindEdit(root, user, "site", row.id, initialEditMode("site", undefined), "", false, "tab");
@@ -1952,11 +1963,14 @@ function recordTabs(listing: RecordList): { kind: string; label: string }[] {
   const site = tabs.findIndex((item) => item.kind === "site");
   const blogsAt = site === -1 ? 0 : site + 1;
   tabs.splice(blogsAt, 0, { kind: "blogs", label: "Blogs" });
+  const datasetsAt = tabs.findIndex((item) => item.kind === "blogs");
+  tabs.splice(datasetsAt === -1 ? blogsAt + 1 : datasetsAt + 1, 0, { kind: "datasets", label: "Datasets" });
   return tabs;
 }
 
 function activeRecordKind(listing: RecordList, selected?: string): string | undefined {
   if (selected === "blogs") return "blogs";
+  if (selected === "datasets") return "datasets";
   const kinds = recordTabs(listing);
   if (selected && kinds.some((item) => item.kind === selected)) return selected;
   if (selected) return undefined;
@@ -1982,6 +1996,7 @@ function listHtml(
   layoutNotes: Map<string, string> = new Map(),
   itemZones: readonly string[] = [],
   canInitSite = true,
+  datasetSummaries?: Awaited<ReturnType<typeof listDatasets>>["datasets"],
 ): string {
   const byKind = new Map<string, RecordSummary[]>();
   for (const rec of listing.records) {
@@ -1994,7 +2009,7 @@ function listHtml(
   return `<h1 class="w3-large">${escapeHtml(recordsPageHeading(listing, active))}</h1>
     ${statusPanels(notice, error)}
     ${siteReady ? "" : startSiteHtml(canInitSite)}
-    ${recordTab(listing, active, byKind, siteReady, layoutNotes, itemZones)}`;
+    ${recordTab(listing, active, byKind, siteReady, layoutNotes, itemZones, datasetSummaries)}`;
 }
 
 function recordTab(
@@ -2004,9 +2019,13 @@ function recordTab(
   siteReady: boolean,
   layoutNotes: Map<string, string> = new Map(),
   itemZones: readonly string[] = [],
+  datasetSummaries: Awaited<ReturnType<typeof listDatasets>>["datasets"] = [],
 ): string {
   if (active === "blogs") {
     return `<section class="editor-kind" aria-label="Blogs">${blogsSection(listing)}</section>`;
+  }
+  if (active === "datasets") {
+    return `<section class="editor-kind" aria-label="Datasets">${datasetsSetupSection(datasetSummaries)}</section>`;
   }
   const kind = listing.kinds.find((item) => item.kind === active);
   if (!kind) return `<p class="w3-text-grey">That record type is not in this editor.</p>`;

@@ -12,7 +12,7 @@ export type EditorSection =
   | "articles"
   | "navigation"
   | "records"
-  | "datasets"
+  | "data"
   | "library"
   | "maintenance"
   | "backups"
@@ -32,9 +32,9 @@ export type EditorNavContext = {
   blogs?: EditorNavBlog[];
   /** Active blog id when viewing or editing that blog’s articles. */
   articlesBlog?: string;
-  /** Datasets shown under Datasets for quick switching (dashboard stays at #/datasets). */
+  /** Datasets shown under Data for quick switching (dashboard stays at #/data). */
   datasets?: EditorNavDataset[];
-  /** Active dataset id when editing a dataset grid. */
+  /** Active dataset id when editing data in a dataset grid. */
   activeDataset?: string;
 };
 
@@ -48,7 +48,7 @@ export function editorChrome(
   const blogs = nav.blogs ?? [];
   const articlesOpen = section === "articles";
   const articlesBlogOn = Boolean(nav.articlesBlog);
-  const datasetsOpen = section === "datasets";
+  const datasetsOpen = section === "data";
   const datasetsChildOn = Boolean(nav.activeDataset);
   const datasetNav = nav.datasets ?? [];
   const maintenanceOpen = section === "maintenance";
@@ -126,7 +126,7 @@ export function editorChrome(
       ? `<div class="editor-nav-children" role="group" aria-label="Datasets">${datasetNav
           .map((dataset) =>
             childLink(
-              `#/datasets/${encodeURIComponent(dataset.id)}`,
+              `#/data/${encodeURIComponent(dataset.id)}`,
               dataset.title,
               nav.activeDataset === dataset.id,
             ),
@@ -143,7 +143,7 @@ export function editorChrome(
           ${sectionLink("#/articles", "Articles", "articles", articlesBlogOn)}
           ${articlesChildren}
           ${sectionLink("#/library", "Library", "library")}
-          ${sectionLink("#/datasets", "Datasets", "datasets", datasetsChildOn)}
+          ${sectionLink("#/data", "Data", "data", datasetsChildOn)}
           ${datasetsChildren}
           ${admin ? sectionLink("#/styles", "Styles", "styles") : ""}
           ${setupNav}

@@ -9,6 +9,7 @@
 export const RECORD_NAV_ITEMS: { kind: string; label: string }[] = [
   { kind: "site", label: "Site" },
   { kind: "blogs", label: "Blogs" },
+  { kind: "datasets", label: "Datasets" },
   { kind: "templates", label: "Templates" },
   { kind: "bindings", label: "Bindings" },
   { kind: "items", label: "Items" },

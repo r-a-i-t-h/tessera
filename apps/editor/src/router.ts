@@ -3,8 +3,8 @@ export type Route =
   | { page: "pages" }
   | { page: "articles"; blog?: string }
   | { page: "navigation" }
-  | { page: "records"; kind?: string }
-  | { page: "datasets"; datasetId?: string }
+  | { page: "records"; kind?: string; setupDataset?: string }
+  | { page: "data"; datasetId?: string }
   | { page: "library"; id: string | null }
   | { page: "runtime-modules"; id: string | null }
   | { page: "maintenance"; tab?: string }
@@ -74,12 +74,17 @@ export function parseRoute(hash: string): Route {
       if (idPart.includes("/")) return { page: "missing" };
       return { page: "runtime-modules", id: idPart || null };
     }
+    if (rest === "datasets" || rest.startsWith("datasets/")) {
+      const idPart = rest === "datasets" ? "" : rest.slice("datasets/".length);
+      if (idPart.includes("/")) return { page: "missing" };
+      return { page: "records", kind: "datasets", setupDataset: idPart || undefined };
+    }
     if (rest.includes("/")) return { page: "missing" };
     return { page: "records", kind: rest || undefined };
   }
-  if (head === "datasets") {
+  if (head === "data" || head === "datasets") {
     if (rest.includes("/")) return { page: "missing" };
-    return { page: "datasets", datasetId: rest || undefined };
+    return { page: "data", datasetId: rest || undefined };
   }
   if (head === "nav") {
     if (!rest || rest.includes("/")) return { page: "missing" };

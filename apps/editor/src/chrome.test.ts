@@ -64,12 +64,12 @@ describe("editor chrome", () => {
     expect(html).toContain('class="w3-bar-item w3-button w3-white" href="#/articles"');
   });
 
-  it("expands datasets under Datasets and marks the active one", () => {
+  it("expands datasets under Data and marks the active one", () => {
     const html = editorChrome(
       { ok: true, username: "alice", createdAt: "2026-01-01" },
       "<h1>Products</h1>",
       true,
-      "datasets",
+      "data",
       {
         datasets: [
           { id: "events", title: "Events" },
@@ -79,10 +79,21 @@ describe("editor chrome", () => {
       },
     );
     expect(html).toContain('aria-label="Datasets"');
-    expect(html).toContain('href="#/datasets/products" aria-current="page"');
-    expect(html).toContain('href="#/datasets/events"');
-    expect(html).not.toContain('href="#/datasets" aria-current="page"');
-    expect(html).toContain('class="w3-bar-item w3-button w3-white" href="#/datasets"');
+    expect(html).toContain('href="#/data/products" aria-current="page"');
+    expect(html).toContain('href="#/data/events"');
+    expect(html).not.toContain('href="#/data" aria-current="page"');
+    expect(html).toContain('class="w3-bar-item w3-button w3-white" href="#/data"');
+  });
+
+  it("lists Datasets under Setup", () => {
+    const html = editorChrome(
+      { ok: true, username: "alice", createdAt: "2026-01-01" },
+      "<h1>Datasets</h1>",
+      true,
+      "records",
+      { recordsKind: "datasets" },
+    );
+    expect(html).toContain('href="#/records/datasets" aria-current="page"');
   });
 
   it("keeps Blogs under Setup", () => {
