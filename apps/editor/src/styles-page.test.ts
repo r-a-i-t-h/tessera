@@ -1,6 +1,14 @@
 // @vitest-environment happy-dom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("./maximized-code-editor.js", () => ({
+  mountMaximizedCodeEditor: vi.fn(() => ({
+    focus: vi.fn(),
+    destroy: vi.fn(),
+  })),
+}));
+
 import {
   bindStylesheetEditors,
   openMaximizedStylesheet,

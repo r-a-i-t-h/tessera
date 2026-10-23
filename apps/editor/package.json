@@ -11,6 +11,13 @@
     "test": "vite build && vitest run"
   },
   "dependencies": {
+    "@codemirror/autocomplete": "^6.20.4",
+    "@codemirror/commands": "^6.11.1",
+    "@codemirror/lang-css": "^6.3.1",
+    "@codemirror/lang-javascript": "^6.2.5",
+    "@codemirror/language": "^6.13.1",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.15",
     "@r-a-i-t-h/tessera-model": "*",
     "@r-a-i-t-h/tessera-sections": "*",
     "@r-a-i-t-h/tessera-skin-w3": "*",

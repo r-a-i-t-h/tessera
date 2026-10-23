@@ -1,6 +1,14 @@
 // @vitest-environment happy-dom
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("../maximized-code-editor.js", () => ({
+  mountMaximizedCodeEditor: vi.fn(() => ({
+    focus: vi.fn(),
+    destroy: vi.fn(),
+  })),
+}));
+
 import { bindRuntimeModuleEditor, renderRuntimeModuleDetail } from "./runtime-modules.js";
 
 describe("runtime module editor", () => {

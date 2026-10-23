@@ -3,6 +3,7 @@ import { bindCodeWrap, codeWrapClass, codeWrapToggle } from "./code-wrap.js";
 import { activateDialog, type DialogController } from "./dialog.js";
 import { errorPanel, escapeHtml, noticePanel } from "./dom.js";
 import { STYLE_FIELDS, styleDraft, styleFieldValues, styleFromValues, styleGroups } from "./forms/style.js";
+import { mountMaximizedCodeEditor, type MaximizedCodeEditorHandle } from "./maximized-code-editor.js";
 import { stylesSheetHref } from "./router.js";
 
 const PANELS_KEY = "tessera.styles.panels";
@@ -200,8 +201,11 @@ export function bindStylesheetEditors(
     const maximize = form.querySelector<HTMLButtonElement>("[data-sheet-maximize]");
     const normalize = form.querySelector<HTMLButtonElement>("[data-sheet-normalize]");
     let overlay: HTMLDivElement | null = null;
+    let codeEditor: MaximizedCodeEditorHandle | null = null;
     const restore = () => {
       if (!sheet) return;
+      codeEditor?.destroy();
+      codeEditor = null;
       dialogs.get(sheet)?.destroy();
       dialogs.delete(sheet);
       sheet.classList.remove("style-sheet--maximized");
@@ -228,15 +232,16 @@ export function bindStylesheetEditors(
       form.setAttribute("aria-modal", "true");
       form.tabIndex = -1;
       const textarea = form.querySelector<HTMLTextAreaElement>('textarea[name="text"]');
-      textarea?.focus();
+      if (textarea) codeEditor = mountMaximizedCodeEditor(textarea, "css");
       dialogs.set(
         sheet,
         activateDialog(overlay, {
           onCancel: restore,
           returnFocus: maximize,
-          initialFocus: 'textarea[name="text"]',
+          initialFocus: ".maximized-code-editor .cm-content",
         }),
       );
+      codeEditor?.focus();
     });
     normalize?.addEventListener("click", restore);
   }

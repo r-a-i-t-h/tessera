@@ -1,6 +1,7 @@
 import { activateDialog, type DialogController } from "../dialog.js";
 import { escapeHtml } from "../dom.js";
 import type { RuntimeModuleAsset } from "../api.js";
+import { mountMaximizedCodeEditor, type MaximizedCodeEditorHandle } from "../maximized-code-editor.js";
 
 export function renderRuntimeModulesList(modules: RuntimeModuleAsset[], selectedId?: string): string {
   const rows = modules
@@ -32,7 +33,7 @@ export function renderRuntimeModuleDetail(mod: RuntimeModuleAsset, raw: string):
     <form data-runtime-raw>
       <h3 class="runtime-module-dialog-title">${title}</h3>
       <p class="runtime-module-tools"><button type="button" class="w3-button w3-small w3-white" data-runtime-maximize>Maximize</button></p>
-      <p class="runtime-module-editor-area"><label>Raw file <textarea name="text" class="w3-input w3-border editor-html" rows="24" spellcheck="false">${escapeHtml(raw)}</textarea></label></p>
+      <p class="runtime-module-editor-area"><label for="runtime-module-raw-${escapeHtml(mod.id)}">Raw file</label><textarea id="runtime-module-raw-${escapeHtml(mod.id)}" name="text" class="w3-input w3-border editor-html" rows="24" spellcheck="false">${escapeHtml(raw)}</textarea></p>
       <p class="runtime-module-actions">
         <button type="submit" class="w3-button w3-theme">Save</button>
         <button type="button" class="w3-button w3-white runtime-module-normalize" data-runtime-normalize>Normalize</button>
@@ -50,9 +51,12 @@ export function bindRuntimeModuleEditor(root: ParentNode): void {
   const maximize = form.querySelector<HTMLButtonElement>("[data-runtime-maximize]");
   const normalize = form.querySelector<HTMLButtonElement>("[data-runtime-normalize]");
   let overlay: HTMLDivElement | null = null;
+  let codeEditor: MaximizedCodeEditorHandle | null = null;
   const dialogs = new WeakMap<HTMLElement, DialogController>();
 
   const restore = () => {
+    codeEditor?.destroy();
+    codeEditor = null;
     dialogs.get(editor)?.destroy();
     dialogs.delete(editor);
     editor.classList.remove("runtime-module-editor--maximized");
@@ -75,15 +79,16 @@ export function bindRuntimeModuleEditor(root: ParentNode): void {
     form.setAttribute("aria-modal", "true");
     form.tabIndex = -1;
     const textarea = form.querySelector<HTMLTextAreaElement>('textarea[name="text"]');
-    textarea?.focus();
+    if (textarea) codeEditor = mountMaximizedCodeEditor(textarea, "javascript");
     dialogs.set(
       editor,
       activateDialog(overlay, {
         onCancel: restore,
         returnFocus: maximize,
-        initialFocus: 'textarea[name="text"]',
+        initialFocus: ".maximized-code-editor .cm-content",
       }),
     );
+    codeEditor?.focus();
   });
   normalize?.addEventListener("click", restore);
 }

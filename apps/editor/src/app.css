@@ -519,10 +519,8 @@ textarea.w3-input.editor-html {
 }
 
 .runtime-module-overlay-host .runtime-module-editor-area label {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
+  flex: 0 0 auto;
+  margin: 0 0 0.35rem;
 }
 
 .runtime-module-overlay-host .runtime-module-editor-area textarea {
@@ -541,6 +539,41 @@ textarea.w3-input.editor-html {
 
 .runtime-module-overlay-host .runtime-module-normalize {
   display: inline-block;
+}
+
+textarea.maximized-code-editor-source-hidden {
+  display: none !important;
+}
+
+.maximized-code-editor {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #c8c8c4;
+  border-radius: 4px;
+  background: #f6f6f4;
+  overflow: hidden;
+}
+
+.maximized-code-editor .cm-editor {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  outline: none;
+}
+
+.maximized-code-editor .cm-scroller {
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.runtime-module-overlay-host .runtime-module-editor-area .maximized-code-editor,
+.style-sheet-overlay-host .style-sheet-editor .maximized-code-editor {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 textarea.w3-input.editor-yaml::-webkit-scrollbar,
