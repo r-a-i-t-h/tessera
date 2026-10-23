@@ -90,14 +90,14 @@ export type DatasetQueryOptions = {
   asOf?: Date;
 };
 
-export type DatasetFieldCellFormat = "plain" | "asset";
+export type DatasetFieldCellFormat = "plain" | "asset" | "url";
 
 export type DatasetFieldCell = {
   id: string;
   label: string;
   text: string;
   format?: DatasetFieldCellFormat;
-  /** Sanitized HTML when format is asset. */
+  /** Sanitized HTML when format is asset or url. */
   richHtml?: string;
 };
 
@@ -264,8 +264,8 @@ export function queryDatasetRecords(
       }
       const richHtml = formatDatasetFieldRichHtml(record, field, ctx);
       const text = formatDatasetFieldDisplay(record, field, ctx);
-      if (field.kind === "asset" && richHtml) {
-        return { id: field.id, label: field.label, text, format: "asset", richHtml };
+      if (richHtml && (field.kind === "asset" || field.kind === "url")) {
+        return { id: field.id, label: field.label, text, format: field.kind, richHtml };
       }
       return { id: field.id, label: field.label, text };
     }),

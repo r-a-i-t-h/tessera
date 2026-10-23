@@ -73,8 +73,22 @@ describe("schema form", () => {
     host.innerHTML = renderSchemaForm(schemaDraftFromFields(fields), {
       datasetOptions: [{ id: "meetings", title: "Meetings" }],
     });
+    const kindSelect = host.querySelector<HTMLSelectElement>('[data-schema-kind="0"][data-depth="0"]');
+    kindSelect!.value = "ref";
     const draft = readSchemaForm(host, schemaDraftFromFields(fields));
     expect(draft.fields[0]?.dataset).toBe("meetings");
+  });
+
+  it("reads the kind from the select value, not a stale selected attribute", () => {
+    const fields: DatasetField[] = [{ key: "f1", id: "link", label: "Link", kind: "string" }];
+    const host = document.createElement("div");
+    host.innerHTML = renderSchemaForm(schemaDraftFromFields(fields));
+    const select = host.querySelector<HTMLSelectElement>('[data-schema-kind="0"][data-depth="0"]');
+    expect(select).toBeTruthy();
+    select!.querySelector('option[value="string"]')?.setAttribute("selected", "");
+    select!.value = "url";
+    const draft = readSchemaForm(host, schemaDraftFromFields(fields));
+    expect(draft.fields[0]?.kind).toBe("url");
   });
 
   it("does not offer removed field kinds", () => {

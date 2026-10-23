@@ -11,6 +11,7 @@ export const DATASET_MAX_FIELD_DEPTH = 4;
 export const DATASET_SCALAR_KINDS = [
   "string",
   "text",
+  "url",
   "number",
   "boolean",
   "date",
@@ -24,8 +25,12 @@ export const DATASET_FIELD_KINDS = [...DATASET_SCALAR_KINDS] as const;
 
 const LEGACY_REMOVED_FIELD_KINDS = new Set(["object", "list", "html"]);
 
+export const DATASET_LEGACY_NESTED_KINDS = ["object", "list"] as const;
+
 export type DatasetScalarKind = (typeof DATASET_SCALAR_KINDS)[number];
 export type DatasetFieldKind = (typeof DATASET_FIELD_KINDS)[number];
+/** Scalar kinds plus nested kinds kept for migration helpers over old data. */
+export type DatasetFieldKindAny = DatasetFieldKind | (typeof DATASET_LEGACY_NESTED_KINDS)[number];
 
 export type DatasetEnumOption = { value: string; label: string };
 
@@ -33,7 +38,7 @@ export type DatasetField = {
   key: string;
   id: string;
   label: string;
-  kind: DatasetFieldKind;
+  kind: DatasetFieldKindAny;
   required?: boolean;
   default?: unknown;
   many?: boolean;
@@ -326,6 +331,43 @@ function escapeText(value: string): string {
     .replace(/>/g, "&gt;");
 }
 
+const DATASET_URL_LINK_ICON =
+  '<svg class="tessera-dataset-url-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" d="M6.2 9.8 9.8 6.2M7.5 5.1h3.4v3.4M5.1 10.9H2.5V2.5h8.4v2.6"/></svg>';
+
+const DATASET_URL_PROTOCOLS = new Set(["http:", "https:", "mailto:", "tel:"]);
+
+/** Accepts site-relative paths, absolute http(s)/mailto/tel URLs, or host-shaped values without a scheme. */
+export function normalizeDatasetUrl(value: string): string | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  if (trimmed.startsWith("/") && !trimmed.startsWith("//")) return trimmed;
+  try {
+    const u = new URL(trimmed);
+    if (DATASET_URL_PROTOCOLS.has(u.protocol)) return u.href;
+    return undefined;
+  } catch {
+    if (trimmed.includes(" ")) return undefined;
+    try {
+      const u = new URL(`https://${trimmed}`);
+      if (u.hostname) return u.href;
+    } catch {
+      return undefined;
+    }
+    return undefined;
+  }
+}
+
+/** Sanitized link icon HTML for a url field value (preview and published dataset views). */
+export function formatDatasetUrlHtml(value: string): string | undefined {
+  const href = normalizeDatasetUrl(value);
+  if (!href) return undefined;
+  const safeHref = escapeAttr(href);
+  const label = escapeAttr(value.trim());
+  const external = href.startsWith("http:") || href.startsWith("https:");
+  const target = external ? ' target="_blank" rel="noopener noreferrer"' : "";
+  return `<a class="tessera-dataset-url" href="${safeHref}"${target} aria-label="${label}">${DATASET_URL_LINK_ICON}</a>`;
+}
+
 function assetCellHtml(assetId: string, ctx?: RecordDisplayContext): string {
   const label = ctx?.assetLabel?.(assetId) ?? assetId;
   const url = ctx?.assetUrl?.(assetId);
@@ -349,6 +391,9 @@ export function formatDatasetFieldRichHtml(
       return parts.length ? parts.join(", ") : undefined;
     }
     return assetCellHtml(String(raw), ctx);
+  }
+  if (field.kind === "url") {
+    return formatDatasetUrlHtml(String(raw));
   }
   return undefined;
 }
@@ -447,6 +492,7 @@ function valueMatchesField(field: DatasetField, value: unknown, forDefault = fal
   switch (field.kind) {
     case "string":
     case "text":
+    case "url":
     case "date":
       return typeof value === "string";
     case "number":
@@ -523,6 +569,9 @@ function validateValueAtField(
   if (field.kind === "date" && typeof value === "string" && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     issues.push({ path, message: "Date must be YYYY-MM-DD." });
   }
+  if (field.kind === "url" && typeof value === "string" && !normalizeDatasetUrl(value)) {
+    issues.push({ path, message: "URL must be a site path, http(s), mailto, tel, or a host name." });
+  }
   return issues;
 }
 
@@ -557,8 +606,8 @@ export function validateAllRecords(file: DatasetFile): Map<number, DatasetValida
   return map;
 }
 
-function textKinds(kind: DatasetFieldKind): boolean {
-  return kind === "string" || kind === "text";
+function textKinds(kind: DatasetFieldKindAny): boolean {
+  return kind === "string" || kind === "text" || kind === "url";
 }
 
 function transformScalarValue(

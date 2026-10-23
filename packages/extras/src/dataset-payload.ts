@@ -1,6 +1,7 @@
 import {
   documentDatasetMap,
   fieldById,
+  type DatasetFieldKindAny,
   queryDatasetRecords,
   type DatasetQueryOptions,
   type DatasetRowView,
@@ -12,11 +13,15 @@ import { queryOptionsFromProps } from "./dataset-present-props.js";
 
 export type DatasetColumnAlign = "left" | "center" | "right";
 
+export type DatasetColumnCellFormat = "url" | "asset";
+
 export type DatasetColumnPayload = {
   id: string;
   label: string;
   sortable: boolean;
   align: DatasetColumnAlign;
+  /** How to paint the cell when `richValues` is absent (url icon link, etc.). */
+  cellFormat?: DatasetColumnCellFormat;
 };
 
 export type DatasetRowPayload = {
@@ -39,6 +44,11 @@ export type DatasetViewPayload = {
   columns: DatasetColumnPayload[];
   rows: DatasetRowPayload[];
 };
+
+function columnCellFormat(kind?: DatasetFieldKindAny): DatasetColumnCellFormat | undefined {
+  if (kind === "url" || kind === "asset") return kind;
+  return undefined;
+}
 
 export function datasetColumnAlign(fieldId: string, snapshot: DatasetSnapshot): DatasetColumnAlign {
   if (fieldId === "uid") return "right";
@@ -107,12 +117,17 @@ export function buildDatasetViewPayload(
   const result = queryDatasetRecords(snapshots, queryOpts, display);
   if (!result) return undefined;
 
-  const columns: DatasetColumnPayload[] = (result.rows[0]?.fields ?? []).map((f) => ({
-    id: f.id,
-    label: f.label,
-    sortable: isSortableColumn(f.id, snapshot),
-    align: datasetColumnAlign(f.id, snapshot),
-  }));
+  const columns: DatasetColumnPayload[] = (result.rows[0]?.fields ?? []).map((f) => {
+    const field = fieldById(snapshot.schema.fields, f.id);
+    const cellFormat = columnCellFormat(field?.kind);
+    return {
+      id: f.id,
+      label: f.label,
+      sortable: isSortableColumn(f.id, snapshot),
+      align: datasetColumnAlign(f.id, snapshot),
+      ...(cellFormat ? { cellFormat } : {}),
+    };
+  });
 
   const headingProp =
     typeof props.headingField === "string" && props.headingField.trim() ? props.headingField.trim() : undefined;

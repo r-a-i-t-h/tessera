@@ -145,6 +145,8 @@ export {
   formatRecordDisplayName,
   formatDatasetFieldDisplay,
   formatDatasetFieldRichHtml,
+  formatDatasetUrlHtml,
+  normalizeDatasetUrl,
   scrubLegacyRootRecord,
   datasetFileToSnapshot,
 } from "./dataset.js";
@@ -163,6 +165,8 @@ export {
 export type {
   DatasetScalarKind,
   DatasetFieldKind,
+  DatasetFieldKindAny,
+  DATASET_LEGACY_NESTED_KINDS,
   DatasetEnumOption,
   DatasetField,
   DatasetSchemaBody,

@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   adaptRecords,
   emptyRootRecordDraft,
+  formatDatasetFieldRichHtml,
   formatRecordDisplayName,
+  normalizeDatasetUrl,
   parseDatasetFile,
   parseDatasetSchema,
   sanitizeViewColumns,
@@ -23,6 +25,42 @@ const carSchema = parseDatasetSchema({
     { key: "f2", id: "model", label: "Model", kind: "string" },
     { key: "f3", id: "year", label: "Year", kind: "number" },
   ],
+});
+
+describe("url fields", () => {
+  const urlSchema = parseDatasetSchema({
+    fields: [{ key: "f1", id: "site", label: "Site", kind: "url", required: true }],
+  });
+
+  it("normalizes common URL shapes", () => {
+    expect(normalizeDatasetUrl("https://example.com/path")).toBe("https://example.com/path");
+    expect(normalizeDatasetUrl("example.com")).toBe("https://example.com/");
+    expect(normalizeDatasetUrl("example.com/about")).toBe("https://example.com/about");
+    expect(normalizeDatasetUrl("/contact")).toBe("/contact");
+    expect(normalizeDatasetUrl("mailto:hi@example.com")).toBe("mailto:hi@example.com");
+  });
+
+  it("rejects invalid URLs on records", () => {
+    const issues = validateRootRecord(
+      {
+        uid: 1,
+        added: "2026-01-01T00:00:00.000Z",
+        modified: "2026-01-01T00:00:00.000Z",
+        site: "not a url",
+      },
+      urlSchema,
+    );
+    expect(issues.some((i) => i.path === "site")).toBe(true);
+  });
+
+  it("renders a link icon for preview", () => {
+    const field = urlSchema.fields[0]!;
+    const html = formatDatasetFieldRichHtml({ site: "https://tessera.test" }, field);
+    expect(html).toContain('class="tessera-dataset-url"');
+    expect(html).toContain('href="https://tessera.test/"');
+    expect(formatDatasetFieldRichHtml({ site: "/local" }, field)).toContain('href="/local"');
+    expect(html).toContain("tessera-dataset-url-icon");
+  });
 });
 
 describe("validateRootRecord", () => {

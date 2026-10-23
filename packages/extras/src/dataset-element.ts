@@ -1,3 +1,4 @@
+import { formatDatasetUrlHtml } from "@r-a-i-t-h/tessera-model";
 import { WCBase } from "@r-a-i-t-h/tessera-wc-base";
 import {
   datasetRowTitle,
@@ -40,11 +41,23 @@ abstract class DatasetViewElement extends WCBase {
     return sortRowsClient(payload.rows, this.#sort.field, this.#sort.dir);
   }
 
-  #setCellContent(el: HTMLElement, row: DatasetViewPayload["rows"][number], columnId: string): void {
+  #setCellContent(
+    el: HTMLElement,
+    row: DatasetViewPayload["rows"][number],
+    column: DatasetViewPayload["columns"][number],
+  ): void {
+    const columnId = column.id;
     const rich = row.richValues?.[columnId];
     if (rich) {
       el.innerHTML = rich;
       return;
+    }
+    if (column.cellFormat === "url") {
+      const html = formatDatasetUrlHtml(row.values[columnId] ?? "");
+      if (html) {
+        el.innerHTML = html;
+        return;
+      }
     }
     el.textContent = row.values[columnId] ?? "";
   }
@@ -183,7 +196,7 @@ abstract class DatasetViewElement extends WCBase {
         const align = this.#columnAlign(col);
         const td = this.e("td", { className: `tessera-dataset-align-${align}` });
         td.style.textAlign = align;
-        this.#setCellContent(td, row, col.id);
+        this.#setCellContent(td, row, col);
         tr.append(td);
       }
       tbody.append(tr);
@@ -223,7 +236,7 @@ abstract class DatasetViewElement extends WCBase {
           const labelCell = this.e("th", { scope: "row" });
           labelCell.textContent = col.label;
           const valueCell = this.e("td");
-          this.#setCellContent(valueCell, row, col.id);
+          this.#setCellContent(valueCell, row, col);
           tr.append(labelCell, valueCell);
           tbody.append(tr);
         }

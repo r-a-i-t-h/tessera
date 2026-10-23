@@ -116,8 +116,7 @@ export function readSchemaForm(root: HTMLElement, draft: SchemaDraft): SchemaDra
     const scoped = `[data-depth="0"]`;
     const line = row.querySelector(".editor-type-line") ?? row;
     const kindEl = line.querySelector<HTMLSelectElement>(`[data-schema-kind="${index}"]${scoped}`);
-    const markedKind = kindEl?.querySelector<HTMLOptionElement>("option[selected]")?.value.trim();
-    const kindFromDom = (markedKind || kindEl?.value.trim() || "") as DatasetFieldKind | "";
+    const kindFromDom = (kindEl?.value.trim() || "") as DatasetFieldKind | "";
     const resolvedKind = (kindFromDom || base.kind || "string") as DatasetFieldKind;
     const field: DatasetField = {
       ...base,

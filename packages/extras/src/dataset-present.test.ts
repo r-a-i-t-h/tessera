@@ -53,6 +53,63 @@ describe("dataset presentations", () => {
     ).toBe("Custom");
   });
 
+  it("marks url columns for icon rendering in the client payload", () => {
+    const registry = new ComponentRegistry();
+    registerExtras((name, fn) => registry.define(name, fn));
+    const html = datasetTable(
+      {
+        document: {
+          version: 2,
+          site: { id: "t", title: "T", homePageId: "home", defaultLayoutId: "l" },
+          layouts: [{ id: "l", root: { type: "region", role: "main", children: [{ type: "page" }] } }],
+          pages: [{ id: "home", title: "Home", zones: {} }],
+          datasets: {
+            items: {
+              id: "items",
+              title: "Items",
+              view: { columns: ["site"], displayName: "" },
+              schema: parseDatasetSchema({
+                fields: [{ key: "f1", id: "site", label: "Site", kind: "url" }],
+              }),
+              records: [
+                {
+                  uid: 1,
+                  added: "2026-01-01T00:00:00.000Z",
+                  modified: "2026-01-01T00:00:00.000Z",
+                  site: "https://example.com",
+                },
+              ],
+            },
+          },
+          items: [],
+          media: [],
+          folders: [],
+          nav: [],
+          bindings: [],
+          types: [],
+          runtimeModules: [],
+        },
+        page: { id: "home", title: "Home", zones: {} },
+        profile: { layoutId: "l", layoutSource: "site" },
+        zones: new Map(),
+        registry,
+        renderBlocks: () => "",
+        zoneJson: () => [],
+        mediaHtml: () => "",
+        escapeHtml: (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;"),
+      },
+      { dataset: "items", fields: ["site"] },
+    );
+    const json = html.match(/<script type="application\/json">([\s\S]*?)<\/script>/)?.[1];
+    expect(json).toBeTruthy();
+    const payload = JSON.parse(json!) as {
+      columns: { id: string; cellFormat?: string }[];
+      rows: { richValues?: Record<string, string> }[];
+    };
+    expect(payload.columns.find((c) => c.id === "site")?.cellFormat).toBe("url");
+    expect(payload.rows[0]?.richValues?.site).toContain("tessera-dataset-url");
+  });
+
   it("emits a client component with processed JSON instead of static rows", () => {
     const registry = new ComponentRegistry();
     registerExtras((name, fn) => registry.define(name, fn));
