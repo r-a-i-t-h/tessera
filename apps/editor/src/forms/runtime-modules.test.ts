@@ -10,7 +10,9 @@ vi.mock("../maximized-code-editor.js", () => ({
 }));
 
 import {
+  blankRuntimeModuleSource,
   bindRuntimeModuleEditor,
+  bindRuntimeModuleNew,
   bindRuntimeModuleUpload,
   renderRuntimeModuleDetail,
   renderRuntimeModulePage,
@@ -34,6 +36,34 @@ describe("runtime module editor", () => {
     expect(html).toContain("editor-library-split");
     expect(html).toContain("data-runtime-upload");
     expect(html).toContain("multiple");
+    expect(html).toContain('data-action="new-runtime-module"');
+    expect(html).toContain("data-runtime-new");
+  });
+
+  it("blank module source documents mount parameters and exports mount", () => {
+    const source = blankRuntimeModuleSource();
+    expect(source).toContain("export default function mount(root, ctx)");
+    expect(source).toContain("@param {HTMLElement} root");
+    expect(source).toContain("ctx.dataset");
+    expect(source).toContain("ctx.host.ui");
+  });
+
+  it("creates a module from the new form", async () => {
+    const created: { id: string; title: string; ext: string; source: string }[] = [];
+    document.body.innerHTML = renderRuntimeModulesList([]);
+    bindRuntimeModuleNew(document.body, [], async (opts) => {
+      created.push({ ...opts, source: blankRuntimeModuleSource() });
+    });
+    document.querySelector<HTMLButtonElement>('[data-action="new-runtime-module"]')!.click();
+    const form = document.querySelector<HTMLFormElement>("[data-runtime-new]")!;
+    expect(form.hidden).toBe(false);
+    form.querySelector<HTMLInputElement>("#new-runtime-module-id")!.value = "my-module";
+    form.querySelector<HTMLInputElement>("#new-runtime-module-title")!.value = "My module";
+    form.requestSubmit();
+    await Promise.resolve();
+    expect(created).toHaveLength(1);
+    expect(created[0]).toMatchObject({ id: "my-module", title: "My module", ext: "mjs" });
+    expect(created[0]?.source).toContain("export default function mount");
   });
 
   it("renders a toolbar with back, save, and delete on the module page", () => {

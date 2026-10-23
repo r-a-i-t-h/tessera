@@ -164,8 +164,10 @@ import {
   type LibraryBrowseId,
 } from "./forms/library.js";
 import {
+  blankRuntimeModuleSource,
   bindRuntimeModuleDuplicate,
   bindRuntimeModuleEditor,
+  bindRuntimeModuleNew,
   bindRuntimeModuleUpload,
   renderRuntimeModulePage,
   renderRuntimeModulesList,
@@ -4712,6 +4714,19 @@ async function bindRuntimeModules(root: HTMLElement, user: PublicUser, moduleId:
   }
   root.innerHTML = chrome(user, renderRuntimeModulesList(modules), true, "records", RUNTIME_MODULES_NAV);
   bindChrome(root);
+  const moduleIds = modules.map((row) => row.id);
+  bindRuntimeModuleNew(root, moduleIds, async ({ id, title, ext }) => {
+    const body = new FormData();
+    body.append(
+      "file",
+      new File([blankRuntimeModuleSource()], `${id}.${ext}`, { type: "text/javascript" }),
+    );
+    body.append("id", id);
+    if (title) body.append("title", title);
+    const created = await uploadRuntimeModule(body);
+    window.location.hash = runtimeModulesRouteHash(created.id);
+    await bindRuntimeModules(root, user, created.id);
+  });
   bindRuntimeModuleUpload(root, async (files) => {
     try {
       let lastId: string | null = null;

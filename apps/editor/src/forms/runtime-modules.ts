@@ -1,5 +1,5 @@
 import { activateDialog, type DialogController } from "../dialog.js";
-import { escapeHtml } from "../dom.js";
+import { escapeHtml, formErrorPanel, showFormError } from "../dom.js";
 import type { RuntimeModuleAsset } from "../api.js";
 import { mountMaximizedCodeEditor, type MaximizedCodeEditorHandle } from "../maximized-code-editor.js";
 import { readDataTransfer } from "./drop.js";
@@ -26,6 +26,70 @@ function runtimeModuleListItem(mod: RuntimeModuleAsset): string {
   return `<li data-runtime-id="${escapeHtml(mod.id)}"><a href="${runtimeModulesRouteHash(mod.id)}">${escapeHtml(label)}</a>${idNote}${extNote}</li>`;
 }
 
+export function blankRuntimeModuleSource(): string {
+  return `/**
+ * Tessera runtime module — default export is called once when the binding mounts.
+ *
+ *   export default function mount(root, ctx)
+ *
+ * @param {HTMLElement} root
+ *   The mount element (class \`tessera-runtime-module-mount\`). Paint your UI by replacing
+ *   or appending children. \`ctx.host.root\` is the same element.
+ *
+ * @param {object} ctx
+ * @param {Record<string, unknown>} ctx.props
+ *   Binding props from the editor. Keys and values depend on the binding (plain
+ *   **Runtime module** bindings only pass props you define there; dataset bindings may
+ *   also set presentation-related props).
+ *
+ * @param {object} [ctx.dataset]
+ *   Present when the binding is a **Dataset list** with presentation **Runtime module**.
+ *   Snapshot of the dataset rows at publish/preview time (not live server data).
+ * @param {string} ctx.dataset.variant
+ *   \`"table"\`, \`"cards"\`, or \`"list"\` (presentation hint from the binding).
+ * @param {string} ctx.dataset.empty
+ *   Empty-state message when there are no rows.
+ * @param {boolean} ctx.dataset.showHeader
+ *   Whether a table header would be shown in built-in presentations.
+ * @param {string} [ctx.dataset.headingField]
+ *   Optional field id used as a card/list heading in built-in presentations.
+ * @param {boolean} [ctx.dataset.compact]
+ *   Compact layout hint for cards/list.
+ * @param {{ field: string, dir: "asc" | "desc" }} ctx.dataset.sort
+ *   Default sort from the binding.
+ * @param {boolean} ctx.dataset.interactiveSort
+ *   When true, built-in views let visitors re-sort client-side (rows are re-ordered in memory).
+ * @param {Array<{ id: string, label: string, sortable: boolean, align: "left" | "center" | "right", cellFormat?: "url" | "asset" }>} ctx.dataset.columns
+ *   Column metadata for the selected fields.
+ * @param {Array<{ uid: number, displayName: string, values: Record<string, string>, richValues?: Record<string, string> }>} ctx.dataset.rows
+ *   Row data: \`values\` are plain text per field id; \`richValues\` holds sanitized HTML for asset columns.
+ *
+ * @param {object} ctx.host
+ *   DOM helpers — do not import Tessera packages in v1; use \`ctx.host\` only.
+ * @param {HTMLElement} ctx.host.root
+ *   Same as \`root\`.
+ * @param {function} ctx.host.el
+ *   \`host.el(tag, attrs?)\` — create an element; \`attrs.className\`, \`attrs.text\`, or other string attributes.
+ * @param {function} ctx.host.text
+ *   \`host.text(string)\` — create a text node.
+ * @param {function} ctx.host.escapeHtml
+ *   Escape text for safe HTML insertion.
+ * @param {function} ctx.host.assetUrl
+ *   \`host.assetUrl(id, ext)\` — relative URL under \`./media/\` for a library asset.
+ * @param {function} ctx.host.portal
+ *   \`host.portal(where?)\` — insert a portal container (\`"after"\`, \`"before"\`, or a parent node) for UI outside \`root\`.
+ * @param {object} ctx.host.ui
+ *   Styled building blocks matching site sections: \`card\`, \`imgBox\`, \`panel\`, \`text\`, \`heading\`.
+ */
+export default function mount(root, ctx) {
+  const { host } = ctx;
+  const panel = host.ui.panel({ tone: "muted" });
+  panel.append(host.ui.text({ heading: "Runtime module", text: "Edit this file to replace this placeholder." }));
+  root.replaceChildren(panel);
+}
+`;
+}
+
 export function renderRuntimeModulesList(modules: RuntimeModuleAsset[]): string {
   const rows = modules.map((mod) => runtimeModuleListItem(mod)).join("");
   const browse = modules.length
@@ -37,6 +101,28 @@ export function renderRuntimeModulesList(modules: RuntimeModuleAsset[]): string 
         ${browse}
       </section>
       <div class="editor-library-panels">
+        <p><button type="button" class="w3-button w3-theme" data-action="new-runtime-module">New runtime module</button></p>
+        <form id="new-runtime-module-form" class="w3-card w3-white w3-padding editor-card editor-new-page" data-runtime-new hidden>
+          <p>
+            <label for="new-runtime-module-id">Id</label>
+            <input id="new-runtime-module-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
+            <span class="w3-small w3-text-grey">File name and catalog id (letters, numbers, <code>.</code>, <code>_</code>, <code>-</code>).</span>
+          </p>
+          <p>
+            <label for="new-runtime-module-title">Title</label>
+            <input id="new-runtime-module-title" name="title" class="w3-input w3-border w3-margin-top" autocomplete="off" />
+            <span class="w3-small w3-text-grey">Optional label in lists and bindings.</span>
+          </p>
+          <p>
+            <label for="new-runtime-module-ext">Extension</label>
+            <select id="new-runtime-module-ext" name="ext" class="w3-select w3-border w3-margin-top">
+              <option value="mjs" selected>.mjs</option>
+              <option value="js">.js</option>
+            </select>
+          </p>
+          ${formErrorPanel()}
+          <p><button type="submit" class="w3-button w3-theme">Create module</button></p>
+        </form>
         <details id="runtime-module-add" class="w3-card w3-white editor-card editor-library-add" open>
           <summary>Add modules</summary>
           <form data-runtime-upload class="w3-padding editor-drop">
@@ -109,6 +195,40 @@ export function bindRuntimeModuleDuplicate(
     }
     if (!window.confirm(`Duplicate ${sourceId} as ${nextId}?`)) return;
     void duplicate(nextId);
+  });
+}
+
+export function bindRuntimeModuleNew(
+  root: ParentNode,
+  existingIds: readonly string[],
+  create: (opts: { id: string; title: string; ext: "js" | "mjs" }) => void | Promise<void>,
+): void {
+  const form = root.querySelector<HTMLFormElement>("[data-runtime-new]");
+  root.querySelector("[data-action=new-runtime-module]")?.addEventListener("click", () => {
+    if (!form) return;
+    form.hidden = false;
+    form.querySelector<HTMLInputElement>("#new-runtime-module-id")?.focus();
+  });
+  form?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!form) return;
+    const data = new FormData(form);
+    const id = String(data.get("id") ?? "").trim();
+    const title = String(data.get("title") ?? "").trim();
+    const extRaw = String(data.get("ext") ?? "mjs").trim();
+    const ext = extRaw === "js" ? "js" : "mjs";
+    const problem = runtimeModuleDuplicateIdError(id, existingIds);
+    if (problem) {
+      showFormError(form, problem);
+      return;
+    }
+    const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+    if (button) button.disabled = true;
+    void Promise.resolve(create({ id, title, ext }))
+      .catch((err) => {
+        if (button) button.disabled = false;
+        showFormError(form, err instanceof Error ? err.message : "Could not create that module.");
+      });
   });
 }
 
