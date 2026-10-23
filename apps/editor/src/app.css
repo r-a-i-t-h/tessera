@@ -1813,8 +1813,43 @@ img[data-hero-preview] {
   float: right;
 }
 
-.editor-runtime-modules-browse {
+.editor-runtime-modules-browse,
+.editor-backups-browse {
   min-width: 0;
+}
+
+.editor-backups-browse .editor-backup {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 11.5rem 4.5rem auto;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+}
+
+.editor-backup-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor-backup-when {
+  white-space: nowrap;
+}
+
+.editor-backup-size {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.editor-backup-actions {
+  display: inline-flex;
+  gap: 0.5rem;
+  justify-self: end;
+}
+
+.editor-backup-actions .w3-button {
+  margin: 0;
+  min-width: 4.75rem;
 }
 
 

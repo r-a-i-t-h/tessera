@@ -57,7 +57,6 @@ import {
   rescanLibrary,
   createLibraryFolder,
   updateLibraryFolder,
-  type BackupList,
   type ManagedUser,
   type PublicUser,
   type UserWrite,
@@ -150,6 +149,7 @@ import {
   withTypeChoices,
   type AspectChoice,
 } from "./forms/schema.js";
+import { bindBackupUpload, renderBackupsPage } from "./forms/backups.js";
 import { readDataTransfer } from "./forms/drop.js";
 import {
   assetDetail,
@@ -1748,29 +1748,15 @@ async function bindBackups(root: HTMLElement, user: PublicUser, notice = "", err
   } catch {
     themes = [];
   }
-  root.innerHTML = chrome(user, backupsHtml(listing, themes, notice, error), true, "backups");
+  root.innerHTML = chrome(user, renderBackupsPage(listing, themes, notice, error), true, "backups");
   bindChrome(root);
-  const form = root.querySelector<HTMLFormElement>("#backup-upload");
-  if (form) form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const input = form.querySelector<HTMLInputElement>('input[name="file"]');
-    const file = input?.files?.[0];
-    if (!file) {
-      void bindBackups(root, user, "", "Choose a backup archive.");
-      return;
-    }
-    const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
-    if (button) button.disabled = true;
-    void uploadBackup(file)
+  bindBackupUpload(root, (file) =>
+    uploadBackup(file)
       .then((created) => bindBackups(root, user, `Uploaded ${created.name} (${formatBytes(created.size)}).`))
       .catch((err) =>
         bindBackups(root, user, "", err instanceof Error ? err.message : "Upload failed."),
-      )
-      .finally(() => {
-        if (button) button.disabled = false;
-        form.reset();
-      });
-  });
+      ),
+  );
   root.querySelector("[data-action=backup]")?.addEventListener("click", async () => {
     const button = root.querySelector<HTMLButtonElement>("[data-action=backup]");
     if (button) button.disabled = true;
@@ -1883,65 +1869,6 @@ async function runRestore(
     }
     await bindBackups(root, user, "", err instanceof Error ? err.message : "Restore failed.");
   }
-}
-
-function backupsHtml(listing: BackupList, themes: ThemeKitInfo[], notice: string, error: string): string {
-  const themeRows = themes.length
-    ? `<ul class="w3-ul">${themes
-        .map((kit) => {
-          const hasDemo = kit.id === "tessera-w3-starter";
-          return `<li class="editor-backup">
-            <span>${escapeHtml(kit.name)}</span>
-            <span class="w3-text-grey w3-small">${escapeHtml(kit.id)}</span>
-            <button type="button" class="w3-button w3-small w3-white" data-theme-apply="${escapeHtml(kit.id)}" data-theme-name="${escapeHtml(kit.name)}">Apply</button>
-            ${
-              hasDemo
-                ? `<button type="button" class="w3-button w3-small w3-white" data-theme-apply="${escapeHtml(kit.id)}" data-theme-name="${escapeHtml(kit.name)}" data-theme-demo="true">Apply with demo</button>
-            <button type="button" class="w3-button w3-small w3-white" data-theme-reset-demo="${escapeHtml(kit.id)}" data-theme-name="${escapeHtml(kit.name)}">Remove demo</button>`
-                : ""
-            }
-          </li>`;
-        })
-        .join("")}</ul>`
-    : `<p class="w3-text-grey">No theme kits are available on this server.</p>`;
-  const rows = listing.backups.length
-    ? `<ul class="w3-ul">${listing.backups
-        .map(
-          (item) => `<li class="editor-backup">
-            <a href="/api/backups/${encodeURIComponent(item.name)}">${escapeHtml(item.name)}</a>
-            <span class="w3-text-grey w3-small">${formatBytes(item.size)}</span>
-            <button type="button" class="w3-button w3-small w3-white" data-restore="${escapeHtml(item.name)}">Restore</button>
-            <button type="button" class="w3-button w3-small w3-white" data-delete="${escapeHtml(item.name)}">Delete</button>
-          </li>`,
-        )
-        .join("")}</ul>`
-    : `<p class="w3-text-grey">No backups yet.</p>`;
-  const examples = listing.examples.length
-    ? `<ul class="w3-ul">${listing.examples
-        .map(
-          (item) => `<li class="editor-backup">
-            <span>${escapeHtml(item.title)}</span>
-            <button type="button" class="w3-button w3-small w3-white" data-example="${escapeHtml(item.name)}" data-title="${escapeHtml(item.title)}">Restore</button>
-          </li>`,
-        )
-        .join("")}</ul>`
-    : `<p class="w3-text-grey">No example archives are in the backup folder yet.</p>`;
-  return `<h1 class="w3-large">Backups</h1>
-    ${statusPanels(notice, error)}
-    <p><button type="button" class="w3-button w3-theme" data-action="backup">Back up now</button></p>
-    <form id="backup-upload" class="editor-backup w3-margin-bottom">
-      <label class="w3-small w3-text-grey">Upload a site archive (.tar.gz) from another installation.</label>
-      <input name="file" type="file" accept=".tar.gz,application/gzip,application/x-gzip" required />
-      <button type="submit" class="w3-button w3-white">Upload</button>
-    </form>
-    ${rows}
-    <h2 class="w3-medium">Themes</h2>
-    <p class="w3-small w3-text-grey">Apply a design without changing your page content. A safety backup is written first.</p>
-    ${themeRows}
-    <h2 class="w3-medium">Examples</h2>
-    ${examples}
-    <h2 class="w3-medium">Re-seed</h2>
-    <p><button type="button" class="w3-button w3-white" data-action="reseed">Re-seed this site</button></p>`;
 }
 
 function formatBytes(size: number): string {
