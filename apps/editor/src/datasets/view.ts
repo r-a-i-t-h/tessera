@@ -76,13 +76,13 @@ async function mountDataList(root: HTMLElement, user: PublicUser, bindChrome: Bi
   const rows = datasets
     .map(
       (d) =>
-        `<tr><td><a href="#/data/${encodeURIComponent(d.id)}">${escapeHtml(d.title.trim() || d.id)}</a></td><td>${escapeHtml(d.id)}</td><td>${d.recordCount}</td><td>${d.invalidCount || ""}</td></tr>`,
+        `<tr><td>${escapeHtml(d.id)}</td><td><a href="#/data/${encodeURIComponent(d.id)}">${escapeHtml(d.title.trim() || d.id)}</a></td><td>${d.recordCount}</td><td>${d.invalidCount || ""}</td></tr>`,
     )
     .join("");
   root.innerHTML = editorChrome(
     user,
     `<h1 class="w3-large">Data</h1>
-     <table class="w3-table w3-bordered w3-striped"><thead><tr><th>Title</th><th>Id</th><th>Records</th><th>Invalid</th></tr></thead><tbody>${rows || "<tr><td colspan=\"4\" class=\"w3-text-grey\">No datasets yet.</td></tr>"}</tbody></table>`,
+     <table class="w3-table w3-bordered w3-striped"><thead><tr><th>Id</th><th>Title</th><th>Records</th><th>Invalid</th></tr></thead><tbody>${rows || "<tr><td colspan=\"4\" class=\"w3-text-grey\">No datasets yet.</td></tr>"}</tbody></table>`,
     true,
     "data" as EditorSection,
     mergeEditorNav({ datasets: datasetNavItems(datasets) }),
