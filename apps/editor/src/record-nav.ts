@@ -8,13 +8,13 @@
  */
 export const RECORD_NAV_ITEMS: { kind: string; label: string }[] = [
   { kind: "site", label: "Site" },
+  { kind: "layouts", label: "Layouts" },
+  { kind: "types", label: "Types" },
+  { kind: "templates", label: "Templates" },
+  { kind: "items", label: "Items" },
   { kind: "blogs", label: "Blogs" },
   { kind: "datasets", label: "Datasets" },
-  { kind: "templates", label: "Templates" },
   { kind: "bindings", label: "Bindings" },
-  { kind: "items", label: "Items" },
-  { kind: "types", label: "Types" },
-  { kind: "layouts", label: "Layouts" },
   { kind: "runtimeModules", label: "Runtime modules" },
 ];
 

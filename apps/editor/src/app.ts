@@ -1978,8 +1978,8 @@ function recordTabs(listing: RecordList): { kind: string; label: string }[] {
       (item) => !LIBRARY_RECORD_KINDS.has(item.kind) && item.kind !== "content" && item.kind !== "nav",
     )
     .sort((a, b) => (rank.get(a.kind) ?? RECORD_TAB_ORDER.length) - (rank.get(b.kind) ?? RECORD_TAB_ORDER.length));
-  const site = tabs.findIndex((item) => item.kind === "site");
-  const blogsAt = site === -1 ? 0 : site + 1;
+  const itemsAt = tabs.findIndex((item) => item.kind === "items");
+  const blogsAt = itemsAt === -1 ? tabs.length : itemsAt + 1;
   tabs.splice(blogsAt, 0, { kind: "blogs", label: "Blogs" });
   const datasetsAt = tabs.findIndex((item) => item.kind === "blogs");
   tabs.splice(datasetsAt === -1 ? blogsAt + 1 : datasetsAt + 1, 0, { kind: "datasets", label: "Datasets" });
