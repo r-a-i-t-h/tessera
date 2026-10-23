@@ -43,7 +43,20 @@ describe("blog ops", () => {
     expect(fair.includes).toBeUndefined();
   });
 
-  it("refuses a plain delete, renames references, and cascade-deletes the blog", async () => {
+  it("deletes a blog and its index when there are no articles", async () => {
+    const site = await store();
+    await site.write("content", "news", {
+      title: "News",
+      type: "blog",
+      fields: { pageSize: "10" },
+      zones: { title: { html: "News" } },
+    });
+    await site.deleteBlog("news");
+    await expect(site.read("content", "news")).rejects.toThrow();
+    await expect(site.read("content", "news-index")).rejects.toThrow();
+  });
+
+  it("refuses a plain delete with articles, renames references, and cascade-deletes the blog", async () => {
     const site = await store();
     await site.writeNav([{ id: "news", title: "News", sidebar: true }]);
     await site.write("content", "news", {
@@ -59,7 +72,7 @@ describe("blog ops", () => {
       fields: { date: "2026-07-14" },
       zones: { main: { html: "<p>Hi</p>" } },
     });
-    await expect(site.deleteBlog("news")).rejects.toThrow(/child pages/);
+    await expect(site.deleteBlog("news")).rejects.toThrow(/cascade delete/);
     await site.renameBlog("news", "willow");
     expect((await site.read("content", "fair")).parentId).toBe("willow");
     expect((await site.read("content", "willow")).id).toBe("willow");

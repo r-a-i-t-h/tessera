@@ -42,6 +42,28 @@ describe("editor chrome", () => {
     expect(html).not.toContain('data-action="logout"');
   });
 
+  it("hides Articles when no blogs are defined", () => {
+    const html = editorChrome(
+      { ok: true, username: "alice", createdAt: "2026-01-01" },
+      "<h1>Pages</h1>",
+      false,
+      "pages",
+      { blogs: [] },
+    );
+    expect(html).not.toContain('href="#/articles"');
+  });
+
+  it("hides Data when no datasets are defined", () => {
+    const html = editorChrome(
+      { ok: true, username: "alice", createdAt: "2026-01-01" },
+      "<h1>Pages</h1>",
+      false,
+      "pages",
+      { datasets: [] },
+    );
+    expect(html).not.toContain('href="#/data"');
+  });
+
   it("expands blog instances under Articles and marks the active one", () => {
     const html = editorChrome(
       { ok: true, username: "alice", createdAt: "2026-01-01" },

@@ -88,7 +88,14 @@ import {
   validateFrameZoneId,
   addFrameZoneToRecord,
 } from "./compose/view.js";
-import { announceRoute, editorChrome as chrome, loginView, type EditorNavContext } from "./chrome.js";
+import {
+  announceRoute,
+  editorChrome,
+  loginView,
+  type EditorNavContext,
+  type EditorSection,
+} from "./chrome.js";
+import { blogsFromListing, mergeEditorNav, refreshSidebarNav } from "./sidebar-nav.js";
 import { tesseraLogo3x5 } from "./logo-3x5.js";
 import { editPlace, type EditPlace } from "./edit-place.js";
 import { RECORD_NAV_ITEMS, RECORD_TAB_ORDER } from "./record-nav.js";
@@ -266,6 +273,16 @@ import { cancelNewBindingForm, handleEscape, hasOpenModal } from "./escape-key.j
 import { bindDatasetsSetup, datasetsSetupSection, mountDatasetSetup } from "./datasets/setup.js";
 import { mountData } from "./datasets/view.js";
 
+function chrome(
+  user: PublicUser,
+  inner: string,
+  wide = false,
+  section: EditorSection = "home",
+  nav: EditorNavContext = {},
+): string {
+  return editorChrome(user, inner, wide, section, mergeEditorNav(nav));
+}
+
 let libraryAddOpen = true;
 
 export async function mount(root: HTMLElement): Promise<void> {
@@ -329,6 +346,7 @@ async function render(root: HTMLElement): Promise<void> {
     await bindHome(root, user, "", "That area needs admin access.");
     return;
   }
+  await refreshSidebarNav().catch(() => undefined);
   try {
     if (route.page === "account") await bindAccount(root, user);
     else if (route.page === "users") await bindUsers(root, user);
@@ -2243,13 +2261,6 @@ function bindPageListOrder(root: HTMLElement, listing: RecordList): void {
   });
 }
 
-function articleNavBlogs(listing: RecordList): { id: string; title: string }[] {
-  return listing.records
-    .filter((row) => row.kind === "content" && row.type === "blog")
-    .map((row) => ({ id: row.id, title: row.title ?? row.id }))
-    .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
-}
-
 async function editNavContext(
   place: EditPlace,
   kind: string,
@@ -2263,14 +2274,14 @@ async function editNavContext(
   if (place.section === "articles") {
     const listing = await listRecords();
     const parentId = typeof record?.parentId === "string" ? record.parentId.trim() : "";
-    return { blogs: articleNavBlogs(listing), articlesBlog: parentId || undefined };
+    return { blogs: blogsFromListing(listing), articlesBlog: parentId || undefined };
   }
   return {};
 }
 
 async function bindArticles(root: HTMLElement, user: PublicUser, blog?: string, notice = "", error = ""): Promise<void> {
   const listing = await listRecords();
-  const blogs = articleNavBlogs(listing);
+  const blogs = blogsFromListing(listing);
   if (!blog) {
     if (blogs.length === 1) {
       const next = `#/articles/${encodeURIComponent(blogs[0]!.id)}`;
@@ -2514,7 +2525,7 @@ function bindBlogs(root: HTMLElement, user: PublicUser, listing: RecordList): vo
     button.addEventListener("click", () => {
       const id = button.dataset.cascadeBlog ?? "";
       if (!id) return;
-      if (!window.confirm(`Delete blog ${id}, its index, and every article that belongs to it?`)) return;
+      if (!window.confirm(`Delete blog ${id} and every article that belongs to it?`)) return;
       void cascadeBlog(id)
         .then(() => bindList(root, user, "blogs", `Cascade-deleted ${id}.`))
         .catch((err: unknown) => bindList(root, user, "blogs", "", err instanceof Error ? err.message : "Could not delete that blog."));

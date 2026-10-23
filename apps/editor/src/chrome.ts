@@ -45,12 +45,14 @@ export function editorChrome(
   section: EditorSection = "home",
   nav: EditorNavContext = {},
 ): string {
-  const blogs = nav.blogs ?? [];
+  const blogs = nav.blogs;
+  const showArticlesNav = blogs === undefined || blogs.length > 0;
   const articlesOpen = section === "articles";
   const articlesBlogOn = Boolean(nav.articlesBlog);
   const datasetsOpen = section === "data";
   const datasetsChildOn = Boolean(nav.activeDataset);
-  const datasetNav = nav.datasets ?? [];
+  const datasetNav = nav.datasets;
+  const showDataNav = datasetNav === undefined || datasetNav.length > 0;
   const maintenanceOpen = section === "maintenance";
   const maintenanceChildOn = maintenanceOpen && Boolean(nav.maintenanceTab);
   const admin = isFullAdmin(user);
@@ -76,7 +78,7 @@ export function editorChrome(
     `<p class="w3-bar-item editor-nav-group-label" role="presentation">${label}</p>`;
 
   const articlesChildren =
-    articlesOpen && blogs.length
+    articlesOpen && blogs && blogs.length
       ? `<div class="editor-nav-children" role="group" aria-label="Blogs">${blogs
           .map((blog) =>
             childLink(
@@ -122,7 +124,7 @@ export function editorChrome(
     : "";
 
   const datasetsChildren =
-    datasetsOpen && datasetNav.length
+    datasetsOpen && datasetNav && datasetNav.length
       ? `<div class="editor-nav-children" role="group" aria-label="Datasets">${datasetNav
           .map((dataset) =>
             childLink(
@@ -140,11 +142,9 @@ export function editorChrome(
           ${sectionLink("#/", "Tessera editor", "home", false, "editor-nav-brand w3-theme-d3")}
           ${sectionLink("#/navigation", "Navigation", "navigation")}
           ${sectionLink("#/pages", "Pages", "pages")}
-          ${sectionLink("#/articles", "Articles", "articles", articlesBlogOn)}
-          ${articlesChildren}
+          ${showArticlesNav ? `${sectionLink("#/articles", "Articles", "articles", articlesBlogOn)}${articlesChildren}` : ""}
           ${sectionLink("#/library", "Library", "library")}
-          ${sectionLink("#/data", "Data", "data", datasetsChildOn)}
-          ${datasetsChildren}
+          ${showDataNav ? `${sectionLink("#/data", "Data", "data", datasetsChildOn)}${datasetsChildren}` : ""}
           ${admin ? sectionLink("#/styles", "Styles", "styles") : ""}
           ${setupNav}
           ${adminNav}

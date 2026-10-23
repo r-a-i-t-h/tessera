@@ -11,6 +11,7 @@ import {
   type PublicUser,
 } from "../api.js";
 import { editorChrome } from "../chrome.js";
+import { mergeEditorNav } from "../sidebar-nav.js";
 import { escapeHtml, formErrorPanel, showFormError } from "../dom.js";
 import { availableViewColumns } from "./grid.js";
 import {
@@ -166,7 +167,7 @@ export async function mountDatasetSetup(
       </div>`,
       true,
       "records",
-      { recordsKind: "datasets" },
+      mergeEditorNav({ recordsKind: "datasets" }),
     );
     bindChrome(root);
     bindSetupEvents(root);

@@ -1004,12 +1004,32 @@ export class SiteStore {
     await this.rebuild();
   }
 
-  /** Refused while articles still belong to this blog. */
+  /** Refused while articles still belong to this blog. Removes the blog index with the blog. */
   async deleteBlog(id: string): Promise<void> {
     this.assertId(id);
     const record = (await this.read("content", id)) as AuthoredPage;
     if (record.type !== "blog") throw new Error(`${id} is not a blog.`);
-    await this.deleteContent(id);
+    const site = await this.readSite();
+    const home = typeof site.homePageId === "string" ? site.homePageId : "";
+    if (id === home) throw new Error("The home page cannot be deleted.");
+    const pages = await this.contentRecords();
+    const articles = pages.filter((page) => page.type === "article" && page.parentId === id);
+    if (articles.length) {
+      const names = articles.map((page) => page.id).join(", ");
+      throw new Error(`Delete the articles first, or use cascade delete: ${names}.`);
+    }
+    const index = pages.find((page) => page.type === "blog-index" && page.parentId === id);
+    if (index) await this.removeRecord("content", index.id);
+    try {
+      const nav = await this.readNav();
+      if (Array.isArray(nav)) {
+        await this.commitText(this.navFile(), toYaml(stripNavId(nav, id)), { rebuild: false });
+      }
+    } catch {
+      // nav.yaml is optional until the author adds one
+    }
+    await this.removeRecord("content", id);
+    await this.rebuild();
   }
 
   /**

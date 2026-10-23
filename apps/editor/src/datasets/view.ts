@@ -12,6 +12,7 @@ import {
   type PublicUser,
 } from "../api.js";
 import { editorChrome, type EditorSection } from "../chrome.js";
+import { mergeEditorNav } from "../sidebar-nav.js";
 import { activateDialog } from "../dialog.js";
 import { escapeHtml } from "../dom.js";
 import { hasOpenModal } from "../escape-key.js";
@@ -84,7 +85,7 @@ async function mountDataList(root: HTMLElement, user: PublicUser, bindChrome: Bi
      <table class="w3-table w3-bordered w3-striped"><thead><tr><th>Title</th><th>Id</th><th>Records</th><th>Invalid</th></tr></thead><tbody>${rows || "<tr><td colspan=\"4\" class=\"w3-text-grey\">No datasets yet.</td></tr>"}</tbody></table>`,
     true,
     "data" as EditorSection,
-    { datasets: datasetNavItems(datasets) },
+    mergeEditorNav({ datasets: datasetNavItems(datasets) }),
   );
   bindChrome(root);
 }
@@ -207,7 +208,7 @@ async function mountDatasetGrid(
       </div>`,
       true,
       "data" as EditorSection,
-      { datasets: navDatasets, activeDataset: datasetId },
+      mergeEditorNav({ datasets: navDatasets, activeDataset: datasetId }),
     );
     bindChrome(root);
     bindGridEvents(root);
