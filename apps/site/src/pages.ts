@@ -9,7 +9,7 @@ import {
   type RenderContext,
 } from "@r-a-i-t-h/tessera-renderer";
 import { installChromeGlobals } from "@r-a-i-t-h/tessera-demo-kit";
-import { bootBlog, bootDatasetViews, registerExtras } from "@r-a-i-t-h/tessera-extras";
+import { bootBlog, bootDatasetViews, bootRuntimeModules, registerExtras } from "@r-a-i-t-h/tessera-extras";
 
 installChromeGlobals();
 
@@ -70,6 +70,7 @@ function hydrate(): void {
   }
   bootBlog(document);
   bootDatasetViews(document);
+  bootRuntimeModules(document);
   bootSearch(document);
   const backToTop = document.querySelector<HTMLButtonElement>(".tessera-back-to-top");
   if (backToTop) bindBackToTop({ button: backToTop });
@@ -84,5 +85,6 @@ hydrate();
 window.addEventListener("hashchange", () => {
   bootBlog(document);
   bootDatasetViews(document);
+  bootRuntimeModules(document);
   bootSearch(document);
 });

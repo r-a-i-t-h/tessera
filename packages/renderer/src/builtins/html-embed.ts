@@ -12,4 +12,4 @@ export function registerHtmlEmbedComponent(
 }
 
 /** Registry names that must be referenced only via `records/bindings`, not as bare layout components. */
-export const BINDING_ONLY_COMPONENTS = new Set(["htmlEmbed"]);
+export const BINDING_ONLY_COMPONENTS = new Set(["htmlEmbed", "runtimeModule"]);

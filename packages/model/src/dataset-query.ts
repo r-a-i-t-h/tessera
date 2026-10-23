@@ -111,7 +111,21 @@ export const DATASET_PRESENTATION_COMPONENTS = new Set([
   "datasetTable",
   "datasetCards",
   "datasetPlainList",
+  "runtimeModule",
 ]);
+
+export const RUNTIME_MODULE_COMPONENT = "runtimeModule";
+
+/** Runtime module record ids referenced by bindings (`props.module`). */
+export function collectBindingRuntimeModuleIds(document: Pick<SiteDocument, "bindings">): string[] {
+  const ids = new Set<string>();
+  for (const binding of document.bindings ?? []) {
+    if (binding.component !== RUNTIME_MODULE_COMPONENT) continue;
+    const raw = binding.props?.module;
+    if (typeof raw === "string" && raw.trim()) ids.add(raw.trim());
+  }
+  return [...ids].sort();
+}
 
 /** Dataset ids named on bindings that use dataset presentation components. */
 export function collectBindingDatasetIds(document: Pick<SiteDocument, "bindings">): string[] {

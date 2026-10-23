@@ -181,6 +181,22 @@ describe("listBrokenRefs", () => {
     expect(danglingMedia.some((f) => f.detail === "missing media: gone-hero")).toBe(true);
     expect(brokenRefs.every((f) => f.href === "#/content/home")).toBe(true);
   });
+
+  it("reports bindings that reference a missing runtime module", () => {
+    const doc = baseDoc({
+      runtimeModules: [],
+      bindings: [
+        {
+          id: "list",
+          component: "runtimeModule",
+          props: { module: "gone", dataset: "demo" },
+        },
+      ],
+    });
+    const { brokenRefs } = listBrokenRefs(doc);
+    expect(brokenRefs.some((f) => f.detail === "missing runtime module: gone")).toBe(true);
+    expect(brokenRefs.some((f) => f.href === "#/bindings/list")).toBe(true);
+  });
 });
 
 describe("listUnusedItemsAndLayouts", () => {

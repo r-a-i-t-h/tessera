@@ -14,6 +14,8 @@ import { writeTextAtomic } from "../store/fs.js";
 import { stylesheetsFromShell } from "./shell-stylesheets.js";
 import { writeSnapshotFiles } from "./snapshot.js";
 import { stripLegacyContentHeadingRules } from "./site-css.js";
+import { collectBindingRuntimeModuleIds } from "@r-a-i-t-h/tessera-model";
+import { flatRuntimeModuleName } from "./runtime-module.js";
 
 export class DistError extends Error {
   constructor(message: string) {
@@ -37,7 +39,7 @@ export type DistTarget = {
   skinDir: string;
 };
 
-const KEEP_AT_ROOT = new Set(["media", "img", "skin", "data"]);
+const KEEP_AT_ROOT = new Set(["media", "img", "skin", "data", "runtime-modules"]);
 
 export function siteDelivery(site: { delivery?: string | undefined }): "pages" | "snapshot" {
   return site.delivery === "snapshot" ? "snapshot" : "pages";
@@ -75,6 +77,7 @@ async function emitPages(document: SiteDocument, target: DistTarget): Promise<Di
   await copyRuntime(target);
   await copySiteCss(target);
   await syncLibraryMedia(document, target.publishDir);
+  await syncPublishedRuntimeModules(document, target.publishDir);
   await removeSnapshotData(target.publishDir);
   await removeGeneratedHtml(
     target.publishDir,
@@ -103,6 +106,7 @@ async function emitSnapshot(document: SiteDocument, target: DistTarget): Promise
   await copyRuntime(target);
   await copySiteCss(target);
   await syncLibraryMedia(document, target.publishDir);
+  await syncPublishedRuntimeModules(document, target.publishDir);
   await removeGeneratedHtml(target.publishDir, new Set(["index.html", "search-index.json"]));
   return { flavour: "snapshot", snapshot };
 }
@@ -164,6 +168,29 @@ async function syncLibraryMedia(document: SiteDocument, publishDir: string): Pro
 function flatMediaName(url: string): string | null {
   const match = /^\.\/media\/([^/]+)$/.exec(url);
   return match?.[1] ?? null;
+}
+
+async function syncPublishedRuntimeModules(document: SiteDocument, publishDir: string): Promise<void> {
+  const srcDir = join(dirname(publishDir), "runtime-modules");
+  if (!existsSync(srcDir)) return;
+  const outDir = join(publishDir, "runtime-modules");
+  await mkdir(outDir, { recursive: true });
+  const needed = new Set(collectBindingRuntimeModuleIds(document));
+  const expected = new Set<string>();
+  for (const item of document.runtimeModules ?? []) {
+    if (!needed.has(item.id)) continue;
+    const name = flatRuntimeModuleName(item.url);
+    if (!name) continue;
+    expected.add(name);
+    const source = join(srcDir, name);
+    if (existsSync(source)) await copyFile(source, join(outDir, name));
+  }
+  const entries = await readdir(outDir, { withFileTypes: true }).catch(() => []);
+  for (const entry of entries) {
+    if (!entry.isFile() || expected.has(entry.name)) continue;
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]*\.(mjs|js)$/.test(entry.name)) continue;
+    await unlink(join(outDir, entry.name)).catch(() => undefined);
+  }
 }
 
 async function copyRuntime(target: DistTarget): Promise<void> {

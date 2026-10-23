@@ -21,6 +21,7 @@ export {
   PageSchema,
   ItemSchema,
   MediaSchema,
+  RuntimeModuleSchema,
   FolderImageSchema,
   FolderSchema,
   BindingSchema,
@@ -93,6 +94,7 @@ export type {
   Page,
   Item,
   Media,
+  RuntimeModule,
   FolderImage,
   Folder,
   Binding,
@@ -146,7 +148,9 @@ export {
 } from "./dataset.js";
 export {
   DATASET_PRESENTATION_COMPONENTS,
+  RUNTIME_MODULE_COMPONENT,
   collectBindingDatasetIds,
+  collectBindingRuntimeModuleIds,
   expandDatasetIdsWithRefs,
   queryDatasetRecords,
   documentDatasetMap,

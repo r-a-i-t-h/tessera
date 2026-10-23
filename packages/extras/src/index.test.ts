@@ -17,6 +17,7 @@ describe("shared component catalogue", () => {
       "datasetTable",
       "datasetCards",
       "datasetPlainList",
+      "runtimeModule",
       "peopleGrid",
       "articleByline",
       "profileKicker",

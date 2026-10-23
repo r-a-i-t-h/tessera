@@ -6,6 +6,7 @@ export type Route =
   | { page: "records"; kind?: string }
   | { page: "datasets"; datasetId?: string }
   | { page: "library"; id: string | null }
+  | { page: "runtime-modules"; id: string | null }
   | { page: "maintenance"; tab?: string }
   | { page: "backups" }
   | { page: "styles"; sheet?: string }
@@ -84,6 +85,7 @@ export function parseRoute(hash: string): Route {
     return { page: "records", kind: head };
   }
   if (head === "library") return { page: "library", id: rest || null };
+  if (head === "runtime-modules") return { page: "runtime-modules", id: rest || null };
   if (head === "maintenance") {
     if (rest.includes("/")) return { page: "missing" };
     return { page: "maintenance", tab: rest || undefined };

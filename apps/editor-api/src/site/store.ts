@@ -679,6 +679,7 @@ export class SiteStore {
       types: await this.loadKind("types"),
       media: await this.loadKind("media"),
       folders: await this.loadKind("folders"),
+      runtimeModules: await this.loadKind("runtimeModules"),
     };
   }
 
@@ -908,6 +909,12 @@ export class SiteStore {
   }
 
   /** Refused while a page or layout still inserts the binding. */
+  async deleteRuntimeModule(id: string): Promise<void> {
+    this.assertId(id);
+    await this.read("runtimeModules", id);
+    await this.removeRecord("runtimeModules", id);
+  }
+
   async deleteBinding(id: string): Promise<void> {
     this.assertId(id);
     await this.read("bindings", id);

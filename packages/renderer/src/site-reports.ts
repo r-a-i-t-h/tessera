@@ -7,6 +7,7 @@ import type {
   SiteDocument,
 } from "@r-a-i-t-h/tessera-model";
 import {
+  RUNTIME_MODULE_COMPONENT,
   resolveMasterLayout,
   resolvePageProfile,
 } from "@r-a-i-t-h/tessera-model";
@@ -496,11 +497,19 @@ export function listBrokenRefs(document: SiteDocument): {
     );
   }
 
+  const runtimeModuleIds = new Set((document.runtimeModules ?? []).map((m) => m.id));
+
   for (const binding of document.bindings ?? []) {
     const source: RefSource = {
       href: `#/bindings/${encodeURIComponent(binding.id)}`,
       label: binding.id,
     };
+    if (binding.component === RUNTIME_MODULE_COMPONENT) {
+      const moduleId = typeof binding.props?.module === "string" ? binding.props.module.trim() : "";
+      if (moduleId && !runtimeModuleIds.has(moduleId)) {
+        noteBroken(collector, source, "missing runtime module", moduleId, false);
+      }
+    }
     for (const folderId of folderIdsFromProps(binding.props)) {
       if (!folderById.has(folderId)) {
         noteBroken(collector, source, "missing folder", folderId, false);

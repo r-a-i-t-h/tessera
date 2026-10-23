@@ -121,5 +121,6 @@ export function makeFixtureDoc(): SiteDocument {
     ],
     bindings: [],
     types: [{ id: "plain", layoutId: "no-aside", fields: [] }],
+    runtimeModules: [],
   };
 }

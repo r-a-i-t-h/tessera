@@ -1,5 +1,12 @@
-import { join } from "node:path";
+import { copyFile, mkdir } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { readText, writeTextAtomic } from "../store/fs.js";
+
+const DEMO_RUNTIME_MODULE_SRC = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../../../examples/runtime-module/plain-list/demo-plain-list.mjs",
+);
 
 const SHELL_HTML = `<!DOCTYPE html>
 <html lang="en-GB">
@@ -139,7 +146,46 @@ zones:
   title:
     html: Hello world
   main:
-    html: '<p>Hello world.</p>'
+    html: |
+      <p>Hello world.</p>
+      <p>{{demo-list}}</p>
+`;
+
+const DEMO_LIST_BINDING_YAML = `id: demo-list
+component: runtimeModule
+props:
+  dataset: demo-items
+  module: demo-plain-list
+`;
+
+const DEMO_RUNTIME_MODULE_YAML = `id: demo-plain-list
+ext: mjs
+title: Demo plain list
+`;
+
+const DEMO_ITEMS_DATASET_JSON = `{
+  "id": "demo-items",
+  "title": "Demo items",
+  "view": { "columns": [], "displayName": "{name}" },
+  "schema": {
+    "fields": [{ "key": "f1", "id": "name", "label": "Name", "kind": "string", "required": true }]
+  },
+  "nextUid": 3,
+  "records": [
+    {
+      "uid": 1,
+      "added": "2026-10-09T12:00:00.000Z",
+      "modified": "2026-10-09T12:00:00.000Z",
+      "name": "First row"
+    },
+    {
+      "uid": 2,
+      "added": "2026-10-09T12:00:00.000Z",
+      "modified": "2026-10-09T12:00:00.000Z",
+      "name": "Second row"
+    }
+  ]
+}
 `;
 
 const SEARCH_PAGE_YAML = `id: search
@@ -251,6 +297,16 @@ export async function writeSeedFiles(siteRoot: string): Promise<void> {
   await writeTextAtomic(join(records, "content", "birthday.yaml"), ARTICLE_YAML);
   await writeTextAtomic(join(records, "content", "_order.yaml"), CONTENT_ORDER);
   await writeTextAtomic(join(records, "nav.yaml"), NAV_YAML);
+  await mkdir(join(records, "bindings"), { recursive: true });
+  await writeTextAtomic(join(records, "bindings", "demo-list.yaml"), DEMO_LIST_BINDING_YAML);
+  await mkdir(join(records, "runtime-modules"), { recursive: true });
+  await writeTextAtomic(join(records, "runtime-modules", "demo-plain-list.yaml"), DEMO_RUNTIME_MODULE_YAML);
+  const runtimeDir = join(siteRoot, "runtime-modules");
+  await mkdir(runtimeDir, { recursive: true });
+  await copyFile(DEMO_RUNTIME_MODULE_SRC, join(runtimeDir, "demo-plain-list.mjs"));
+  const datasetsDir = join(siteRoot, "datasets");
+  await mkdir(datasetsDir, { recursive: true });
+  await writeTextAtomic(join(datasetsDir, "demo-items.json"), DEMO_ITEMS_DATASET_JSON);
 }
 
 /** Write the starter site. Refuses when site.yaml exists. */

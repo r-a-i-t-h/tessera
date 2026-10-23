@@ -8,10 +8,11 @@ import { REORDER_ICONS } from "../editor-icons.js";
 import { escapeHtml } from "../dom.js";
 import type { ControlValue } from "./nav.js";
 
-export type DatasetPresentation = "table" | "cards" | "list";
+export type DatasetPresentation = "table" | "cards" | "list" | "runtimeModule";
 
 export type DatasetDraft = {
   presentation: DatasetPresentation;
+  runtimeModuleId: string;
   datasetId: string;
   fields: string[];
   sortField: string;
@@ -30,24 +31,28 @@ export type DatasetDraft = {
 export type DatasetBindingChoices = {
   datasets: readonly { id: string; title: string }[];
   datasetFields: Readonly<Record<string, readonly DatasetFieldOption[]>>;
+  runtimeModules: readonly { id: string; title?: string }[];
 };
 
 const COMPONENTS: Record<DatasetPresentation, string> = {
   table: "datasetTable",
   cards: "datasetCards",
   list: "datasetPlainList",
+  runtimeModule: "runtimeModule",
 };
 
 export function presentationForComponent(component: string): DatasetPresentation | undefined {
   if (component === "datasetTable") return "table";
   if (component === "datasetCards") return "cards";
   if (component === "datasetPlainList") return "list";
+  if (component === "runtimeModule") return "runtimeModule";
   return undefined;
 }
 
 export function blankDataset(): DatasetDraft {
   return {
     presentation: "table",
+    runtimeModuleId: "",
     datasetId: "",
     fields: [],
     sortField: "",
@@ -80,11 +85,13 @@ export function datasetDraft(data: unknown): DatasetDraft {
   delete propsExtra.compact;
   delete propsExtra.headingField;
   delete propsExtra.filter;
+  delete propsExtra.module;
   const sort = isRecord(props.sort) ? props.sort : {};
   const sortField = typeof sort.field === "string" ? sort.field : "";
   const sortDir = sort.dir === "desc" ? "desc" : "asc";
   return {
     presentation,
+    runtimeModuleId: typeof props.module === "string" ? props.module : "",
     datasetId: typeof props.dataset === "string" ? props.dataset : "",
     fields: stringList(props.fields) ?? [],
     sortField,
@@ -137,6 +144,13 @@ export function datasetRecord(id: string, draft: DatasetDraft): Record<string, u
   }
   if (draft.filters.length) props.filter = draft.filters.map(normalizeFilterForSave);
   else delete props.filter;
+  if (draft.presentation === "runtimeModule") {
+    const moduleId = draft.runtimeModuleId.trim();
+    if (moduleId) props.module = moduleId;
+    else delete props.module;
+  } else {
+    delete props.module;
+  }
   return { ...draft.recordExtra, id, component: COMPONENTS[draft.presentation], props };
 }
 
@@ -154,12 +168,15 @@ export function datasetDraftFromForm(
 ): DatasetDraft {
   const presentationRaw = valueOf(controls, "dataset-presentation");
   const presentation: DatasetPresentation =
-    presentationRaw === "cards" || presentationRaw === "list" ? presentationRaw : "table";
+    presentationRaw === "cards" || presentationRaw === "list" || presentationRaw === "runtimeModule"
+      ? presentationRaw
+      : "table";
   const sortDir = valueOf(controls, "dataset-sort-dir") === "desc" ? "desc" : "asc";
   const datasetId = valueOf(controls, "dataset-dataset");
   const catalog = choices?.datasetFields[datasetId.trim()] ?? [];
   return {
     presentation,
+    runtimeModuleId: valueOf(controls, "dataset-runtime-module"),
     datasetId,
     fields: checkedValues(controls, "dataset-field"),
     sortField: valueOf(controls, "dataset-sort-field"),
@@ -184,7 +201,13 @@ export function datasetPhrase(
   const datasetId = draft.datasetId.trim();
   const label = datasets.find((d) => d.id === datasetId)?.title.trim() || datasetId || "no dataset";
   const view =
-    draft.presentation === "cards" ? "cards" : draft.presentation === "list" ? "plain list" : "table";
+    draft.presentation === "runtimeModule"
+      ? "runtime module"
+      : draft.presentation === "cards"
+        ? "cards"
+        : draft.presentation === "list"
+          ? "plain list"
+          : "table";
   const filterText = filterPhrase(draft.filters, choices?.datasetFields[datasetId] ?? []);
   const sort = draft.sortField.trim() ? `, sorted by ${draft.sortField} ${draft.sortDir}` : "";
   const limit = draft.limit.trim() ? `, limit ${draft.limit.trim()}` : "";
@@ -193,6 +216,7 @@ export function datasetPhrase(
 }
 
 export function datasetBindingError(draft: DatasetDraft, choices?: DatasetBindingChoices): string | undefined {
+  if (draft.presentation === "runtimeModule" && !draft.runtimeModuleId.trim()) return "Choose a runtime module.";
   if (!draft.datasetId.trim()) return "Choose a dataset.";
   const trimmed = draft.limit.trim();
   if (trimmed && !/^[1-9]\d*$/.test(trimmed)) return "Limit must be a whole number.";
@@ -544,13 +568,17 @@ export function datasetFields(draft: DatasetDraft, choices: DatasetBindingChoice
   const catalog = choices.datasetFields[draft.datasetId.trim()] ?? [];
   const tableOnly = draft.presentation === "table";
   const cardsOnly = draft.presentation === "cards";
+  const runtimeOnly = draft.presentation === "runtimeModule";
   return `<div class="editor-props">
     <p><label for="dataset-presentation">Presentation</label>
       <select id="dataset-presentation" name="dataset-presentation" class="w3-select w3-border">
         <option value="table"${draft.presentation === "table" ? " selected" : ""}>Table</option>
         <option value="cards"${draft.presentation === "cards" ? " selected" : ""}>Cards</option>
         <option value="list"${draft.presentation === "list" ? " selected" : ""}>Plain list</option>
+        <option value="runtimeModule"${draft.presentation === "runtimeModule" ? " selected" : ""}>Runtime module</option>
       </select></p>
+    <p data-dataset-runtime-only${runtimeOnly ? "" : " hidden"}><label for="dataset-runtime-module">Runtime module</label>
+      ${runtimeModuleSelect(draft.runtimeModuleId, choices.runtimeModules)}</p>
     <p aria-hidden="true"></p>
     <p><label for="dataset-dataset">Dataset</label>
       ${datasetSelect(draft.datasetId, choices.datasets)}</p>
@@ -581,15 +609,29 @@ export function renderDatasetForm(id: string, draft: DatasetDraft, choices: Data
   return `${hiddenExtra("dataset", draft.propsExtra, draft.recordExtra)}${datasetFields(draft, choices)}`;
 }
 
+function runtimeModuleSelect(current: string, modules: readonly { id: string; title?: string }[]): string {
+  const options = [`<option value=""${!current ? " selected" : ""}>Choose…</option>`].concat(
+    modules.map((row) => {
+      const label = row.title?.trim() || row.id;
+      return `<option value="${escapeHtml(row.id)}"${row.id === current ? " selected" : ""}>${escapeHtml(label)}</option>`;
+    }),
+  );
+  return `<select id="dataset-runtime-module" name="dataset-runtime-module" class="w3-select w3-border">${options.join("")}</select>`;
+}
+
 export function syncDatasetPresentation(form: HTMLFormElement): void {
   const presentation = form.querySelector<HTMLSelectElement>('[name="dataset-presentation"]')?.value ?? "table";
   const tableOnly = presentation === "table";
   const cardsOnly = presentation === "cards";
+  const runtimeOnly = presentation === "runtimeModule";
   form.querySelectorAll<HTMLElement>("[data-dataset-table-only]").forEach((el) => {
     el.hidden = !tableOnly;
   });
   form.querySelectorAll<HTMLElement>("[data-dataset-cards-only]").forEach((el) => {
     el.hidden = !cardsOnly;
+  });
+  form.querySelectorAll<HTMLElement>("[data-dataset-runtime-only]").forEach((el) => {
+    el.hidden = !runtimeOnly;
   });
 }
 

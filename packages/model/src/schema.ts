@@ -259,6 +259,13 @@ export const ItemSchema = z.object({
   zones: ZonesSchema.default({}),
 });
 
+/** Published runtime-module catalog entry (client-only ESM under `./runtime-modules/`). */
+export const RuntimeModuleSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().optional(),
+  url: z.string().min(1),
+});
+
 export const MediaSchema = z.object({
   id: z.string().min(1),
   title: z.string().optional(),
@@ -421,6 +428,8 @@ export const SiteDocumentSchema = z
     pages: z.array(PageSchema).min(1),
     items: z.array(ItemSchema).default([]),
     media: z.array(MediaSchema).default([]),
+    /** Owner-authored ESM modules copied to `./runtime-modules/` on publish. */
+    runtimeModules: z.array(RuntimeModuleSchema).default([]),
     /** Scanned image folders — first-class gallery sources. */
     folders: z.array(FolderSchema).default([]),
     /** Designed nav (perma). Page existence does not imply a nav entry. */
@@ -487,6 +496,7 @@ export type Layout = z.infer<typeof LayoutSchema>;
 export type Page = z.infer<typeof PageSchema>;
 export type Item = z.infer<typeof ItemSchema>;
 export type Media = z.infer<typeof MediaSchema>;
+export type RuntimeModule = z.infer<typeof RuntimeModuleSchema>;
 export type FolderImage = z.infer<typeof FolderImageSchema>;
 export type Folder = z.infer<typeof FolderSchema>;
 export type Binding = z.infer<typeof BindingSchema>;

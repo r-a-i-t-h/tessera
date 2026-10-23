@@ -17,6 +17,7 @@ const baseDoc = (): SiteDocument => ({
   nav: [],
   bindings: [{ id: "list", component: "datasetTable", props: { dataset: "demo" } }],
   types: [],
+  runtimeModules: [],
 });
 
 describe("embedDatasetsInDocument", () => {

@@ -168,6 +168,14 @@ function schemaFor(kind: AuthoredKind, data: unknown): z.ZodTypeAny {
       return isRecord(data) && typeof data.path === "string" && data.path.length > 0
         ? FolderSchema
         : libraryFolder;
+    case "runtimeModules":
+      return z
+        .object({
+          id,
+          ext: z.enum(["js", "mjs"]),
+          title: z.string().optional(),
+        })
+        .passthrough();
   }
 }
 

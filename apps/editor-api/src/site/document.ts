@@ -7,6 +7,7 @@ import type {
   Media,
   NavEntry,
   Page,
+  RuntimeModule,
   Type,
   SiteDocument,
   SiteMeta,
@@ -24,6 +25,7 @@ import {
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import type { RecordKind } from "./kinds.js";
 import { projectLibrary } from "./library.js";
+import { projectRuntimeModules } from "./runtime-module.js";
 
 export type ZoneAuthoring =
   | { html: string }
@@ -171,6 +173,7 @@ export type SplitSite = {
   types: Type[];
   media: Media[];
   folders: Folder[];
+  runtimeModules: RuntimeModule[];
 };
 
 export function splitDocument(doc: SiteDocument): SplitSite {
@@ -187,6 +190,7 @@ export function splitDocument(doc: SiteDocument): SplitSite {
     types: doc.types ?? [],
     media: doc.media ?? [],
     folders: doc.folders ?? [],
+    runtimeModules: doc.runtimeModules ?? [],
   };
 }
 
@@ -200,6 +204,7 @@ export type LoadedSite = {
   types: Type[];
   media: Media[];
   folders: Folder[];
+  runtimeModules: unknown[];
 };
 
 export function assembleDocument(parts: LoadedSite): SiteDocument {
@@ -215,6 +220,7 @@ export function assembleDocument(parts: LoadedSite): SiteDocument {
     items: parts.items.map(authoredItemToItem),
     media: projected.media,
     folders: projected.folders,
+    runtimeModules: projectRuntimeModules(parts.runtimeModules),
     nav: parts.nav,
     bindings: parts.bindings,
     types: parts.types,

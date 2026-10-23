@@ -96,6 +96,12 @@ A **micro-app** is an interactive client-side mount on a page: an event list, a 
 
 Micro-apps are client-only in both flavours. The pages publisher writes an empty mount and a JSON description of the data that mount needs. It does not run the micro-app.
 
+### Runtime module
+
+A **runtime module** is site-owner JavaScript (ESM) that Tessera serves from `./runtime-modules/<id>.js` or `.mjs` and runs in the visitor’s browser only. The publisher writes a mount (`data-tessera-runtime-module`) and metadata; it does not execute the module on the server.
+
+Modules are uploaded or edited in the editor **Runtime modules** library (blobs under `runtime-modules/`, catalog in `records/runtime-modules/`). A binding uses the `runtimeModule` component with `props.module` set to a catalog id (resolved to a URL at render). Dataset bindings may use the same component with an embedded dataset payload. The default export is `mount(host, ctx)`; `ctx.host` exposes DOM helpers and optional `ctx.dataset`.
+
 ### Component registry
 
 Micro-app implementations live in the shared catalogue and the renderer builtins, **registered by name**. Content never embeds scripts. A site has no build step and does not ship component source. Adding a new micro-app is a Tessera release, and that name is then available to every site. Changing text, JSON, layout trees, or which registered names a page calls does not require a release.
@@ -134,6 +140,7 @@ Folder-relative URLs (`./…`) and Vite `base: "./"` keep a published site porta
 - A **tree of pages**. `parentId` is the parent. The home page is the site root (`index.html`). Every other page is `{path}/index.html`, where the path is the chain of page `id` segments under the home page.
 - Each file contains that page’s prose, `<title>`, optional meta description, canonical URL, and that page’s frame: the site master, or the frame set on the page or its nearest ancestor. A menu link appears only when that page is listed on the site nav record and the frame’s nav component includes it.
 - Micro-app regions are empty `data-tessera-microapp` mounts plus a JSON description. They run in the browser.
+- Runtime module regions are `data-tessera-runtime-module` mounts plus module URL and optional dataset JSON. The pages/snapshot runtimes `import()` the module same-origin URL and call `mount`.
 - `sitemap.xml` lists every published page URL.
 - `search-index.json` is a publish-time MiniSearch index of page titles, tags, descriptions, and zone plain text. The layout `searchBox` component lazy-loads it on first use.
 - Visitors move between pages by loading the next HTML file.

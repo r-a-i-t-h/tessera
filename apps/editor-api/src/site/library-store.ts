@@ -489,7 +489,7 @@ export class AssetLibrary {
     if (asset.kind === "image") await writeThumbnail(file.bytes, thumbPath);
     else await unlink(thumbPath).catch(() => undefined);
 
-    const nextRecord = { ...beforeRecord, bytes: file.bytes.length };
+    const nextRecord: Record<string, unknown> = { ...beforeRecord, bytes: file.bytes.length };
     if (asset.kind === "image") {
       const size = await imageSize(file.bytes);
       if (size) {

@@ -18,7 +18,16 @@ import {
   type DatasetDraft,
 } from "./dataset-binding.js";
 
-export type BindingKind = "gallery" | "dated" | "people" | "links" | "imageReveal" | "embed" | "dataset" | "other";
+export type BindingKind =
+  | "gallery"
+  | "dated"
+  | "people"
+  | "links"
+  | "imageReveal"
+  | "embed"
+  | "dataset"
+  | "runtimeModule"
+  | "other";
 
 const IMAGE_REVEAL_SLOT_COUNT = 6;
 
@@ -87,6 +96,12 @@ export type EmbedDraft = {
   recordExtra: Record<string, unknown>;
 };
 
+export type RuntimeModuleBindingDraft = {
+  moduleId: string;
+  propsExtra: Record<string, unknown>;
+  recordExtra: Record<string, unknown>;
+};
+
 export type PageUse = { id: string; title?: string };
 
 export type BindingChoices = DatasetBindingChoices & {
@@ -108,6 +123,7 @@ export type NewBinding = {
   imageReveal: ImageRevealDraft;
   embed: EmbedDraft;
   dataset: DatasetDraft;
+  runtimeModule: RuntimeModuleBindingDraft;
 };
 
 const TOKEN = /\{\{([a-zA-Z0-9_-]+)\}\}/g;
@@ -120,6 +136,11 @@ export function bindingKind(data: unknown): BindingKind {
   if (data.component === "linkCluster") return "links";
   if (data.component === "imageRevealGallery") return "imageReveal";
   if (data.component === "htmlEmbed") return "embed";
+  if (data.component === "runtimeModule") {
+    const props = isRecord(data.props) ? data.props : {};
+    if (typeof props.dataset === "string" && props.dataset.trim()) return "dataset";
+    return "runtimeModule";
+  }
   if (presentationForComponent(data.component)) return "dataset";
   return "other";
 }
@@ -137,7 +158,12 @@ export function blankNewBinding(): NewBinding {
     imageReveal: blankImageReveal(),
     embed: blankEmbed(),
     dataset: blankDataset(),
+    runtimeModule: blankRuntimeModuleBinding(),
   };
+}
+
+export function blankRuntimeModuleBinding(): RuntimeModuleBindingDraft {
+  return { moduleId: "", propsExtra: {}, recordExtra: {} };
 }
 
 export function galleryDraft(data: unknown): GalleryDraft {
@@ -285,7 +311,47 @@ export function embedDraftFromForm(controls: readonly ControlValue[]): EmbedDraf
   };
 }
 
-const BINDING_CONTROL_PREFIXES = ["binding-", "gallery-", "dated-", "people-", "links-", "ir-", "embed-", "dataset-"] as const;
+export function runtimeModuleBindingDraft(data: unknown): RuntimeModuleBindingDraft {
+  const record = isRecord(data) ? data : {};
+  const props = isRecord(record.props) ? record.props : {};
+  const propsExtra = { ...props };
+  delete propsExtra.module;
+  return {
+    moduleId: typeof props.module === "string" ? props.module : "",
+    propsExtra,
+    recordExtra: recordExtra(record),
+  };
+}
+
+export function runtimeModuleBindingRecord(id: string, draft: RuntimeModuleBindingDraft): Record<string, unknown> {
+  const props: Record<string, unknown> = { ...draft.propsExtra };
+  const moduleId = draft.moduleId.trim();
+  if (moduleId) props.module = moduleId;
+  else delete props.module;
+  const out: Record<string, unknown> = { ...draft.recordExtra, id, component: "runtimeModule" };
+  if (Object.keys(props).length) out.props = props;
+  return out;
+}
+
+export function runtimeModuleBindingDraftFromForm(controls: readonly ControlValue[]): RuntimeModuleBindingDraft {
+  return {
+    moduleId: valueOf(controls, "runtime-module-id"),
+    propsExtra: parseObject(valueOf(controls, "runtime-props-extra")),
+    recordExtra: parseObject(valueOf(controls, "runtime-record-extra")),
+  };
+}
+
+const BINDING_CONTROL_PREFIXES = [
+  "binding-",
+  "gallery-",
+  "dated-",
+  "people-",
+  "links-",
+  "ir-",
+  "embed-",
+  "dataset-",
+  "runtime-",
+] as const;
 
 /** Named controls on binding create/edit forms (excludes unrelated fields on the same page). */
 export function bindingControls(form: HTMLFormElement): ControlValue[] {
@@ -440,7 +506,9 @@ export function bindingSentence(data: unknown, pages: readonly PageUse[] = []): 
                 ? embedPhrase(embedDraft(data))
                 : kind === "dataset"
                   ? datasetPhrase(datasetDraft(data))
-                  : otherPhrase(data);
+                  : kind === "runtimeModule"
+                    ? runtimeModulePhrase(runtimeModuleBindingDraft(data))
+                    : otherPhrase(data);
   return `${detail}${usagePhrase(pages)}`;
 }
 
@@ -497,7 +565,27 @@ export function renderBindingForm(id: string, data: unknown, choices: BindingCho
   if (kind === "imageReveal") return renderImageRevealForm(id, imageRevealDraft(data), choices);
   if (kind === "embed") return renderEmbedForm(id, embedDraft(data));
   if (kind === "dataset") return renderDatasetForm(id, datasetDraft(data), choices);
+  if (kind === "runtimeModule") return renderRuntimeModuleBindingForm(id, runtimeModuleBindingDraft(data), choices);
   return "";
+}
+
+export function renderRuntimeModuleBindingForm(
+  id: string,
+  draft: RuntimeModuleBindingDraft,
+  choices: BindingChoices,
+): string {
+  const options = [`<option value=""${!draft.moduleId ? " selected" : ""}>Choose…</option>`].concat(
+    (choices.runtimeModules ?? []).map((row) => {
+      const label = row.title?.trim() || row.id;
+      return `<option value="${escapeHtml(row.id)}"${row.id === draft.moduleId ? " selected" : ""}>${escapeHtml(label)}</option>`;
+    }),
+  );
+  return `${insertLine(id)}${hiddenExtra("runtime", draft.propsExtra, draft.recordExtra)}
+    <p class="w3-small w3-text-grey">Client-side only — Tessera does not run this code on the server.</p>
+    <p><label for="runtime-module-id">Runtime module</label>
+      <select id="runtime-module-id" name="runtime-module-id" class="w3-select w3-border">${options.join("")}</select></p>
+    <p><label for="runtime-props-extra">Extra props (JSON)</label>
+      <textarea id="runtime-props-extra" name="runtime-props-extra" class="w3-input w3-border editor-html" rows="6" spellcheck="false">${escapeHtml(JSON.stringify(draft.propsExtra, null, 2))}</textarea></p>`;
 }
 
 export function renderGalleryForm(id: string, draft: GalleryDraft, folders: readonly { id: string }[]): string {
@@ -624,6 +712,9 @@ export function readNewBinding(
     dataset: controls.some((control) => control.name === "dataset-dataset" || control.name === "dataset-presentation")
       ? datasetDraftFromForm(controls, choices, form)
       : blankDataset(),
+    runtimeModule: controls.some((control) => control.name === "runtime-module-id")
+      ? runtimeModuleBindingDraftFromForm(controls)
+      : blankRuntimeModuleBinding(),
   };
 }
 
@@ -636,6 +727,7 @@ export function newBindingRecord(state: NewBinding): Record<string, unknown> {
   if (state.kind === "imageReveal") return imageRevealRecord(id, state.imageReveal);
   if (state.kind === "embed") return embedRecord(id, state.embed);
   if (state.kind === "dataset") return datasetRecord(id, state.dataset);
+  if (state.kind === "runtimeModule") return runtimeModuleBindingRecord(id, state.runtimeModule);
   return { id, component: state.component.trim() };
 }
 
@@ -652,6 +744,7 @@ export function newBindingError(
   if (state.kind === "links" && state.links.source === "nav" && !state.links.heading.trim()) return "Enter a menu heading.";
   if (state.kind === "imageReveal") return imageRevealError(state.imageReveal);
   if (state.kind === "dataset") return datasetBindingError(state.dataset, choices);
+  if (state.kind === "runtimeModule" && !state.runtimeModule.moduleId.trim()) return "Choose a runtime module.";
   if (state.kind === "other" && !state.component.trim()) return "Enter a component name.";
   return undefined;
 }
@@ -709,6 +802,7 @@ function kindField(state: NewBinding): string {
     { value: "imageReveal", label: "Reveal banner" },
     { value: "embed", label: "Embed" },
     { value: "dataset", label: "Dataset list" },
+    { value: "runtimeModule", label: "Runtime module" },
     { value: "other", label: "Something else" },
   ];
   return `<input type="hidden" name="binding-step" value="1" />
@@ -741,6 +835,9 @@ function kindBody(state: NewBinding, choices: BindingChoices): string {
   }
   if (state.kind === "dataset") {
     return datasetFields(state.dataset, choices);
+  }
+  if (state.kind === "runtimeModule") {
+    return renderRuntimeModuleBindingForm("", state.runtimeModule, choices).replace(insertLine(""), "");
   }
   return `<div class="editor-props"><p><label for="new-binding-component">Component</label>
     <input id="new-binding-component" name="binding-component" class="w3-input w3-border" spellcheck="false" autocomplete="off" value="${escapeHtml(state.component)}" /></p>
@@ -1089,6 +1186,11 @@ function linksPhrase(draft: LinksDraft): string {
   return `${look} for this page's children.`;
 }
 
+function runtimeModulePhrase(draft: RuntimeModuleBindingDraft): string {
+  const id = draft.moduleId.trim() || "no module";
+  return `Runtime module ${id}.`;
+}
+
 function embedPhrase(draft: EmbedDraft): string {
   const trimmed = draft.html.trim();
   if (!trimmed) return "An embed with no HTML yet.";
@@ -1177,6 +1279,7 @@ function parseKind(value: string): BindingKind {
     value === "imageReveal" ||
     value === "embed" ||
     value === "dataset" ||
+    value === "runtimeModule" ||
     value === "other"
   ) {
     return value;

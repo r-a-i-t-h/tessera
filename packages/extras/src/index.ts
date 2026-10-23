@@ -6,6 +6,7 @@ import { randomCells } from "./random-cells.js";
 import { registerCardElement } from "./rt-card.js";
 import { registerDatasetElements } from "./dataset-element.js";
 import { datasetCards, datasetPlainList, datasetTable } from "./dataset-present.js";
+import { runtimeModule } from "./runtime-module-present.js";
 import {
   agendaList,
   articleByline,
@@ -23,6 +24,8 @@ import {
  */
 export { bootBlog } from "./blog-runtime.js";
 export { bootDatasetViews, registerDatasetElements } from "./dataset-element.js";
+export { bootRuntimeModules } from "./runtime-boot.js";
+export type { RuntimeModuleHost, RuntimeModuleMountContext } from "./runtime-host.js";
 
 export function registerExtras(define: (name: string, fn: ComponentFn) => unknown): void {
   registerCardElement();
@@ -37,6 +40,7 @@ export function registerExtras(define: (name: string, fn: ComponentFn) => unknow
   define("datasetTable", datasetTable);
   define("datasetCards", datasetCards);
   define("datasetPlainList", datasetPlainList);
+  define("runtimeModule", runtimeModule);
   define("peopleGrid", peopleGrid);
   define("articleByline", articleByline);
   define("profileKicker", profileKicker);

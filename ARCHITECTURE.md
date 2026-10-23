@@ -99,7 +99,11 @@ The editor process serves the working snapshot at `/preview/` on the editor orig
 
 Structured collections (events, products, meeting rows, branches, and similar) live in `$TESSERA_DATA/datasets/<id>.json`. Each file holds a field tree (`schema`), view prefs (`view.columns`, `view.displayName`), a `nextUid` counter, and `records` as nested JSON documents. Root records store `uid`, `added`, `modified`, and schema field values. `view.displayName` is a template such as `{make} {model} {year}` used in pickers and labels. Grid columns come from `view.columns` (optional `uid`, schema scalar fields, and optional `added` / `modified`). List items carry `uid` and timestamps only.
 
-The editor **Datasets** section designs the schema and edits records (grid, inline grid edit, and record dialog). Saving a schema runs `adaptRecords` in `@r-a-i-t-h/tessera-model` so renames, removals, and defaults rewrite stored rows. Flatten, preview, and publish ignore this folder until a later release wires datasets into the public site.
+The editor **Datasets** section designs the schema and edits records (grid, inline grid edit, and record dialog). Saving a schema runs `adaptRecords` in `@r-a-i-t-h/tessera-model` so renames, removals, and defaults rewrite stored rows. Bindings that reference a dataset embed its payload at flatten/preview/publish time.
+
+## Runtime modules
+
+Site-owner ESM lives in `$TESSERA_DATA/runtime-modules/<id>.js` or `.mjs`, with catalog rows in `records/runtime-modules/*.yaml` (`id`, `ext`, optional `title`). Public URLs are `./runtime-modules/<id>.<ext>`. The editor **Runtime modules** screen uploads files and edits raw source in a textarea; Tessera never runs that code on the server. Flatten adds `document.runtimeModules[]` (`id`, `url`, `title?`) for modules referenced by bindings. **Publish** copies referenced blobs into `publish/runtime-modules/`; **preview** serves the working copies from `data/runtime-modules/`. Bindings use the `runtimeModule` component with `props.module` (record id). See `docs/runtime-modules.md`.
 
 ## Authoring files
 
@@ -114,6 +118,7 @@ Records live in `$TESSERA_DATA/records/`, off the web path. Each record is one Y
 | `bindings/*.yaml` | Data → component bindings |
 | `types/*.yaml` | Site-defined types: layout and field list |
 | `media/*.yaml` | Library files (image or PDF). Flatten derives `./media/<id>.<ext>`. |
+| `runtime-modules/*.yaml` | Runtime module catalog (`ext` is `js` or `mjs`). Blob beside records under `runtime-modules/`. |
 | `folders/*.yaml` | Virtual folders. A folder id is still a gallery source. |
 | `*/_order.yaml` | Record order |
 | `site.yaml` | Site meta |

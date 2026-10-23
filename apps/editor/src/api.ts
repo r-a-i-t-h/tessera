@@ -476,6 +476,37 @@ export function getLibrary(): Promise<LibraryListing> {
   return request("/api/library");
 }
 
+export type RuntimeModuleAsset = {
+  id: string;
+  ext: string;
+  title?: string;
+  url: string;
+  bytes?: number;
+};
+
+export function getRuntimeModules(): Promise<{ ok: true; modules: RuntimeModuleAsset[] }> {
+  return request("/api/runtime-modules");
+}
+
+export function getRuntimeModuleRaw(id: string): Promise<{ ok: true; text: string }> {
+  return request(`/api/runtime-modules/${encodeURIComponent(id)}/raw`);
+}
+
+export function putRuntimeModuleRaw(id: string, text: string): Promise<{ ok: true }> {
+  return request(`/api/runtime-modules/${encodeURIComponent(id)}/raw`, {
+    method: "PUT",
+    body: JSON.stringify({ text }),
+  });
+}
+
+export function uploadRuntimeModule(body: FormData): Promise<{ ok: true; id: string }> {
+  return request("/api/runtime-modules/upload", { method: "POST", body });
+}
+
+export function deleteRuntimeModule(id: string): Promise<{ ok: true }> {
+  return request(`/api/runtime-modules/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
 export function createLibraryFolder(id: string, parentId?: string): Promise<{ ok: true }> {
   return request("/api/library/folders", {
     method: "POST",

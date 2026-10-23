@@ -159,6 +159,9 @@ function resolvePreviewFile(rel: string, roots: PreviewRoots): string | null {
   if (rel.startsWith("media/") && !rel.slice("media/".length).includes("/")) {
     return fileInDir(join(roots.siteRoot, "files"), rel.slice("media/".length));
   }
+  if (rel.startsWith("runtime-modules/") && !rel.slice("runtime-modules/".length).includes("/")) {
+    return fileInDir(join(roots.siteRoot, "runtime-modules"), rel.slice("runtime-modules/".length));
+  }
   return (
     fileInDir(join(roots.siteRoot, "shell"), rel) ??
     fileInDir(join(roots.siteRoot, "publish"), rel)

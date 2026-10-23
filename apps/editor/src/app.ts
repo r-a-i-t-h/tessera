@@ -13,6 +13,11 @@ import {
   deleteLibraryFolder,
   getHistoryEntry,
   getLibrary,
+  getRuntimeModules,
+  getRuntimeModuleRaw,
+  putRuntimeModuleRaw,
+  uploadRuntimeModule,
+  deleteRuntimeModule,
   getMaintenance,
   getRecord,
   listBackups,
@@ -146,6 +151,7 @@ import {
   type FolderRow,
   type LibraryBrowseId,
 } from "./forms/library.js";
+import { renderRuntimeModuleDetail, renderRuntimeModulesList } from "./forms/runtime-modules.js";
 import {
   bindingIdError,
   bindingIdsIn,
@@ -169,6 +175,8 @@ import {
   newBindingRecord,
   peopleDraftFromForm,
   peopleRecord,
+  runtimeModuleBindingDraftFromForm,
+  runtimeModuleBindingRecord,
   readNewBinding,
   renderBindingForm,
   renderNewBinding,
@@ -323,6 +331,7 @@ async function render(root: HTMLElement): Promise<void> {
       if (section) scrollGuideSection(root, section);
     }
     else if (route.page === "library") await bindLibrary(root, user, route.id);
+    else if (route.page === "runtime-modules") await bindRuntimeModules(root, user, route.id);
     else if (route.page === "maintenance") await bindMaintenance(root, user, route.tab);
     else if (route.page === "pages") await bindPages(root, user);
     else if (route.page === "articles") await bindArticles(root, user, route.blog);
@@ -1395,15 +1404,16 @@ async function loadBindingListInfo(listing: RecordList): Promise<{ notes: Map<st
   const types = listing.records.filter((row) => row.kind === "types").map((row) => row.id);
   const empty = {
     notes: new Map<string, string>(),
-    choices: { folders: [], types, headings: [], datasets: [], datasetFields: {} },
+    choices: { folders: [], types, headings: [], datasets: [], datasetFields: {}, runtimeModules: [] },
   };
   try {
-    const [bindingPayloads, contentPayloads, library, nav, datasetList] = await Promise.all([
+    const [bindingPayloads, contentPayloads, library, nav, datasetList, runtimeMods] = await Promise.all([
       Promise.all(bindings.map((row) => getRecord("bindings", row.id))),
       Promise.all(content.map((row) => getRecord("content", row.id))),
       getLibrary().catch(() => ({ folders: [], assets: [] })),
       getRecord("nav", "nav").catch(() => undefined),
       listDatasets().catch(() => ({ ok: true as const, datasets: [] })),
+      getRuntimeModules().catch(() => ({ ok: true as const, modules: [] })),
     ]);
     const notes = new Map<string, string>();
     bindings.forEach((row, index) => {
@@ -1415,7 +1425,15 @@ async function loadBindingListInfo(listing: RecordList): Promise<{ notes: Map<st
     const siteData = await loadSiteData(listing);
     return {
       notes,
-      choices: bindingChoicesPayload(listing, library.folders, types, nav?.data, siteData, datasetList.datasets),
+      choices: bindingChoicesPayload(
+        listing,
+        library.folders,
+        types,
+        nav?.data,
+        siteData,
+        datasetList.datasets,
+        runtimeMods.modules,
+      ),
     };
   } catch {
     return empty;
@@ -1451,15 +1469,24 @@ async function loadBindingChoices(): Promise<BindingChoices> {
   try {
     const listing = await listRecords();
     const types = listing.records.filter((row) => row.kind === "types").map((row) => row.id);
-    const [library, nav, siteData] = await Promise.all([
+    const [library, nav, siteData, runtimeMods] = await Promise.all([
       getLibrary().catch(() => ({ folders: [], assets: [] })),
       getRecord("nav", "nav").catch(() => undefined),
       loadSiteData(listing),
+      getRuntimeModules().catch(() => ({ ok: true as const, modules: [] })),
     ]);
     const datasets = await listDatasets().catch(() => ({ ok: true as const, datasets: [] }));
-    return bindingChoicesPayload(listing, library.folders, types, nav?.data, siteData, datasets.datasets);
+    return bindingChoicesPayload(
+      listing,
+      library.folders,
+      types,
+      nav?.data,
+      siteData,
+      datasets.datasets,
+      runtimeMods.modules,
+    );
   } catch {
-    return { folders: [], types: [], headings: [], datasets: [], datasetFields: {} };
+    return { folders: [], types: [], headings: [], datasets: [], datasetFields: {}, runtimeModules: [] };
   }
 }
 
@@ -1470,6 +1497,7 @@ function bindingChoicesPayload(
   navData: unknown,
   siteData: Record<string, unknown> | undefined,
   datasets: BindingChoices["datasets"] = [],
+  runtimeModules: BindingChoices["runtimeModules"] = [],
 ): BindingChoices {
   const navEntries = Array.isArray(navData) ? (navData as NavEntry[]) : [];
   const site =
@@ -1486,6 +1514,7 @@ function bindingChoicesPayload(
     pageTargets: buildPageTargetChoices(listing, site, navEntries),
     datasets,
     datasetFields: {},
+    runtimeModules,
   };
 }
 
@@ -4107,6 +4136,11 @@ function bindingBody(id: string, form: HTMLFormElement, original: unknown, choic
     if (problem) throw new Error(problem);
     return datasetRecord(id, draft);
   }
+  if (kind === "runtimeModule") {
+    const draft = runtimeModuleBindingDraftFromForm(controls);
+    if (!draft.moduleId.trim()) throw new Error("Choose a runtime module.");
+    return runtimeModuleBindingRecord(id, draft);
+  }
   return saveRecordBody("bindings", form, original);
 }
 
@@ -4639,5 +4673,58 @@ async function submitLibraryUpload(
   } catch (err) {
     await bindLibrary(root, user, openId, err instanceof Error ? err.message : "Could not add those files.");
   }
+}
+
+async function bindRuntimeModules(root: HTMLElement, user: PublicUser, moduleId: string | null): Promise<void> {
+  const { modules } = await getRuntimeModules();
+  root.innerHTML = chrome(user, renderRuntimeModulesList(modules, moduleId ?? undefined), true, "runtime-modules");
+  bindChrome(root);
+  const detail = root.querySelector<HTMLElement>("[data-runtime-detail]");
+  if (moduleId && detail) {
+    const mod = modules.find((row) => row.id === moduleId);
+    if (mod) {
+      const { text } = await getRuntimeModuleRaw(mod.id);
+      detail.innerHTML = renderRuntimeModuleDetail(mod, text);
+      const rawForm = detail.querySelector<HTMLFormElement>("[data-runtime-raw]");
+      rawForm?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const area = rawForm.querySelector<HTMLTextAreaElement>('textarea[name="text"]');
+        if (!area) return;
+        try {
+          await putRuntimeModuleRaw(mod.id, area.value);
+          await bindRuntimeModules(root, user, mod.id);
+        } catch (err) {
+          alert(err instanceof Error ? err.message : "Save failed.");
+        }
+      });
+      detail.querySelector<HTMLButtonElement>("[data-runtime-delete]")?.addEventListener("click", async () => {
+        if (!confirm(`Delete runtime module "${mod.id}"?`)) return;
+        try {
+          await deleteRuntimeModule(mod.id);
+          window.location.hash = "#/runtime-modules";
+          await bindRuntimeModules(root, user, null);
+        } catch (err) {
+          alert(err instanceof Error ? err.message : "Delete failed.");
+        }
+      });
+    }
+  }
+  root.querySelector<HTMLFormElement>("[data-runtime-upload]")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    if (!(form instanceof HTMLFormElement)) return;
+    const fileInput = form.querySelector<HTMLInputElement>('input[name="file"]');
+    const file = fileInput?.files?.[0];
+    if (!file) return;
+    const body = new FormData();
+    body.append("file", file);
+    try {
+      const created = await uploadRuntimeModule(body);
+      window.location.hash = `#/runtime-modules/${encodeURIComponent(created.id)}`;
+      await bindRuntimeModules(root, user, created.id);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Upload failed.");
+    }
+  });
 }
 
