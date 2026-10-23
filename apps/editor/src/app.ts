@@ -628,7 +628,10 @@ async function bindAccount(root: HTMLElement, user: PublicUser, notice = "", err
 
 function accountHtml(user: PublicUser, notice: string, error: string): string {
   return `<h1 class="w3-large">Account</h1>
-    <p class="w3-text-grey">Signed in as <strong>${escapeHtml(user.username)}</strong>.</p>
+    <div class="editor-account-signed-in">
+      <p class="w3-text-grey">Signed in as <strong>${escapeHtml(user.username)}</strong>.</p>
+      <button type="button" class="w3-button w3-light-grey" data-action="logout">Sign out</button>
+    </div>
     ${statusPanels(notice, error)}
     <form id="username-form" class="w3-card w3-white w3-padding-large editor-card">
       <h2 class="w3-medium">Change username</h2>

@@ -308,6 +308,18 @@ textarea.w3-input[data-kind="json"].editor-code-wrap {
   overflow-x: hidden;
 }
 
+.editor-account-signed-in {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.editor-account-signed-in > p {
+  margin: 0;
+}
+
 .editor-code-head {
   display: flex;
   flex-wrap: wrap;

@@ -39,6 +39,7 @@ describe("editor chrome", () => {
     expect(html).toContain('class="editor-scroll"');
     expect(html).toContain('class="editor-sidebar-version"');
     expect(html).not.toContain("editor-footer");
+    expect(html).not.toContain('data-action="logout"');
   });
 
   it("expands blog instances under Articles and marks the active one", () => {

@@ -144,7 +144,6 @@ export function editorChrome(
         </nav>
         <div class="editor-nav-account w3-bar-block">
           <a class="w3-bar-item w3-button${section === "account" ? " w3-white" : ""}" href="#/account" title="Account"${section === "account" ? ' aria-current="page"' : ""}>${escapeHtml(user.username)}</a>
-          <button type="button" class="w3-bar-item w3-button" data-action="logout">Sign out</button>
         </div>
         <div class="editor-sidebar-version">${editorVersionLabel()}</div>
       </aside>
