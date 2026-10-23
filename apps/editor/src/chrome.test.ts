@@ -1,11 +1,36 @@
 // @vitest-environment happy-dom
 
 import { afterEach, describe, expect, it } from "vitest";
+import { ADMIN_MENU, SETUP_MENU } from "./editor-sidebar-menu.js";
 import { announceRoute, editorChrome, loginView } from "./chrome.js";
 
 describe("editor chrome", () => {
   afterEach(() => {
     document.body.innerHTML = "";
+  });
+
+  it("lists Setup and Admin items in menu config order", () => {
+    const html = editorChrome(
+      { ok: true, username: "alice", createdAt: "2026-01-01" },
+      "<h1>Pages</h1>",
+      false,
+      "pages",
+    );
+    let lastSetup = 0;
+    for (const item of SETUP_MENU.items) {
+      const at = html.indexOf(`href="${item.href}"`);
+      expect(at).toBeGreaterThan(-1);
+      expect(at).toBeGreaterThan(lastSetup);
+      lastSetup = at;
+    }
+    let lastAdmin = html.indexOf('aria-label="Admin"');
+    expect(lastAdmin).toBeGreaterThan(-1);
+    for (const item of ADMIN_MENU.items) {
+      const at = html.indexOf(`href="${item.href}"`);
+      expect(at).toBeGreaterThan(-1);
+      expect(at).toBeGreaterThan(lastAdmin);
+      lastAdmin = at;
+    }
   });
 
   it("lists Navigation and Pages before the setup block in the sidebar", () => {

@@ -3,8 +3,8 @@ import { backToTopHtml } from "./back-to-top.js";
 import type { PublicUser } from "./api.js";
 import { isFullAdmin } from "./access.js";
 import { escapeHtml } from "./dom.js";
+import { ADMIN_MENU, isSidebarLinkCurrent, SETUP_MENU } from "./editor-sidebar-menu.js";
 import { MAINTENANCE_TABS } from "./maintenance.js";
-import { RECORD_NAV_ITEMS } from "./record-nav.js";
 
 export type EditorSection =
   | "home"
@@ -91,15 +91,11 @@ export function editorChrome(
       : "";
 
   const setupNav = admin
-    ? `${navGroupLabel("Setup")}
-      <div class="editor-nav-children editor-nav-setup" role="group" aria-label="Setup">
-        ${RECORD_NAV_ITEMS.map((item) =>
-          childLink(
-            `#/records/${encodeURIComponent(item.kind)}`,
-            item.label,
-            nav.recordsKind === item.kind,
-          ),
-        ).join("")}
+    ? `${navGroupLabel(SETUP_MENU.groupLabel)}
+      <div class="editor-nav-children editor-nav-setup" role="group" aria-label="${SETUP_MENU.ariaLabel}">
+        ${SETUP_MENU.items
+          .map((item) => childLink(item.href, item.label, isSidebarLinkCurrent(item.whenActive, section, nav)))
+          .join("")}
       </div>`
     : "";
 
@@ -114,12 +110,15 @@ export function editorChrome(
     : "";
 
   const adminNav = admin
-    ? `${navGroupLabel("Admin")}
-      <div class="editor-nav-children editor-nav-admin" role="group" aria-label="Admin">
-        ${childLink("#/users", "Users", section === "users" || section === "user")}
-        ${childLink("#/maintenance", "Maintenance", section === "maintenance" && !maintenanceChildOn)}
-        ${maintenanceChildren}
-        ${childLink("#/backups", "Backups", section === "backups")}
+    ? `${navGroupLabel(ADMIN_MENU.groupLabel)}
+      <div class="editor-nav-children editor-nav-admin" role="group" aria-label="${ADMIN_MENU.ariaLabel}">
+        ${ADMIN_MENU.items
+          .map((item) => {
+            const on = isSidebarLinkCurrent(item.whenActive, section, nav);
+            const nested = item.href === "#/maintenance" ? maintenanceChildren : "";
+            return childLink(item.href, item.label, on) + nested;
+          })
+          .join("")}
       </div>`
     : "";
 

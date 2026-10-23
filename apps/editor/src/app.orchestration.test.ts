@@ -153,7 +153,7 @@ describe("editor route orchestration", () => {
     navigate("#/records/site");
     await vi.waitFor(() => {
       expect(root.querySelector("#record-editor #record-form")).toBeTruthy();
-      expect(root.querySelector("h1")?.textContent).toBe("Records : Site");
+      expect(root.querySelector("h1")?.textContent).toBe("Site");
     });
     expect(root.querySelector("#record-editor")?.getAttribute("data-kind")).toBe("site");
     expect(root.querySelector(".editor-back")).toBeNull();

@@ -98,7 +98,10 @@ import {
 import { blogsFromListing, mergeEditorNav, refreshSidebarNav } from "./sidebar-nav.js";
 import { tesseraLogo3x5 } from "./logo-3x5.js";
 import { editPlace, type EditPlace } from "./edit-place.js";
-import { RECORD_NAV_ITEMS, RECORD_TAB_ORDER } from "./record-nav.js";
+import {
+  DEFAULT_RECORD_LIST_KIND_ORDER,
+  EDITOR_ONLY_RECORD_KIND_LABELS,
+} from "./records-list-defaults.js";
 import { createRecord, type CreateRecordDestination } from "./create-record.js";
 import { activateDialog, type DialogController } from "./dialog.js";
 import { readFormValues, renderForm } from "./forms/form.js";
@@ -1972,12 +1975,16 @@ function startSiteHtml(canInitSite: boolean): string {
 const LIBRARY_RECORD_KINDS = new Set(["media", "folders"]);
 
 function recordTabs(listing: RecordList): { kind: string; label: string }[] {
-  const rank = new Map(RECORD_TAB_ORDER.map((kind, index) => [kind, index]));
+  const rank = new Map(DEFAULT_RECORD_LIST_KIND_ORDER.map((kind, index) => [kind, index]));
   const tabs = listing.kinds
     .filter(
       (item) => !LIBRARY_RECORD_KINDS.has(item.kind) && item.kind !== "content" && item.kind !== "nav",
     )
-    .sort((a, b) => (rank.get(a.kind) ?? RECORD_TAB_ORDER.length) - (rank.get(b.kind) ?? RECORD_TAB_ORDER.length));
+    .sort(
+      (a, b) =>
+        (rank.get(a.kind) ?? DEFAULT_RECORD_LIST_KIND_ORDER.length) -
+        (rank.get(b.kind) ?? DEFAULT_RECORD_LIST_KIND_ORDER.length),
+    );
   const itemsAt = tabs.findIndex((item) => item.kind === "items");
   const blogsAt = itemsAt === -1 ? tabs.length : itemsAt + 1;
   tabs.splice(blogsAt, 0, { kind: "blogs", label: "Blogs" });
@@ -1996,14 +2003,14 @@ function activeRecordKind(listing: RecordList, selected?: string): string | unde
 }
 
 function recordKindLabel(listing: RecordList, kind: string): string {
-  const fromNav = RECORD_NAV_ITEMS.find((item) => item.kind === kind)?.label;
-  if (fromNav) return fromNav;
+  const editorOnly = EDITOR_ONLY_RECORD_KIND_LABELS[kind];
+  if (editorOnly) return editorOnly;
   return listing.kinds.find((item) => item.kind === kind)?.label ?? kind;
 }
 
 function recordsPageHeading(listing: RecordList, active?: string): string {
   if (!active) return "Records";
-  return `Records : ${recordKindLabel(listing, active)}`;
+  return recordKindLabel(listing, active);
 }
 
 function listHtml(
