@@ -25,7 +25,7 @@ import {
 export { bootBlog } from "./blog-runtime.js";
 export { bootDatasetViews, registerDatasetElements } from "./dataset-element.js";
 export { bootRuntimeModules } from "./runtime-boot.js";
-export type { RuntimeModuleHost, RuntimeModuleMountContext } from "./runtime-host.js";
+export type { RuntimeModuleHost, RuntimeModuleMount, RuntimeModuleMountContext } from "./runtime-host.js";
 
 export function registerExtras(define: (name: string, fn: ComponentFn) => unknown): void {
   registerCardElement();

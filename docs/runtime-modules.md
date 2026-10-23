@@ -1,6 +1,6 @@
 # Runtime modules
 
-Runtime modules are **client-only** JavaScript served from `./runtime-modules/` on your published site. Tessera stores and copies the files; it **never executes** module code on the server. The site runtime `import()`s each module and calls `export default function mount(host, ctx)`.
+Runtime modules are **client-only** JavaScript served from `./runtime-modules/` on your published site. Tessera stores and copies the files; it **never executes** module code on the server. The site runtime `import()`s each module and calls `export default function mount(root, ctx)`.
 
 ## Authoring
 
@@ -14,10 +14,11 @@ Use `ctx.host` for DOM helpers (`el`, `text`, `ui.card`, `ui.panel`, `ui.imgBox`
 ## Contract
 
 ```js
-export default async function mount(host, ctx) {
+export default async function mount(root, ctx) {
+  // root — mount element (.tessera-runtime-module-mount); ctx.host.root === root
   // ctx.props — binding props
   // ctx.dataset — optional dataset payload (dataset bindings)
-  // ctx.host — RuntimeModuleHost helpers
+  // ctx.host — RuntimeModuleHost helpers (el, text, ui.*)
 }
 ```
 

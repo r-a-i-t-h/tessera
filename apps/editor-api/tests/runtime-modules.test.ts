@@ -45,7 +45,7 @@ describe("runtime module API", () => {
 
   it("uploads, reads raw text, and writes the blob on disk", async () => {
     const { library, app, token } = await setup();
-    const source = 'export default function mount(host) { host.textContent = "ok"; }\n';
+    const source = 'export default function mount(root) { root.textContent = "ok"; }\n';
     const upload = await app.request("/api/runtime-modules/upload", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },

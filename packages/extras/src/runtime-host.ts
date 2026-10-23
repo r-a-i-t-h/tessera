@@ -15,6 +15,11 @@ export type RuntimeModuleMountContext = {
   host: RuntimeModuleHost;
 };
 
+export type RuntimeModuleMount = (
+  root: HTMLElement,
+  ctx: RuntimeModuleMountContext,
+) => void | Promise<void>;
+
 export type RuntimeModuleHost = {
   root: HTMLElement;
   el<K extends keyof HTMLElementTagNameMap>(

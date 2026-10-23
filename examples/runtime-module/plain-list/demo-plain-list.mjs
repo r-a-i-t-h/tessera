@@ -1,23 +1,23 @@
 /** Demo runtime module — plain list (editable via editor Raw file). */
-export default function mount(host, { dataset, host: h }) {
+export default function mount(root, { dataset, host }) {
   const payload = dataset;
-  const wrap = h.el("div", { className: "tessera-dataset-list-wrap" });
+  const wrap = host.el("div", { className: "tessera-dataset-list-wrap" });
   const rows = payload?.rows ?? [];
   if (!rows.length) {
     const text = payload?.empty?.trim() ?? "";
     if (text) {
-      const p = h.el("p", { className: "wh-muted" });
-      const em = h.el("em");
+      const p = host.el("p", { className: "wh-muted" });
+      const em = host.el("em");
       em.textContent = text;
       p.append(em);
       wrap.append(p);
     }
-    host.replaceChildren(wrap);
+    root.replaceChildren(wrap);
     return;
   }
-  const ul = h.el("ul", { className: "tessera-dataset-list" });
+  const ul = host.el("ul", { className: "tessera-dataset-list" });
   for (const row of rows) {
-    const li = h.el("li");
+    const li = host.el("li");
     const title =
       row.displayName?.trim() && row.displayName !== `#${row.uid}`
         ? row.displayName
@@ -26,5 +26,5 @@ export default function mount(host, { dataset, host: h }) {
     ul.append(li);
   }
   wrap.append(ul);
-  host.replaceChildren(wrap);
+  root.replaceChildren(wrap);
 }

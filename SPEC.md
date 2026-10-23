@@ -100,7 +100,7 @@ Micro-apps are client-only in both flavours. The pages publisher writes an empty
 
 A **runtime module** is site-owner JavaScript (ESM) that Tessera serves from `./runtime-modules/<id>.js` or `.mjs` and runs in the visitor’s browser only. The publisher writes a mount (`data-tessera-runtime-module`) and metadata; it does not execute the module on the server.
 
-Modules are uploaded or edited in the editor **Runtime modules** library (blobs under `runtime-modules/`, catalog in `records/runtime-modules/`). A binding uses the `runtimeModule` component with `props.module` set to a catalog id (resolved to a URL at render). Dataset bindings may use the same component with an embedded dataset payload. The default export is `mount(host, ctx)`; `ctx.host` exposes DOM helpers and optional `ctx.dataset`.
+Modules are uploaded or edited in the editor **Runtime modules** library (blobs under `runtime-modules/`, catalog in `records/runtime-modules/`). A binding uses the `runtimeModule` component with `props.module` set to a catalog id (resolved to a URL at render). Dataset bindings may use the same component with an embedded dataset payload. The default export is `mount(root, ctx)`; `ctx.host` exposes DOM helpers and optional `ctx.dataset`.
 
 ### Component registry
 
