@@ -1,5 +1,5 @@
 import type { DatasetField, DatasetRootRecord } from "@r-a-i-t-h/tessera-model";
-import { fieldById, formatDatasetFieldRichHtml, rootColumnFieldIds } from "@r-a-i-t-h/tessera-model";
+import { fieldById, rootColumnFieldIds } from "@r-a-i-t-h/tessera-model";
 
 export type GridColumn =
   | { kind: "system"; id: "uid" | "added" | "modified" }
@@ -44,9 +44,6 @@ export function cellDisplayMarkup(
   if (raw === undefined || raw === null || raw === "") return undefined;
   if (field.kind === "asset" && !field.many) {
     return ctx.assetMarkup?.(String(raw));
-  }
-  if (field.kind === "url") {
-    return formatDatasetFieldRichHtml(record, field);
   }
   return undefined;
 }
