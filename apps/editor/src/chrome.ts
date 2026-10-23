@@ -51,9 +51,7 @@ export function editorChrome(
   const datasetsOpen = section === "datasets";
   const datasetsChildOn = Boolean(nav.activeDataset);
   const datasetNav = nav.datasets ?? [];
-  const recordsOpen = section === "records";
   const maintenanceOpen = section === "maintenance";
-  const recordsChildOn = recordsOpen && Boolean(nav.recordsKind);
   const maintenanceChildOn = maintenanceOpen && Boolean(nav.maintenanceTab);
   const admin = isFullAdmin(user);
 
@@ -74,6 +72,9 @@ export function editorChrome(
   const childLink = (href: string, label: string, on: boolean) =>
     `<a class="w3-bar-item w3-button editor-nav-child${on ? " editor-nav-child-current" : ""}" href="${href}"${on ? ' aria-current="page"' : ""}>${escapeHtml(label)}</a>`;
 
+  const navGroupLabel = (label: string) =>
+    `<p class="w3-bar-item editor-nav-group-label" role="presentation">${label}</p>`;
+
   const articlesChildren =
     articlesOpen && blogs.length
       ? `<div class="editor-nav-children" role="group" aria-label="Blogs">${blogs
@@ -87,24 +88,37 @@ export function editorChrome(
           .join("")}</div>`
       : "";
 
-  const recordsChildren = recordsOpen
-    ? `<div class="editor-nav-children" role="group" aria-label="Record types">${RECORD_NAV_ITEMS.map((item) =>
-        childLink(
-          `#/records/${encodeURIComponent(item.kind)}`,
-          item.label,
-          nav.recordsKind === item.kind,
-        ),
-      ).join("")}</div>`
+  const setupNav = admin
+    ? `${navGroupLabel("Setup")}
+      <div class="editor-nav-children editor-nav-setup" role="group" aria-label="Setup">
+        ${RECORD_NAV_ITEMS.map((item) =>
+          childLink(
+            `#/records/${encodeURIComponent(item.kind)}`,
+            item.label,
+            nav.recordsKind === item.kind,
+          ),
+        ).join("")}
+      </div>`
     : "";
 
   const maintenanceChildren = maintenanceOpen
-    ? `<div class="editor-nav-children" role="group" aria-label="Maintenance reports">${MAINTENANCE_TABS.map((tab) =>
+    ? `<div class="editor-nav-children editor-nav-children-nested" role="group" aria-label="Maintenance reports">${MAINTENANCE_TABS.map((tab) =>
         childLink(
           `#/maintenance/${encodeURIComponent(tab.id)}`,
           tab.label,
           nav.maintenanceTab === tab.id,
         ),
       ).join("")}</div>`
+    : "";
+
+  const adminNav = admin
+    ? `${navGroupLabel("Admin")}
+      <div class="editor-nav-children editor-nav-admin" role="group" aria-label="Admin">
+        ${childLink("#/users", "Users", section === "users" || section === "user")}
+        ${childLink("#/maintenance", "Maintenance", section === "maintenance" && !maintenanceChildOn)}
+        ${maintenanceChildren}
+        ${childLink("#/backups", "Backups", section === "backups")}
+      </div>`
     : "";
 
   const datasetsChildren =
@@ -124,8 +138,6 @@ export function editorChrome(
       <aside class="editor-sidebar w3-theme">
         <nav class="w3-bar-block editor-nav-block" aria-label="Editor">
           ${sectionLink("#/", "Tessera editor", "home", false, "editor-nav-brand w3-theme-d3")}
-          ${admin ? sectionLink("#/records", "Records", "records", recordsChildOn) : ""}
-          ${admin ? recordsChildren : ""}
           ${sectionLink("#/navigation", "Navigation", "navigation")}
           ${sectionLink("#/pages", "Pages", "pages")}
           ${sectionLink("#/articles", "Articles", "articles", articlesBlogOn)}
@@ -134,10 +146,8 @@ export function editorChrome(
           ${sectionLink("#/datasets", "Datasets", "datasets", datasetsChildOn)}
           ${datasetsChildren}
           ${admin ? sectionLink("#/styles", "Styles", "styles") : ""}
-          ${admin ? sectionLink("#/users", "Users", "users") : ""}
-          ${sectionLink("#/maintenance", "Maintenance", "maintenance", maintenanceChildOn)}
-          ${maintenanceChildren}
-          ${admin ? sectionLink("#/backups", "Backups", "backups") : ""}
+          ${setupNav}
+          ${adminNav}
           <button type="button" class="w3-bar-item w3-button" data-action="render-site">Render preview</button>
           <button type="button" class="w3-bar-item w3-button" data-action="publish-site">Publish site</button>
           ${sectionLink("#/guide", "Guide", "guide")}

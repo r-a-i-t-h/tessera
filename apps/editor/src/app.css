@@ -85,6 +85,27 @@ body {
   color: #111 !important;
 }
 
+.editor-sidebar .editor-nav-group-label {
+  margin: 0.65rem 1rem 0.15rem;
+  padding: 0 !important;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.72;
+  cursor: default;
+}
+
+.editor-sidebar .editor-nav-admin,
+.editor-sidebar .editor-nav-setup {
+  margin-top: 0;
+}
+
+.editor-sidebar .editor-nav-children-nested {
+  margin-left: 0.5rem;
+  margin-right: 0;
+}
+
 .editor-nav-account {
   margin-top: auto;
   flex: 0 0 auto;

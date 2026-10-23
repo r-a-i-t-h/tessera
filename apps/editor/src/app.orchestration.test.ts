@@ -109,7 +109,7 @@ describe("editor route orchestration", () => {
       expect(root.querySelector("#content-tools")).toBeTruthy();
     });
     expect(root.querySelector('a[href="#/pages"]')?.getAttribute("aria-current")).toBe("page");
-    expect(root.querySelector('a[href="#/records"]')?.hasAttribute("aria-current")).toBe(false);
+    expect(root.querySelector('a[href="#/records/site"]')?.hasAttribute("aria-current")).toBe(false);
     expect(root.querySelector(".editor-back")?.getAttribute("href")).toBe("#/pages");
     expect(root.querySelector("h1")?.textContent).toBe("Home");
     const tabs = [...root.querySelectorAll<HTMLButtonElement>("[data-mode]")].map((button) => button.dataset.mode);
@@ -233,7 +233,7 @@ describe("editor route orchestration", () => {
     expect(root.querySelector("[data-json-format]")?.textContent).toBe("Pretty-print");
   });
 
-  it("opens Site when Records is opened without a record type", async () => {
+  it("opens Site when setup records route has no record type", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const path = String(input);
       if (path === "/auth/me") {

@@ -21,6 +21,7 @@ export function routeAllowedForUser(route: Route, user: { restrictAccessLevel?: 
     case "users":
     case "user":
     case "backups":
+    case "maintenance":
       return false;
     case "edit":
       return LIMITED_EDITOR_EDIT_KINDS.has(route.kind);

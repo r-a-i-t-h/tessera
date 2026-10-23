@@ -3,7 +3,7 @@
  * A layout declares the zones. A type picks one. Items fill those zones, and a
  * binding mounts a component on that fill. A template is a page body copied into
  * content. Site names the home page and the layouts. Navigation is top-level in the editor
- * (after Records, before Pages). Blogs (the record type) sits with Records; individual blogs
+ * (before Pages). Blogs (the record type) sits under Setup; individual blogs
  * expand under Articles.
  */
 export const RECORD_NAV_ITEMS: { kind: string; label: string }[] = [

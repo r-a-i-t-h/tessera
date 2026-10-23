@@ -5,10 +5,11 @@ import {
 } from "@r-a-i-t-h/tessera-renderer";
 import { registerExtras } from "@r-a-i-t-h/tessera-extras";
 import { apiError } from "../http.js";
-import { authenticatedSite } from "../middleware/editor-site.js";
+import { authenticatedFullAdmin, authenticatedSite } from "../middleware/editor-site.js";
 
 export const maintenanceRoutes = new Hono();
 maintenanceRoutes.use("/maintenance", authenticatedSite);
+maintenanceRoutes.use("/maintenance", authenticatedFullAdmin);
 
 /** Site-wide health reports for the editor Maintenance section. */
 maintenanceRoutes.get("/maintenance", async (c) => {

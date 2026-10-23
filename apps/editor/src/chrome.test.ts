@@ -8,18 +8,18 @@ describe("editor chrome", () => {
     document.body.innerHTML = "";
   });
 
-  it("lists Records, Navigation, and Pages in order in the sidebar", () => {
+  it("lists Navigation and Pages before the setup block in the sidebar", () => {
     const html = editorChrome(
       { ok: true, username: "alice", createdAt: "2026-01-01" },
       "<h1>Pages</h1>",
       false,
       "pages",
     );
-    const records = html.indexOf('href="#/records"');
     const navigation = html.indexOf('href="#/navigation"');
     const pages = html.indexOf('href="#/pages"');
-    expect(records).toBeLessThan(navigation);
+    const setup = html.indexOf('aria-label="Setup"');
     expect(navigation).toBeLessThan(pages);
+    expect(pages).toBeLessThan(setup);
   });
 
   it("marks the current section and escapes the account name", () => {
@@ -29,8 +29,8 @@ describe("editor chrome", () => {
       false,
       "records",
     );
-    expect(html).toContain('href="#/records" aria-current="page"');
-    expect(html).toContain('aria-label="Record types"');
+    expect(html).toContain('href="#/records/site"');
+    expect(html).toContain('aria-label="Setup"');
     expect(html).toContain("&lt;Alice&gt;");
     expect(html).toContain('aria-live="polite"');
     expect(html).toContain('class="editor-sidebar w3-theme"');
@@ -85,7 +85,7 @@ describe("editor chrome", () => {
     expect(html).toContain('class="w3-bar-item w3-button w3-white" href="#/datasets"');
   });
 
-  it("keeps Blogs under Records", () => {
+  it("keeps Blogs under Setup", () => {
     const html = editorChrome(
       { ok: true, username: "alice", createdAt: "2026-01-01" },
       "<h1>Blogs</h1>",
@@ -94,10 +94,10 @@ describe("editor chrome", () => {
       { recordsKind: "blogs" },
     );
     expect(html).toContain('href="#/records/blogs" aria-current="page"');
-    expect(html).toContain('aria-label="Record types"');
+    expect(html).toContain('aria-label="Setup"');
   });
 
-  it("marks the active Records child in the sidebar", () => {
+  it("marks the active setup child in the sidebar", () => {
     const html = editorChrome(
       { ok: true, username: "alice", createdAt: "2026-01-01" },
       "<h1>Records</h1>",
@@ -108,10 +108,19 @@ describe("editor chrome", () => {
     expect(html).toContain('href="#/records/layouts" aria-current="page"');
     expect(html).toContain("editor-nav-child-current");
     expect(html).not.toContain('href="#/records" aria-current="page"');
-    expect(html).toContain('class="w3-bar-item w3-button w3-white" href="#/records"');
   });
 
-  it("marks Maintenance and expands report children", () => {
+  it("places Setup before Admin in the sidebar", () => {
+    const html = editorChrome(
+      { ok: true, username: "alice", createdAt: "2026-01-01" },
+      "<h1>Pages</h1>",
+      false,
+      "pages",
+    );
+    expect(html.indexOf('aria-label="Setup"')).toBeLessThan(html.indexOf('aria-label="Admin"'));
+  });
+
+  it("groups admin pages and expands maintenance report children", () => {
     const html = editorChrome(
       { ok: true, username: "alice", createdAt: "2026-01-01" },
       "<h1>Maintenance</h1>",
@@ -119,14 +128,13 @@ describe("editor chrome", () => {
       "maintenance",
       { maintenanceTab: "broken" },
     );
+    expect(html).toContain('aria-label="Admin"');
     expect(html).toContain('href="#/maintenance/broken" aria-current="page"');
     expect(html).toContain('aria-label="Maintenance reports"');
     expect(html).not.toContain('href="#/maintenance" aria-current="page"');
     const styles = html.indexOf('href="#/styles"');
     const users = html.indexOf('href="#/users"');
-    const maintenance = html.indexOf('href="#/maintenance"');
     expect(styles).toBeLessThan(users);
-    expect(users).toBeLessThan(maintenance);
   });
 
   it("announces the main heading after navigation without focusing it", () => {
@@ -153,12 +161,14 @@ describe("editor chrome", () => {
     expect(html).not.toContain('href="#/styles"');
     expect(html).not.toContain('href="#/users"');
     expect(html).not.toContain('href="#/backups"');
+    expect(html).not.toContain('href="#/maintenance"');
+    expect(html).not.toContain('aria-label="Admin"');
     expect(html).not.toContain('href="#/records/runtimeModules"');
     expect(html).toContain('href="#/navigation"');
     expect(html).toContain('href="#/pages"');
   });
 
-  it("lists Runtime modules under Records for admins", () => {
+  it("lists Runtime modules under Setup for admins", () => {
     const html = editorChrome(
       { ok: true, username: "alice", createdAt: "2026-01-01" },
       "<h1>Runtime modules</h1>",
