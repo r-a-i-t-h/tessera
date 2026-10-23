@@ -42,10 +42,12 @@
 /* Keep the vertical bar present so short and tall pages share one width. */
 html {
   overflow-y: scroll;
+  overscroll-behavior: none;
 }
 
 body {
   margin: 0;
+  overscroll-behavior: none;
   background: var(--tessera-page);
   color: var(--tessera-text);
   font-size: var(--tessera-font-size);
@@ -170,6 +172,7 @@ body.fontD h6 {
   top: var(--tessera-bar-height);
   bottom: 0;
   height: auto;
+  overscroll-behavior: none;
   background-color: var(--tessera-sidebar);
   color: var(--tessera-sidebar-text);
 }
@@ -605,6 +608,7 @@ a.tessera-page-missing,
   margin: 0;
   max-height: 16rem;
   overflow: auto;
+  overscroll-behavior: none;
 }
 
 .tessera-search-suggest a {
