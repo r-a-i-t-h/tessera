@@ -2409,6 +2409,43 @@ button.editor-picker-asset:hover {
   }
 }
 
+.editor-scroll:has(.editor-nav-build) {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-scroll:has(.editor-nav-build) > .editor-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+  padding-bottom: 1rem;
+}
+
+.editor-scroll:has(.editor-nav-build) .editor-kind {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+}
+
+.editor-scroll:has(.editor-nav-build) #record-editor {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-scroll:has(.editor-nav-build) #record-form {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .editor-nav-build {
   --nav-build-page-min-height: 1.5rem;
   --nav-build-page-pad-y: 0.25rem;
@@ -2416,6 +2453,10 @@ button.editor-picker-asset:hover {
   --nav-build-page-font-size: 0.8125rem;
   --nav-build-page-line-height: 1.25;
   --nav-build-page-stack-gap: 0.2rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .nav-build-options {
@@ -2428,7 +2469,7 @@ button.editor-picker-asset:hover {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 0.65rem;
   align-items: stretch;
-  height: min(72vh, calc(100dvh - 11rem));
+  flex: 1 1 auto;
   min-height: 18rem;
 }
 
@@ -2613,12 +2654,8 @@ button.editor-picker-asset:hover {
 @media (max-width: 900px) {
   .editor-nav-build-layout {
     grid-template-columns: 1fr;
-    height: auto;
+    grid-template-rows: minmax(12rem, 1fr) minmax(12rem, 1fr);
     min-height: 0;
-  }
-
-  .editor-nav-build-scroll {
-    max-height: min(50vh, 24rem);
   }
 }
 
