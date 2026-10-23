@@ -151,7 +151,11 @@ import {
   type FolderRow,
   type LibraryBrowseId,
 } from "./forms/library.js";
-import { renderRuntimeModuleDetail, renderRuntimeModulesList } from "./forms/runtime-modules.js";
+import {
+  bindRuntimeModuleEditor,
+  renderRuntimeModuleDetail,
+  renderRuntimeModulesList,
+} from "./forms/runtime-modules.js";
 import {
   bindingIdError,
   bindingIdsIn,
@@ -4685,6 +4689,7 @@ async function bindRuntimeModules(root: HTMLElement, user: PublicUser, moduleId:
     if (mod) {
       const { text } = await getRuntimeModuleRaw(mod.id);
       detail.innerHTML = renderRuntimeModuleDetail(mod, text);
+      bindRuntimeModuleEditor(detail);
       const rawForm = detail.querySelector<HTMLFormElement>("[data-runtime-raw]");
       rawForm?.addEventListener("submit", async (event) => {
         event.preventDefault();

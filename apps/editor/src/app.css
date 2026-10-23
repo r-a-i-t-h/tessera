@@ -381,7 +381,8 @@ textarea.w3-input.editor-html {
   font-weight: 600;
 }
 
-.editor-scroll:has(.style-sheet--maximized) {
+.editor-scroll:has(.style-sheet--maximized),
+.editor-scroll:has(.runtime-module-editor--maximized) {
   overflow: hidden;
 }
 
@@ -439,6 +440,106 @@ textarea.w3-input.editor-html {
 }
 
 .style-sheet-overlay-host .style-sheet-normalize {
+  display: inline-block;
+}
+
+.runtime-module-editor {
+  margin: 0;
+}
+
+.runtime-module-tools {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin: 0.5rem 0 0;
+}
+
+.runtime-module-editor-area textarea {
+  width: 100%;
+  min-height: 16rem;
+}
+
+.runtime-module-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+}
+
+.runtime-module-normalize {
+  display: none;
+}
+
+.runtime-module-dialog-title {
+  display: none;
+  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.runtime-module-overlay-host {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  box-sizing: border-box;
+  padding: 1rem 1.25rem 1.25rem;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.runtime-module-overlay-host form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.runtime-module-overlay-host .runtime-module-dialog-title {
+  display: block;
+  flex: 0 0 auto;
+}
+
+.runtime-module-overlay-host .runtime-module-tools {
+  display: none;
+}
+
+.runtime-module-overlay-host .runtime-module-editor-area {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.runtime-module-overlay-host .runtime-module-editor-area label {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.runtime-module-overlay-host .runtime-module-editor-area textarea {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  resize: none;
+  overflow: scroll;
+  scrollbar-gutter: stable;
+}
+
+.runtime-module-overlay-host .runtime-module-actions {
+  flex: 0 0 auto;
+  margin: 0.75rem 0 0;
+}
+
+.runtime-module-overlay-host .runtime-module-normalize {
   display: inline-block;
 }
 
