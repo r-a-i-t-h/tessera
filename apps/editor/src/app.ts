@@ -292,7 +292,8 @@ function editingForm(form: HTMLFormElement | null): HTMLFormElement | null {
     form.id === "style-form" ||
     form.id === "asset-detail" ||
     form.id === "folder-detail" ||
-    form.hasAttribute("data-sheet")
+    form.hasAttribute("data-sheet") ||
+    form.hasAttribute("data-runtime-raw")
   ) {
     return form;
   }
