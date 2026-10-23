@@ -23,6 +23,8 @@ export type DatasetRowPayload = {
   uid: number;
   displayName: string;
   values: Record<string, string>;
+  /** Sanitized HTML for asset columns. */
+  richValues?: Record<string, string>;
 };
 
 export type DatasetViewPayload = {
@@ -52,7 +54,7 @@ function isSortableColumn(fieldId: string, snapshot: DatasetSnapshot): boolean {
   if (fieldId === "uid" || fieldId === "added" || fieldId === "modified") return true;
   const field = fieldById(snapshot.schema.fields, fieldId);
   if (!field) return false;
-  if (field.kind === "object" || field.kind === "list" || field.kind === "html" || field.kind === "asset") {
+  if (field.kind === "object" || field.kind === "list" || field.kind === "asset") {
     return false;
   }
   return true;
@@ -60,8 +62,17 @@ function isSortableColumn(fieldId: string, snapshot: DatasetSnapshot): boolean {
 
 function rowToPayload(row: DatasetRowView): DatasetRowPayload {
   const values: Record<string, string> = {};
-  for (const cell of row.fields) values[cell.id] = cell.text;
-  return { uid: row.uid, displayName: row.displayName, values };
+  const richValues: Record<string, string> = {};
+  for (const cell of row.fields) {
+    values[cell.id] = cell.text;
+    if (cell.richHtml) richValues[cell.id] = cell.richHtml;
+  }
+  return {
+    uid: row.uid,
+    displayName: row.displayName,
+    values,
+    ...(Object.keys(richValues).length ? { richValues } : {}),
+  };
 }
 
 function resolveSort(

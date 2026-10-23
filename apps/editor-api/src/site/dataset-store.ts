@@ -219,8 +219,9 @@ export class DatasetStore {
       cleaned.modified = nowIso();
     }
 
-    delete cleaned.id;
-    delete cleaned.title;
+    const rootFieldIds = new Set(file.schema.fields.map((f) => f.id));
+    if (!rootFieldIds.has("id")) delete cleaned.id;
+    if (!rootFieldIds.has("title")) delete cleaned.title;
 
     const issues = validateRootRecord(cleaned, file.schema);
     if (issues.length) {

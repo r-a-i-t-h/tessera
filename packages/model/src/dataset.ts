@@ -11,7 +11,6 @@ export const DATASET_MAX_FIELD_DEPTH = 4;
 export const DATASET_SCALAR_KINDS = [
   "string",
   "text",
-  "html",
   "number",
   "boolean",
   "date",
@@ -20,7 +19,10 @@ export const DATASET_SCALAR_KINDS = [
   "ref",
 ] as const;
 
-export const DATASET_FIELD_KINDS = [...DATASET_SCALAR_KINDS, "object", "list"] as const;
+/** Scalar kinds only; object/list were removed from the schema editor. */
+export const DATASET_FIELD_KINDS = [...DATASET_SCALAR_KINDS] as const;
+
+const LEGACY_REMOVED_FIELD_KINDS = new Set(["object", "list", "html"]);
 
 export type DatasetScalarKind = (typeof DATASET_SCALAR_KINDS)[number];
 export type DatasetFieldKind = (typeof DATASET_FIELD_KINDS)[number];
@@ -60,6 +62,7 @@ export type DatasetRootRecord = Record<string, unknown> & {
 export type RecordDisplayContext = {
   refLabel?: (datasetId: string, uid: number) => string;
   assetLabel?: (assetId: string) => string;
+  assetUrl?: (assetId: string) => string | undefined;
 };
 
 const DISPLAY_NAME_PLACEHOLDER = /\{([A-Za-z0-9_]+)\}/g;
@@ -133,6 +136,9 @@ function parseField(raw: unknown, depth: number): DatasetField {
   const key = typeof o.key === "string" ? o.key.trim() : "";
   const id = typeof o.id === "string" ? o.id.trim() : "";
   const label = typeof o.label === "string" ? o.label : id;
+  if (typeof o.kind === "string" && LEGACY_REMOVED_FIELD_KINDS.has(o.kind)) {
+    throw new Error(`Field type ${o.kind} is no longer supported.`);
+  }
   const kind = FieldKindSchema.parse(o.kind);
   if (!key) throw new Error("Each field needs a key.");
   if (!id) throw new Error("Each field needs an id.");
@@ -152,16 +158,6 @@ function parseField(raw: unknown, depth: number): DatasetField {
     field.dataset = dataset;
   }
   if (kind === "asset" && o.many === true) field.many = true;
-  if (kind === "list" && typeof o.labelField === "string" && o.labelField.trim()) {
-    field.labelField = o.labelField.trim();
-  }
-
-  if (kind === "object" || kind === "list") {
-    if (depth >= DATASET_MAX_FIELD_DEPTH) throw new Error(`Fields cannot nest deeper than ${DATASET_MAX_FIELD_DEPTH} levels.`);
-    const nested = Array.isArray(o.fields) ? o.fields.map((f) => parseField(f, depth + 1)) : [];
-    field.fields = nested;
-  }
-
   if ("default" in o) field.default = o.default;
 
   validateFieldDefault(field);
@@ -180,12 +176,14 @@ function validateFieldDefault(field: DatasetField): void {
 
 export function parseDatasetFields(raw: unknown): DatasetField[] {
   if (!Array.isArray(raw)) throw new Error("Schema fields must be an array.");
-  const fields = raw.map((f) => parseField(f, 1));
+  const filtered = raw.filter((item) => {
+    if (!item || typeof item !== "object") return false;
+    const kind = (item as Record<string, unknown>).kind;
+    return typeof kind === "string" && !LEGACY_REMOVED_FIELD_KINDS.has(kind);
+  });
+  const fields = filtered.map((f) => parseField(f, 1));
   assertUniqueFieldKeys(fields);
   assertUniqueFieldIds(fields);
-  if (fieldDepth(fields) > DATASET_MAX_FIELD_DEPTH) {
-    throw new Error(`Fields cannot nest deeper than ${DATASET_MAX_FIELD_DEPTH} levels.`);
-  }
   return fields;
 }
 
@@ -232,7 +230,7 @@ export function parseDatasetFile(raw: unknown): DatasetFile {
   const displayName = typeof viewRaw.displayName === "string" ? viewRaw.displayName : "";
   const nextUid = typeof o.nextUid === "number" && Number.isInteger(o.nextUid) && o.nextUid >= 1 ? o.nextUid : 1;
   const records = Array.isArray(o.records)
-    ? o.records.map((r) => scrubLegacyRootRecord(r as Record<string, unknown>))
+    ? o.records.map((r) => scrubLegacyRootRecord(r as Record<string, unknown>, schema.fields))
     : [];
   const view: DatasetView = {
     columns: sanitizeViewColumns(columns, schema.fields),
@@ -250,10 +248,14 @@ export function parseDatasetFile(raw: unknown): DatasetFile {
   };
 }
 
-function scrubLegacyRootRecord(raw: Record<string, unknown>): DatasetRootRecord {
+export function scrubLegacyRootRecord(
+  raw: Record<string, unknown>,
+  rootFields?: readonly DatasetField[],
+): DatasetRootRecord {
   const copy = { ...raw };
-  delete copy.id;
-  delete copy.title;
+  const rootIds = new Set((rootFields ?? []).map((f) => f.id));
+  if (!rootIds.has("id")) delete copy.id;
+  if (!rootIds.has("title")) delete copy.title;
   return copy as DatasetRootRecord;
 }
 
@@ -309,6 +311,48 @@ export function formatDatasetFieldDisplay(
   return scalarDisplayValue(record, field, ctx);
 }
 
+function escapeAttr(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function escapeText(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function assetCellHtml(assetId: string, ctx?: RecordDisplayContext): string {
+  const label = ctx?.assetLabel?.(assetId) ?? assetId;
+  const url = ctx?.assetUrl?.(assetId);
+  const safeLabel = escapeText(label);
+  if (!url) return safeLabel;
+  const safeUrl = escapeAttr(url);
+  return `<a class="tessera-dataset-asset" href="${safeUrl}"><img class="tessera-dataset-asset-thumb" src="${safeUrl}" alt="${escapeAttr(label)}" loading="lazy" /><span>${safeLabel}</span></a>`;
+}
+
+/** Sanitized HTML for dataset table/card cells (asset fields). */
+export function formatDatasetFieldRichHtml(
+  record: Record<string, unknown>,
+  field: DatasetField,
+  ctx?: RecordDisplayContext,
+): string | undefined {
+  const raw = record[field.id];
+  if (raw === undefined || raw === null) return undefined;
+  if (field.kind === "asset") {
+    if (field.many && Array.isArray(raw)) {
+      const parts = raw.map((id) => assetCellHtml(String(id), ctx)).filter(Boolean);
+      return parts.length ? parts.join(", ") : undefined;
+    }
+    return assetCellHtml(String(raw), ctx);
+  }
+  return undefined;
+}
+
 function scalarDisplayValue(
   record: Record<string, unknown>,
   field: DatasetField,
@@ -330,8 +374,6 @@ function scalarDisplayValue(
         return raw.map((id) => ctx?.assetLabel?.(String(id)) ?? String(id)).join(", ");
       }
       return ctx?.assetLabel?.(String(raw)) ?? String(raw);
-    case "html":
-      return String(raw).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
     case "text":
       return String(raw).replace(/\s+/g, " ").trim();
     default:
@@ -405,7 +447,6 @@ function valueMatchesField(field: DatasetField, value: unknown, forDefault = fal
   switch (field.kind) {
     case "string":
     case "text":
-    case "html":
     case "date":
       return typeof value === "string";
     case "number":
@@ -517,7 +558,7 @@ export function validateAllRecords(file: DatasetFile): Map<number, DatasetValida
 }
 
 function textKinds(kind: DatasetFieldKind): boolean {
-  return kind === "string" || kind === "text" || kind === "html";
+  return kind === "string" || kind === "text";
 }
 
 function transformScalarValue(

@@ -11,15 +11,21 @@ export type SchemaDraft = {
   fields: DatasetField[];
 };
 
+export type DatasetRefOption = { id: string; title: string };
+
+export type SchemaFormOptions = {
+  datasetOptions?: DatasetRefOption[];
+  /** Omit self when picking ref targets. */
+  excludeDatasetId?: string;
+};
+
 export function schemaDraftFromFields(fields: DatasetField[]): SchemaDraft {
   return { fields: structuredClone(fields) };
 }
 
-export function renderSchemaForm(draft: SchemaDraft): string {
-  const rows = draft.fields.map((field, index) => fieldRow(field, index, 0)).join("");
-  const kinds = DATASET_FIELD_KINDS.map(
-    (k) => `<option value="${k}">${k}</option>`,
-  ).join("");
+export function renderSchemaForm(draft: SchemaDraft, options: SchemaFormOptions = {}): string {
+  const rows = draft.fields.map((field, index) => fieldRow(field, index, options)).join("");
+  const kinds = DATASET_FIELD_KINDS.map((k) => `<option value="${k}">${k}</option>`).join("");
   const list = rows || `<li class="w3-text-grey">No fields yet.</li>`;
   return `<div class="editor-dataset-schema">
     <ul class="editor-type-fields editor-dataset-schema-custom-fields">${list}</ul>
@@ -28,54 +34,58 @@ export function renderSchemaForm(draft: SchemaDraft): string {
   </div>`;
 }
 
-function fieldRow(field: DatasetField, index: number, depth: number): string {
-  const prefix = depth ? "editor-dataset-nested" : "";
-  const nested =
-    field.kind === "object" || field.kind === "list"
-      ? `<ul class="editor-type-fields ${prefix}">${(field.fields ?? [])
-          .map((child, i) => fieldRow(child, i, depth + 1))
-          .join("")}</ul>
-         <p><button type="button" class="w3-button w3-tiny" data-schema-add-nested="${index}" data-depth="${depth}">Add nested field</button></p>`
-      : "";
+function fieldRow(field: DatasetField, index: number, options: SchemaFormOptions): string {
   const enumOpts =
     field.kind === "enum"
-      ? `<p><label>Options (value|label per line) <textarea class="w3-input w3-border" rows="3" data-schema-enum="${index}" data-depth="${depth}">${escapeHtml(
+      ? `<p><label>Options (value|label per line) <textarea class="w3-input w3-border" rows="3" data-schema-enum="${index}" data-depth="0">${escapeHtml(
           (field.options ?? []).map((o) => `${o.value}|${o.label}`).join("\n"),
         )}</textarea></label></p>`
       : "";
-  const refDs =
-    field.kind === "ref"
-      ? `<p><label>Dataset <input class="w3-input" data-schema-dataset="${index}" data-depth="${depth}" value="${escapeHtml(field.dataset ?? "")}" /></label></p>`
+  const refDs = field.kind === "ref" ? refDatasetControl(field, index, options) : "";
+  const many =
+    field.kind === "asset"
+      ? `<label><input type="checkbox" data-schema-many="${index}" data-depth="0"${field.many ? " checked" : ""} /> Many</label>`
       : "";
-  const many = field.kind === "asset" ? `<label><input type="checkbox" data-schema-many="${index}" data-depth="${depth}"${field.many ? " checked" : ""} /> Many</label>` : "";
   const kindOptions = DATASET_FIELD_KINDS.map(
     (k) => `<option value="${k}"${field.kind === k ? " selected" : ""}>${k}</option>`,
   ).join("");
-  return `<li class="editor-type-item" data-schema-index="${index}" data-schema-depth="${depth}">
-    <input type="hidden" data-schema-key="${index}" data-depth="${depth}" value="${escapeHtml(field.key)}" />
+  return `<li class="editor-type-item" data-schema-index="${index}" data-schema-depth="0">
+    <input type="hidden" data-schema-key="${index}" data-depth="0" value="${escapeHtml(field.key)}" />
     <div class="editor-type-line">
-      <input class="w3-input" placeholder="Field id" data-schema-id="${index}" data-depth="${depth}" value="${escapeHtml(field.id)}" />
-      <input class="w3-input" placeholder="Label" data-schema-label="${index}" data-depth="${depth}" value="${escapeHtml(field.label)}" />
-      <select class="w3-select" data-schema-kind="${index}" data-depth="${depth}">${kindOptions}</select>
-      <label><input type="checkbox" data-schema-required="${index}" data-depth="${depth}"${field.required ? " checked" : ""} /> Required</label>
+      <input class="w3-input" placeholder="Field id" data-schema-id="${index}" data-depth="0" value="${escapeHtml(field.id)}" />
+      <input class="w3-input" placeholder="Label" data-schema-label="${index}" data-depth="0" value="${escapeHtml(field.label)}" />
+      <select class="w3-select" data-schema-kind="${index}" data-depth="0">${kindOptions}</select>
+      <label><input type="checkbox" data-schema-required="${index}" data-depth="0"${field.required ? " checked" : ""} /> Required</label>
       ${many}
-      ${actions(index, depth)}
+      ${actions(index)}
     </div>
     ${refDs}
     ${enumOpts}
-    ${nested}
   </li>`;
 }
 
-function actions(index: number, depth: number): string {
+function refDatasetControl(field: DatasetField, index: number, options: SchemaFormOptions): string {
+  const datasets = (options.datasetOptions ?? []).filter((d) => d.id !== options.excludeDatasetId);
+  const selected = field.dataset ?? "";
+  const opts = [
+    `<option value="">— choose dataset —</option>`,
+    ...datasets.map((d) => {
+      const label = d.title.trim() || d.id;
+      return `<option value="${escapeHtml(d.id)}"${d.id === selected ? " selected" : ""}>${escapeHtml(label)} (${escapeHtml(d.id)})</option>`;
+    }),
+  ].join("");
+  return `<p><label>Dataset <select class="w3-select" data-schema-dataset="${index}" data-depth="0">${opts}</select></label></p>`;
+}
+
+function actions(index: number): string {
   return `<span class="editor-type-actions">
-    ${schemaIcon("up", index, depth)}
-    ${schemaIcon("down", index, depth)}
-    ${schemaIcon("remove", index, depth)}
+    ${schemaIcon("up", index)}
+    ${schemaIcon("down", index)}
+    ${schemaIcon("remove", index)}
   </span>`;
 }
 
-function schemaIcon(action: "up" | "down" | "remove", index: number, depth: number): string {
+function schemaIcon(action: "up" | "down" | "remove", index: number): string {
   const labels = { up: "Up", down: "Down", remove: "Remove" } as const;
   const icons = { up: REORDER_ICONS.up, down: REORDER_ICONS.down, remove: REORDER_ICONS.remove } as const;
   return iconButton({
@@ -86,44 +96,48 @@ function schemaIcon(action: "up" | "down" | "remove", index: number, depth: numb
     indexAttribute: "data-schema-index",
     index,
     icon: icons[action],
-    extraAttributes: ` data-schema-depth="${depth}"`,
+    extraAttributes: ` data-schema-depth="0"`,
   });
 }
 
 export function readSchemaForm(root: HTMLElement, draft: SchemaDraft): SchemaDraft {
-  return { fields: readFieldsAtDepth(root, draft.fields, 0) };
-}
-
-function readFieldsAtDepth(root: HTMLElement, existing: DatasetField[], depth: number): DatasetField[] {
-  const list =
-    depth === 0
-      ? root.querySelector(".editor-dataset-schema-custom-fields")
-      : root.querySelector(":scope > ul.editor-type-fields");
+  const list = root.querySelector(".editor-dataset-schema-custom-fields");
   const rows = [...(list?.querySelectorAll<HTMLElement>(":scope > li[data-schema-index]") ?? [])];
   const fields: DatasetField[] = [];
   for (const row of rows) {
     const index = Number(row.dataset.schemaIndex);
-    const base = existing[index] ?? {
-      key: newFieldKey(existing),
-      id: "",
-      label: "",
-      kind: "string" as DatasetFieldKind,
-    };
-    const scoped = `[data-depth="${depth}"]`;
-    const kind = row.querySelector<HTMLSelectElement>(`[data-schema-kind="${index}"]${scoped}`)?.value as DatasetFieldKind;
+    const base =
+      draft.fields[index] ?? {
+        key: newFieldKey([...draft.fields, ...fields]),
+        id: "",
+        label: "",
+        kind: "string" as DatasetFieldKind,
+      };
+    const scoped = `[data-depth="0"]`;
+    const line = row.querySelector(".editor-type-line") ?? row;
+    const kindEl = line.querySelector<HTMLSelectElement>(`[data-schema-kind="${index}"]${scoped}`);
+    const markedKind = kindEl?.querySelector<HTMLOptionElement>("option[selected]")?.value.trim();
+    const kindFromDom = (markedKind || kindEl?.value.trim() || "") as DatasetFieldKind | "";
+    const resolvedKind = (kindFromDom || base.kind || "string") as DatasetFieldKind;
     const field: DatasetField = {
       ...base,
       key: row.querySelector<HTMLInputElement>(`[data-schema-key="${index}"]${scoped}`)?.value || base.key,
-      id: row.querySelector<HTMLInputElement>(`[data-schema-id="${index}"]${scoped}`)?.value.trim() ?? "",
-      label: row.querySelector<HTMLInputElement>(`[data-schema-label="${index}"]${scoped}`)?.value ?? "",
-      kind: kind ?? "string",
-      required: row.querySelector<HTMLInputElement>(`[data-schema-required="${index}"]${scoped}`)?.checked === true,
+      id: line.querySelector<HTMLInputElement>(`[data-schema-id="${index}"]${scoped}`)?.value.trim() ?? "",
+      label: line.querySelector<HTMLInputElement>(`[data-schema-label="${index}"]${scoped}`)?.value.trim() ?? "",
+      kind: resolvedKind,
+      required: line.querySelector<HTMLInputElement>(`[data-schema-required="${index}"]${scoped}`)?.checked === true,
     };
+    delete field.fields;
     if (field.kind === "asset") {
-      field.many = row.querySelector<HTMLInputElement>(`[data-schema-many="${index}"]${scoped}`)?.checked === true;
+      field.many = line.querySelector<HTMLInputElement>(`[data-schema-many="${index}"]${scoped}`)?.checked === true;
     }
     if (field.kind === "ref") {
-      field.dataset = row.querySelector<HTMLInputElement>(`[data-schema-dataset="${index}"]${scoped}`)?.value.trim();
+      const picked = row
+        .querySelector<HTMLSelectElement>(`[data-schema-dataset="${index}"]${scoped}`)
+        ?.value.trim();
+      field.dataset = picked || base.dataset;
+    } else {
+      delete field.dataset;
     }
     if (field.kind === "enum") {
       const text = row.querySelector<HTMLTextAreaElement>(`[data-schema-enum="${index}"]${scoped}`)?.value ?? "";
@@ -136,29 +150,17 @@ function readFieldsAtDepth(root: HTMLElement, existing: DatasetField[], depth: n
           return { value: (value ?? "").trim(), label: (label ?? value ?? "").trim() };
         })
         .filter((o) => o.value);
-    }
-    if (field.kind === "object" || field.kind === "list") {
-      const nestedRoot = document.createElement("div");
-      const ul = row.querySelector("ul.editor-type-fields");
-      if (ul) nestedRoot.appendChild(ul.cloneNode(true));
-      field.fields = readFieldsAtDepth(nestedRoot, field.fields ?? [], depth + 1);
+    } else {
+      delete field.options;
     }
     fields.push(field);
   }
-  return fields;
+  return { fields };
 }
 
-/** Index path from root fields to a row (e.g. [0, 2] = third nested field under first root field). */
 export function schemaRowPath(row: HTMLElement): number[] {
-  const path: number[] = [];
-  let li: HTMLElement | null = row;
-  while (li?.matches("li[data-schema-index]")) {
-    path.unshift(Number(li.dataset.schemaIndex));
-    const parentField: HTMLElement | null =
-      li.parentElement?.parentElement?.closest<HTMLElement>("li[data-schema-index]") ?? null;
-    li = parentField;
-  }
-  return path;
+  const index = Number(row.dataset.schemaIndex);
+  return Number.isInteger(index) ? [index] : [];
 }
 
 function mutateFieldList(fields: DatasetField[], action: string, index: number): DatasetField[] {
@@ -179,28 +181,8 @@ function mutateFieldList(fields: DatasetField[], action: string, index: number):
   return list;
 }
 
-function setFieldsAtPath(fields: DatasetField[], path: number[], nextList: DatasetField[]): DatasetField[] {
-  if (path.length === 0) return nextList;
-  const [head, ...rest] = path;
-  return fields.map((field, i) => {
-    if (i !== head) return field;
-    if (rest.length === 0) return { ...field, fields: nextList };
-    return { ...field, fields: setFieldsAtPath(field.fields ?? [], rest, nextList) };
-  });
-}
-
-export function fieldListAtPath(fields: DatasetField[], path: number[]): DatasetField[] {
-  let list = fields;
-  for (const i of path) {
-    list = list[i]?.fields ?? [];
-  }
-  return list;
-}
-
-export function focusSchemaFieldId(root: HTMLElement, depth: number, index: number): void {
-  const input = root.querySelector<HTMLInputElement>(
-    `input[data-schema-id="${index}"][data-depth="${depth}"]`,
-  );
+export function focusSchemaFieldId(root: HTMLElement, _depth: number, index: number): void {
+  const input = root.querySelector<HTMLInputElement>(`input[data-schema-id="${index}"][data-depth="0"]`);
   if (!input) return;
   queueMicrotask(() => {
     input.focus();
@@ -213,19 +195,18 @@ export function applySchemaAction(draft: SchemaDraft, action: string, index: num
 }
 
 export function applySchemaActionForRow(draft: SchemaDraft, row: HTMLElement, action: string): SchemaDraft {
-  const path = schemaRowPath(row);
-  const index = path[path.length - 1] ?? 0;
-  const parentPath = path.slice(0, -1);
-  const current = fieldListAtPath(draft.fields, parentPath);
-  const nextList = mutateFieldList(current, action, index);
-  return { fields: setFieldsAtPath(draft.fields, parentPath, nextList) };
+  const index = schemaRowPath(row)[0] ?? 0;
+  return applySchemaAction(draft, action, index);
 }
 
-export function applyAddNestedField(draft: SchemaDraft, parentRow: HTMLElement): SchemaDraft {
-  const parentPath = schemaRowPath(parentRow);
-  const current = fieldListAtPath(draft.fields, parentPath);
-  const nextList = mutateFieldList(current, "add", 0);
-  return { fields: setFieldsAtPath(draft.fields, parentPath, nextList) };
+export function validateSchemaDraft(fields: DatasetField[]): string | undefined {
+  for (const field of fields) {
+    if (!field.id.trim()) return "Each field needs an id.";
+    if (field.kind === "ref" && !field.dataset?.trim()) {
+      return `Ref field "${field.id}" needs a target dataset.`;
+    }
+  }
+  return undefined;
 }
 
 export function adaptationSummaryHtml(summary: {

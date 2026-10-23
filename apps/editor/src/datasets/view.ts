@@ -16,11 +16,12 @@ import { mergeEditorNav } from "../sidebar-nav.js";
 import { activateDialog } from "../dialog.js";
 import { escapeHtml } from "../dom.js";
 import { hasOpenModal } from "../escape-key.js";
-import { mountHtmlEditor, readHtmlEditor, renderHtmlEditor } from "../html-editor.js";
 import { openLibraryPicker } from "../library-picker.js";
 import type { PickedAsset } from "../forms/picker.js";
+import { assetDisplayHtml } from "./asset-display.js";
 import {
   cellDisplay,
+  cellDisplayMarkup,
   filterRecords,
   gridColumns,
   sortRecords,
@@ -30,7 +31,7 @@ import {
 } from "./grid.js";
 import { datasetNavItems } from "./nav.js";
 import { openRecordPicker } from "./record-picker.js";
-import { newListItemForField, readRecordForm, renderRecordForm } from "./record-form.js";
+import { readRecordForm, renderRecordForm } from "./record-form.js";
 
 type BindChrome = (root: HTMLElement) => void;
 
@@ -106,6 +107,7 @@ async function mountDatasetGrid(
   const ctx: DisplayContext = {
     assetName: (id) => library.assets.find((a) => a.id === id)?.name ?? id,
     refTitle: (ds, uid) => refCache.get(ds)?.get(uid) ?? String(uid),
+    assetMarkup: (id) => assetDisplayHtml(id, library.assets),
   };
 
   let gridMode: "view" | "edit" = "view";
@@ -116,7 +118,10 @@ async function mountDatasetGrid(
   const recordDisplayContext = (): Parameters<typeof formatRecordDisplayName>[3] => ({
     refLabel: (ds, uid) => refCache.get(ds)?.get(uid) ?? String(uid),
     assetLabel: (id) => ctx.assetName(id),
+    assetUrl: (id) => library.assets.find((a) => a.id === id)?.url,
   });
+
+  const formatAssetDisplay = (assetId: string) => assetDisplayHtml(assetId, library.assets);
 
   const recordLabel = (record: DatasetRootRecord) =>
     formatRecordDisplayName(
@@ -181,6 +186,10 @@ async function mountDatasetGrid(
                   }
                   return `<td>${renderEditCell(record, col.field, col.id)}</td>`;
                 }
+                const markup = cellDisplayMarkup(record, col, ctx);
+                if (markup) {
+                  return `<td class="editor-dataset-cell editor-dataset-cell--rich" data-open-record="${record.uid}">${markup}</td>`;
+                }
                 return `<td class="editor-dataset-cell" data-open-record="${record.uid}">${escapeHtml(truncate(cellDisplay(record, col, ctx), 80))}</td>`;
               })
               .join("");
@@ -225,10 +234,14 @@ async function mountDatasetGrid(
         .join("");
       return `<select class="w3-select w3-small" data-grid-edit="${record.uid}" data-grid-field="${field.id}">${opts}</select>`;
     }
-    if (field.kind === "html") {
-      return `<button type="button" class="w3-button w3-tiny" data-grid-html="${record.uid}" data-grid-field="${field.id}">Edit HTML</button>`;
+    if (field.kind === "asset") {
+      const preview =
+        !field.many && v !== undefined && v !== null && v !== ""
+          ? `<span class="editor-dataset-asset-cell" data-asset-preview="${record.uid}" data-grid-field="${field.id}">${formatAssetDisplay(String(v))}</span>`
+          : `<span class="editor-dataset-asset-cell" data-asset-preview="${record.uid}" data-grid-field="${field.id}"></span>`;
+      return `${preview}<button type="button" class="w3-button w3-tiny" data-grid-picker="${record.uid}" data-grid-field="${field.id}">Choose</button>`;
     }
-    if (field.kind === "asset" || field.kind === "ref") {
+    if (field.kind === "ref") {
       return `<button type="button" class="w3-button w3-tiny" data-grid-picker="${record.uid}" data-grid-field="${field.id}">Choose</button>`;
     }
     const type = field.kind === "number" ? "number" : field.kind === "date" ? "date" : "text";
@@ -287,19 +300,6 @@ async function mountDatasetGrid(
         if (record) void openRecordDialog(record);
       });
     });
-    host.querySelectorAll("[data-grid-html]").forEach((el) => {
-      el.addEventListener("click", () => {
-        const uid = Number((el as HTMLElement).dataset.gridHtml);
-        const fieldId = (el as HTMLElement).dataset.gridField!;
-        const record = fileState.records.find((r) => r.uid === uid);
-        const field = fieldById(fileState.schema.fields, fieldId);
-        if (!record || !field) return;
-        void openHtmlPopover(String(record[fieldId] ?? "")).then((html) => {
-          if (html === undefined) return;
-          record[fieldId] = html;
-        });
-      });
-    });
     host.querySelectorAll("[data-grid-picker]").forEach((el) => {
       el.addEventListener("click", () => {
         const uid = Number((el as HTMLElement).dataset.gridPicker);
@@ -310,6 +310,12 @@ async function mountDatasetGrid(
         void pickForField(field, record.uid).then((value) => {
           if (value === undefined) return;
           record[fieldId] = value;
+          if (field.kind === "asset" && !field.many && typeof value === "string") {
+            const preview = host.querySelector(
+              `[data-asset-preview="${record.uid}"][data-grid-field="${fieldId}"]`,
+            );
+            if (preview) preview.innerHTML = formatAssetDisplay(value);
+          }
         });
       });
     });
@@ -327,39 +333,6 @@ async function mountDatasetGrid(
       return field.many ? [asset.id] : asset.id;
     }
     return undefined;
-  }
-
-  async function openHtmlPopover(initial: string): Promise<string | undefined> {
-    return new Promise((resolve) => {
-      const host = document.createElement("div");
-      host.innerHTML = `<div class="editor-picker-backdrop" data-dialog-backdrop><div class="w3-card w3-white w3-padding editor-card" role="dialog" aria-modal="true" tabindex="-1">
-        ${renderHtmlEditor(initial, "html-pop")}
-        <p><button type="button" class="w3-button w3-theme" data-html-save>Done</button>
-        <button type="button" class="w3-button w3-white" data-html-cancel>Cancel</button></p>
-      </div></div>`;
-      mountHtmlEditor(host);
-      document.body.appendChild(host);
-      const dialog = activateDialog(host, {
-        onCancel: () => {
-          host.remove();
-          dialog.destroy();
-          resolve(undefined);
-        },
-        closeOnBackdrop: true,
-      });
-      host.querySelector("[data-html-save]")?.addEventListener("click", () => {
-        const editor = host.querySelector<HTMLElement>("[data-html-editor]");
-        const html = editor ? readHtmlEditor(editor) : "";
-        host.remove();
-        dialog.destroy();
-        resolve(html);
-      });
-      host.querySelector("[data-html-cancel]")?.addEventListener("click", () => {
-        host.remove();
-        dialog.destroy();
-        resolve(undefined);
-      });
-    });
   }
 
   async function saveGridEdits(): Promise<void> {
@@ -393,12 +366,11 @@ async function mountDatasetGrid(
     paintDialog = () => {
       host.innerHTML = `<div class="editor-picker-backdrop" data-dialog-backdrop><div class="w3-card w3-white w3-padding editor-card editor-dataset-record-dialog" role="dialog" aria-modal="true" tabindex="-1">
         <h2 class="w3-large">${record ? "Edit record" : "New record"}</h2>
-        <form id="dataset-record-form">${renderRecordForm(draft, fileState.schema.fields, { isRoot: true })}</form>
+        <form id="dataset-record-form">${renderRecordForm(draft, fileState.schema.fields, { isRoot: true, formatAssetDisplay })}</form>
         <p><button type="submit" form="dataset-record-form" class="w3-button w3-theme">Save</button>
         ${record ? `<button type="button" class="w3-button w3-white w3-border w3-border-red" data-record-delete>Delete</button>` : ""}
         <button type="button" class="w3-button w3-white" data-record-cancel>Cancel</button></p>
       </div></div>`;
-      host.querySelectorAll<HTMLElement>("[data-html-editor]").forEach((el) => mountHtmlEditor(el));
       bindRecordForm(host, draft, paintDialog);
     };
     let dialog: ReturnType<typeof activateDialog> | undefined;
@@ -435,6 +407,18 @@ async function mountDatasetGrid(
   }
 
   function bindRecordForm(host: HTMLElement, draft: Record<string, unknown>, repaint: () => void): void {
+    host.querySelectorAll("[data-picker-clear]").forEach((el) => {
+      el.addEventListener("click", () => {
+        const row = el.closest<HTMLElement>("[data-picker-field]");
+        const name = row?.dataset.pickerField;
+        if (!name) return;
+        const hidden = row?.querySelector<HTMLInputElement>('input[type="hidden"]');
+        if (hidden) hidden.value = "";
+        const display = row?.querySelector("[data-picker-display]");
+        if (display) display.textContent = "None";
+        deletePath(draft, name);
+      });
+    });
     host.querySelectorAll("[data-picker-choose]").forEach((el) => {
       el.addEventListener("click", () => {
         const row = el.closest<HTMLElement>("[data-picker-field]");
@@ -448,20 +432,15 @@ async function mountDatasetGrid(
           const hidden = row?.querySelector<HTMLInputElement>('input[type="hidden"]');
           if (hidden) hidden.value = field.many ? JSON.stringify(value) : String(value);
           const display = row?.querySelector("[data-picker-display]");
-          if (display) display.textContent = String(value);
+          if (display) {
+            if (field.kind === "asset" && !field.many && typeof value === "string") {
+              display.innerHTML = formatAssetDisplay(value);
+            } else {
+              display.textContent = String(value);
+            }
+          }
           setPath(draft, name, value);
         });
-      });
-    });
-    host.querySelectorAll("[data-list-add]").forEach((el) => {
-      el.addEventListener("click", () => {
-        const path = (el as HTMLElement).dataset.listAdd!;
-        const field = fieldById(fileState.schema.fields, path);
-        if (!field || field.kind !== "list") return;
-        const list = (getPath(draft, path) as unknown[]) ?? [];
-        list.push(newListItemForField(field));
-        setPath(draft, path, list);
-        repaint();
       });
     });
   }
@@ -493,4 +472,17 @@ function getPath(obj: Record<string, unknown>, path: string): unknown {
     if (!acc || typeof acc !== "object") return undefined;
     return (acc as Record<string, unknown>)[key];
   }, obj);
+}
+
+function deletePath(obj: Record<string, unknown>, path: string): void {
+  const parts = path.split(".");
+  const last = parts.pop();
+  if (!last) return;
+  let cur: Record<string, unknown> = obj;
+  for (const key of parts) {
+    const next = cur[key];
+    if (!next || typeof next !== "object") return;
+    cur = next as Record<string, unknown>;
+  }
+  delete cur[last];
 }

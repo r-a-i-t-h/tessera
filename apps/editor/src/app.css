@@ -2158,6 +2158,24 @@ button.editor-library-row:hover,
   color: #1976d2;
 }
 
+.editor-dataset-asset {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  text-decoration: none;
+}
+
+.editor-dataset-asset-thumb {
+  max-height: 2.5rem;
+  max-width: 4rem;
+  object-fit: cover;
+  vertical-align: middle;
+}
+
+.editor-dataset-cell--rich .editor-dataset-asset {
+  max-width: 100%;
+}
+
 .editor-dataset-columns-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));

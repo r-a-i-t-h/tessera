@@ -65,19 +65,22 @@ describe("schema form", () => {
     expect(draft.fields[1]?.id).toBe("count");
   });
 
-  it("reads nested fields under object kinds", () => {
+  it("reads ref dataset from select", () => {
     const fields: DatasetField[] = [
-      {
-        key: "o",
-        id: "meta",
-        label: "Meta",
-        kind: "object",
-        fields: [{ key: "n", id: "note", label: "Note", kind: "text" }],
-      },
+      { key: "r", id: "meeting", label: "Meeting", kind: "ref", dataset: "meetings" },
     ];
     const host = document.createElement("div");
-    host.innerHTML = renderSchemaForm(schemaDraftFromFields(fields));
+    host.innerHTML = renderSchemaForm(schemaDraftFromFields(fields), {
+      datasetOptions: [{ id: "meetings", title: "Meetings" }],
+    });
     const draft = readSchemaForm(host, schemaDraftFromFields(fields));
-    expect(draft.fields[0]?.fields?.[0]?.id).toBe("note");
+    expect(draft.fields[0]?.dataset).toBe("meetings");
+  });
+
+  it("does not offer removed field kinds", () => {
+    const html = renderSchemaForm(schemaDraftFromFields(sample));
+    expect(html).not.toContain('value="object"');
+    expect(html).not.toContain('value="list"');
+    expect(html).not.toContain('value="html"');
   });
 });

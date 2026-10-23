@@ -1,6 +1,5 @@
+import { decodeHtmlEntitiesOnce, sanitizeRichHtml } from "@r-a-i-t-h/tessera-model";
 import { escapeHtml } from "./dom.js";
-
-const ALLOWED = new Set(["strong", "b", "em", "i", "u", "s", "code", "a", "br", "ul", "ol", "li", "p", "pre"]);
 
 function markButton(cmd: string, label: string, glyph: string): string {
   return `<button type="button" class="editor-mark" data-html-cmd="${cmd}" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">${glyph}</button>`;
@@ -19,42 +18,17 @@ function toolbarHtml(): string {
 }
 
 export function renderHtmlEditor(initial: string, id: string): string {
+  const body = sanitizeRichHtml(decodeHtmlEntitiesOnce(initial));
   return `<div class="editor-html-field" data-html-editor>
     ${toolbarHtml()}
-    <div id="${escapeHtml(id)}" class="editor-text-body w3-input w3-border" contenteditable="true" data-html-body data-placeholder="Write…">${initial}</div>
+    <div id="${escapeHtml(id)}" class="editor-text-body w3-input w3-border" contenteditable="true" data-html-body data-placeholder="Write…">${body}</div>
   </div>`;
-}
-
-function cleanChildren(root: Element): string {
-  let out = "";
-  for (const node of root.childNodes) {
-    if (node.nodeType === Node.TEXT_NODE) {
-      out += escapeHtml(node.textContent ?? "");
-      continue;
-    }
-    if (!(node instanceof Element)) continue;
-    const tag = node.tagName.toLowerCase();
-    if (!ALLOWED.has(tag)) continue;
-    if (tag === "br") {
-      out += "<br>";
-      continue;
-    }
-    const inner = tag === "a" ? node.innerHTML : cleanChildren(node);
-    const attrs =
-      tag === "a"
-        ? ` href="${escapeHtml(node.getAttribute("href") ?? "")}"`
-        : "";
-    out += `<${tag}${attrs}>${inner}</${tag}>`;
-  }
-  return out;
 }
 
 export function readHtmlEditor(host: HTMLElement): string {
   const body = host.querySelector<HTMLElement>("[data-html-body]");
   if (!body) return "";
-  const doc = new DOMParser().parseFromString(`<div>${body.innerHTML}</div>`, "text/html");
-  const root = doc.body.firstElementChild;
-  return root ? cleanChildren(root) : "";
+  return sanitizeRichHtml(body.innerHTML);
 }
 
 export function mountHtmlEditor(host: HTMLElement): void {

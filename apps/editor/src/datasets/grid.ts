@@ -1,6 +1,5 @@
 import type { DatasetField, DatasetRootRecord } from "@r-a-i-t-h/tessera-model";
 import { fieldById, rootColumnFieldIds } from "@r-a-i-t-h/tessera-model";
-import { plainTextFromHtml } from "../html-editor.js";
 
 export type GridColumn =
   | { kind: "system"; id: "uid" | "added" | "modified" }
@@ -20,7 +19,7 @@ export function gridColumns(viewColumns: readonly string[], fields: readonly Dat
       continue;
     }
     const field = fieldById(fields, id);
-    if (field && field.kind !== "object" && field.kind !== "list") {
+    if (field) {
       cols.push({ kind: "field", id, field });
     }
   }
@@ -30,7 +29,24 @@ export function gridColumns(viewColumns: readonly string[], fields: readonly Dat
 export type DisplayContext = {
   assetName: (id: string) => string;
   refTitle: (datasetId: string, uid: number) => string;
+  assetMarkup?: (id: string) => string | undefined;
 };
+
+/** Sanitized HTML for asset cells in the data grid (view mode). */
+export function cellDisplayMarkup(
+  record: DatasetRootRecord,
+  column: GridColumn,
+  ctx: DisplayContext,
+): string | undefined {
+  if (column.kind !== "field") return undefined;
+  const field = column.field;
+  const raw = record[field.id];
+  if (raw === undefined || raw === null || raw === "") return undefined;
+  if (field.kind === "asset" && !field.many) {
+    return ctx.assetMarkup?.(String(raw));
+  }
+  return undefined;
+}
 
 export function cellDisplay(
   record: DatasetRootRecord,
@@ -50,8 +66,6 @@ export function cellDisplay(
   switch (field.kind) {
     case "boolean":
       return raw === true ? "Yes" : "No";
-    case "html":
-      return plainTextFromHtml(String(raw));
     case "asset":
       if (field.many && Array.isArray(raw)) {
         return raw.map((id) => ctx.assetName(String(id))).join(", ");

@@ -2,6 +2,7 @@ import type { SiteDocument } from "./schema.js";
 import {
   fieldById,
   formatDatasetFieldDisplay,
+  formatDatasetFieldRichHtml,
   formatRecordDisplayName,
   rootColumnFieldIds,
   type DatasetField,
@@ -89,10 +90,15 @@ export type DatasetQueryOptions = {
   asOf?: Date;
 };
 
+export type DatasetFieldCellFormat = "plain" | "asset";
+
 export type DatasetFieldCell = {
   id: string;
   label: string;
   text: string;
+  format?: DatasetFieldCellFormat;
+  /** Sanitized HTML when format is asset. */
+  richHtml?: string;
 };
 
 export type DatasetRowView = {
@@ -253,10 +259,14 @@ export function queryDatasetRecords(
     uid: record.uid,
     displayName: formatRecordDisplayName(record, displayTemplate, schemaFields, ctx),
     fields: columns.map((field) => {
-      const text =
-        field.id === "uid" || field.id === "added" || field.id === "modified"
-          ? metaCell(record, field.id)
-          : formatDatasetFieldDisplay(record, field, ctx);
+      if (field.id === "uid" || field.id === "added" || field.id === "modified") {
+        return { id: field.id, label: field.label, text: metaCell(record, field.id) };
+      }
+      const richHtml = formatDatasetFieldRichHtml(record, field, ctx);
+      const text = formatDatasetFieldDisplay(record, field, ctx);
+      if (field.kind === "asset" && richHtml) {
+        return { id: field.id, label: field.label, text, format: "asset", richHtml };
+      }
       return { id: field.id, label: field.label, text };
     }),
   }));

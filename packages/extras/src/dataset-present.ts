@@ -33,11 +33,17 @@ function mediaLabel(ctx: RenderContext, assetId: string): string {
   return media?.title?.trim() || assetId;
 }
 
+function mediaUrl(ctx: RenderContext, assetId: string): string | undefined {
+  const media = ctx.document.media.find((m) => m.id === assetId);
+  return media?.url;
+}
+
 function mountView(ctx: RenderContext, props: Record<string, unknown>, variant: "table" | "cards" | "list"): string {
   registerDatasetElements();
   const snapshots = snapshotsFrom(ctx);
   const display = displayContext(snapshots);
   display.assetLabel = (id) => mediaLabel(ctx, id);
+  display.assetUrl = (id) => mediaUrl(ctx, id);
   const payload = buildDatasetViewPayload(ctx, props, variant, display);
   if (!payload) return `<!-- dataset view: missing dataset -->`;
   if (!payload.rows.length) {

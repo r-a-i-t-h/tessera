@@ -6,7 +6,7 @@ const schema = parseDatasetSchema({
   fields: [
     { key: "f0", id: "title", label: "Title", kind: "string" },
     { key: "f1", id: "heldOn", label: "Held on", kind: "date" },
-    { key: "f2", id: "body", label: "Body", kind: "html" },
+    { key: "f2", id: "body", label: "Body", kind: "text" },
   ],
 });
 
@@ -33,12 +33,14 @@ describe("dataset grid", () => {
     expect(availableViewColumns([])).toEqual(["uid", "added", "modified"]);
   });
 
-  it("strips html for display", () => {
+  it("shows text fields as plain text in the grid", () => {
     const columns = gridColumns(["heldOn", "body"], schema.fields);
     const bodyCol = columns.find((c) => c.kind === "field" && c.id === "body");
     expect(bodyCol).toBeTruthy();
     if (!bodyCol || bodyCol.kind !== "field") return;
-    expect(cellDisplay(record, bodyCol, { assetName: (id) => id, refTitle: () => "" })).toBe("Hello world");
+    expect(cellDisplay(record, bodyCol, { assetName: (id) => id, refTitle: () => "" })).toBe(
+      "<p>Hello <strong>world</strong></p>",
+    );
   });
 
   it("sorts by title when the column is visible", () => {

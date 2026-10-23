@@ -40,6 +40,15 @@ abstract class DatasetViewElement extends WCBase {
     return sortRowsClient(payload.rows, this.#sort.field, this.#sort.dir);
   }
 
+  #setCellContent(el: HTMLElement, row: DatasetViewPayload["rows"][number], columnId: string): void {
+    const rich = row.richValues?.[columnId];
+    if (rich) {
+      el.innerHTML = rich;
+      return;
+    }
+    el.textContent = row.values[columnId] ?? "";
+  }
+
   #paintEmpty(): void {
     const text = this.#payload?.empty.trim() ?? "";
     if (!text) {
@@ -174,7 +183,7 @@ abstract class DatasetViewElement extends WCBase {
         const align = this.#columnAlign(col);
         const td = this.e("td", { className: `tessera-dataset-align-${align}` });
         td.style.textAlign = align;
-        td.textContent = row.values[col.id] ?? "";
+        this.#setCellContent(td, row, col.id);
         tr.append(td);
       }
       tbody.append(tr);
@@ -214,7 +223,7 @@ abstract class DatasetViewElement extends WCBase {
           const labelCell = this.e("th", { scope: "row" });
           labelCell.textContent = col.label;
           const valueCell = this.e("td");
-          valueCell.textContent = row.values[col.id] ?? "";
+          this.#setCellContent(valueCell, row, col.id);
           tr.append(labelCell, valueCell);
           tbody.append(tr);
         }

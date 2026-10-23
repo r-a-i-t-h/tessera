@@ -123,9 +123,11 @@ Maintenance **Unused items** lists item records nothing includes. Themes may shi
 
 ## Datasets
 
-Structured tabular data (branch lists, product lines, reusable lookups) lives outside the page tree. **Records → Datasets** (`#/records/datasets`) lists every dataset. Create one, then open its setup to define the **schema** (field types, nested groups, **ref** links to other datasets), **visible columns** for the editor grid, and an optional **display name** template such as `{make} {model} {year}` for record labels in pickers and list headings.
+Structured tabular data (branch lists, product lines, reusable lookups) lives outside the page tree. **Records → Datasets** (`#/records/datasets`) lists every dataset. Create one, then open its setup to define the **schema**, **visible columns** for the editor grid, and an optional **display name** template such as `{make} {model} {year}` for record labels in pickers and list headings.
 
-**Data** (`#/data`) appears in the sidebar once at least one dataset exists. Choose a dataset to add rows, edit in a dialog, filter columns, or switch to grid edit mode for bulk changes.
+Each schema field has an id, label, and **kind**: **string**, **text** (multi-line), **number**, **boolean**, **date**, **enum** (fixed options), **asset** (library image or document; optional **many** for several ids), or **ref** (link to a row in another dataset). Fields are flat — there are no nested object or list columns. Use **text** for longer copy; it is stored and shown as plain text, not rendered as HTML on the site.
+
+**Data** (`#/data`) appears in the sidebar once at least one dataset exists. Choose a dataset to add rows, edit in a dialog, filter columns, or switch to **Edit grid** for bulk changes. In view mode the grid shows asset thumbnails where an asset column is visible; use the record dialog to pick assets.
 
 Visitors do not open dataset files directly. Put data on the site with a **Dataset list** binding ([Records → Bindings](#/records/bindings)): pick the dataset, then **Presentation** — **table**, **cards**, **plain list**, or **runtime module** (custom markup from a [runtime module](#runtime-modules) catalog entry). Set columns, default sort, limit, filters, and empty-state text in the wizard. Insert with **Compose → Insert** like any other binding (`{{id}}`).
 

@@ -151,6 +151,20 @@
   vertical-align: top;
 }
 
+.tessera-dataset-asset {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  text-decoration: none;
+}
+
+.tessera-dataset-asset-thumb {
+  max-height: 2.5rem;
+  max-width: 4rem;
+  object-fit: cover;
+  vertical-align: middle;
+}
+
 .tessera-dataset-sort {
   display: flex;
   flex-wrap: wrap;

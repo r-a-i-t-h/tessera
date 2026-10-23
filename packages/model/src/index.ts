@@ -144,8 +144,11 @@ export {
   validateDisplayNameTemplate,
   formatRecordDisplayName,
   formatDatasetFieldDisplay,
+  formatDatasetFieldRichHtml,
+  scrubLegacyRootRecord,
   datasetFileToSnapshot,
 } from "./dataset.js";
+export { sanitizeRichHtml, decodeHtmlEntitiesOnce } from "./html-sanitize.js";
 export {
   DATASET_PRESENTATION_COMPONENTS,
   RUNTIME_MODULE_COMPONENT,
@@ -178,6 +181,7 @@ export type {
   DatasetFilter,
   DatasetQueryOptions,
   DatasetFieldCell,
+  DatasetFieldCellFormat,
   DatasetRowView,
   DatasetQueryResult,
 } from "./dataset-query.js";

@@ -4,6 +4,7 @@ import {
   createDataset,
   deleteDataset,
   getDataset,
+  listDatasets,
   updateDatasetSchema,
   updateDatasetTitle,
   updateDatasetView,
@@ -12,19 +13,17 @@ import {
 } from "../api.js";
 import { editorChrome } from "../chrome.js";
 import { mergeEditorNav } from "../sidebar-nav.js";
-import { escapeHtml, formErrorPanel, showFormError } from "../dom.js";
+import { escapeHtml, errorPanel, formErrorPanel, showFormError } from "../dom.js";
 import { availableViewColumns } from "./grid.js";
 import {
   adaptationSummaryHtml,
-  applyAddNestedField,
   applySchemaAction,
   applySchemaActionForRow,
-  fieldListAtPath,
   focusSchemaFieldId,
   readSchemaForm,
   renderSchemaForm,
   schemaDraftFromFields,
-  schemaRowPath,
+  validateSchemaDraft,
   type SchemaDraft,
 } from "./schema-form.js";
 
@@ -100,11 +99,17 @@ export async function mountDatasetSetup(
   datasetId: string,
   bindChrome: BindChrome,
 ): Promise<void> {
-  const { file } = await getDataset(datasetId);
+  const [{ file }, { datasets: allDatasets }] = await Promise.all([getDataset(datasetId), listDatasets()]);
   let fileState = file;
   let columnsPanelOpen = false;
   let settingsPanelOpen = false;
   let draft: SchemaDraft = schemaDraftFromFields(fileState.schema.fields);
+  let schemaError = "";
+
+  const schemaFormOptions = () => ({
+    datasetOptions: allDatasets.map((d) => ({ id: d.id, title: d.title })),
+    excludeDatasetId: datasetId,
+  });
 
   const paint = () => {
     const colOptions = availableViewColumns(fileState.schema.fields)
@@ -156,12 +161,13 @@ export async function mountDatasetSetup(
         </details>
         <details class="editor-dataset-columns"${columnsPanelOpen ? " open" : ""}>
           <summary>Visible columns</summary>
-          <p class="w3-text-grey w3-small">Columns shown when editing data in the grid.</p>
+          <p class="w3-text-grey w3-small">Columns shown in the dataset grid and published views.</p>
           <div class="editor-dataset-columns-grid">${colOptions}</div>
         </details>
         <section class="editor-dataset-schema-panel" aria-labelledby="dataset-schema-heading">
           <h2 id="dataset-schema-heading" class="w3-large">Schema</h2>
-          <div id="schema-root">${renderSchemaForm(draft)}</div>
+          <div id="schema-root">${renderSchemaForm(draft, schemaFormOptions())}</div>
+          ${schemaError ? errorPanel(schemaError) : ""}
           <p><button type="button" class="w3-button w3-theme" data-schema-save>Save schema</button></p>
         </section>
       </div>`,
@@ -182,7 +188,7 @@ export async function mountDatasetSetup(
 
   const paintSchemaFields = () => {
     const rootEl = schemaRoot();
-    if (rootEl) rootEl.innerHTML = renderSchemaForm(draft);
+    if (rootEl) rootEl.innerHTML = renderSchemaForm(draft, schemaFormOptions());
   };
 
   const bindSetupEvents = (host: HTMLElement): void => {
@@ -199,11 +205,16 @@ export async function mountDatasetSetup(
       const displayName = patch.displayName !== undefined ? patch.displayName : (fileState.view.displayName ?? "");
       fileState = { ...fileState, view: { columns, displayName } };
       paint();
-      void updateDatasetView(datasetId, { columns, displayName }).then((res) => {
-        fileState = res.file;
-        draft = schemaDraftFromFields(fileState.schema.fields);
-        paint();
-      });
+      void updateDatasetView(datasetId, { columns, displayName })
+        .then((res) => {
+          fileState = res.file;
+          draft = schemaDraftFromFields(fileState.schema.fields);
+          paint();
+        })
+        .catch((err) => {
+          schemaError = err instanceof Error ? err.message : "Could not save view settings.";
+          paint();
+        });
     };
     host.querySelector("[data-dataset-display-name]")?.addEventListener("change", (event) => {
       const input = event.target;
@@ -215,10 +226,16 @@ export async function mountDatasetSetup(
       if (!input) return;
       const title = input.value.trim();
       if (!title) return;
-      void updateDatasetTitle(datasetId, title).then((res) => {
-        fileState = res.file;
-        paint();
-      });
+      void updateDatasetTitle(datasetId, title)
+        .then((res) => {
+          fileState = res.file;
+          schemaError = "";
+          paint();
+        })
+        .catch((err) => {
+          schemaError = err instanceof Error ? err.message : "Could not rename dataset.";
+          paint();
+        });
     };
     host.querySelector("[data-dataset-rename]")?.addEventListener("click", renameDataset);
     host.querySelector<HTMLInputElement>("[data-dataset-title]")?.addEventListener("keydown", (event) => {
@@ -229,9 +246,14 @@ export async function mountDatasetSetup(
     });
     host.querySelector("[data-dataset-delete-ds]")?.addEventListener("click", () => {
       if (!window.confirm(`Delete dataset ${datasetId}?`)) return;
-      void deleteDataset(datasetId).then(() => {
-        window.location.hash = "#/records/datasets";
-      });
+      void deleteDataset(datasetId)
+        .then(() => {
+          window.location.hash = "#/records/datasets";
+        })
+        .catch((err) => {
+          schemaError = err instanceof Error ? err.message : "Could not delete dataset.";
+          paint();
+        });
     });
     host.querySelectorAll("[data-view-col]").forEach((el) => {
       el.addEventListener("change", () => {
@@ -246,14 +268,26 @@ export async function mountDatasetSetup(
       const rootEl = schemaRoot();
       if (!(rootEl instanceof HTMLElement)) return;
       draft = readSchemaForm(rootEl, draft);
+      const validationError = validateSchemaDraft(draft.fields);
+      if (validationError) {
+        schemaError = validationError;
+        paint();
+        return;
+      }
       const preview = summarizePreview(draft.fields, fileState.schema.fields);
       const summary = adaptationSummaryHtml(preview);
       if (!window.confirm(`Apply schema changes?\n${summary.replace(/<[^>]+>/g, " ")}`)) return;
-      void updateDatasetSchema(datasetId, { fields: draft.fields }).then((res) => {
-        fileState = res.file;
-        draft = schemaDraftFromFields(fileState.schema.fields);
-        paint();
-      });
+      schemaError = "";
+      void updateDatasetSchema(datasetId, { fields: draft.fields })
+        .then((res) => {
+          fileState = res.file;
+          draft = schemaDraftFromFields(fileState.schema.fields);
+          paint();
+        })
+        .catch((err) => {
+          schemaError = err instanceof Error ? err.message : "Could not save schema.";
+          paint();
+        });
     };
 
     const addRootField = () => {
@@ -262,16 +296,6 @@ export async function mountDatasetSetup(
       paintSchemaFields();
       const rootEl = schemaRoot();
       if (rootEl instanceof HTMLElement) focusSchemaFieldId(rootEl, 0, draft.fields.length - 1);
-    };
-
-    const addNestedField = (parentRow: HTMLElement) => {
-      syncDraftFromDom();
-      draft = applyAddNestedField(draft, parentRow);
-      const path = schemaRowPath(parentRow);
-      const nestedIndex = fieldListAtPath(draft.fields, path).length - 1;
-      paintSchemaFields();
-      const rootEl = schemaRoot();
-      if (rootEl instanceof HTMLElement) focusSchemaFieldId(rootEl, path.length, nestedIndex);
     };
 
     host.addEventListener("keydown", (event) => {
@@ -298,12 +322,6 @@ export async function mountDatasetSetup(
         addRootField();
         return;
       }
-      const nestedAdd = button.closest("li[data-schema-index]");
-      if (button.hasAttribute("data-schema-add-nested") && nestedAdd instanceof HTMLElement) {
-        event.preventDefault();
-        addNestedField(nestedAdd);
-        return;
-      }
       const action = button.dataset.schemaRowAction;
       if (!action) return;
       const row = button.closest("li[data-schema-index]");
@@ -315,6 +333,18 @@ export async function mountDatasetSetup(
     });
 
     host.querySelector("[data-schema-save]")?.addEventListener("click", saveSchema);
+
+    host.addEventListener("change", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLSelectElement) || !target.matches("[data-schema-kind]")) return;
+      if (!host.contains(target)) return;
+      syncDraftFromDom();
+      paintSchemaFields();
+      const depth = Number(target.dataset.depth ?? "0");
+      const index = Number(target.dataset.schemaKind);
+      const rootEl = schemaRoot();
+      if (rootEl instanceof HTMLElement) focusSchemaFieldId(rootEl, depth, index);
+    });
   };
 
   paint();

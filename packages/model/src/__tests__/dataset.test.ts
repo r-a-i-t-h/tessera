@@ -13,13 +13,7 @@ import {
 const meetingSchema = parseDatasetSchema({
   fields: [
     { key: "f1", id: "heldOn", label: "Held on", kind: "date", required: true },
-    {
-      key: "f2",
-      id: "agenda",
-      label: "Agenda",
-      kind: "list",
-      fields: [{ key: "f3", id: "topic", label: "Topic", kind: "string", required: true }],
-    },
+    { key: "f2", id: "topic", label: "Topic", kind: "string", required: true },
   ],
 });
 
@@ -39,14 +33,7 @@ describe("validateRootRecord", () => {
         added: "2026-01-01T00:00:00.000Z",
         modified: "2026-01-01T00:00:00.000Z",
         heldOn: "2026-10-09",
-        agenda: [
-          {
-            uid: 2,
-            added: "2026-01-01T00:00:00.000Z",
-            modified: "2026-01-01T00:00:00.000Z",
-            topic: "Minutes",
-          },
-        ],
+        topic: "Minutes",
       },
       meetingSchema,
     );
@@ -93,6 +80,33 @@ describe("parseDatasetFile", () => {
     expect(file.records[0]).not.toHaveProperty("title");
     expect(file.records[0]?.make).toBe("Ford");
   });
+
+  it("keeps title and id when they are schema field ids", () => {
+    const schema = parseDatasetSchema({
+      fields: [
+        { key: "f1", id: "title", label: "Title", kind: "string" },
+        { key: "f2", id: "id", label: "Slug", kind: "string" },
+      ],
+    });
+    const file = parseDatasetFile({
+      id: "posts",
+      title: "Posts",
+      schema: { fields: schema.fields },
+      view: { columns: [], displayName: "{title}" },
+      nextUid: 2,
+      records: [
+        {
+          uid: 1,
+          title: "Hello",
+          id: "hello",
+          added: "2026-01-01T00:00:00.000Z",
+          modified: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+    });
+    expect(file.records[0]?.title).toBe("Hello");
+    expect(file.records[0]?.id).toBe("hello");
+  });
 });
 
 describe("adaptRecords", () => {
@@ -116,17 +130,17 @@ describe("adaptRecords", () => {
     expect(out.precis).toBeUndefined();
   });
 
-  it("keeps string when swapping text and html", () => {
+  it("keeps string when swapping text and string", () => {
     const prev = parseDatasetSchema({
       fields: [{ key: "f1", id: "body", label: "Body", kind: "text" }],
     });
     const next = parseDatasetSchema({
-      fields: [{ key: "f1", id: "body", label: "Body", kind: "html" }],
+      fields: [{ key: "f1", id: "body", label: "Body", kind: "string" }],
     });
-    const [out] = adaptRecords(prev, next, [{ ...record, body: "<p>x</p>" }], {
+    const [out] = adaptRecords(prev, next, [{ ...record, body: "Hello" }], {
       rootUidsInDataset: () => new Set(),
     });
-    expect(out.body).toBe("<p>x</p>");
+    expect(out.body).toBe("Hello");
   });
 
   it("wraps asset when many is added", () => {
