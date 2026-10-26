@@ -453,12 +453,14 @@ export class SiteStore {
       if (!this.dist) throw new Error("No publish directory configured.");
       const doc = await this.loadReadyDocument();
       if (!doc) throw new Error("Nothing to publish yet. This site needs a layout and at least one page.");
+      const siteRoot = dirname(this.recordsDir);
+      const withDatasets = await embedDatasetsInDocument(siteRoot, doc);
       const { emitDist } = await import("./dist.js");
-      const dist = await emitDist(doc, this.dist);
-      const publishTo = doc.site.publishTo?.trim();
-      if (!publishTo) return { doc, dist };
+      const dist = await emitDist(withDatasets, this.dist);
+      const publishTo = withDatasets.site.publishTo?.trim();
+      if (!publishTo) return { doc: withDatasets, dist };
       const installed = await installPublish(this.dist.publishDir, publishTo, dirname(this.dist.publishDir));
-      return { doc, dist, installed };
+      return { doc: withDatasets, dist, installed };
     } finally {
       this.publishing = false;
     }

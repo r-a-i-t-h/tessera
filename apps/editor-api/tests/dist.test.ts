@@ -175,6 +175,60 @@ body { margin: 0; }
     expect(await readFile(join(fixture.root, "publish", "index.html"), "utf8")).toContain("Welcome");
   });
 
+  it("embeds dataset snapshots when publishing pages", async () => {
+    const fixture = await target("pages");
+    const doc = parseSiteDocument({
+      ...fixture.document,
+      pages: [
+        {
+          id: "home",
+          title: "Home",
+          zones: { main: [{ type: "text", html: "{{list}}" }] },
+        },
+      ],
+      bindings: [
+        {
+          id: "list",
+          component: "datasetCards",
+          props: { dataset: "demo", fields: ["name"] },
+        },
+      ],
+    });
+    await mkdir(join(fixture.root, "datasets"), { recursive: true });
+    await writeFile(
+      join(fixture.root, "datasets", "demo.json"),
+      JSON.stringify({
+        id: "demo",
+        title: "Demo",
+        view: { columns: ["name"] },
+        schema: { fields: [{ key: "f1", id: "name", label: "Name", kind: "string" }] },
+        nextUid: 2,
+        records: [
+          {
+            uid: 1,
+            added: "2026-01-01T00:00:00.000Z",
+            modified: "2026-01-01T00:00:00.000Z",
+            name: "Published row",
+          },
+        ],
+      }),
+      "utf8",
+    );
+    const store = new SiteStore(
+      join(fixture.root, "records"),
+      join(fixture.root, "preview", "data", "site.json"),
+      async () => 0,
+      join(fixture.root, "history"),
+      fixture.target,
+    );
+    await store.writeFromDocument(doc);
+    await store.publish();
+    const html = await readFile(join(fixture.root, "publish", "index.html"), "utf8");
+    expect(html).not.toContain("dataset view: missing dataset");
+    expect(html).toContain("tessera-dataset-cards");
+    expect(html).toContain("Published row");
+  });
+
   it("installs publishTo outside the site and rejects a second publish", async () => {
     const fixture = await target("pages");
     const live = await mkdtemp(join(tmpdir(), "tessera-live-"));
