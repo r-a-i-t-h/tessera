@@ -268,7 +268,9 @@ Upload or edit a module, then wire it through a binding: **Runtime module** (pro
 
 The [site record](#/records/site) lists extra tones for Compose **Panel** and **Quote** sections in **`panelTones`** on the Site form (same key in `records/site.yaml`). They appear in the Tone dropdown and style that block only; they are not aspects and do not change the page chrome. Put their CSS in [site local](#/styles?sheet=local) so a theme reinstall does not wipe it. Theme apply does not clear the catalog. Panel is a nested-block container (like Card): the tone styles the shell, and you drop other Compose sections inside it.
 
-Keep typed divergence small. Prefer a background (or border) on the panel shell, and only change type on a **Text** widget that is a direct child of the panel body. Cards, quotes, images, and text nested inside those stay on the site style. Example `panelTones` on the site record and matching CSS:
+**Compose preview.** Built-in tones use W3 classes such as `w3-sand` on the panel shell; the editor loads W3.CSS, so those fills show while you edit. Custom tones paint your `className` on the same shell; rules live in [site local](#/styles?sheet=local). The editor loads that file in Compose as well, so shell background and colour on your tone class preview there too.
+
+Keep typed divergence small. Put the callout **fill and default text colour on the panel shell** (your tone class on the `w3-panel` wrapper). Scope stronger typography to **direct children** of `.rt-panel-body` — standalone **Heading** blocks (`h1`–`h6` with `tessera-block`), **Text** widgets (`.tessera-text`), and optionally a title line inside Text — not cards, quotes, images, or blocks nested inside those. Example `panelTones` on the site record and matching CSS:
 
 ```yaml
 id: willow-hall
@@ -281,22 +283,29 @@ panelTones:
 ```
 
 ```css
-.tone-callout > .rt-panel-body > .tessera-text {
+.tone-callout {
+  background-color: #fff59d;
+  color: #1a237e;
+  padding: 0.5rem;
+}
+
+.tone-callout > .rt-panel-body > .tessera-text,
+.tone-callout > .rt-panel-body > :is(h1, h2, h3, h4, h5, h6).tessera-block {
   font-family: "Source Sans 3", sans-serif;
   font-size: 1.15em;
-  color: #1a237e;
-  background-color: #fff59d;
-  padding: 0.35em 0.5em;
+  color: inherit;
 }
+
 .tone-callout > .rt-panel-body > .tessera-text :is(h1, h2, h3, h4, h5, h6) {
   font-family: inherit;
   color: inherit;
 }
-.tone-callout > .rt-panel-body > .tessera-text a,
-.tone-callout > .rt-panel-body > .tessera-text a:visited {
+
+.tone-callout a,
+.tone-callout a:visited {
   color: inherit;
   text-decoration: underline;
 }
 ```
 
-Headings and links inside that Text block need their own rules: the font picker styles `body.fontA h1…h6`, and `.tessera-main a` sets link colour. A bare rule on the panel class would paint every nested widget; the `> .rt-panel-body > .tessera-text` chain does not. A separate **Heading** block is a sibling of Text, not that class — include it only if you want the callout title treated the same way.
+Headings and links need explicit rules when they would otherwise pick up site chrome: the font picker styles `body.fontA h1…h6`, and `.tessera-main a` sets link colour. The `> .rt-panel-body > …` chain limits typography to direct panel content; a **Card** or nested **Panel** inside the body keeps the normal site style.

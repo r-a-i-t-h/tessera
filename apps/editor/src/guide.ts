@@ -204,7 +204,8 @@ export function guideHtml(): string {
 
     <h2 id="panel-tones">Panel tones</h2>
     <p>The <a href="#/records/site">site record</a> lists extra tones for Compose <strong>Panel</strong> and <strong>Quote</strong> sections in <code>panelTones</code> on the Site form (same key in <code>records/site.yaml</code>). They appear in the Tone dropdown and style that block only; they are not aspects and do not change the page chrome. Put their CSS in ${sheetLink("local", "site local")} so a theme reinstall does not wipe it. Theme apply does not clear the catalog. Panel is a nested-block container (like Card): the tone styles the shell, and you drop other Compose sections inside it.</p>
-    <p>Keep typed divergence small. Prefer a background (or border) on the panel shell, and only change type on a <strong>Text</strong> widget that is a direct child of the panel body. Cards, quotes, images, and text nested inside those stay on the site style. Example <code>panelTones</code> on the site record and matching CSS:</p>
+    <p><strong>Compose preview.</strong> Built-in tones use W3 classes such as <code>w3-sand</code> on the panel shell; the editor loads W3.CSS, so those fills show while you edit. Custom tones paint your <code>className</code> on the same shell; rules live in ${sheetLink("local", "site local")}. The editor loads that file in Compose as well, so shell background and colour on your tone class preview there too.</p>
+    <p>Keep typed divergence small. Put the callout <strong>fill and default text colour on the panel shell</strong> (your tone class on the <code>w3-panel</code> wrapper). Scope stronger typography to <strong>direct children</strong> of <code>.rt-panel-body</code> — standalone <strong>Heading</strong> blocks (<code>h1</code>–<code>h6</code> with <code>tessera-block</code>), <strong>Text</strong> widgets (<code>.tessera-text</code>), and optionally a title line inside Text — not cards, quotes, images, or blocks nested inside those. Example <code>panelTones</code> on the site record and matching CSS:</p>
     <pre>id: willow-hall
 title: Willow Hall
 homePageId: home
@@ -212,23 +213,30 @@ panelTones:
   - id: callout
     label: Callout
     className: tone-callout</pre>
-    <pre>.tone-callout &gt; .rt-panel-body &gt; .tessera-text {
+    <pre>.tone-callout {
+  background-color: #fff59d;
+  color: #1a237e;
+  padding: 0.5rem;
+}
+
+.tone-callout &gt; .rt-panel-body &gt; .tessera-text,
+.tone-callout &gt; .rt-panel-body &gt; :is(h1, h2, h3, h4, h5, h6).tessera-block {
   font-family: "Source Sans 3", sans-serif;
   font-size: 1.15em;
-  color: #1a237e;
-  background-color: #fff59d;
-  padding: 0.35em 0.5em;
+  color: inherit;
 }
+
 .tone-callout &gt; .rt-panel-body &gt; .tessera-text :is(h1, h2, h3, h4, h5, h6) {
   font-family: inherit;
   color: inherit;
 }
-.tone-callout &gt; .rt-panel-body &gt; .tessera-text a,
-.tone-callout &gt; .rt-panel-body &gt; .tessera-text a:visited {
+
+.tone-callout a,
+.tone-callout a:visited {
   color: inherit;
   text-decoration: underline;
 }</pre>
-    <p>Headings and links inside that Text block need their own rules: the font picker styles <code>body.fontA h1…h6</code>, and <code>.tessera-main a</code> sets link colour. A bare rule on the panel class would paint every nested widget; the <code>&gt; .rt-panel-body &gt; .tessera-text</code> chain does not. A separate <strong>Heading</strong> block is a sibling of Text, not that class — include it only if you want the callout title treated the same way.</p>
+    <p>Headings and links need explicit rules when they would otherwise pick up site chrome: the font picker styles <code>body.fontA h1…h6</code>, and <code>.tessera-main a</code> sets link colour. The <code>&gt; .rt-panel-body &gt; …</code> chain limits typography to direct panel content; a <strong>Card</strong> or nested <strong>Panel</strong> inside the body keeps the normal site style.</p>
   </article>`;
 }
 

@@ -74,6 +74,7 @@ import { arrangeMarkup, mountArrange, readArrangeRoot } from "./arrange/canvas.j
 import { asLayoutNode, cleanNode, isFrame, newFrame, newPageLayout } from "./arrange/tree.js";
 import type { ArrangeInfo } from "./arrange/view.js";
 import { mountComposeCanvases } from "./compose/canvas.js";
+import { syncComposeSiteLocalStyle } from "./compose/site-local-style.js";
 import { draftYaml, dropArticleTitleZone, parsePageYaml } from "./compose/draft.js";
 import {
   readContentDocument,
@@ -3572,6 +3573,7 @@ async function mountPageCanvas(
     folders = [];
   }
   if (!form.isConnected) return;
+  await syncComposeSiteLocalStyle();
   const choices = pageChoices;
   mountComposeCanvases(form, {
     bindings,
