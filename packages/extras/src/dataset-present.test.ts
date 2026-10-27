@@ -168,7 +168,7 @@ describe("dataset presentations", () => {
   it("passes frame colour into the cards payload", () => {
     const registry = new ComponentRegistry();
     registerExtras((name, fn) => registry.define(name, fn));
-    const ctx = {
+    const ctx: RenderContext = {
       document: {
         version: 2,
         site: { id: "t", title: "T", homePageId: "home", defaultLayoutId: "l" },
@@ -208,7 +208,7 @@ describe("dataset presentations", () => {
       zoneJson: () => [],
       mediaHtml: () => "",
       escapeHtml: (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;"),
-    } as const;
+    };
     const html = datasetCards(ctx, {
       dataset: "items",
       fields: ["label"],
