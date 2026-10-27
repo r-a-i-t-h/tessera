@@ -15,8 +15,10 @@ import {
   readStyleTokensOpen,
   readStylesheetOpen,
   stylesheetEditors,
+  styleSpecimenHtml,
   stylesPageHtml,
 } from "./styles-page.js";
+import { resolveSiteStyle } from "@r-a-i-t-h/tessera-model";
 
 const panelStore = new Map<string, string>();
 
@@ -35,6 +37,27 @@ function stubPanelStorage(): void {
 describe("site style page", () => {
   it("links token overrides to the Tessera stylesheet editor", () => {
     expect(stylesPageHtml({ style: {} })).toContain('href="#/styles?sheet=tessera">Tessera</a>');
+  });
+
+  it("places the token form left and chrome preview right", () => {
+    const html = stylesPageHtml({ style: {} });
+    expect(html).toContain('class="style-tokens-layout"');
+    const layout = html.match(/<div class="style-tokens-layout">([\s\S]*?)<\/div>\s*<\/details>/)?.[1] ?? "";
+    const formIndex = layout.indexOf('id="style-form"');
+    const specimenIndex = layout.indexOf('id="style-specimen"');
+    expect(formIndex).toBeGreaterThan(-1);
+    expect(specimenIndex).toBeGreaterThan(formIndex);
+    expect(layout).toContain('class="style-tokens-preview"');
+  });
+
+  it("renders expanded tessera widgets in the specimen", () => {
+    const html = styleSpecimenHtml(resolveSiteStyle({}));
+    expect(html).toContain("tessera-breadcrumbs");
+    expect(html).toContain("tessera-toc");
+    expect(html).toContain("tessera-link-pill");
+    expect(html).toContain("tessera-link-card");
+    expect(html).toContain("is-active");
+    expect(html).toContain("tessera-footer");
   });
 });
 

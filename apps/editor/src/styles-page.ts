@@ -71,6 +71,47 @@ export function bindStylePanels(root: ParentNode): void {
   }
 }
 
+/** Live chrome preview for the Styles page (token overrides scoped on #style-specimen). */
+export function styleSpecimenHtml(style: Required<SiteStyle>): string {
+  const side = style.navSide === "left" ? "left" : "right";
+  return `<div id="style-specimen" class="style-specimen" data-side="${escapeHtml(side)}">
+        <style id="style-specimen-css">${siteStyleCss(style, ".style-specimen")}</style>
+        <div class="style-specimen-bar tessera-bar">
+          <div class="w3-bar-item tessera-brand">Site title</div>
+          <span class="tessera-fonts" role="group" aria-label="Font">
+            <button type="button" class="tessera-font-btn" tabindex="-1">A</button>
+            <button type="button" class="tessera-font-btn" tabindex="-1">B</button>
+          </span>
+        </div>
+        <div class="style-specimen-body">
+          <aside class="style-specimen-side tessera-sidebar">
+            <a class="w3-bar-item w3-button is-active" href="#/styles">Home</a>
+            <a class="w3-bar-item w3-button" href="#/styles">About</a>
+          </aside>
+          <div class="style-specimen-main">
+            <div class="tessera-content">
+              <nav class="tessera-breadcrumbs" aria-label="Breadcrumb"><a href="#/styles">Home</a><span class="tessera-crumb-sep" aria-hidden="true">/</span><span aria-current="page">Page</span></nav>
+              <p>Body text with a <a href="#/styles">link</a>.</p>
+              <nav class="tessera-block tessera-toc" aria-label="Contents">
+                <p class="tessera-toc-title">Contents</p>
+                <ul class="tessera-toc-list">
+                  <li><a href="#/styles">Introduction</a></li>
+                  <li class="tessera-toc-indent-1"><a href="#/styles">Details</a></li>
+                </ul>
+              </nav>
+              <nav class="tessera-links" aria-label="Sample links">
+                <div class="tessera-links-row">
+                  <a class="tessera-link-pill" href="#/styles">Topic</a>
+                  <a class="tessera-link-card" href="#/styles">Section</a>
+                </div>
+              </nav>
+            </div>
+            <footer class="tessera-footer"><p>Footer</p></footer>
+          </div>
+        </div>
+      </div>`;
+}
+
 export function stylesPageHtml(record: Record<string, unknown>, notice = "", error = ""): string {
   const values = styleFieldValues(record);
   const fields = styleGroups()
@@ -87,23 +128,13 @@ export function stylesPageHtml(record: Record<string, unknown>, notice = "", err
     <details class="style-sheet style-tokens"${readStyleTokensOpen() ? " open" : ""}>
       <summary>Site style</summary>
       <p class="w3-small w3-text-grey">Saves <code>site.style</code>. Values you change here are written after the stylesheet links and override <code>:root</code> variables in <a href="${stylesSheetHref("tessera")}">Tessera</a> (<code>skin/tessera.css</code>). Tokens left at their defaults stay in that file only.</p>
-      <div id="style-specimen" class="style-specimen" data-side="${escapeHtml(values.navSide)}">
-        <style id="style-specimen-css">${siteStyleCss(values, ".style-specimen")}</style>
-        <div class="style-specimen-bar"><span>Site title</span><span>A B</span></div>
-        <div class="style-specimen-body">
-          <aside class="style-specimen-side">Home</aside>
-          <div class="style-specimen-main">
-            <p>Body text with a <a href="#/styles">link</a>.</p>
-            <nav class="tessera-links tessera-links-cards" aria-label="Sample links">
-              <div class="tessera-links-row"><a class="tessera-link-card" href="#/styles">Section</a></div>
-            </nav>
-          </div>
-        </div>
+      <div class="style-tokens-layout">
+        <form id="style-form">
+          ${fields}
+          <p><button type="submit" class="w3-button w3-theme">Save styles</button></p>
+        </form>
+        <div class="style-tokens-preview">${styleSpecimenHtml(values)}</div>
       </div>
-      <form id="style-form">
-        ${fields}
-        <p><button type="submit" class="w3-button w3-theme">Save styles</button></p>
-      </form>
     </details>
     <h2 class="w3-large">Stylesheets</h2>`;
 }
