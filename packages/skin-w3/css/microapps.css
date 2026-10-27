@@ -98,10 +98,14 @@
   visibility: hidden;
 }
 
-.w3-table.tessera-dataset-table thead.w3-theme th.tessera-dataset-table__th {
+.w3-table.tessera-dataset-table thead.tessera-dataset-table__head {
+  background: var(--tessera-toc-bg);
+  color: var(--tessera-text);
+}
+
+.w3-table.tessera-dataset-table thead.tessera-dataset-table__head th.tessera-dataset-table__th {
   vertical-align: middle;
-  background-color: transparent;
-  color: inherit;
+  font-weight: 600;
 }
 
 .w3-table.tessera-dataset-table th,
@@ -115,8 +119,8 @@
   padding-left: 8px;
 }
 
-.w3-table.tessera-dataset-table thead.w3-theme th {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+.w3-table.tessera-dataset-table thead.tessera-dataset-table__head th {
+  border-bottom: 1px solid var(--tessera-toc-border);
 }
 
 .w3-table.tessera-dataset-table tbody tr {

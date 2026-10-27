@@ -177,7 +177,7 @@ abstract class DatasetViewElement extends WCBase {
       className: `w3-table w3-section w3-border tessera-dataset-table${payload.compact ? " tessera-dataset-table--compact" : ""}`,
     });
     if (payload.showHeader) {
-      const thead = this.e("thead", { className: "w3-theme tessera-dataset-table__head" });
+      const thead = this.e("thead", { className: "tessera-dataset-table__head" });
       const tr = this.e("tr", { className: "w3-wide" });
       for (const col of payload.columns) {
         const align = this.#columnAlign(col);
