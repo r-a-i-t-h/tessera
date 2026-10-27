@@ -13,7 +13,12 @@ import {
   paintSections,
   parseHeadingLevel,
   parseSections,
+  parseSpacerUnit,
+  parseSpacerValue,
   paletteToneIds,
+  paintSection,
+  isSpacerUnit,
+  SPACER_UNITS,
   quoteBlockHtml,
   renderMarkdownLinks,
   toneClass,
@@ -394,6 +399,8 @@ function kindName(node: EditNode): string {
       return "Heading";
     case "text":
       return "Text";
+    case "spacer":
+      return "Spacer";
     case "panel":
       return "Panel";
     case "quote":
@@ -449,6 +456,8 @@ function listPreviewText(node: EditNode, choices?: Choices): string {
     }
     case "subpages":
       return normalizePreview(node.title);
+    case "spacer":
+      return `${node.value} ${node.unit}`;
     case "toc":
       return "Table of contents";
     case "youtube":
@@ -497,6 +506,8 @@ function propsFor(node: EditNode, choices: Choices, locked: boolean): string {
       return levelSelect(node.level);
     case "text":
       return `${levelSelect(node.level)}${superSpaceCheck(node)}${editingToolbar(inlineTools(), listTools())}`;
+    case "spacer":
+      return spacerProps(node);
     case "panel":
       return `<label class="editor-prop">Tone <select data-field="tone">${toneOptions(node.tone, choices.panelTones)}</select></label>`;
     case "quote":
@@ -551,6 +562,13 @@ function lockedProps(node: EditNode, choices: Choices): string {
 
 function imgboxFields(node: Extract<EditLeaf, { kind: "imgbox" }>): string {
   return `<label class="editor-prop">Image <input data-field="src" class="w3-input" value="${escapeAttr(node.src)}" placeholder="Image address"></label><button type="button" class="w3-button w3-small w3-white" data-library="image">Library</button><label class="editor-prop">Alt <input data-field="alt" class="w3-input" value="${escapeAttr(node.alt)}"></label><label class="editor-prop">Caption <input data-field="caption" class="w3-input" value="${escapeAttr(node.caption)}"></label>`;
+}
+
+function spacerProps(node: Extract<EditLeaf, { kind: "spacer" }>): string {
+  const options = SPACER_UNITS.map(
+    (unit) => `<option value="${unit}"${unit === node.unit ? " selected" : ""}>${escapeText(unit)}</option>`,
+  ).join("");
+  return `<label class="editor-prop">Height <input type="number" data-field="height" class="w3-input" value="${escapeAttr(String(node.value))}" min="0.25" step="0.25"></label><label class="editor-prop">Unit <select data-field="unit">${options}</select></label>`;
 }
 
 function widthSelect(width: BlockWidthId): string {
@@ -660,6 +678,8 @@ function bodyFor(node: EditNode, choices: Choices, zone: string, locked: boolean
     }
     case "subpages":
       return `<p class="w3-panel w3-pale-blue">Subpages${node.title ? `: ${escapeText(node.title)}` : ""}. The published page lists this page's children.</p>`;
+    case "spacer":
+      return paintSection({ kind: "spacer", value: node.value, unit: node.unit });
     case "toc":
       return `<p class="w3-panel w3-pale-blue">Table of contents. The published page lists headings below this block.</p>`;
     case "youtube":
@@ -859,6 +879,18 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
         return;
       }
     }
+    if (node.kind === "spacer") {
+      if (field === "height") {
+        node.value = parseSpacerValue(value);
+        if (fromChange) rerenderArticle(form, node.uid);
+        return;
+      }
+      if (field === "unit") {
+        node.unit = isSpacerUnit(value) ? value : "em";
+        if (fromChange) rerenderArticle(form, node.uid);
+        return;
+      }
+    }
     if (node.kind === "youtube") {
       if (field === "video") {
         const id = youtubeVideoId(value);
@@ -892,7 +924,16 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
 }
 
 function isDesignField(kind: EditNode["kind"], field: string): boolean {
-  if (field === "level" || field === "tone" || field === "mode" || field === "layout" || field === "plain" || field === "width")
+  if (
+    field === "level" ||
+    field === "tone" ||
+    field === "mode" ||
+    field === "layout" ||
+    field === "plain" ||
+    field === "width" ||
+    field === "height" ||
+    field === "unit"
+  )
     return true;
   return kind === "insert" && field === "id";
 }
@@ -1515,6 +1556,8 @@ function applyControl(node: EditLeaf | EditCard | EditPanel, field: string, valu
   if (node.kind === "insert" && field === "id") node.id = value.trim();
   if (node.kind === "subpages" && field === "title") node.title = value;
   if (node.kind === "subpages" && field === "tone" && isTone(value)) node.tone = value;
+  if (node.kind === "spacer" && field === "height") node.value = parseSpacerValue(value);
+  if (node.kind === "spacer" && field === "unit") node.unit = parseSpacerUnit(value);
   if (node.kind === "youtube" && field === "video") {
     const id = youtubeVideoId(value);
     node.videoId = id || value.trim();

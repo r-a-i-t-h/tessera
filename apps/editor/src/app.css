@@ -1332,6 +1332,11 @@ img[data-hero-preview] {
   outline: 1px dashed #ddd;
 }
 
+.editor-section-widget .tessera-spacer {
+  outline: 1px dashed color-mix(in srgb, currentColor 28%, transparent);
+  outline-offset: -1px;
+}
+
 .editor-compose-list .editor-section-widget {
   display: none;
 }

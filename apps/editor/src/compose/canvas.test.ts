@@ -66,6 +66,37 @@ describe("compose palette", () => {
     expect(html).toContain('data-mode="grid"');
   });
 
+  it("paints a spacer with editable height and unit", () => {
+    dom.document.body.innerHTML = `<form>
+      <button type="button" data-palette="spacer">Spacer</button>
+      <div data-canvas data-zone="main"></div>
+    </form>`;
+    const form = dom.document.querySelector("form");
+    if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
+    mountComposeCanvases(form, { bindings: [], htmlByZone: { main: "" } });
+
+    form.querySelector(`[data-palette="spacer"]`)?.dispatchEvent(new dom.MouseEvent("click", { bubbles: true }));
+
+    const height = form.querySelector<HTMLInputElement>("[data-field=height]");
+    const unit = form.querySelector<HTMLSelectElement>("[data-field=unit]");
+    if (!height || !unit) throw new Error("spacer props");
+    expect(height.value).toBe("1");
+    expect(unit.value).toBe("em");
+
+    height.value = "2";
+    height.dispatchEvent(new dom.Event("change", { bubbles: true }));
+    const unitAfter = form.querySelector<HTMLSelectElement>("[data-field=unit]");
+    if (!unitAfter) throw new Error("spacer unit");
+    unitAfter.value = "rem";
+    unitAfter.dispatchEvent(new dom.Event("change", { bubbles: true }));
+
+    const html = readComposeHtml(form).main ?? "";
+    expect(html).toContain("tessera-spacer");
+    expect(html).toContain('data-height="2"');
+    expect(html).toContain('data-unit="rem"');
+    expect(html).toContain('style="height:2rem"');
+  });
+
   it("keeps several paragraphs and an optional heading in one text item", () => {
     dom.document.body.innerHTML = `<form>
       <button type="button" data-palette="text">Text</button>

@@ -436,6 +436,33 @@ describe("paintSections", () => {
     expect(parseSections(html)).toEqual([{ kind: "toc" }]);
   });
 
+  it("paints and parses a spacer with default em height", () => {
+    expect(blankSection("spacer")).toEqual({ kind: "spacer", value: 1, unit: "em" });
+    const sections = [{ kind: "spacer" as const, value: 1, unit: "em" as const }];
+    const html = paintSections(sections);
+    expect(html).toContain("tessera-spacer");
+    expect(html).toContain('data-height="1"');
+    expect(html).toContain('data-unit="em"');
+    expect(html).toContain('style="height:1em"');
+    expect(parseSections(html)).toEqual(sections);
+  });
+
+  it("round-trips spacer units and falls back for invalid height", () => {
+    const sections = [{ kind: "spacer" as const, value: 2.5, unit: "rem" as const }];
+    const html = paintSections(sections);
+    expect(parseSections(html)).toEqual(sections);
+    expect(
+      parseSections(
+        `<div class="tessera-block tessera-spacer" style="height: 3px" aria-hidden="true"></div>`,
+      ),
+    ).toEqual([{ kind: "spacer", value: 3, unit: "px" }]);
+    expect(
+      parseSections(
+        `<div class="tessera-block tessera-spacer" data-height="0" data-unit="px" style="height:0px"></div>`,
+      ),
+    ).toEqual([{ kind: "spacer", value: 1, unit: "px" }]);
+  });
+
   it("round-trips subpages with an optional tone", () => {
     const sections = [{ kind: "subpages" as const, title: "In this section", tone: "sand" as const }];
     const html = paintSections(sections);

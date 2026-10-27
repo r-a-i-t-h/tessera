@@ -141,6 +141,12 @@ export const BLOCK_WIDTHS = [
 
 export type BlockWidthId = (typeof BLOCK_WIDTHS)[number]["id"];
 
+/** Fixed vertical gap between composed blocks. */
+export const SPACER_UNITS = ["em", "rem", "px"] as const;
+export type SpacerUnit = (typeof SPACER_UNITS)[number];
+
+const SPACER_HEIGHT_STYLE = /height:\s*(\d+(?:\.\d+)?)(em|rem|px)\b/i;
+
 const COLUMN_CHROME = new Set([
   ...COLUMN_LAYOUT,
   "w3-container",
@@ -173,6 +179,7 @@ function isHeadingTag(tag: string): tag is `h${HeadingLevel}` {
 export type Section =
   | { kind: "heading"; level: HeadingLevel; text: string }
   | { kind: "text"; heading: string; level: HeadingLevel; html: string; loose?: boolean }
+  | { kind: "spacer"; value: number; unit: SpacerUnit }
   | { kind: "panel"; tone: ToneId; sections: Section[] }
   | { kind: "quote"; tone: ToneId; text: string; attribution: string }
   | { kind: "imgbox"; src: string; alt: string; caption: string; plain: boolean; width: BlockWidthId }
@@ -189,6 +196,7 @@ export type Section =
 export type PaletteKind =
   | "heading"
   | "text"
+  | "spacer"
   | "panel"
   | "quote"
   | "imgbox"
@@ -204,6 +212,7 @@ export type PaletteKind =
 export const PALETTE: { kind: PaletteKind; label: string }[] = [
   { kind: "heading", label: "Heading" },
   { kind: "text", label: "Text" },
+  { kind: "spacer", label: "Spacer" },
   { kind: "panel", label: "Panel" },
   { kind: "quote", label: "Quote" },
   { kind: "imgbox", label: "Image box" },
@@ -253,6 +262,30 @@ export function isBlockWidth(value: string): value is BlockWidthId {
   return BLOCK_WIDTHS.some((item) => item.id === value);
 }
 
+export function isSpacerUnit(value: string): value is SpacerUnit {
+  return (SPACER_UNITS as readonly string[]).includes(value);
+}
+
+export function parseSpacerValue(raw: string | number): number {
+  const n = typeof raw === "number" ? raw : Number(String(raw).trim());
+  if (!Number.isFinite(n) || n <= 0) return 1;
+  return n;
+}
+
+export function parseSpacerUnit(raw: string): SpacerUnit {
+  const unit = raw.trim().toLowerCase();
+  return isSpacerUnit(unit) ? unit : "em";
+}
+
+function normalizeSpacer(section: { value: number; unit: SpacerUnit }): { value: number; unit: SpacerUnit } {
+  return { value: parseSpacerValue(section.value), unit: parseSpacerUnit(section.unit) };
+}
+
+function spacerHeightStyle(value: number, unit: SpacerUnit): string {
+  const { value: v, unit: u } = normalizeSpacer({ value, unit });
+  return `height:${v}${u}`;
+}
+
 export function columnWidths(layout: ColumnLayoutId): readonly string[] {
   return COLUMN_LAYOUTS.find((item) => item.id === layout)?.widths ?? COLUMN_LAYOUTS[0].widths;
 }
@@ -290,6 +323,8 @@ export function blankSection(kind: PaletteKind): Section {
       return { kind: "heading", level: 2, text: "" };
     case "text":
       return { kind: "text", heading: "", level: 2, html: "" };
+    case "spacer":
+      return { kind: "spacer", value: 1, unit: "em" };
     case "panel":
       return { kind: "panel", tone: "sand", sections: [] };
     case "quote":
@@ -359,6 +394,8 @@ export function paintSection(section: Section, lookup: ToneLookup = EMPTY_LOOKUP
       return `<h${section.level} class="${BLOCK_CLASS}">${escapeText(section.text)}</h${section.level}>`;
     case "text":
       return paintText(section);
+    case "spacer":
+      return paintSpacer(section);
     case "panel":
       return paintPanel(section, lookup);
     case "quote":
@@ -403,6 +440,12 @@ function isBlankTextHtml(html: string): boolean {
 
 function textSectionHasContent(section: { heading: string; html: string }): boolean {
   return section.heading.trim() !== "" || !isBlankTextHtml(section.html);
+}
+
+function paintSpacer(section: Extract<Section, { kind: "spacer" }>): string {
+  const { value, unit } = normalizeSpacer(section);
+  const style = spacerHeightStyle(value, unit);
+  return `<div class="${joinClass(BLOCK_CLASS, "tessera-spacer")}" data-height="${escapeAttr(String(value))}" data-unit="${escapeAttr(unit)}" style="${escapeAttr(style)}" aria-hidden="true"></div>`;
 }
 
 function paintText(section: Extract<Section, { kind: "text" }>): string {
@@ -679,7 +722,31 @@ function asPageElement(el: ElNode, lookup: ToneLookup): Section | null {
     const sheet = findEl(el, (node) => hasClass(node, "tessera-pasted-sheet"));
     return { kind: "pasted", html: serializeChildren((sheet ?? el).children) };
   }
+  if (hasClass(el, "tessera-spacer")) {
+    return parseSpacerElement(el);
+  }
   return null;
+}
+
+function parseSpacerElement(el: ElNode): Section {
+  const dataHeight = attr(el, "data-height");
+  if (dataHeight) {
+    return {
+      kind: "spacer",
+      value: parseSpacerValue(dataHeight),
+      unit: parseSpacerUnit(attr(el, "data-unit") || "em"),
+    };
+  }
+  const styleHeight = attr(el, "style");
+  const match = styleHeight.match(SPACER_HEIGHT_STYLE);
+  if (match) {
+    return {
+      kind: "spacer",
+      value: parseSpacerValue(match[1]!),
+      unit: parseSpacerUnit(match[2]!),
+    };
+  }
+  return { kind: "spacer", value: 1, unit: "em" };
 }
 
 function isBareDiv(el: ElNode): boolean {
