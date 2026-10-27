@@ -43,6 +43,7 @@ export {
 } from "./schema.js";
 export {
   blogHeroStyle,
+  blogHeroWidth,
   blogLayouts,
   injectBlogLayouts,
   markBlogLinks,

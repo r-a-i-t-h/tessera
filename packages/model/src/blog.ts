@@ -68,6 +68,11 @@ export function usesBlog(pages: readonly Page[]): boolean {
 
 export type BlogHeroStyle = "full" | "banner" | "side";
 
+/** Same ids as ImgBox block width. */
+export type BlogHeroWidth = "full" | "threequarter" | "twothird" | "half" | "third";
+
+const BLOG_HERO_WIDTHS = new Set<BlogHeroWidth>(["full", "threequarter", "twothird", "half", "third"]);
+
 /** Missing or unknown values use the banner. A set value must be one of the three. */
 export function blogHeroStyle(fields: { heroStyle?: string } | undefined): BlogHeroStyle {
   const raw = fields?.heroStyle?.trim() ?? "";
@@ -75,10 +80,23 @@ export function blogHeroStyle(fields: { heroStyle?: string } | undefined): BlogH
   return "banner";
 }
 
+/** Missing or unknown values use full width. Applies to full and banner heroes only. */
+export function blogHeroWidth(fields: { heroWidth?: string } | undefined): BlogHeroWidth {
+  const raw = fields?.heroWidth?.trim() ?? "";
+  if (raw && BLOG_HERO_WIDTHS.has(raw as BlogHeroWidth)) return raw as BlogHeroWidth;
+  return "full";
+}
+
 function assertHeroStyle(blog: Page): void {
   const hero = blog.fields?.heroStyle?.trim() ?? "";
   if (!hero || hero === "full" || hero === "banner" || hero === "side") return;
   throw new Error(`Blog ${blog.id} hero must be full, banner, or side.`);
+}
+
+function assertHeroWidth(blog: Page): void {
+  const width = blog.fields?.heroWidth?.trim() ?? "";
+  if (!width || BLOG_HERO_WIDTHS.has(width as BlogHeroWidth)) return;
+  throw new Error(`Blog ${blog.id} hero width must be full, threequarter, twothird, half, or third.`);
 }
 
 function assertBlogFields(blog: Page): void {
@@ -90,6 +108,7 @@ function assertBlogFields(blog: Page): void {
     throw new Error(`Blog ${blog.id} page size must be a positive integer.`);
   }
   assertHeroStyle(blog);
+  assertHeroWidth(blog);
 }
 
 function blogById(pages: readonly Page[], id: string): Page | undefined {

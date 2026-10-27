@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ARTICLE_LAYOUT_ID,
   blogHeroStyle,
+  blogHeroWidth,
   injectBlogLayouts,
   markBlogLinks,
   placeArticles,
@@ -77,12 +78,21 @@ describe("placeArticles", () => {
     expect(blogHeroStyle(undefined)).toBe("banner");
     expect(blogHeroStyle({ heroStyle: "side" })).toBe("side");
     expect(blogHeroStyle({ heroStyle: "nope" })).toBe("banner");
+    expect(blogHeroWidth(undefined)).toBe("full");
+    expect(blogHeroWidth({ heroWidth: "half" })).toBe("half");
+    expect(blogHeroWidth({ heroWidth: "nope" })).toBe("full");
     expect(() =>
       placeArticles([
         page({ id: "news", title: "News", type: "blog", fields: { heroStyle: "wide" } }),
         fair,
       ]),
     ).toThrow(/hero must be full, banner, or side/);
+    expect(() =>
+      placeArticles([
+        page({ id: "news", title: "News", type: "blog", fields: { heroWidth: "wide" } }),
+        fair,
+      ]),
+    ).toThrow(/hero width must be/);
     expect(() =>
       placeArticles([page({ id: "news", title: "News", type: "blog", fields: { heroStyle: "full" } }), fair]),
     ).not.toThrow();

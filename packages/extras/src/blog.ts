@@ -1,4 +1,4 @@
-import { blogHeroStyle, type Page, type SiteDocument } from "@r-a-i-t-h/tessera-model";
+import { blogHeroStyle, blogHeroWidth, type Page, type SiteDocument } from "@r-a-i-t-h/tessera-model";
 import { hrefForPage, type ComponentFn } from "@r-a-i-t-h/tessera-renderer";
 import type { BlogCard } from "./blog-runtime.js";
 import { formatDate } from "./willow.js";
@@ -49,6 +49,13 @@ function card(ctx: Parameters<ComponentFn>[0], page: Page): BlogCard {
   };
 }
 
+function heroWrap(inner: string, blogFields: Page["fields"]): string {
+  const style = blogHeroStyle(blogFields);
+  const width = blogHeroWidth(blogFields);
+  const widthAttr = style !== "side" && width !== "full" ? ` data-width="${width}"` : "";
+  return `<div class="tessera-blog-hero"${widthAttr}>${inner}</div>`;
+}
+
 function hashHref(base: string, suffix: string): string {
   if (!suffix) return base;
   return base.startsWith("#") ? `${base}/${suffix}` : `${base}#${suffix}`;
@@ -70,7 +77,7 @@ export const blogArticle: ComponentFn = (ctx) => {
     cards: same.map((item) => card(ctx, item)),
   };
   const hero = page.fields?.hero?.trim() ?? "";
-  const heroHtml = hero ? `<div class="tessera-blog-hero">${ctx.mediaHtml(hero)}</div>` : "";
+  const heroHtml = hero ? heroWrap(ctx.mediaHtml(hero), blog?.fields) : "";
   const author = page.fields?.author?.trim() ?? "";
   const byline = [page.fields?.date ? formatDate(page.fields.date) : "", author].filter(Boolean).join(" · ");
   const tags = (page.tags ?? [])

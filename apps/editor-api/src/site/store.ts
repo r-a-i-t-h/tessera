@@ -752,6 +752,9 @@ export class SiteStore {
       const heroStyle = fields.heroStyle?.trim() ?? "";
       if (heroStyle) fields.heroStyle = heroStyle;
       else delete fields.heroStyle;
+      const heroWidth = fields.heroWidth?.trim() ?? "";
+      if (heroWidth) fields.heroWidth = heroWidth;
+      else delete fields.heroWidth;
       next.fields = fields;
     }
     if (type === "blog-index") {

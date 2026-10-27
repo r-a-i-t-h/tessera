@@ -1,3 +1,4 @@
+import { BLOCK_WIDTHS } from "@r-a-i-t-h/tessera-sections";
 import { escapeHtml } from "../dom.js";
 
 function fieldValue(record: Record<string, unknown>, id: string): string {
@@ -51,6 +52,7 @@ export function blogMeta(record: Record<string, unknown>): string {
     <p><label for="fields.pageSize">Page size</label>
       <input id="fields.pageSize" name="fields.pageSize" inputmode="numeric" class="w3-input w3-border w3-margin-top" value="${escapeHtml(pageSize)}" /></p>
     ${heroStyleSelect(fieldValue(record, "heroStyle"))}
+    ${heroWidthSelect(fieldValue(record, "heroWidth"))}
     <p class="editor-check"><label><input id="fields.showIndexInNav" name="fields.showIndexInNav" type="checkbox" data-kind="checkbox"${fieldValue(record, "showIndexInNav") === "true" ? " checked" : ""} /> Show index in the menu</label></p>
     <p>Index: <a href="#/content/${encodeURIComponent(indexId)}">${escapeHtml(indexId)}</a></p>
   </fieldset>`;
@@ -70,6 +72,20 @@ function heroStyleSelect(current: string): string {
     .join("");
   return `<p><label for="fields.heroStyle">Hero</label>
     <select id="fields.heroStyle" name="fields.heroStyle" class="w3-select w3-border w3-margin-top">${items}</select></p>
+`;
+}
+
+function heroWidthSelect(current: string): string {
+  const ids = BLOCK_WIDTHS.map((item) => item.id);
+  const known = ids.includes(current as (typeof ids)[number]);
+  const selected = known || !current ? current || "full" : current;
+  const extra = current && !known ? [[current, current] as const] : [];
+  const items = [...extra, ...BLOCK_WIDTHS.map((item) => [item.id, item.label] as const)]
+    .map(([value, label]) => `<option value="${escapeHtml(value)}"${value === selected ? " selected" : ""}>${escapeHtml(label)}</option>`)
+    .join("");
+  return `<p><label for="fields.heroWidth">Hero width</label>
+    <select id="fields.heroWidth" name="fields.heroWidth" class="w3-select w3-border w3-margin-top">${items}</select>
+    <span class="w3-text-grey w3-small">Full and banner heroes use this width. Side keeps the column layout with a square image.</span></p>
 `;
 }
 
