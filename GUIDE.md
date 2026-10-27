@@ -266,14 +266,18 @@ Upload or edit a module, then wire it through a binding: **Runtime module** (pro
 
 ## Panel tones
 
-The [site record](#/records/site) may list extra tones for Compose **Panel** and **Quote** sections (`panelTones` on the Site form). They appear in the Tone dropdown and style that block only; they are not aspects and do not change the page chrome. Put their CSS in [site local](#/styles?sheet=local) so a theme reinstall does not wipe it. Theme apply does not clear the catalog. Panel is a nested-block container (like Card): the tone styles the shell, and you drop other Compose sections inside it.
+The [site record](#/records/site) lists extra tones for Compose **Panel** and **Quote** sections in **`panelTones`** on the Site form (same key in `records/site.yaml`). They appear in the Tone dropdown and style that block only; they are not aspects and do not change the page chrome. Put their CSS in [site local](#/styles?sheet=local) so a theme reinstall does not wipe it. Theme apply does not clear the catalog. Panel is a nested-block container (like Card): the tone styles the shell, and you drop other Compose sections inside it.
 
-Keep typed divergence small. Prefer a background (or border) on the panel shell, and only change type on a **Text** widget that is a direct child of the panel body. Cards, quotes, images, and text nested inside those stay on the site style. Example catalog entry and CSS:
+Keep typed divergence small. Prefer a background (or border) on the panel shell, and only change type on a **Text** widget that is a direct child of the panel body. Cards, quotes, images, and text nested inside those stay on the site style. Example `panelTones` on the site record and matching CSS:
 
 ```yaml
-- id: callout
-  label: Callout
-  className: tone-callout
+id: willow-hall
+title: Willow Hall
+homePageId: home
+panelTones:
+  - id: callout
+    label: Callout
+    className: tone-callout
 ```
 
 ```css

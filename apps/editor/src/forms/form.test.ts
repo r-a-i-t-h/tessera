@@ -29,6 +29,7 @@ describe("schema forms", () => {
       "historyMaxAgeDays",
       "version",
       "historyMaxEntries",
+      "panelTones",
     ]);
   });
 
@@ -201,12 +202,11 @@ describe("schema forms", () => {
     expect(renderForm(siteSchema, { id: "s", title: "S", homePageId: "home" })).toContain(">None</option>");
     expect(withDefaultAspectChoices(SITE_FORM, []).fields.find((field) => field.name === "defaultAspectId")).toBeUndefined();
     expect(schemaFor("site", { id: "s", title: "S", homePageId: "home", aspects: aspects })?.fields.find((f) => f.name === "aspects")).toBeUndefined();
-    const panelTonesSchema = schemaFor("site", {
-      id: "s",
-      title: "S",
-      homePageId: "home",
-      panelTones: [{ id: "ma-blue", label: "School blue", className: "ma-panel-blue" }],
+    expect(SITE_FORM.fields.find((f) => f.name === "panelTones")).toMatchObject({
+      name: "panelTones",
+      type: "yaml",
     });
+    const panelTonesSchema = schemaFor("site", { id: "s", title: "S", homePageId: "home" });
     expect(panelTonesSchema?.fields.find((f) => f.name === "panelTones")).toMatchObject({
       name: "panelTones",
       type: "yaml",

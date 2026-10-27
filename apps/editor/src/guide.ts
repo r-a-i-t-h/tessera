@@ -203,11 +203,15 @@ export function guideHtml(): string {
     <p>Upload or edit a module, then wire it through a binding: <strong>Runtime module</strong> (props only) or <strong>Dataset list</strong> with presentation <strong>Runtime module</strong>. Insert the binding in Compose, preview, and publish. Use <code>ctx.host</code> in the module for DOM helpers (<code>el</code>, <code>text</code>, <code>ui.card</code>, and the rest) — do not import Tessera internals in v1. Dataset bindings also set <code>ctx.dataset</code> with the embedded snapshot.</p>
 
     <h2 id="panel-tones">Panel tones</h2>
-    <p>The <a href="#/records/site">site record</a> may list extra tones for Compose <strong>Panel</strong> and <strong>Quote</strong> sections (<code>panelTones</code> on the Site form). They appear in the Tone dropdown and style that block only; they are not aspects and do not change the page chrome. Put their CSS in ${sheetLink("local", "site local")} so a theme reinstall does not wipe it. Theme apply does not clear the catalog. Panel is a nested-block container (like Card): the tone styles the shell, and you drop other Compose sections inside it.</p>
-    <p>Keep typed divergence small. Prefer a background (or border) on the panel shell, and only change type on a <strong>Text</strong> widget that is a direct child of the panel body. Cards, quotes, images, and text nested inside those stay on the site style. Example catalog entry and CSS:</p>
-    <pre>- id: callout
-  label: Callout
-  className: tone-callout</pre>
+    <p>The <a href="#/records/site">site record</a> lists extra tones for Compose <strong>Panel</strong> and <strong>Quote</strong> sections in <code>panelTones</code> on the Site form (same key in <code>records/site.yaml</code>). They appear in the Tone dropdown and style that block only; they are not aspects and do not change the page chrome. Put their CSS in ${sheetLink("local", "site local")} so a theme reinstall does not wipe it. Theme apply does not clear the catalog. Panel is a nested-block container (like Card): the tone styles the shell, and you drop other Compose sections inside it.</p>
+    <p>Keep typed divergence small. Prefer a background (or border) on the panel shell, and only change type on a <strong>Text</strong> widget that is a direct child of the panel body. Cards, quotes, images, and text nested inside those stay on the site style. Example <code>panelTones</code> on the site record and matching CSS:</p>
+    <pre>id: willow-hall
+title: Willow Hall
+homePageId: home
+panelTones:
+  - id: callout
+    label: Callout
+    className: tone-callout</pre>
     <pre>.tone-callout &gt; .rt-panel-body &gt; .tessera-text {
   font-family: "Source Sans 3", sans-serif;
   font-size: 1.15em;

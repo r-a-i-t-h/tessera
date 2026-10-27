@@ -78,6 +78,7 @@ export const SITE_FORM: FormSchema = {
     { name: "historyMaxAgeDays", label: "History max age (days)", type: "number" },
     { name: "version", label: "Version", type: "number", readOnly: true },
     { name: "historyMaxEntries", label: "History max entries", type: "number" },
+    { name: "panelTones", label: "Panel tones", type: "yaml", rows: 10 },
   ],
 };
 
