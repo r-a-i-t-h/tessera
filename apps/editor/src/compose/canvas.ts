@@ -57,6 +57,7 @@ type EditCard = {
   title: string;
   width: BlockWidthId;
   plain: boolean;
+  frameColor?: string;
   items: EditNode[];
 };
 
@@ -288,6 +289,7 @@ function toEdit(section: Section): EditNode {
       title: section.title,
       width: section.width,
       plain: section.plain,
+      ...(section.frameColor ? { frameColor: section.frameColor } : {}),
       items: section.sections.map(toEdit),
     };
   }
@@ -319,6 +321,7 @@ function toSection(node: EditNode): Section {
       title: node.title,
       width: node.width,
       plain: node.plain,
+      ...(node.frameColor ? { frameColor: node.frameColor } : {}),
       sections: node.items.map(toSection),
     };
   }
