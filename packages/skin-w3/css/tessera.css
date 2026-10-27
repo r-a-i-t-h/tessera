@@ -978,26 +978,30 @@ a.tessera-page-missing,
 
 .tessera-blog-neighbors {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 3fr) minmax(0, 1fr) minmax(0, 3fr);
   align-items: center;
   gap: 0.75rem 1rem;
   margin: 1rem 0;
 }
 
-.tessera-blog-neighbor-start {
-  justify-self: start;
+.tessera-blog-neighbor-start,
+.tessera-blog-neighbor-end {
+  justify-self: stretch;
   min-width: 0;
+  overflow: hidden;
 }
 
 .tessera-blog-neighbor-end {
-  justify-self: stretch;
   display: flex;
   justify-content: flex-end;
-  min-width: 0;
 }
 
 .tessera-blog-neighbor-index {
   justify-self: center;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tessera-blog-neighbor {
@@ -1009,7 +1013,17 @@ a.tessera-page-missing,
   text-decoration: none;
 }
 
+.tessera-blog-neighbor-start .tessera-blog-neighbor,
+.tessera-blog-neighbor-end .tessera-blog-neighbor {
+  max-width: 100%;
+}
+
+.tessera-blog-neighbor-end .tessera-blog-neighbor {
+  margin-left: auto;
+}
+
 .tessera-blog-neighbor-title {
+  flex: 1 1 0;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1035,6 +1049,26 @@ a.tessera-page-missing,
 .tessera-blog-neighbor:focus-visible .tessera-blog-neighbor-btn {
   background: #757575;
   color: #fff;
+}
+
+@media (max-width: 600px) {
+  .tessera-blog-neighbors {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tessera-blog-neighbor-start {
+    justify-self: start;
+    width: 100%;
+  }
+
+  .tessera-blog-neighbor-index {
+    justify-self: center;
+  }
+
+  .tessera-blog-neighbor-end {
+    justify-self: stretch;
+    width: 100%;
+  }
 }
 
 .tessera-blog-tools {
