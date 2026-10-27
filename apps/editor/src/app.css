@@ -1742,6 +1742,7 @@ img[data-hero-preview] {
 
 .style-tokens-preview {
   min-width: 0;
+  align-self: stretch;
 }
 
 .style-specimen {
