@@ -1,4 +1,5 @@
 import { formatDatasetUrlHtml } from "@r-a-i-t-h/tessera-model";
+import { applyFrameColorStyle, cardClass } from "@r-a-i-t-h/tessera-sections";
 import { WCBase } from "@r-a-i-t-h/tessera-wc-base";
 import {
   datasetRowTitle,
@@ -217,10 +218,10 @@ abstract class DatasetViewElement extends WCBase {
       return;
     }
     const headingId = payload.headingField;
-    const cardShell =
-      "tessera-block tessera-card w3-card w3-padding w3-white tessera-dataset-card";
+    const cardShell = `${cardClass(false)} tessera-dataset-card`;
     for (const row of rows) {
       const card = this.d({ className: cardShell });
+      applyFrameColorStyle(card, payload.frameColor);
       if (headingId) {
         const h3 = this.e("h3", { className: "w3-text-theme" });
         h3.textContent = row.values[headingId]?.trim() || "—";

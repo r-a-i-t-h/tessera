@@ -3,6 +3,7 @@ import {
   type DatasetFilter,
   type DatasetFilterOp,
 } from "@r-a-i-t-h/tessera-model";
+import { normalizeFrameColor } from "@r-a-i-t-h/tessera-sections";
 import type { DatasetFieldOption } from "../dataset-field-catalog.js";
 import { REORDER_ICONS } from "../editor-icons.js";
 import { escapeHtml } from "../dom.js";
@@ -23,6 +24,7 @@ export type DatasetDraft = {
   showHeader: boolean;
   compact: boolean;
   headingField: string;
+  frameColor: string;
   filters: DatasetFilter[];
   propsExtra: Record<string, unknown>;
   recordExtra: Record<string, unknown>;
@@ -63,6 +65,7 @@ export function blankDataset(): DatasetDraft {
     showHeader: true,
     compact: false,
     headingField: "",
+    frameColor: "",
     filters: [],
     propsExtra: {},
     recordExtra: {},
@@ -84,6 +87,7 @@ export function datasetDraft(data: unknown): DatasetDraft {
   delete propsExtra.showHeader;
   delete propsExtra.compact;
   delete propsExtra.headingField;
+  delete propsExtra.frameColor;
   delete propsExtra.filter;
   delete propsExtra.module;
   const sort = isRecord(props.sort) ? props.sort : {};
@@ -102,6 +106,7 @@ export function datasetDraft(data: unknown): DatasetDraft {
     showHeader: props.showHeader !== false,
     compact: props.compact === true,
     headingField: typeof props.headingField === "string" ? props.headingField : "",
+    frameColor: typeof props.frameColor === "string" ? props.frameColor : "",
     filters: parseDatasetFilters(props.filter) ?? [],
     propsExtra,
     recordExtra: recordExtra(record),
@@ -139,8 +144,12 @@ export function datasetRecord(id: string, draft: DatasetDraft): Record<string, u
     const heading = draft.headingField.trim();
     if (heading) props.headingField = heading;
     else delete props.headingField;
+    const frameColor = normalizeFrameColor(draft.frameColor);
+    if (frameColor) props.frameColor = frameColor;
+    else delete props.frameColor;
   } else {
     delete props.headingField;
+    delete props.frameColor;
   }
   if (draft.filters.length) props.filter = draft.filters.map(normalizeFilterForSave);
   else delete props.filter;
@@ -187,6 +196,7 @@ export function datasetDraftFromForm(
     showHeader: controls.find((c) => c.name === "dataset-show-header")?.checked !== false,
     compact: controls.some((c) => c.name === "dataset-compact" && c.checked),
     headingField: valueOf(controls, "dataset-heading-field"),
+    frameColor: valueOf(controls, "dataset-frame-color"),
     filters: form ? filtersFromForm(form, catalog) : filtersFromControls(controls, catalog),
     propsExtra: parseObject(valueOf(controls, "dataset-props-extra")),
     recordExtra: parseObject(valueOf(controls, "dataset-record-extra")),
@@ -602,6 +612,8 @@ export function datasetFields(draft: DatasetDraft, choices: DatasetBindingChoice
     <p class="editor-check" data-dataset-table-only${tableOnly ? "" : " hidden"}><label><input type="checkbox" name="dataset-compact"${draft.compact ? " checked" : ""} /> Compact table</label></p>
     <p data-dataset-cards-only${cardsOnly ? "" : " hidden"}><label for="dataset-heading-field">Card title field</label>
       ${headingFieldSelect(draft.headingField, catalog, draft.fields)}</p>
+    <p data-dataset-cards-only${cardsOnly ? "" : " hidden"}><label for="dataset-frame-color">Frame colour</label>
+      <input id="dataset-frame-color" name="dataset-frame-color" class="w3-input w3-border" value="${escapeHtml(draft.frameColor)}" placeholder="Default" /></p>
   </div>`;
 }
 

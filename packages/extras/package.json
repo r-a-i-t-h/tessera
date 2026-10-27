@@ -14,6 +14,7 @@
     "@r-a-i-t-h/tessera-demo-kit": "*",
     "@r-a-i-t-h/tessera-model": "*",
     "@r-a-i-t-h/tessera-renderer": "*",
+    "@r-a-i-t-h/tessera-sections": "*",
     "@r-a-i-t-h/tessera-wc-base": "*"
   },
   "devDependencies": {

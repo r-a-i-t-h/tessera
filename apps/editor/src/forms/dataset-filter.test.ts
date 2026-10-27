@@ -46,6 +46,7 @@ function blankDatasetLike() {
     showHeader: true,
     compact: false,
     headingField: "",
+    frameColor: "",
     propsExtra: {},
     recordExtra: {},
   };

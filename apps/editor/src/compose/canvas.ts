@@ -6,6 +6,7 @@ import {
   blankSection,
   cardClass,
   columnWidths,
+  frameColorAttr,
   imgboxClass,
   isBlockWidth,
   isColumnLayout,
@@ -513,9 +514,9 @@ function propsFor(node: EditNode, choices: Choices, locked: boolean): string {
     case "quote":
       return `<label class="editor-prop">Tone <select data-field="tone">${toneOptions(node.tone, choices.panelTones)}</select></label><label class="editor-prop">Attribution <input data-field="attribution" class="w3-input" value="${escapeAttr(node.attribution)}"></label>`;
     case "imgbox":
-      return `${imgboxFields(node)}${widthSelect(node.width)}<label class="editor-prop">Hide frame <input type="checkbox" data-field="plain"${node.plain ? " checked" : ""}></label>`;
+      return `${imgboxFields(node)}${widthSelect(node.width)}${frameColorField(node)}<label class="editor-prop">Hide frame <input type="checkbox" data-field="plain"${node.plain ? " checked" : ""}></label>`;
     case "card":
-      return `<label class="editor-prop">Title <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}"></label>${widthSelect(node.width)}<label class="editor-prop">Hide frame <input type="checkbox" data-field="plain"${node.plain ? " checked" : ""}></label>`;
+      return `<label class="editor-prop">Title <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}"></label>${widthSelect(node.width)}${frameColorField(node)}<label class="editor-prop">Hide frame <input type="checkbox" data-field="plain"${node.plain ? " checked" : ""}></label>`;
     case "columns":
       return layoutSelect(node.layout);
     case "insert":
@@ -576,6 +577,12 @@ function widthSelect(width: BlockWidthId): string {
     (item) => `<option value="${item.id}"${item.id === width ? " selected" : ""}>${escapeText(item.label)}</option>`,
   ).join("");
   return `<label class="editor-prop">Width <select data-field="width">${options}</select></label>`;
+}
+
+function frameColorField(node: { frameColor?: string; plain: boolean }): string {
+  if (node.plain) return "";
+  const value = node.frameColor ?? "";
+  return `<label class="editor-prop">Frame colour <input data-field="frameColor" class="w3-input" value="${escapeAttr(value)}" placeholder="Default"></label>`;
 }
 
 function youtubeProps(node: Extract<EditLeaf, { kind: "youtube" }>): string {
@@ -723,7 +730,7 @@ function imgboxBody(node: Extract<EditLeaf, { kind: "imgbox" }>): string {
     ? `<div class="w3-display-middle w3-container w3-padding-16 w3-round-large w3-white" data-caption>${escapeText(node.caption)}</div>`
     : `<div class="w3-display-middle w3-hide" data-caption></div>`;
   const src = node.src ? editorMediaSrc(node.src) : "";
-  return `<div class="${imgboxClass(node.plain)}"${blockWidthAttr(node.width)}>${src ? `<img src="${escapeAttr(src)}" class="w3-image" alt="${escapeAttr(node.alt)}">` : `<p class="w3-text-grey">Add an image address.</p>`}${caption}</div>`;
+  return `<div class="${imgboxClass(node.plain)}"${blockWidthAttr(node.width)}${frameColorAttr(node.frameColor, node.plain)}>${src ? `<img src="${escapeAttr(src)}" class="w3-image" alt="${escapeAttr(node.alt)}">` : `<p class="w3-text-grey">Add an image address.</p>`}${caption}</div>`;
 }
 
 function panelBody(node: EditPanel, choices: Choices, zone: string, locked: boolean): string {
@@ -733,7 +740,7 @@ function panelBody(node: EditPanel, choices: Choices, zone: string, locked: bool
 
 function cardBody(node: EditCard, choices: Choices, zone: string, locked: boolean): string {
   const inner = nestedItems(node.items, choices, zone, locked, node.uid, "");
-  return `<div class="${cardClass(node.plain)}"${blockWidthAttr(node.width)}><h3 class="w3-text-theme" data-card-title>${escapeText(node.title)}</h3><div class="rt-card-body editor-cell">${inner}</div></div>`;
+  return `<div class="${cardClass(node.plain)}"${blockWidthAttr(node.width)}${frameColorAttr(node.frameColor, node.plain)}><h3 class="w3-text-theme" data-card-title>${escapeText(node.title)}</h3><div class="rt-card-body editor-cell">${inner}</div></div>`;
 }
 
 function columnsBody(node: EditColumns, choices: Choices, zone: string, locked: boolean): string {
@@ -1540,6 +1547,12 @@ function syncAll(state: Mounted): void {
   }
 }
 
+function setFrameColor(node: { frameColor?: string }, value: string): void {
+  const trimmed = value.trim();
+  if (trimmed) node.frameColor = trimmed;
+  else delete node.frameColor;
+}
+
 function applyControl(node: EditLeaf | EditCard | EditPanel, field: string, value: string): void {
   if ((node.kind === "heading" || node.kind === "text") && field === "level") node.level = parseHeadingLevel(value);
   if ((node.kind === "panel" || node.kind === "quote") && field === "tone" && isTone(value)) node.tone = value;
@@ -1548,10 +1561,12 @@ function applyControl(node: EditLeaf | EditCard | EditPanel, field: string, valu
   if (node.kind === "imgbox" && field === "alt") node.alt = value;
   if (node.kind === "imgbox" && field === "caption") node.caption = value;
   if (node.kind === "imgbox" && field === "plain") node.plain = value === "true";
+  if (node.kind === "imgbox" && field === "frameColor") setFrameColor(node, value);
   if (node.kind === "imgbox" && field === "width" && isBlockWidth(value)) node.width = value;
   if (node.kind === "text" && field === "loose") node.loose = value === "true";
   if (node.kind === "card" && field === "title") node.title = value;
   if (node.kind === "card" && field === "plain") node.plain = value === "true";
+  if (node.kind === "card" && field === "frameColor") setFrameColor(node, value);
   if (node.kind === "card" && field === "width" && isBlockWidth(value)) node.width = value;
   if (node.kind === "insert" && field === "id") node.id = value.trim();
   if (node.kind === "subpages" && field === "title") node.title = value;

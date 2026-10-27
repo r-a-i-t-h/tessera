@@ -274,6 +274,7 @@ describe("binding records", () => {
         showHeader: false,
         compact: true,
         headingField: "",
+        frameColor: "",
         filters: [],
         propsExtra: {},
         recordExtra: {},

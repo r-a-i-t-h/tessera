@@ -9,6 +9,7 @@ import {
   type RecordDisplayContext,
 } from "@r-a-i-t-h/tessera-model";
 import type { RenderContext } from "@r-a-i-t-h/tessera-renderer";
+import { normalizeFrameColor } from "@r-a-i-t-h/tessera-sections";
 import { queryOptionsFromProps } from "./dataset-present-props.js";
 
 export type DatasetColumnAlign = "left" | "center" | "right";
@@ -43,6 +44,8 @@ export type DatasetViewPayload = {
   interactiveSort: boolean;
   columns: DatasetColumnPayload[];
   rows: DatasetRowPayload[];
+  /** Framed cards only: CSS colour for `--tessera-frame-bg`. */
+  frameColor?: string;
 };
 
 function columnCellFormat(kind?: DatasetFieldKindAny): DatasetColumnCellFormat | undefined {
@@ -134,6 +137,10 @@ export function buildDatasetViewPayload(
   const headingField =
     variant === "cards" ? resolveCardHeadingField(columns, headingProp) : headingProp;
 
+  const frameColorRaw = typeof props.frameColor === "string" ? props.frameColor : "";
+  const frameColor =
+    variant === "cards" ? normalizeFrameColor(frameColorRaw) : undefined;
+
   return {
     variant,
     empty: typeof props.empty === "string" ? props.empty : "",
@@ -144,6 +151,7 @@ export function buildDatasetViewPayload(
     interactiveSort: props.interactiveSort === true,
     columns,
     rows: result.rows.map(rowToPayload),
+    ...(frameColor ? { frameColor } : {}),
   };
 }
 

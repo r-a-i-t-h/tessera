@@ -31,13 +31,19 @@ export type RuntimeModuleHost = {
   assetUrl(id: string, ext: string): string;
   portal(where?: "after" | "before" | ParentNode): HTMLElement;
   ui: {
-    card(opts: { title?: string; width?: BlockWidthId; plain?: boolean }): ReturnType<typeof createCardDom>;
+    card(opts: {
+      title?: string;
+      width?: BlockWidthId;
+      plain?: boolean;
+      frameColor?: string;
+    }): ReturnType<typeof createCardDom>;
     imgBox(opts: {
       src: string;
       alt?: string;
       caption?: string;
       width?: BlockWidthId;
       plain?: boolean;
+      frameColor?: string;
     }): HTMLDivElement;
     panel(opts: { tone?: ToneId }): ReturnType<typeof createPanelDom>;
     text(opts: { heading?: string; level?: 2 | 3 | 4; text?: string }): HTMLDivElement;

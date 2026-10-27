@@ -545,4 +545,57 @@ describe("paintSections", () => {
     const html = `<div style="margin: 30px auto; padding: 40px; transform: rotate(-2deg);">Farm news stays here.</div>`;
     expect(parseSections(html)).toEqual([{ kind: "html", html }]);
   });
+
+  it("round-trips card and imgbox frame colours", () => {
+    const sections: Section[] = [
+      {
+        kind: "card",
+        title: "Dark",
+        width: "full",
+        plain: false,
+        frameColor: "rgba(0, 0, 0, 0.6)",
+        sections: [{ kind: "text", heading: "", level: 2, html: "<p>Body</p>" }],
+      },
+      {
+        kind: "imgbox",
+        src: "a.jpg",
+        alt: "",
+        caption: "",
+        plain: false,
+        width: "half",
+        frameColor: "#1a1a1a",
+      },
+    ];
+    const html = paintSections(sections);
+    expect(html).toContain("--tessera-frame-bg");
+    expect(html).toContain("rgba(0, 0, 0, 0.6)");
+    expect(parseSections(html)).toEqual(sections);
+  });
+
+  it("does not paint frame colour when the frame is hidden", () => {
+    const html = paintSections([
+      {
+        kind: "card",
+        title: "Plain",
+        width: "full",
+        plain: true,
+        frameColor: "rgba(0, 0, 0, 0.6)",
+        sections: [{ kind: "text", heading: "", level: 2, html: "<p>Body</p>" }],
+      },
+    ]);
+    expect(html).not.toContain("--tessera-frame-bg");
+  });
+
+  it("drops invalid frame colours on parse", () => {
+    const html = `<div class="tessera-block tessera-card w3-card w3-padding w3-white" style="--tessera-frame-bg: url(javascript:alert(1))"><div class="rt-card-body"><p>Body</p></div></div>`;
+    expect(parseSections(html)).toEqual([
+      {
+        kind: "card",
+        title: "",
+        width: "full",
+        plain: false,
+        sections: [{ kind: "text", heading: "", level: 2, html: "<p>Body</p>" }],
+      },
+    ]);
+  });
 });

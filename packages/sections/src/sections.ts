@@ -182,8 +182,8 @@ export type Section =
   | { kind: "spacer"; value: number; unit: SpacerUnit }
   | { kind: "panel"; tone: ToneId; sections: Section[] }
   | { kind: "quote"; tone: ToneId; text: string; attribution: string }
-  | { kind: "imgbox"; src: string; alt: string; caption: string; plain: boolean; width: BlockWidthId }
-  | { kind: "card"; title: string; width: BlockWidthId; plain: boolean; sections: Section[] }
+  | { kind: "imgbox"; src: string; alt: string; caption: string; plain: boolean; width: BlockWidthId; frameColor?: string }
+  | { kind: "card"; title: string; width: BlockWidthId; plain: boolean; sections: Section[]; frameColor?: string }
   | { kind: "columns"; layout: ColumnLayoutId; cells: ColumnCell[] }
   | { kind: "insert"; id: string }
   | { kind: "subpages"; title: string; tone?: ToneId }
@@ -297,6 +297,44 @@ function widthAttr(width: BlockWidthId): string {
 function parseBlockWidth(el: ElNode): BlockWidthId {
   const raw = attr(el, "data-width");
   return isBlockWidth(raw) ? raw : "full";
+}
+
+export const FRAME_COLOR_VAR = "--tessera-frame-bg";
+
+const FRAME_COLOR_HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
+const FRAME_COLOR_FUNC =
+  /^(?:rgb|rgba|hsl|hsla)\(\s*[0-9.,%/\s]+\s*\)$/i;
+
+/** Safe CSS colour for card/imgbox frame backgrounds. */
+export function normalizeFrameColor(raw: string): string | undefined {
+  const value = raw.trim();
+  if (!value) return undefined;
+  const lower = value.toLowerCase();
+  if (lower.includes("url(") || /[;{}]/.test(value)) return undefined;
+  if (FRAME_COLOR_HEX.test(value)) return value;
+  if (FRAME_COLOR_FUNC.test(value)) return value;
+  return undefined;
+}
+
+export function frameColorAttr(color?: string, plain = false): string {
+  if (plain) return "";
+  const normalized = color ? normalizeFrameColor(color) : undefined;
+  if (!normalized) return "";
+  return ` style="${FRAME_COLOR_VAR}: ${escapeAttr(normalized)}"`;
+}
+
+export function applyFrameColorStyle(el: HTMLElement, color?: string): void {
+  const normalized = color ? normalizeFrameColor(color) : undefined;
+  if (normalized) el.style.setProperty(FRAME_COLOR_VAR, normalized);
+  else el.style.removeProperty(FRAME_COLOR_VAR);
+}
+
+function parseFrameColor(el: ElNode): string | undefined {
+  const style = attr(el, "style");
+  if (!style) return undefined;
+  const match = style.match(new RegExp(`${FRAME_COLOR_VAR.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:\\s*([^;]+)`));
+  if (!match) return undefined;
+  return normalizeFrameColor(match[1] ?? "");
 }
 
 /** Image box frame. `plain` drops the card chrome and padding so width applies to the raw image. */
@@ -510,7 +548,7 @@ function paintImgbox(section: Extract<Section, { kind: "imgbox" }>): string {
   const caption = section.caption
     ? `<div class="w3-display-middle w3-container w3-padding-16 w3-display-hover w3-normal w3-round-large w3-opacity-min w3-white">${escapeText(section.caption)}</div>`
     : "";
-  return `<div class="${imgboxClass(section.plain)}"${widthAttr(section.width)}><img src="${escapeAttr(section.src)}" class="w3-image" alt="${escapeAttr(section.alt)}">${caption}</div>`;
+  return `<div class="${imgboxClass(section.plain)}"${widthAttr(section.width)}${frameColorAttr(section.frameColor, section.plain)}><img src="${escapeAttr(section.src)}" class="w3-image" alt="${escapeAttr(section.alt)}">${caption}</div>`;
 }
 
 function paintPanel(section: Extract<Section, { kind: "panel" }>, lookup: ToneLookup): string {
@@ -526,7 +564,7 @@ function paintCard(section: Extract<Section, { kind: "card" }>, lookup: ToneLook
   const body = section.sections.map((item) => paintSection(item, lookup)).filter(Boolean).join("\n").trim();
   if (!titleHtml && !body) return "";
   const bodyHtml = body ? `<div class="rt-card-body">${body}</div>` : "";
-  return `<div class="${cardClass(section.plain)}"${widthAttr(section.width)}>${titleHtml}${bodyHtml}</div>`;
+  return `<div class="${cardClass(section.plain)}"${widthAttr(section.width)}${frameColorAttr(section.frameColor, section.plain)}>${titleHtml}${bodyHtml}</div>`;
 }
 
 function paintColumns(section: Extract<Section, { kind: "columns" }>, lookup: ToneLookup): string {
@@ -787,13 +825,16 @@ function asImgbox(el: ElNode): Section | null {
   const img = findEl(el, (node) => node.tag === "img");
   if (!img) return null;
   const captionEl = findEl(el, (node) => hasClass(node, "w3-display-middle") && textContent(node).trim() !== "");
+  const plain = !hasClass(el, "w3-card");
+  const frameColor = plain ? undefined : parseFrameColor(el);
   return {
     kind: "imgbox",
     src: attr(img, "src"),
     alt: attr(img, "alt"),
     caption: captionEl ? textContent(captionEl).trim() : "",
-    plain: !hasClass(el, "w3-card"),
+    plain,
     width: parseBlockWidth(el),
+    ...(frameColor ? { frameColor } : {}),
   };
 }
 
@@ -855,12 +896,15 @@ function asCard(el: ElNode, lookup: ToneLookup): Section | null {
   const titleEl = directChild(el, (node) => node.tag === "h3");
   const body = directChild(el, (node) => hasClass(node, "rt-card-body"));
   const nodes = body ? body.children : el.children.filter((child) => !(child.type === "el" && child.tag === "h3"));
+  const plain = marked ? !chrome : false;
+  const frameColor = plain ? undefined : parseFrameColor(el);
   return {
     kind: "card",
     title: titleEl ? textContent(titleEl).trim() : "",
     width: parseBlockWidth(el),
-    plain: marked ? !chrome : false,
+    plain,
     sections: walk(nodes, true, lookup),
+    ...(frameColor ? { frameColor } : {}),
   };
 }
 

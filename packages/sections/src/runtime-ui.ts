@@ -1,4 +1,12 @@
-import { BLOCK_CLASS, cardClass, imgboxClass, toneClass, type BlockWidthId, type ToneId } from "./sections.js";
+import {
+  applyFrameColorStyle,
+  BLOCK_CLASS,
+  cardClass,
+  imgboxClass,
+  toneClass,
+  type BlockWidthId,
+  type ToneId,
+} from "./sections.js";
 
 export type { BlockWidthId, ToneId };
 
@@ -36,10 +44,12 @@ export function createCardDom(opts: {
   title?: string;
   width?: BlockWidthId;
   plain?: boolean;
+  frameColor?: string;
 }): DomCard {
   const root = document.createElement("div");
   root.className = cardClass(opts.plain ?? false);
   applyWidth(root, opts.width ?? "full");
+  if (!(opts.plain ?? false)) applyFrameColorStyle(root, opts.frameColor);
   const title = opts.title?.trim() ?? "";
   if (title) {
     const h3 = document.createElement("h3");
@@ -59,10 +69,12 @@ export function createImgBoxDom(opts: {
   caption?: string;
   width?: BlockWidthId;
   plain?: boolean;
+  frameColor?: string;
 }): HTMLDivElement {
   const root = document.createElement("div");
   root.className = imgboxClass(opts.plain ?? false);
   applyWidth(root, opts.width ?? "full");
+  if (!(opts.plain ?? false)) applyFrameColorStyle(root, opts.frameColor);
   const img = document.createElement("img");
   img.src = opts.src;
   img.className = "w3-image";
