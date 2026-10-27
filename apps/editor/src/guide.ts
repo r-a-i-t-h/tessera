@@ -67,7 +67,7 @@ export function guideHtml(): string {
       <li><code>navCollapse</code> — <strong>Current group</strong>: no group titles; first link under each heading is the section entry; siblings show in Sub-level style when the current page is in that group.</li>
       <li><code>navTags</code> groups pages by their tags. It ignores the Nav record and article tags. Optional prop <code>tag</code> keeps one tag.</li>
       <li><code>breadcrumbs</code> prints Home, then parent pages, then the current page.</li>
-      <li><code>subpageList</code> prints the current page’s children. Optional prop <code>title</code>.</li>
+      <li><code>subpageList</code> prints the current page’s children. Optional props <code>title</code> and <code>tone</code>.</li>
       <li><code>linkCluster</code> prints a group of links in the page body. <code>source</code> is <code>children</code> (the default), <code>type</code> (also set <code>type</code> to a type id), or <code>nav</code> (also set <code>heading</code> to a Nav heading). <code>variant</code> is <code>list</code>, <code>pills</code>, or <code>cards</code>.</li>
     <li><code>pageNav</code> lists every page that has no type. It ignores the Nav record.</li>
       <li><code>searchBox</code> is typeahead search for the frame. Place it on the master layout. The index loads only on first use. Enter opens the <a href="#/content/search">Search page</a>.</li>

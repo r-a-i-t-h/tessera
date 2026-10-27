@@ -298,7 +298,8 @@ describe("authored zone HTML", () => {
       pageId: "home",
       registry: registryWithDefaults(),
     });
-    expect(html).toContain("w3-ul w3-hoverable w3-border");
+    expect(html).toContain("tessera-subpages-list");
+    expect(html).not.toContain("w3-hoverable");
     expect(html).toContain("In this section");
     expect(html).toContain("About");
     expect(html).not.toContain("data-tessera");

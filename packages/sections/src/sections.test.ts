@@ -436,6 +436,14 @@ describe("paintSections", () => {
     expect(parseSections(html)).toEqual([{ kind: "toc" }]);
   });
 
+  it("round-trips subpages with an optional tone", () => {
+    const sections = [{ kind: "subpages" as const, title: "In this section", tone: "sand" as const }];
+    const html = paintSections(sections);
+    expect(html).toContain('data-tone="sand"');
+    expect(html).toContain("w3-sand");
+    expect(parseSections(html)).toEqual(sections);
+  });
+
   it("paints subpages, youtube, gallery, and a pasted note with stable markers", () => {
     const html = paintSections([
       { kind: "subpages", title: "Visit" },

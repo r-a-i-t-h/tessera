@@ -179,7 +179,7 @@ export type Section =
   | { kind: "card"; title: string; width: BlockWidthId; plain: boolean; sections: Section[] }
   | { kind: "columns"; layout: ColumnLayoutId; cells: ColumnCell[] }
   | { kind: "insert"; id: string }
-  | { kind: "subpages"; title: string }
+  | { kind: "subpages"; title: string; tone?: ToneId }
   | { kind: "toc" }
   | { kind: "youtube"; videoId: string; /** iframe `title` for accessibility */ title: string }
   | { kind: "gallery"; folder: string; mode: GalleryMode }
@@ -371,8 +371,11 @@ export function paintSection(section: Section, lookup: ToneLookup = EMPTY_LOOKUP
       return paintColumns(section, lookup);
     case "insert":
       return INSERT_ID.test(section.id) ? `{{${section.id}}}` : "";
-    case "subpages":
-      return `<nav class="${joinClass(BLOCK_CLASS, "tessera-subpages")}" data-tessera="subpages" data-title="${escapeAttr(section.title)}"></nav>`;
+    case "subpages": {
+      const tone = section.tone && section.tone !== "plain" ? section.tone : undefined;
+      const toneAttr = tone ? ` data-tone="${escapeAttr(tone)}"` : "";
+      return `<nav class="${joinClass(BLOCK_CLASS, "tessera-subpages", tone ? resolveToneClass(tone, lookup) : "")}" data-tessera="subpages" data-title="${escapeAttr(section.title)}"${toneAttr}></nav>`;
+    }
     case "toc":
       return `<nav class="${joinClass(BLOCK_CLASS, "tessera-toc")}" data-tessera="toc"></nav>`;
     case "youtube":
@@ -602,7 +605,7 @@ function asTextRun(el: ElNode): Section | null {
 }
 
 function classify(el: ElNode, allowColumns: boolean, lookup: ToneLookup): Section[] {
-  const pageElement = asPageElement(el);
+  const pageElement = asPageElement(el, lookup);
   if (pageElement) return [pageElement];
   if (isBareDiv(el)) return walk(el.children, allowColumns, lookup);
   if (allowColumns) {
@@ -621,10 +624,35 @@ function classify(el: ElNode, allowColumns: boolean, lookup: ToneLookup): Sectio
   return [{ kind: "html", html: el.raw }];
 }
 
-function asPageElement(el: ElNode): Section | null {
+function asPageElement(el: ElNode, lookup: ToneLookup): Section | null {
   const marker = attr(el, "data-tessera");
   if (marker === "subpages" || (el.tag === "nav" && hasClass(el, "tessera-subpages"))) {
-    return { kind: "subpages", title: attr(el, "data-title") };
+    const dataTone = attr(el, "data-tone");
+    let tone: ToneId = "plain";
+    if (dataTone) tone = dataTone;
+    else {
+      for (const name of classList(el)) {
+        const mapped = lookup.byClass.get(name);
+        if (mapped) {
+          tone = mapped;
+          break;
+        }
+      }
+      if (tone === "plain") {
+        for (const name of classList(el)) {
+          if (name === "tessera-subpages" || name === BLOCK_CLASS) continue;
+          if (!PANEL_STRUCTURAL.has(name) && TONE_CLASS_ID.test(name)) {
+            tone = name;
+            break;
+          }
+        }
+      }
+    }
+    return {
+      kind: "subpages",
+      title: attr(el, "data-title"),
+      ...(tone !== "plain" ? { tone } : {}),
+    };
   }
   if (marker === "toc" || (el.tag === "nav" && hasClass(el, "tessera-toc"))) {
     return { kind: "toc" };

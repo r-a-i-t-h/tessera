@@ -1,4 +1,5 @@
 import type { LayoutNode } from "@r-a-i-t-h/tessera-model";
+import { paletteToneIds, toneLabel } from "@r-a-i-t-h/tessera-sections";
 import {
   W3_REGION_PRESETS,
   isKnownW3RegionPreset,
@@ -210,7 +211,11 @@ function knownFields(name: string, props: Record<string, unknown>): string {
       <p class="w3-small w3-text-grey">Leave empty to group every tag. This list ignores the Nav record.</p>`;
   }
   if (name === "subpageList") {
-    return `<p><label>Title <input class="w3-input w3-border" data-field="prop:title" value="${escapeHtml(value("title"))}" /></label></p>`;
+    const tone = value("tone") || "plain";
+    return `<p><label>Title <input class="w3-input w3-border" data-field="prop:title" value="${escapeHtml(value("title"))}" /></label></p>
+      <p><label>Tone <select class="w3-select w3-border" data-field="prop:tone">
+        ${paletteToneIds().map((item) => `<option value="${item}"${item === tone ? " selected" : ""}>${escapeHtml(toneLabel(item))}</option>`).join("")}
+      </select></label></p>`;
   }
   if (name === "linkCluster") {
     const source = value("source") || "children";

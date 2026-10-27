@@ -72,7 +72,7 @@ Put one of these in the master layout as a component. `scope` is `sidebar` (the 
 | `navCollapse` | **Current group** — group titles are never shown. The first link under each heading is the section entry; when you are on that link or any sibling in the group, the rest appear in Sub-level list style. |
 | `navTags` | Pages grouped by tag. Ignores the Nav record and article tags. Optional prop `tag` keeps one tag. |
 | `breadcrumbs` | Home, then parent pages, then the current page. |
-| `subpageList` | The current page’s children. Optional prop `title`. |
+| `subpageList` | The current page’s children. Optional props `title` and `tone` (panel palette id, for use inside a toned panel). |
 | `linkCluster` | A group of links in the page body. `source` is `children` (the default), `type` (also set `type` to a type id), or `nav` (also set `heading` to a Nav heading). `variant` is `list`, `pills`, or `cards`. |
 | `pageNav` | Every page that has no type. Ignores the Nav record. |
 | `searchBox` | Typeahead search in the frame. Put it on the master layout. The index loads only when someone focuses or types. Enter opens the [Search page](#/content/search) (`search/?q=…`, or `#search?q=…` on a snapshot). |

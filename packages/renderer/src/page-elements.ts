@@ -9,7 +9,11 @@ const MARKER = /<(nav|div)\b[^>]*\bdata-tessera="(subpages|gallery)"[^>]*>(?:\s*
 export function expandPageElements(html: string, ctx: RenderContext): string {
   const withToc = expandToc(html);
   return withToc.replace(MARKER, (full, _tag: string, kind: string) => {
-    if (kind === "subpages") return subpageList(ctx, { title: attr(full, "data-title") }) ?? "";
+    if (kind === "subpages") {
+      const title = attr(full, "data-title");
+      const tone = attr(full, "data-tone");
+      return subpageList(ctx, tone ? { title, tone } : { title }) ?? "";
+    }
     if (kind === "gallery") {
       const mode = attr(full, "data-mode") === "slides" ? "slides" : "grid";
       return gallery(ctx, { folders: [attr(full, "data-folder")], mode }) ?? "";

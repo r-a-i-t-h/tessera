@@ -241,13 +241,19 @@ describe("optional heading labels", () => {
 });
 
 describe("subpageList", () => {
-  it("lists the current page's children with W3CSS", () => {
+  it("lists the current page's children with Tessera list styling", () => {
     const html = subpageList(context(document, "home"), { title: "In this section" });
     expect(html).toContain("<h3>In this section</h3>");
-    expect(html).toContain("w3-ul w3-hoverable w3-border");
+    expect(html).toContain("tessera-subpages-list");
+    expect(html).not.toContain("w3-hoverable");
     expect(html).toContain('href="#events"');
     expect(html).toContain("Events");
     expect(html).not.toContain("Summer fair");
+  });
+
+  it("applies an optional panel tone class on the nav", () => {
+    const html = subpageList(context(document, "home"), { tone: "sand" });
+    expect(html).toContain("w3-sand");
   });
 
   it("renders nothing when the page has no children", () => {

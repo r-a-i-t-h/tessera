@@ -512,7 +512,7 @@ function propsFor(node: EditNode, choices: Choices, locked: boolean): string {
         ? `<label class="editor-prop">Binding <select data-field="id">${bindingOptions(choices.bindings, node.id)}</select></label>`
         : `<label class="editor-prop">Binding id <input data-field="id" class="w3-input" value="${escapeAttr(node.id)}" placeholder="Binding id"></label>`;
     case "subpages":
-      return `<label class="editor-prop">Heading <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}" placeholder="Optional"></label>`;
+      return `<label class="editor-prop">Heading <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}" placeholder="Optional"></label><label class="editor-prop">Tone <select data-field="tone">${toneOptions(node.tone ?? "plain", choices.panelTones)}</select></label>`;
     case "toc":
       return "";
     case "youtube":
@@ -543,7 +543,7 @@ function lockedProps(node: EditNode, choices: Choices): string {
     case "youtube":
       return youtubeProps(node);
     case "subpages":
-      return `<label class="editor-prop">Heading <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}" placeholder="Optional"></label>`;
+      return `<label class="editor-prop">Heading <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}" placeholder="Optional"></label><label class="editor-prop">Tone <select data-field="tone">${toneOptions(node.tone ?? "plain", choices.panelTones)}</select></label>`;
     default:
       return "";
   }
@@ -847,10 +847,17 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
       if (fromChange) rerenderArticle(form, node.uid);
       return;
     }
-    if (node.kind === "subpages" && field === "title") {
-      node.title = value;
-      if (fromChange) rerenderArticle(form, node.uid);
-      return;
+    if (node.kind === "subpages") {
+      if (field === "title") {
+        node.title = value;
+        if (fromChange) rerenderArticle(form, node.uid);
+        return;
+      }
+      if (field === "tone") {
+        node.tone = isTone(value) ? value : "plain";
+        if (fromChange) rerenderArticle(form, node.uid);
+        return;
+      }
     }
     if (node.kind === "youtube") {
       if (field === "video") {
@@ -1507,6 +1514,7 @@ function applyControl(node: EditLeaf | EditCard | EditPanel, field: string, valu
   if (node.kind === "card" && field === "width" && isBlockWidth(value)) node.width = value;
   if (node.kind === "insert" && field === "id") node.id = value.trim();
   if (node.kind === "subpages" && field === "title") node.title = value;
+  if (node.kind === "subpages" && field === "tone" && isTone(value)) node.tone = value;
   if (node.kind === "youtube" && field === "video") {
     const id = youtubeVideoId(value);
     node.videoId = id || value.trim();
