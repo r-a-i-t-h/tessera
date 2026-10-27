@@ -259,4 +259,55 @@ describe("subpageList", () => {
   it("renders nothing when the page has no children", () => {
     expect(subpageList(context(document, "fair"), {})).toBe("");
   });
+
+  it("orders children alphabetically when none have a date", () => {
+    const doc = parseSiteDocument({
+      version: 2,
+      site: { id: "s", title: "Hall", homePageId: "home" },
+      layouts: [{ id: "L", root: { type: "region", children: [{ type: "zone", id: "main" }] } }],
+      pages: [
+        { id: "home", title: "Home", zones: {} },
+        { id: "z-page", title: "Zulu", parentId: "home", zones: {} },
+        { id: "a-page", title: "Alpha", parentId: "home", zones: {} },
+      ],
+    });
+    const html = subpageList(context(doc, "home"), {});
+    expect(html.indexOf("Alpha")).toBeLessThan(html.indexOf("Zulu"));
+  });
+
+  it("orders children by date newest first when any have fields.date", () => {
+    const doc = parseSiteDocument({
+      version: 2,
+      site: { id: "s", title: "Hall", homePageId: "home" },
+      layouts: [{ id: "L", root: { type: "region", children: [{ type: "zone", id: "main" }] } }],
+      pages: [
+        { id: "blog", title: "Blog", zones: {} },
+        {
+          id: "old-post",
+          title: "Old",
+          parentId: "blog",
+          type: "article",
+          fields: { date: "2026-01-01" },
+          zones: {},
+        },
+        {
+          id: "new-post",
+          title: "New",
+          parentId: "blog",
+          type: "article",
+          fields: { date: "2026-03-15" },
+          zones: {},
+        },
+        {
+          id: "no-date",
+          title: "Undated",
+          parentId: "blog",
+          zones: {},
+        },
+      ],
+    });
+    const html = subpageList(context(doc, "blog"), {});
+    expect(html.indexOf("New")).toBeLessThan(html.indexOf("Old"));
+    expect(html.indexOf("Old")).toBeLessThan(html.indexOf("Undated"));
+  });
 });

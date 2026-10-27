@@ -2,6 +2,7 @@ import type { Page } from "@r-a-i-t-h/tessera-model";
 import { toneClass } from "@r-a-i-t-h/tessera-sections";
 import type { ComponentFn } from "../types.js";
 import { hrefForPage } from "../page-href.js";
+import { sortSubpageSiblings } from "../page-sort.js";
 import { flattenNav, resolveNavTree, type ResolvedNavNode } from "../nav-expand.js";
 
 /** Nav heading row (optional title): groups links; not a page link. */
@@ -291,9 +292,9 @@ export const subpageList: ComponentFn = (ctx, props = {}) => {
   const title = typeof props.title === "string" ? props.title.trim() : "";
   const toneRaw = typeof props.tone === "string" ? props.tone.trim() : "";
   const tone = toneRaw && toneRaw !== "plain" ? toneRaw : "";
-  const links = ctx.document.pages
-    .filter((page) => page.parentId === ctx.page.id)
-    .map((page) => ({ id: page.id, title: page.title }));
+  const links = sortSubpageSiblings(ctx.document.pages.filter((page) => page.parentId === ctx.page.id)).map(
+    (page) => ({ id: page.id, title: page.title }),
+  );
   if (!links.length) return "";
   const navClass = ["tessera-subpages", "w3-margin-bottom", tone ? toneClass(tone) : ""].filter(Boolean).join(" ");
   const heading = title ? `<h3>${ctx.escapeHtml(title)}</h3>` : "";
