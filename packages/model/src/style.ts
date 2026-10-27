@@ -22,6 +22,7 @@ export const SiteStyleSchema = z.object({
   muted: z.string().optional(),
   accent: z.string().optional(),
   link: z.string().optional(),
+  frameBg: z.string().optional(),
 });
 
 export type SiteStyle = z.infer<typeof SiteStyleSchema>;
@@ -47,10 +48,13 @@ export const STYLE_DEFAULTS: Required<SiteStyle> = {
   muted: "#666666",
   accent: "#009688",
   link: "#00796b",
+  frameBg: "rgba(255, 255, 255, 0.75)",
 };
 
 const SIZE = /^\d+(\.\d+)?(px|rem|em|%)$/;
 const COLOR = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+const FRAME_COLOR_HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
+const FRAME_COLOR_FUNC = /^(?:rgb|rgba|hsl|hsla)\(\s*[0-9.,%/\s]+\s*\)$/i;
 const FONT = /^[A-Za-z0-9][A-Za-z0-9 .'-]{0,80}$/;
 const HREF = /^https:\/\/[^\s"'<>\\]{1,500}$/;
 const SELECTOR = /^(:root|\.[A-Za-z][\w-]*)$/;
@@ -76,6 +80,10 @@ export function styleIssue(style: SiteStyle | undefined): string | undefined {
   }
   const href = style.fontsHref?.trim();
   if (href && !HREF.test(href)) return "Fonts stylesheet must be an https URL.";
+  const frameBg = style.frameBg?.trim();
+  if (frameBg && !frameColorValid(frameBg)) {
+    return "Card frame must be a hex or rgb/rgba/hsl/hsla colour.";
+  }
   return undefined;
 }
 
@@ -103,10 +111,11 @@ export function resolveSiteStyle(style: SiteStyle | undefined): Required<SiteSty
     muted: color(source.muted, STYLE_DEFAULTS.muted),
     accent: color(source.accent, STYLE_DEFAULTS.accent),
     link: color(source.link, STYLE_DEFAULTS.link),
+    frameBg: frameColor(source.frameBg, STYLE_DEFAULTS.frameBg),
   };
 }
 
-type TokenKind = "size" | "color" | "font";
+type TokenKind = "size" | "color" | "font" | "frameColor";
 
 const CSS_TOKENS: readonly { key: keyof SiteStyle; prop: string; kind: TokenKind }[] = [
   { key: "sidebarWidth", prop: "--tessera-sidebar-width", kind: "size" },
@@ -126,6 +135,7 @@ const CSS_TOKENS: readonly { key: keyof SiteStyle; prop: string; kind: TokenKind
   { key: "muted", prop: "--tessera-muted", kind: "color" },
   { key: "accent", prop: "--tessera-accent", kind: "color" },
   { key: "link", prop: "--tessera-link", kind: "color" },
+  { key: "frameBg", prop: "--tessera-frame-bg", kind: "frameColor" },
 ];
 
 /** Every resolved token. The Styles specimen uses this because it does not load `tessera.css`. */
@@ -171,6 +181,18 @@ function color(value: string | undefined, fallback: string): string {
   return trimmed && COLOR.test(trimmed) ? trimmed : fallback;
 }
 
+function frameColor(value: string | undefined, fallback: string): string {
+  const trimmed = value?.trim();
+  return trimmed && frameColorValid(trimmed) ? trimmed : fallback;
+}
+
+function frameColorValid(value: string): boolean {
+  const lower = value.toLowerCase();
+  if (lower.includes("url(") || /[;{}]/.test(value)) return false;
+  if (FRAME_COLOR_HEX.test(value)) return true;
+  return FRAME_COLOR_FUNC.test(value);
+}
+
 function font(value: string | undefined, fallback: string): string {
   const trimmed = value?.trim();
   return trimmed && FONT.test(trimmed) ? trimmed : fallback;
@@ -199,12 +221,18 @@ function formatToken(kind: TokenKind, value: string): string {
 function tokenValid(kind: TokenKind, value: string): boolean {
   if (kind === "size") return SIZE.test(value);
   if (kind === "color") return COLOR.test(value);
+  if (kind === "frameColor") return frameColorValid(value);
   return FONT.test(value);
 }
 
 function sameToken(kind: TokenKind, value: string, fallback: string): boolean {
   if (kind === "color") return value.toLowerCase() === fallback.toLowerCase();
+  if (kind === "frameColor") return normalizeFrameColorToken(value) === normalizeFrameColorToken(fallback);
   return value === fallback;
+}
+
+function normalizeFrameColorToken(value: string): string {
+  return value.replace(/\s+/g, " ").trim().toLowerCase();
 }
 
 function fontStack(name: string): string {

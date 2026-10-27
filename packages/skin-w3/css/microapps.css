@@ -98,8 +98,13 @@
   visibility: hidden;
 }
 
+.w3-table.tessera-dataset-table {
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
 .w3-table.tessera-dataset-table thead.tessera-dataset-table__head {
-  background: var(--tessera-toc-bg);
+  background: var(--tessera-frame-bg, rgba(255, 255, 255, 0.75));
   color: var(--tessera-text);
 }
 
@@ -120,7 +125,7 @@
 }
 
 .w3-table.tessera-dataset-table thead.tessera-dataset-table__head th {
-  border-bottom: 1px solid var(--tessera-toc-border);
+  border-bottom: 1px solid #e6e6e6;
 }
 
 .w3-table.tessera-dataset-table tbody tr {

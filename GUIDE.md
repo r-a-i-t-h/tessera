@@ -208,8 +208,9 @@ The [Styles](#/styles) page can open each of these files. Saving W3, Tessera, mi
 | Muted | Breadcrumb type, and the border of link cards. |
 | Accent | Current sidebar link, and link pills. |
 | Link | Links in the page body and in breadcrumbs. |
+| Card frame | Framed Card and Image box fills, dataset table headers, and dataset Cards shells (unless a block or binding sets its own frame colour). Hex or `rgba`. |
 
-Lengths are values such as `300px` or `1.5rem`. Colours are hex, such as `#009688`.
+Lengths are values such as `300px` or `1.5rem`. Colours are hex, such as `#009688`, except **Card frame**, which also accepts `rgb`/`rgba`/`hsl`.
 
 ## A standing side menu on Willow
 

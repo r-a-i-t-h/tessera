@@ -105,6 +105,35 @@ export function styleSpecimenHtml(style: Required<SiteStyle>): string {
                   <a class="tessera-link-card" href="#/styles">Section</a>
                 </div>
               </nav>
+              <div class="tessera-block tessera-card w3-card w3-padding w3-white">
+                <h3 class="w3-text-theme">Sample card</h3>
+                <div class="rt-card-body"><p>Framed cards and image boxes use the site <strong>Card frame</strong> colour unless a block sets its own frame colour.</p></div>
+              </div>
+              <div class="tessera-block tessera-imgbox w3-card w3-padding w3-white">
+                <p class="w3-text-grey w3-center w3-padding-32" style="margin:0;background:#e8e8e8">Image</p>
+                <p class="w3-small w3-text-grey w3-center">Sample image box</p>
+              </div>
+              <table class="w3-table w3-section w3-border tessera-dataset-table" aria-label="Sample dataset table">
+                <thead class="tessera-dataset-table__head">
+                  <tr class="w3-wide">
+                    <th class="tessera-dataset-table__th tessera-dataset-align-left" scope="col">Name</th>
+                    <th class="tessera-dataset-table__th tessera-dataset-align-left" scope="col">Role</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>Ada</td><td>Member</td></tr>
+                </tbody>
+              </table>
+              <div class="tessera-block tessera-card w3-card w3-padding w3-white tessera-dataset-card">
+                <h3 class="w3-text-theme">Dataset card</h3>
+                <div class="rt-card-body">
+                  <table class="tessera-dataset-card-fields w3-table w3-small">
+                    <tbody>
+                      <tr><th scope="row">Status</th><td>Active</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
             <footer class="tessera-footer"><p>Footer</p></footer>
           </div>
@@ -184,6 +213,10 @@ function fieldHtml(name: string, label: string, kind: string, value: string): st
   if (kind === "color") {
     return `<p><label for="${id}">${escapeHtml(label)}</label>
       <input id="${id}" name="${escapeHtml(name)}" class="style-color" type="color" value="${escapeHtml(value)}" /></p>`;
+  }
+  if (kind === "frameColor") {
+    return `<p><label for="${id}">${escapeHtml(label)}</label>
+      <input id="${id}" name="${escapeHtml(name)}" class="w3-input w3-border" type="text" value="${escapeHtml(value)}" placeholder="Default" /></p>`;
   }
   const type = kind === "url" ? "url" : "text";
   return `<p${wide}><label for="${id}">${escapeHtml(label)}</label>

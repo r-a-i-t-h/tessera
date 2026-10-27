@@ -5,7 +5,7 @@ import {
   type SiteStyle,
 } from "@r-a-i-t-h/tessera-model";
 
-export type StyleFieldKind = "size" | "font" | "url" | "color" | "side" | "footer";
+export type StyleFieldKind = "size" | "font" | "url" | "color" | "frameColor" | "side" | "footer";
 
 export type StyleField = {
   name: keyof SiteStyle;
@@ -35,6 +35,7 @@ export const STYLE_FIELDS: StyleField[] = [
   { name: "muted", label: "Muted", group: "Colours", kind: "color" },
   { name: "accent", label: "Accent", group: "Colours", kind: "color" },
   { name: "link", label: "Link", group: "Colours", kind: "color" },
+  { name: "frameBg", label: "Card frame", group: "Colours", kind: "frameColor" },
 ];
 
 /** Form values for a site record, with defaults filled in for blank tokens. */

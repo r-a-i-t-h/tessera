@@ -162,9 +162,10 @@ export function guideHtml(): string {
         <tr><td>Muted</td><td>Breadcrumb type, and the border of link cards.</td></tr>
         <tr><td>Accent</td><td>Current sidebar link, and link pills.</td></tr>
         <tr><td>Link</td><td>Links in the page body and in breadcrumbs.</td></tr>
+        <tr><td>Card frame</td><td>Framed Card and Image box fills, dataset table headers, and dataset Cards shells (unless a block or binding sets its own frame colour). Hex or <code>rgba</code>.</td></tr>
       </tbody>
     </table>
-    <p>Lengths are values such as <code>300px</code> or <code>1.5rem</code>. Colours are hex, such as <code>#009688</code>.</p>
+    <p>Lengths are values such as <code>300px</code> or <code>1.5rem</code>. Colours are hex, such as <code>#009688</code>, except <strong>Card frame</strong>, which also accepts <code>rgb</code>/<code>rgba</code>/<code>hsl</code>.</p>
 
     <h2 id="a-standing-side-menu-on-willow">A standing side menu on Willow</h2>
     <p>The drawer is already in the master layout, with id <code>mySidebar</code>. To keep it open on a wide window, add <code>w3-collapse</code> to that region’s classes:</p>

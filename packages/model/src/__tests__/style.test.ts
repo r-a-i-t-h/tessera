@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { parseSiteDocument } from "../index.js";
-import { resolveSiteStyle, siteBodyClass, siteStyleCss, siteStyleOverrideCss, styleIssue } from "../style.js";
+import {
+  STYLE_DEFAULTS,
+  resolveSiteStyle,
+  siteBodyClass,
+  siteStyleCss,
+  siteStyleOverrideCss,
+  styleIssue,
+} from "../style.js";
 
 const layout = {
   id: "L",
@@ -35,6 +42,7 @@ describe("site style", () => {
     expect(resolved.navSide).toBe("right");
     expect(siteStyleCss(doc.site.style)).toContain("--tessera-sidebar-width: 240px;");
     expect(siteStyleCss(doc.site.style)).toContain("--tessera-bar-height: 42px;");
+    expect(siteStyleCss(doc.site.style)).toContain("--tessera-frame-bg: rgba(255, 255, 255, 0.75);");
     expect(siteStyleOverrideCss(doc.site.style)).toContain("--tessera-sidebar-width: 240px;");
     expect(siteStyleOverrideCss(doc.site.style)).toContain("--tessera-bar: #112233;");
     expect(siteStyleOverrideCss(doc.site.style)).not.toContain("--tessera-bar-height");
@@ -60,5 +68,14 @@ describe("site style", () => {
     expect(css).toContain('--tessera-font-a: "Lekton", sans-serif;');
     expect(css).toContain("--tessera-bar: #009688;");
     expect(css).not.toContain("</style>");
+  });
+
+  it("resolves and overrides card frame colours", () => {
+    const dark = "rgba(30, 30, 30, 0.9)";
+    expect(resolveSiteStyle({ frameBg: dark }).frameBg).toBe(dark);
+    expect(siteStyleOverrideCss({ frameBg: dark })).toContain(`--tessera-frame-bg: ${dark};`);
+    expect(siteStyleOverrideCss({ frameBg: STYLE_DEFAULTS.frameBg })).toBe("");
+    expect(styleIssue({ frameBg: "url(javascript:alert(1))" })).toMatch(/Card frame/);
+    expect(resolveSiteStyle({ frameBg: "not-a-colour" }).frameBg).toBe(STYLE_DEFAULTS.frameBg);
   });
 });

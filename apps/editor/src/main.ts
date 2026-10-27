@@ -1,6 +1,7 @@
 import "@r-a-i-t-h/tessera-skin-w3/w3.css";
 import "@r-a-i-t-h/tessera-skin-w3/w3-theme-teal.css";
 import "@r-a-i-t-h/tessera-skin-w3/tessera.css";
+import "@r-a-i-t-h/tessera-skin-w3/microapps.css";
 import "./app.css";
 import { mount } from "./app";
 

@@ -58,6 +58,12 @@ describe("site style page", () => {
     expect(html).toContain("tessera-link-card");
     expect(html).toContain("is-active");
     expect(html).toContain("tessera-footer");
+    expect(html).toContain("tessera-card");
+    expect(html).toContain("rt-card-body");
+    expect(html).toContain("tessera-imgbox");
+    expect(html).toContain("tessera-dataset-table");
+    expect(html).toContain("tessera-dataset-table__head");
+    expect(html).toContain("tessera-dataset-card");
   });
 });
 
