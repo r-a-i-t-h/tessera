@@ -7,7 +7,7 @@ import {
   htmlByZoneForMode,
   validateFrameZoneId,
 } from "./view.js";
-import { withZoneHtml } from "./draft.js";
+import { withZoneWidgets } from "./draft.js";
 
 const layout: PageLayoutHint = {
   layoutId: "tessera-article",
@@ -75,7 +75,7 @@ describe("composeFormInner", () => {
       [],
     );
     expect(html).toContain('data-zone="main"');
-    expect(html).toContain('data-zone="title"');
+    expect(html).not.toContain('data-zone="title"');
     expect(html).not.toContain('data-zone="sidebar_target"');
     expect(html).not.toContain('name="title"');
     expect(html).not.toContain("Off layout");
@@ -120,13 +120,9 @@ describe("htmlByZoneForMode", () => {
         sidebar_target: { html: "<p>Quote</p>" },
       },
     };
-    expect(htmlByZoneForMode(record, pageLayout, "compose")).toEqual({
-      title: "",
-      main: "<p>Body</p>",
-    });
-    expect(htmlByZoneForMode(record, pageLayout, "frame")).toEqual({
-      sidebar_target: "<p>Quote</p>",
-    });
+    expect(htmlByZoneForMode(record, pageLayout, "compose").main).toContain("Body");
+    expect(htmlByZoneForMode(record, pageLayout, "compose")).not.toHaveProperty("title");
+    expect(htmlByZoneForMode(record, pageLayout, "frame").sidebar_target).toContain("Quote");
   });
 });
 
@@ -146,24 +142,24 @@ describe("validateFrameZoneId", () => {
 });
 
 describe("frame zone draft merge", () => {
-  it("keeps compose zones when saving frame HTML", () => {
+  it("keeps compose zones when saving frame widgets", () => {
     const base = {
       id: "home",
       title: "Home",
       zones: {
-        main: { html: "<p>Body</p>" },
-        sidebar_target: { html: "<p>Old</p>" },
+        main: { blocks: [{ kind: "text", heading: "", level: 2, html: "<p>Body</p>" }] },
+        sidebar_target: { blocks: [{ kind: "text", heading: "", level: 2, html: "<p>Old</p>" }] },
       },
     };
     const withNew = addFrameZoneToRecord(base, "events_aside");
-    const merged = withZoneHtml(withNew, {
-      sidebar_target: "<p>Quote</p>",
-      events_aside: "<p>Aside</p>",
+    const merged = withZoneWidgets(withNew, {
+      sidebar_target: [{ kind: "text", heading: "", level: 2, html: "<p>Quote</p>" }],
+      events_aside: [{ kind: "text", heading: "", level: 2, html: "<p>Aside</p>" }],
     });
     expect(merged.zones).toEqual({
-      main: { html: "<p>Body</p>" },
-      sidebar_target: { html: "<p>Quote</p>" },
-      events_aside: { html: "<p>Aside</p>" },
+      main: { blocks: [{ kind: "text", heading: "", level: 2, html: "<p>Body</p>" }] },
+      sidebar_target: { blocks: [{ kind: "text", heading: "", level: 2, html: "<p>Quote</p>" }] },
+      events_aside: { blocks: [{ kind: "text", heading: "", level: 2, html: "<p>Aside</p>" }] },
     });
   });
 });

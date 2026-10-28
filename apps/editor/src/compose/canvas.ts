@@ -32,6 +32,7 @@ import {
   type PanelToneDef,
   type Section,
   type ToneId,
+  type Widget,
 } from "@r-a-i-t-h/tessera-sections";
 import { setDragGhost } from "../drag-ghost.js";
 import { startDragScroll, type DragScroll } from "../drag-scroll.js";
@@ -127,7 +128,8 @@ export function mountComposeCanvases(
     current: string,
     options?: { returnFocus?: HTMLElement | null },
   ) => Promise<PageLinkPick | undefined>;
-    htmlByZone: Record<string, string>;
+    htmlByZone?: Record<string, string>;
+    widgetsByZone?: Record<string, Widget[]>;
     locked?: boolean;
     onEdit?: (burstId?: string) => void;
   },
@@ -136,10 +138,15 @@ export function mountComposeCanvases(
   const zones: ZoneState[] = [];
   for (const host of form.querySelectorAll<HTMLElement>("[data-canvas]")) {
     const name = host.dataset.zone ?? "";
+    const widgets = options.widgetsByZone?.[name];
+    const items =
+      widgets !== undefined
+        ? widgets.map((widget) => toEdit(widget as Section))
+        : parseSections(options.htmlByZone?.[name] ?? "", panelTones).map(toEdit);
     zones.push({
       name,
       host,
-      items: parseSections(options.htmlByZone[name] ?? "", panelTones).map(toEdit),
+      items,
     });
   }
   const state: Mounted = {
@@ -252,6 +259,17 @@ export function readComposeHtml(form: HTMLElement): Record<string, string> {
     html[zone.name] = paintSections(zone.items.map(toSection), state.panelTones);
   }
   return html;
+}
+
+export function readComposeWidgets(form: HTMLElement): Record<string, Widget[]> {
+  const state = mounted.get(form);
+  if (!state) return {};
+  syncAll(state);
+  const out: Record<string, Widget[]> = {};
+  for (const zone of state.zones) {
+    out[zone.name] = zone.items.map(toSection) as Widget[];
+  }
+  return out;
 }
 
 function mark(form: HTMLElement): void {

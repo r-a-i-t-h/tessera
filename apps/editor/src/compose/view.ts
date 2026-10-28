@@ -1,9 +1,10 @@
-import { COMPOSE_PALETTE_GROUP_LENGTHS, PALETTE } from "@r-a-i-t-h/tessera-sections";
+import { COMPOSE_PALETTE_GROUP_LENGTHS, PALETTE, compileWidgetsToHtml, widgetsFromLegacyHtml, type Widget } from "@r-a-i-t-h/tessera-sections";
 import type { PageLayoutHint } from "../api.js";
 import { COMPOSE_LIST_EXPANDED_LABEL } from "../escape-key.js";
 import { escapeHtml } from "../dom.js";
-import { draftYaml, parsePageYaml, withZoneHtml } from "./draft.js";
-import { readComposeHtml } from "./canvas.js";
+import { draftYaml, isWidgetBlocks, parsePageYaml, withZoneWidgets } from "./draft.js";
+import { isLegacyScalarHtmlZone } from "../authoring-constants.js";
+import { readComposeWidgets } from "./canvas.js";
 import { readFormValues } from "../forms/form.js";
 import { schemaFor } from "../forms/schema.js";
 
@@ -18,6 +19,7 @@ type ZoneView = {
   off: boolean;
   kind: "html" | "note";
   html: string;
+  widgets: Widget[];
   /** On Frame tab: whether the resolved master declares this outlet. */
   active?: boolean;
 };
@@ -153,6 +155,19 @@ function addZoneControls(layout?: PageLayoutHint, usedIds: readonly string[] = [
     </section>`;
 }
 
+export function widgetsByZoneForMode(
+  record: Record<string, unknown>,
+  layout: PageLayoutHint | undefined,
+  mode: "compose" | "frame",
+): Record<string, Widget[]> {
+  const out: Record<string, Widget[]> = {};
+  const views = mode === "frame" ? frameZoneViews(record, layout) : pageLayoutZoneViews(record, layout);
+  for (const zone of views) {
+    if (zone.kind === "html") out[zone.name] = zone.widgets;
+  }
+  return out;
+}
+
 export function htmlByZone(record: Record<string, unknown>, layout?: PageLayoutHint): Record<string, string> {
   return htmlByZoneForMode(record, layout, "compose");
 }
@@ -170,7 +185,6 @@ export function htmlByZoneForMode(
   return html;
 }
 
-/** Current page document, including when it still matches the saved file. */
 export function readContentDocument(
   form: HTMLFormElement,
   mode: ContentMode,
@@ -201,7 +215,7 @@ export function readContentDocument(
     const cleaned = dropFrameUiFields(read as Record<string, unknown>);
     const draft =
       mode === "compose" || mode === "frame"
-        ? withZoneHtml(cleaned, readComposeHtml(form))
+        ? withZoneWidgets(cleaned, readComposeWidgets(form))
         : cleaned;
     return { ok: true, draft, fromEditor: true };
   } catch (err) {
@@ -313,10 +327,36 @@ function zoneLabel(name: string, frame: boolean): string {
 
 function zoneView(name: string, zone: unknown, off: boolean, frame = false): ZoneView {
   const label = zoneLabel(name, frame);
-  if (zone === undefined || (isRecord(zone) && "html" in zone && !("json" in zone) && !("blocks" in zone) && !("component" in zone))) {
-    return { name, label, off, kind: "html", html: isRecord(zone) ? String(zone.html ?? "") : "" };
+  if (isLegacyScalarHtmlZone(name)) {
+    const html = isRecord(zone) ? String(zone.html ?? "") : "";
+    return { name, label, off, kind: "note", html, widgets: [] };
   }
-  return { name, label, off, kind: "note", html: "" };
+  if (zone === undefined || isComposeHtmlZone(zone) || isComposeWidgetZone(zone)) {
+    const widgets = widgetsForZone(zone);
+    return {
+      name,
+      label,
+      off,
+      kind: "html",
+      html: compileWidgetsToHtml(widgets),
+      widgets,
+    };
+  }
+  return { name, label, off, kind: "note", html: "", widgets: [] };
+}
+
+function isComposeHtmlZone(zone: unknown): boolean {
+  return isRecord(zone) && "html" in zone && !("json" in zone) && !("blocks" in zone) && !("component" in zone);
+}
+
+function isComposeWidgetZone(zone: unknown): boolean {
+  return isRecord(zone) && isWidgetBlocks(zone.blocks);
+}
+
+function widgetsForZone(zone: unknown): Widget[] {
+  if (isRecord(zone) && isWidgetBlocks(zone.blocks)) return zone.blocks as Widget[];
+  if (isRecord(zone) && "html" in zone) return widgetsFromLegacyHtml(String(zone.html ?? ""));
+  return [];
 }
 
 function zonesOf(record: Record<string, unknown>): Record<string, unknown> {

@@ -73,6 +73,7 @@ import { entryVisible } from "./forms/entries.js";
 import { arrangeMarkup, mountArrange, readArrangeRoot } from "./arrange/canvas.js";
 import { asLayoutNode, cleanNode, isFrame, newFrame, newPageLayout } from "./arrange/tree.js";
 import type { ArrangeInfo } from "./arrange/view.js";
+import { isLegacyScalarHtmlZone } from "./authoring-constants.js";
 import { mountComposeCanvases } from "./compose/canvas.js";
 import { syncComposeSiteLocalStyle } from "./compose/site-local-style.js";
 import { draftYaml, dropArticleTitleZone, parsePageYaml } from "./compose/draft.js";
@@ -82,7 +83,7 @@ import {
   composeFormInner,
   frameFormInner,
   frameNote,
-  htmlByZoneForMode,
+  widgetsByZoneForMode,
   rawText,
   templateBodyLayout,
   validateFrameZoneId,
@@ -3622,7 +3623,7 @@ async function mountPageCanvas(
           return { kind: "page", id: picked, title: pageTitles[picked] };
         }
       : undefined,
-    htmlByZone: htmlByZoneForMode(record, layout, mode),
+    widgetsByZone: widgetsByZoneForMode(record, layout, mode),
     locked: record.locked === true,
     onEdit,
   });
@@ -3834,7 +3835,7 @@ function fieldsHtml(
     return `${articleMeta(record)}${renderForm(recordSchema(kind, record, layout, types, pageIds) ?? { fields: [] }, record, pageInline)}${heroField(stringField(record, "hero"), options?.heroUrl)}${frameNote(layout)}`;
   }
   if (kind === "content" && record.type === "blog") {
-    return `${blogMeta(record)}${renderForm(recordSchema(kind, record, layout, types, pageIds) ?? { fields: [] }, record, pageInline)}${frameNote(layout)}${zoneFields(zonesOf(record), layout)}`;
+    return `${blogMeta(record)}${renderForm(recordSchema(kind, record, layout, types, pageIds) ?? { fields: [] }, record, pageInline)}${frameNote(layout)}${pageTabZoneFields(zonesOf(record), layout)}`;
   }
   if (kind === "bindings") return bindingFields(record);
   const schema = recordSchema(kind, record, layout, types, pageIds);
@@ -3846,7 +3847,7 @@ function fieldsHtml(
   const extras = schema.fields.filter((field) => !authoredNames.has(field.name));
   const zones =
     kind === "content"
-      ? `${layoutBanner(layout)}${frameNote(layout)}${typeFieldInputs(record, layout)}${zoneFields(zonesOf(record), layout)}`
+      ? `${layoutBanner(layout)}${frameNote(layout)}${typeFieldInputs(record, layout)}${pageTabZoneFields(zonesOf(record), layout)}`
       : kind === "items"
         ? zoneFields(zonesOf(record), undefined, true)
         : "";
@@ -3933,6 +3934,14 @@ function typeFieldInputs(record: Record<string, unknown>, layout?: PageLayoutHin
   if (!ids.length) return "";
   const inputs = ids.map((id) => textField(`fields.${id}`, labelize(id), typeof stored[id] === "string" ? stored[id] : ""));
   return `<fieldset class="editor-fieldset"><legend>Fields</legend><div class="editor-props">${inputs.join("")}</div></fieldset>`;
+}
+
+function pageTabZoneFields(zones: Record<string, unknown>, layout?: PageLayoutHint): string {
+  const filtered: Record<string, unknown> = {};
+  for (const [name, zone] of Object.entries(zones)) {
+    if (isLegacyScalarHtmlZone(name)) filtered[name] = zone;
+  }
+  return zoneFields(filtered, layout);
 }
 
 function zoneFields(zones: Record<string, unknown>, layout?: PageLayoutHint, item = false): string {
@@ -4076,6 +4085,16 @@ function pruneEmptyHtmlZones(data: unknown, declaredZones?: readonly string[]): 
   const declared = new Set(declaredZones ?? []);
   const next: Record<string, unknown> = {};
   for (const [id, zone] of Object.entries(zones as Record<string, unknown>)) {
+    const emptyBlocks =
+      zone &&
+      typeof zone === "object" &&
+      !Array.isArray(zone) &&
+      "blocks" in zone &&
+      Array.isArray((zone as { blocks: unknown }).blocks) &&
+      (zone as { blocks: unknown[] }).blocks.length === 0 &&
+      !("html" in zone) &&
+      !("json" in zone) &&
+      !("component" in zone);
     const emptyHtml =
       zone &&
       typeof zone === "object" &&
@@ -4087,7 +4106,7 @@ function pruneEmptyHtmlZones(data: unknown, declaredZones?: readonly string[]): 
       String((zone as { html: unknown }).html ?? "").trim() === "";
     // Keep empty frame / custom zones so the Frame tab can reopen them; page-layout
     // empties are still pruned because Compose always lists declared zones.
-    if (emptyHtml && (declared.size === 0 || declared.has(id))) {
+    if ((emptyHtml || emptyBlocks) && (declared.size === 0 || declared.has(id))) {
       continue;
     }
     next[id] = zone;

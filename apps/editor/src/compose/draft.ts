@@ -34,6 +34,22 @@ export function withZoneHtml(
   return { ...record, zones: current };
 }
 
+export function withZoneWidgets(
+  record: Record<string, unknown>,
+  zoneWidgets: Record<string, unknown[]>,
+): Record<string, unknown> {
+  const current =
+    record.zones && typeof record.zones === "object" && !Array.isArray(record.zones)
+      ? { ...(record.zones as Record<string, unknown>) }
+      : {};
+  for (const [name, widgets] of Object.entries(zoneWidgets)) {
+    const existing = current[name];
+    if (isNonComposeZone(existing)) continue;
+    current[name] = { blocks: widgets };
+  }
+  return { ...record, zones: current };
+}
+
 /** An article title is the record title. A copied title zone is not on the article layout. */
 export function dropArticleTitleZone(record: Record<string, unknown>): Record<string, unknown> {
   if (record.type !== "article") return record;
@@ -49,4 +65,16 @@ export function dropArticleTitleZone(record: Record<string, unknown>): Record<st
 function isDataZone(zone: unknown): boolean {
   if (!zone || typeof zone !== "object" || Array.isArray(zone)) return false;
   return "json" in zone || "blocks" in zone || "component" in zone;
+}
+
+function isNonComposeZone(zone: unknown): boolean {
+  if (!zone || typeof zone !== "object" || Array.isArray(zone)) return false;
+  return "json" in zone || "component" in zone;
+}
+
+export function isWidgetBlocks(value: unknown): value is { kind: string }[] {
+  if (!Array.isArray(value)) return false;
+  if (value.length === 0) return true;
+  const first = value[0];
+  return !!first && typeof first === "object" && "kind" in first && !("type" in first);
 }
