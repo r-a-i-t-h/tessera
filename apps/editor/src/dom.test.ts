@@ -1,10 +1,13 @@
-import { describe, expect, it } from "vitest";
+// @vitest-environment happy-dom
+
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   errorPanel,
   escapeHtml,
   fieldId,
   formErrorPanel,
   noticePanel,
+  showEditorToast,
   statusPanels,
 } from "./dom.js";
 
@@ -30,5 +33,20 @@ describe("editor DOM helpers", () => {
     expect(formErrorPanel()).toBe(
       `<p data-form-error class="w3-panel w3-pale-red" role="alert" hidden></p>`,
     );
+  });
+
+  afterEach(() => {
+    document.getElementById("editor-toast")?.remove();
+    vi.useRealTimers();
+  });
+
+  it("shows a brief toast on the document body", () => {
+    vi.useFakeTimers();
+    showEditorToast("Nothing was saved.");
+    const toast = document.getElementById("editor-toast");
+    expect(toast?.textContent).toBe("Nothing was saved.");
+    expect(toast?.classList.contains("editor-toast--visible")).toBe(true);
+    vi.advanceTimersByTime(2600);
+    expect(toast?.classList.contains("editor-toast--visible")).toBe(false);
   });
 });

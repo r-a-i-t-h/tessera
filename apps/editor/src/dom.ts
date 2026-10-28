@@ -27,6 +27,31 @@ export function statusPanels(notice: string, error: string): string {
     ${errorPanel(error)}`;
 }
 
+let editorToastHideTimer: ReturnType<typeof setTimeout> | undefined;
+
+/** Brief fixed toast for editor chrome (survives #app re-renders). */
+export function showEditorToast(message: string, durationMs = 2400): void {
+  let el = document.getElementById("editor-toast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "editor-toast";
+    el.className = "editor-toast";
+    el.setAttribute("role", "status");
+    el.setAttribute("aria-live", "polite");
+    document.body.appendChild(el);
+  }
+  if (editorToastHideTimer) clearTimeout(editorToastHideTimer);
+  el.textContent = message;
+  el.hidden = false;
+  el.classList.add("editor-toast--visible");
+  editorToastHideTimer = setTimeout(() => {
+    el.classList.remove("editor-toast--visible");
+    editorToastHideTimer = setTimeout(() => {
+      el.hidden = true;
+    }, 180);
+  }, durationMs);
+}
+
 export function formErrorPanel(): string {
   return `<p data-form-error class="w3-panel w3-pale-red" role="alert" hidden></p>`;
 }

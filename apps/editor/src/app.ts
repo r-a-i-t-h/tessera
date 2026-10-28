@@ -238,7 +238,7 @@ import { bindBackToTop } from "./back-to-top.js";
 import { guideHtml, scrollGuideSection } from "./guide.js";
 import { maintenanceHtml } from "./maintenance.js";
 import { bindCodeWrap, codeWrapClass, codeWrapToggle, isCodeWrapToggle } from "./code-wrap.js";
-import { escapeHtml, fieldId, formErrorPanel, noticePanel, statusPanels } from "./dom.js";
+import { escapeHtml, fieldId, formErrorPanel, noticePanel, showEditorToast, statusPanels } from "./dom.js";
 import { pushStatusMessage } from "./status-stack.js";
 import { buildContentCreationRank } from "./creation-rank.js";
 import {
@@ -306,12 +306,19 @@ export async function mount(root: HTMLElement): Promise<void> {
       return;
     }
     if (event.code !== "KeyS" || event.altKey || event.shiftKey || !(event.metaKey || event.ctrlKey)) return;
+    if (event.defaultPrevented) return;
     const active = document.activeElement;
     const focused = active instanceof HTMLElement ? active.closest("form") : null;
-    const form = editingForm(focused) ?? document.querySelector<HTMLFormElement>("#record-form");
-    if (!form) return;
+    const form =
+      editingForm(focused) ??
+      document.querySelector<HTMLFormElement>("#record-form") ??
+      document.querySelector<HTMLFormElement>("#style-form");
     event.preventDefault();
-    form.requestSubmit();
+    if (form) {
+      form.requestSubmit();
+      return;
+    }
+    showEditorToast("Nothing was saved.");
   });
   await render(root);
 }
