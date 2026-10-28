@@ -124,7 +124,7 @@ Records live in `$TESSERA_DATA/records/`, off the web path. Each record is one Y
 | `site.yaml` | Site meta |
 | `nav.yaml` | Designed nav tree |
 
-HTML zones use YAML `|` / `|-` scalars (`html:`) so markup is not JSON-escaped. Component implementations live in the shared catalogue; only bindings are records.
+HTML zones on **items** and layout **static** nodes still use YAML `html:` scalars. **Compose-backed page zones** persist an ordered **widget list** under `zones.<id>.blocks` (objects with `kind`, not renderer `type`). Assemble compiles widgets to a single `text` block for publish. The **`title`** zone may stay a plain `html:` string on the Page tab. Component implementations live in the shared catalogue; only bindings are records.
 
 The editor form for a page lists the type's fields, then zones declared by the resolved layout (the type's layout, otherwise the site default). Extra keys on the page that the layout does not declare stay editable under **Off layout**. A type is site configuration: it names fields and a layout. It is not a built-in class. Willow's person type lists `role`, `email`, `photo`, and `precis` on the entry. `schemaVersion` is how records are stored.
 
@@ -146,7 +146,7 @@ Saving a content page writes the new YAML, then appends the **previous raw file*
 
 The editor History panel lists earlier copies; clicking a time views that raw YAML (no restore). The save response names the new `site.<hash>.json`. That filename is the browser cache key: `rev.json` changes with it, and an open snapshot tab picks the new file up on its next poll.
 
-**Authoring schema** is `schemaVersion` in `$TESSERA_DATA/meta.json`. It is not `SiteDocument.version` (the number the renderer validates). The process reads `schemaVersion` and stamps it on each history entry. It does not bump the counter. Missing or non-numeric means **0**. First boot copies `seed/meta.json` into `data/` only when `meta.json` is absent, so a later boot does not wipe the stamp.
+**Authoring schema** is `schemaVersion` in `$TESSERA_DATA/meta.json`. It is not `SiteDocument.version` (the number the renderer validates). **Schema 4** stores compose zones as widget `blocks` lists; the API migrates sites at **3** or below on boot (`html:` → widgets, drops page `json:` zones). The process reads `schemaVersion` and stamps it on each history entry. It does not bump the counter during normal saves. Missing or non-numeric means **0**. First boot copies `seed/meta.json` into `data/` only when `meta.json` is absent, so a later boot does not wipe the stamp.
 
 Updates replace the release tree and leave `$TESSERA_DATA` unchanged. There is no post-update rewrite of records.
 
