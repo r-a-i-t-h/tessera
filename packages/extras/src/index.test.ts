@@ -23,8 +23,6 @@ describe("shared component catalogue", () => {
       "profileKicker",
       "profilePhoto",
       "profileFacts",
-      "agendaList",
-      "attendeeList",
       "blogArticle",
       "blogFeed",
       "blogIndex",

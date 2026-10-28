@@ -1,6 +1,0 @@
-id: all-meetings
-component: datedList
-props:
-  types:
-    - meeting
-  when: all

@@ -148,35 +148,3 @@ export const profileFacts: ComponentFn = (ctx) => {
   return `<p><a href="mailto:${ctx.escapeHtml(email)}">${ctx.escapeHtml(email)}</a></p>`;
 };
 
-type AgendaRow = { item?: string; owner?: string };
-
-export const agendaList: ComponentFn = (ctx, props = {}) => {
-  const fromZone = str(props, "fromZone", "agenda");
-  const rows = ctx.zoneJson<AgendaRow>(fromZone);
-  if (!rows.length) return `<p class="wh-muted"><em>Agenda to follow.</em></p>`;
-  return `<ol class="wh-agenda">${rows
-    .map((row) => {
-      const item = ctx.escapeHtml(row.item ?? "Untitled");
-      const owner = row.owner
-        ? ` <span class="wh-meta">${ctx.escapeHtml(row.owner)}</span>`
-        : "";
-      return `<li><span>${item}</span>${owner}</li>`;
-    })
-    .join("")}</ol>`;
-};
-
-type AttendeeRow = { name?: string; role?: string };
-
-export const attendeeList: ComponentFn = (ctx, props = {}) => {
-  const fromZone = str(props, "fromZone", "attendees");
-  const rows = ctx.zoneJson<AttendeeRow>(fromZone);
-  if (!rows.length) return "";
-  return `<ul class="wh-attendees">${rows
-    .map((row) => {
-      const name = ctx.escapeHtml(row.name ?? "Guest");
-      const role = row.role ? ` <span class="wh-meta">${ctx.escapeHtml(row.role)}</span>` : "";
-      return `<li>${name}${role}</li>`;
-    })
-    .join("")}</ul>`;
-};
-

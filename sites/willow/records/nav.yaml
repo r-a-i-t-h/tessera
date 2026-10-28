@@ -12,14 +12,6 @@
   title: Events
   topbar: true
   sidebar: true
-- id: meetings
-  title: Meetings
-  topbar: true
-  sidebar: true
-- heading: This term
-  sidebar: true
-  source:
-    pageType: meeting
 - id: people
   title: People
   topbar: true

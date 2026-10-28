@@ -1,7 +1,0 @@
-id: meeting
-layoutId: meeting
-fields:
-  - id: date
-    required: true
-  - id: chair
-  - id: week

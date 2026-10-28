@@ -69,11 +69,8 @@ describe("layout arrange tree", () => {
   });
 
   it("reads a page layout as zones inside regions", () => {
-    const root = load("meeting.yaml");
-    expect(isFrame(root)).toBe(false);
-    expect(labels(root)).toContain("Zone : minutes");
-    expect(labels(root)).toContain("agendaList");
     const standard = load("standard.yaml");
+    expect(isFrame(standard)).toBe(false);
     expect(labels(standard)).toContain("Zone : aside");
     expect(getNode(standard, [1, 3, 1])?.type).toBe("region");
   });

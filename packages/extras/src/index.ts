@@ -8,9 +8,7 @@ import { registerDatasetElements } from "./dataset-element.js";
 import { datasetCards, datasetPlainList, datasetTable } from "./dataset-present.js";
 import { runtimeModule } from "./runtime-module-present.js";
 import {
-  agendaList,
   articleByline,
-  attendeeList,
   datedList,
   peopleGrid,
   profileFacts,
@@ -46,8 +44,6 @@ export function registerExtras(define: (name: string, fn: ComponentFn) => unknow
   define("profileKicker", profileKicker);
   define("profilePhoto", profilePhoto);
   define("profileFacts", profileFacts);
-  define("agendaList", agendaList);
-  define("attendeeList", attendeeList);
   define("blogArticle", blogArticle);
   define("blogFeed", blogFeed);
   define("blogIndex", blogIndex);
