@@ -1,9 +1,0 @@
-id: note
-title: Note
-zones:
-  main:
-    blocks:
-      - kind: text
-        heading: ""
-        level: 2
-        html: <p>Body</p>
