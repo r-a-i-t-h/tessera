@@ -1365,8 +1365,13 @@ img[data-hero-preview] {
 .editor-palette .w3-button {
   display: block;
   width: 100%;
-  margin: 0 0 0.4rem;
+  margin: 0;
   text-align: left;
+  border-radius: 0;
+}
+
+.editor-palette .w3-button + .w3-button {
+  margin-top: -1px;
 }
 
 .editor-canvas {
@@ -2572,8 +2577,8 @@ button.editor-picker-asset:hover {
 
 .editor-palette-rule {
   border: 0;
-  border-top: 1px solid #ccc;
-  margin: 0.15rem 0 0.55rem;
+  margin: 0.45rem 0;
+  height: 0;
 }
 
 .editor-arrange-tree {
