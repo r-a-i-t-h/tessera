@@ -47,7 +47,7 @@ Ratings use this scale:
 
 Most checked acceptance criteria in `SPEC.md` are implemented. Snapshot caching and refresh, pages publishing, layouts and zones, bindings, navigation, gallery, templates, media, backup, and static deployment all have code and tests behind them.
 
-The score is not higher because first-class item listing patterns, a document browser, embedded editor preview, and `lastModified` remain incomplete or explicitly planned. These are meaningful parts of the stated product ambition rather than optional internal cleanup.
+The score is not higher because first-class author-facing listing patterns, a document browser, embedded editor preview, and `lastModified` remain incomplete or explicitly planned. Datasets and runtime modules now cover much tabular and custom UI data; the open gap is product guidance and UX, not absence of an embed path. These remain meaningful parts of the stated product ambition rather than optional internal cleanup.
 
 ### Architecture: 4.3 / 5
 
@@ -188,7 +188,7 @@ The editor is a build and authoring service, not the public request path. This r
 
 ### Keep sites as data
 
-A site directory contains records, files, shell, preview, and output, but not site-specific executable component code. The shared catalogue makes upgrades and security review more tractable.
+A site directory contains records, datasets, files, shell, preview, and output. Catalogue micro-app implementations ship with Tessera; **runtime modules** are deliberate site-owner ESM copied into `publish/` (see [docs/runtime-modules.md](./docs/runtime-modules.md) and [ARCHITECTURE.md](./ARCHITECTURE.md)). That split keeps shared catalogue upgrades reviewable while allowing bounded custom client code.
 
 ### Keep relative public URLs
 
@@ -479,7 +479,7 @@ Tessera's credible niche is:
 
 > A self-hosted editor and static publisher for small, structured sites that need a shared component catalogue, portable output, and little public infrastructure.
 
-Its strongest differentiators are the dual snapshot/pages model, data-driven bindings, no site-specific executable code, and a clean static handoff. Its biggest competitive weaknesses are editor polish, first-class content-listing patterns, workflow and permissions, ecosystem size, and out-of-the-box SEO/deployment integrations.
+Its strongest differentiators are the dual snapshot/pages model, data-driven bindings (including embedded dataset snapshots), bounded **runtime modules** for custom views, and a clean static handoff. Its biggest competitive weaknesses are editor polish, first-class author-facing listing patterns, workflow and permissions, ecosystem size, and out-of-the-box SEO/deployment integrations.
 
 The project should deepen its niche before broadening it. Embedded preview, reliable transactional editing, polished common author tasks, and complete listing/document patterns will improve the product more than adding a generic public API or plugin marketplace.
 
@@ -1174,7 +1174,7 @@ An implementation agent should stop and ask the product owner rather than guessi
 - Do not migrate the editor to React, Vue, or another framework solely to split `app.ts`. Module boundaries and tests are the immediate need.
 - Do not replace YAML files with a database unless scale or concurrency requirements demonstrate the need.
 - Do not add recursive zones; that would reverse the core Tessera design.
-- Do not let sites install arbitrary executable components without a deliberate plugin security and versioning design.
+- Do not let sites load arbitrary server-side code or unreviewed catalogue plugins. **Runtime modules** are already a deliberate, client-only escape hatch with a documented contract; expanding executable surface area needs an explicit security and versioning design.
 - Do not add a public content API merely to match headless CMS products.
 - Do not change the public Vite base to `/`; subdirectory-relative output is a product requirement.
 - Do not sanitize trusted HTML silently. If the trust model changes, design sanitization, migration, allowed markup, and author feedback together.

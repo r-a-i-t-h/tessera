@@ -22,7 +22,7 @@ The editor **API** lives in `apps/editor-api` (`@r-a-i-t-h/tessera-editor-api`):
 | `@r-a-i-t-h/tessera-wc-base` | Cookie-cut custom element base (`a` / `b` / `c`) |
 | `@r-a-i-t-h/tessera-demo-kit` | Chrome helpers the runtime uses (fonts, nav sidebar, w3 helpers) |
 | `@r-a-i-t-h/tessera-extras` | Shared component catalogue. Every site may name these. A new component is a Tessera release |
-| `@r-a-i-t-h/tessera-sections` | Compose palette. Parses and paints the zone HTML the editor stores |
+| `@r-a-i-t-h/tessera-sections` | Compose palette. Parses section HTML in the editor; authoring stores widget `blocks` on disk (schema 4) |
 | `@r-a-i-t-h/tessera-site` | One Vite host for the shared runtime. Dev serves `data/shell` and `data/preview` (a placeholder while `data/shell` is missing). `TESSERA_SITE` serves `sites/<name>/shell` instead |
 
 The example site lives under `sites/willow`. It is not an npm workspace. The editing back-end is `apps/editor-api`; the login SPA is `apps/editor`.
@@ -41,7 +41,7 @@ Hono app (Node ≥22). JSON routes first; if `spa/index.html` (a release), `apps
 | Site actions | `POST /api/site/init` writes a starter site when `site.yaml` is absent. `POST /api/site/reseed` replaces the open site with that same starter after a safety backup, and keeps editors. `POST /api/render` refreshes `preview/`. `POST /api/publish` writes `publish/`. When `publishTo` is set, it then replaces the files in that directory. |
 | Public | `GET /health`, `POST /auth/login`. Protected: `GET /auth/me`, `POST /auth/password`, `POST /auth/username`, `POST /api/ping`, `/api/users`, record CRUD, library, render, publish, backups. Logout is idempotent. |
 
-Public HTML is the editor SPA when built. The published site remains `site.json` for the renderer. Authoring is file-based YAML (not JSON) so HTML does not need escaping.
+Public HTML is the editor SPA when built. **Publish** writes a static dist under `publish/`: by default **pages** (one HTML file per page plus stamped runtimes) or **snapshot** (`publish/data/site.json` and the hashed file for the SPA). Preview and flatten always emit the snapshot shape into `preview/data/` for editing. Authoring is file-based YAML (not JSON) so HTML does not need escaping.
 
 Same origin is deliberate: the session cookie is `httpOnly` + `SameSite=Lax` with `Path=/`. A SPA on another port/origin would need CORS credentials and cookie relaxation. Dev uses a Vite proxy on port 7355 so the browser still sees one origin. The editor is not mounted under a URL prefix.
 
@@ -73,8 +73,10 @@ sites/willow/
   records/                  # YAML records, not on the web path
     site.yaml  nav.yaml
     content/ templates/ items/ layouts/ bindings/ types/ media/ folders/
-  datasets/                 # JSON dataset files (authoring only; not flattened or published)
+  datasets/                 # JSON dataset files; snapshots embed into SiteDocument at flatten when bindings reference them
     <id>.json
+  runtime-modules/          # site-owner ESM blobs (referenced modules copied into publish/)
+    <id>.js | <id>.mjs
   files/                    # flat asset blobs and editor thumbnails, not on the web path
   shell/                    # document shell, no TypeScript and no frame
     index.html  site.css  local.css
@@ -89,9 +91,10 @@ sites/willow/
     site.css
     data/                   # snapshot dist only
     media/  img/
+    runtime-modules/        # pages/snapshot: referenced module blobs
 ```
 
-`shell/` is the document shell: head, one mount (`#app`), and CSS. It does not contain the header, the nav, or TypeScript. That frame is the master layout. `publish/tessera.js` and `publish/skin/` are install bytes stamped by the site build. Adding a component is a Tessera release: it lands in `@r-a-i-t-h/tessera-extras` and every site may name it. The editor API does not load site code. The runtime loads the document, registers the catalogue, and mounts the render. It does not paint a sidebar or a top bar of its own.
+`shell/` is the document shell: head, one mount (`#app`), and CSS. It does not contain the header, the nav, or TypeScript. That frame is the master layout. `publish/tessera.js` and `publish/skin/` are install bytes stamped by the site build. A new **catalogue** component lands in `@r-a-i-t-h/tessera-extras` and every site may name it from bindings; **runtime modules** are site-owner ESM (see Runtime modules). The editor API does not execute site code. The runtime loads the document, registers the catalogue, and mounts the render. It does not paint a sidebar or a top bar of its own.
 
 The editor process serves the working snapshot at `/preview/` on the editor origin. The shell HTML is returned unchanged, so `./tessera.js`, `./data/`, `./skin/`, and `./media/` resolve inside that folder the same way they would in any directory on a static host. `tessera.js` and `skin/` come from the site build, `/data/*` comes from `preview/data` and not from `publish/`, and `media/` comes from `files/`. A signed-in editor session is required. `npm run dev:site` still serves the instance on port 5173 with live TypeScript: `data/shell` and `data/preview` (a short placeholder while `data/shell` is missing). `/data/*` is the SPA snapshot in `preview/`. `media/` and `img/` still come from `data/publish` on that dev server. `TESSERA_SITE=willow` serves that reference shell against the same runtime and keeps reading `sites/willow/publish`, which has no `preview/`. Saving and **Render site** refresh the preview only. **Publish** rebuilds `publish/` in the site's `delivery` flavour (`pages` by default, or `snapshot`) and leaves that folder alone until the next publish. `npm run build -w @r-a-i-t-h/tessera-site` builds `tessera.js` and `tessera-pages.js` and stamps `tessera.js` and `skin/` into each reference `publish/` tree. That build is not the preview. Copy `publish/` to the live host when `publishTo` is unset. When `site.yaml` sets `publishTo` to an existing directory this process can write, Publish copies `publish/` into that directory and then replaces the files there. It does not create a missing directory, rename the directory, or run as root. On Ubuntu, `/var/www` stays `root:root` mode `755`; `chown` the live folder to the app user once so the process can write inside it. Nginx, as `www-data`, can read the files when directories are `755` and files are `644`. That folder should hold only the published site: a file placed there by hand is removed on the next successful install. One publish runs at a time. A failed copy leaves the current live files in place.
 
@@ -128,7 +131,7 @@ HTML zones on **items** (and layout **static** nodes) use YAML `html:` scalars; 
 
 The editor form for a page lists the type's fields, then zones declared by the resolved layout (the type's layout, otherwise the site default). Extra keys on the page that the layout does not declare stay editable under **Off layout**. A type is site configuration: it names fields and a layout. It is not a built-in class. Willow's person type lists `role`, `email`, `photo`, and `precis` on the entry. `schemaVersion` is how records are stored.
 
-Compose (`@r-a-i-t-h/tessera-sections`) parses a zone’s HTML into sections and paints it back. The saved file is that HTML, so Fields and Raw file edit the same page. A block that does not parse back stays raw HTML. A locked page keeps the section arrangement fixed and still edits the words and pictures inside it. A template is the same body, stored under `records/templates/`, and is not a layout.
+Compose (`@r-a-i-t-h/tessera-sections`) parses a zone’s HTML into sections and paints it back in the editor. On disk (authoring schema 4), compose-backed page zones store **widget `blocks`** under `zones.<id>.blocks`; assemble compiles them to renderer `text` HTML in the flattened document. Fields and Raw file still edit the same page (Raw shows YAML; Fields round-trip through the section model). A block that does not parse back stays raw HTML. A locked page keeps the section arrangement fixed and still edits the words and pictures inside it. A template is the same body, stored under `records/templates/`, and is not a layout.
 
 `npm run flatten:site` (or an editor save) writes `$TESSERA_DATA/preview/data/site.json` and stamps `<meta name="tessera-site">` in `shell/index.html`. **Publish** writes `$TESSERA_DATA/publish/` for copying. `publishTo` on `site.yaml`, when set, is an existing directory whose contents that same publish replaces. On a node-vps-kit host the process user is `tessera`. `deploy/grant-publish.sh` gives that user the directory. A pages dist is one HTML file per page plus `sitemap.xml` and `search-index.json`. A snapshot dist is the SPA shell, `publish/data/site.json`, the hashed file, `rev.json`, and `search-index.json`. Preview emit also writes `preview/search-index.json`. `delivery` on `site.yaml` chooses that dist and defaults to `pages`. A pages dist needs `origin` (an absolute http(s) URL of the published folder; a path is that folder, and a query or hash is rejected). The preview is always the snapshot and ignores `delivery`.
 
@@ -208,8 +211,8 @@ Content inserts the populated view with mustache or a component block:
 { "type": "component", "name": "upcoming-events" }
 ```
 
-**What requires a Tessera release:** adding a new component implementation. It is then available to every site. A site does not ship its own scripts.  
-**What does not:** changing text, JSON, layout trees, bindings, or which binding ids a page references.
+**What requires a Tessera release:** adding a new **catalogue** component implementation (then available to every site). **Runtime modules** are site-owner ESM copied at publish; they are not catalogue releases.  
+**What does not:** changing text, JSON, layout trees, bindings, dataset rows, runtime module source, or which binding ids a page references.
 
 Nav presentations (`navFlat`, `navTree`, `navCollapse`, `navTags`, …) are registered components; designed `document.nav` plus optional `source` supply data. Heading rows may omit heading text and still group links. `navCollapse` shows the first link in each group as the section entry and reveals siblings in sub-level markup when the current page is in that group. Page existence does not imply a nav entry.
 

@@ -38,9 +38,9 @@ That is a small-site CMS for prose pages, media, and a designed menu. It is one 
    Compose, Fields, and Raw file edit the same page. The rendered page is another origin (the site runtime, port 5173 in dev). Next: host the renderer beside the canvas so a section change is visible without a separate reload.  
    → [SPEC §9](./SPEC.md#9-editor-boundary)
 
-2. **Items listing patterns**  
-   First-class list-on-page / as-pages beyond ad-hoc bindings. Subpages already lists child pages. People and events are a type plus a binding. The blog is reserved and is not this work.  
-   → [SPEC §2](./SPEC.md#pages-and-items), [acceptance](./SPEC.md#inclusion-and-items)
+2. **Listing patterns (author-facing)**  
+   First-class guidance and UX beyond ad-hoc bindings: list-on-page via typed pages + bindings, dataset list bindings, `subpages`, and the reserved blog. Willow’s people/events/news are the reference; the blog is separate.  
+   → [SPEC §2](./SPEC.md#pages-items-and-datasets), [acceptance](./SPEC.md#inclusion-and-items)
 
 3. **Editor chrome**  
    The authoring model is ahead of the screens an author lives in. The next input is a snagging pass: Willow first, then a site started empty. Schedule UI work from that list.  
@@ -52,7 +52,7 @@ That is a small-site CMS for prose pages, media, and a designed menu. It is one 
 
 ## Notes
 
-- Compose stores zone HTML on purpose, so Fields, Raw file, and the renderer stay on one page. Hardening that round-trip belongs with the snagging pass, not as a second content model.
+- Compose stores compose zones as widget **`blocks`** in YAML (schema 4); assemble emits HTML for the flattened document. Fields, Raw file, and the renderer stay on one page. Hardening that round-trip belongs with the snagging pass, not as a second content model.
 - Access stays all-or-nothing until an ACL replaces `requireEditor`. History stays the append-only proof of concept until an authoring spec replaces it. There is no per-page draft flag: preview is the working copy, and Publish writes the dist.
 - Cold-start offline (app shell from HTTP cache while already offline) is icing, not a roadmap gate — see SPEC Needs refinement.
 - Hash routing stays for the snapshot flavour; Navigation API is a refinement, not a scheduled feature until justified.

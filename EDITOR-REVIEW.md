@@ -18,9 +18,11 @@ A type still has three jobs, all about pages:
 
 Items are reusable zone bags. Bindings pair a public id with a registered component. Neither is a page, and neither stretches `Page`.
 
-`blog`, `article`, and `blog-index` are reserved words in the type slot. They are not site type records. Articles have their own editor controls, including a real date picker, and the store requires `YYYY-MM-DD`. Meetings and events do not get that treatment.
+**Datasets and runtime modules (since this review).** Tabular or nested data that is not prose on a page belongs in **`datasets/`** and reaches visitors through **dataset list** bindings (embedded into the flattened document at publish) or a **runtime module** binding. That is the schema-led path for booleans, numbers, dates, and refs — not extra fields on every page poster. **Runtime modules** are site-owner ESM under `runtime-modules/`; Tessera copies referenced files into `publish/` and runs them in the browser only. Catalogue micro-apps still ship with Tessera.
 
-Pages are not a database. Events, staff, and products, if they ever need real booleans, numbers, and dates, wait for their own records and a schema-led editor. Compose and the page form are the wrong tool for that.
+Page **posters** stay string fields plus zones for prose. Willow still lists events and news via **typed pages** and `datedList` on string `date` fields; that listing path is separate from datasets and remains fragile (see splinters below).
+
+`blog`, `article`, and `blog-index` are reserved words in the type slot. They are not site type records. Articles have their own editor controls, including a real date picker, and the store requires `YYYY-MM-DD`. Meetings and events on Willow still use string dates on the page poster for `datedList`; dataset-backed rows use typed fields in `datasets/` instead.
 
 ## Known splinters we are leaving
 

@@ -17,7 +17,7 @@ It is the successor to Rec-Tem (“recursive templates”). The mosaic metaphor 
 ### Goals
 
 - Deliver a full small site either as a **snapshot** (one flattened payload loaded once and reused for in-browser navigation) or as **pages** (one HTML file per page in a tree, with nav written into each file).
-- Support static page content and structured **items** (lists / collections of record-like data) shown on-a-page or as-pages via registered components.
+- Support static page content, **typed pages** (each with its own URL in the tree), **datasets** (tabular/nested data embedded at publish when bindings reference them), and **bindings** that show lists on a page via registered components or runtime modules.
 - Keep sites **mobile layout friendly** (adaptive layout; default skin is W3.CSS).
 - Ship enough shared components to build a complete site (listings, blog, gallery, document browser, layout primitives) without blocking site-specific components.
 - Provide a clear inclusion story without recursive zones (see [Inclusion](#6-inclusion-without-recursive-zones)).
@@ -42,7 +42,7 @@ It is the successor to Rec-Tem (“recursive templates”). The mosaic metaphor 
 
 ### Site document
 
-The whole text/data payload for a site is one **`SiteDocument`**: site meta, layouts, pages, **items**, media, and nav. It is validated on load (schema version + structure). Exact Zod shapes live in [ARCHITECTURE.md](./ARCHITECTURE.md) until implementation catches up to this SPEC.
+The whole text/data payload for a site is one **`SiteDocument`**: site meta, layouts, pages, **items**, media, nav, bindings, and optional embedded **dataset** snapshots when bindings reference them. It is validated on load (`SiteDocument.version` + structure). Canonical Zod schemas live in `@r-a-i-t-h/tessera-model`; [ARCHITECTURE.md](./ARCHITECTURE.md) describes how assembly and publish populate the document.
 
 ### Layout and zones
 
@@ -71,13 +71,17 @@ An article is a page: its own HTML file, Compose body, title, and description. I
 
 A date still in the future is hidden on the blog, the index, previous/next, and the article page until that calendar day in the visitor's local timezone. The HTML file stays on disk. The blog shows a page of the filtered list (default 10) with Older and Newer. The index lists the whole blog by date, title, and tags, and can be narrowed by tag or text. Both filters run in the browser.
 
-### Pages and items
+### Pages, items, and datasets
 
-- **Page** — a declared document: id, title, optional description, place in the published tree, body (zones), and whether it appears in nav. Resolved layout + zone contributions (+ optional includes).
+- **Page** — a declared document: id, title, optional description, place in the published tree, body (zones), and optional type. Resolved layout + zone contributions (+ optional includes). Nav visibility is separate (designed `document.nav`), not implied by existing in the tree.
 - **Title** is what a visitor reads: the page, the site, a nav entry, and a media file. Templates, items, layouts, types, and folders have no title. The id is their name.
 - **Published page** — a page present in the document the publisher reads. An in-progress page is absent from that document. The publisher does not see a draft flag. History is a stack of earlier copies kept by the editor, and publish means “this copy is now the published page.”
-- **Item** — reusable content contribution (the collection formerly thought of as “lists” / “collections”). Lists and collections are the same idea; the vocabulary is **`items`**. An item is named by its id.
-- Items may be shown **on a page** by a micro-app. A record that should have its own URL is its own page in the tree, not a child invented by a micro-app.
+- **Item** — reusable zone contribution with no URL of its own (shared footer HTML, a component mount included from layouts or `page.includes`). Items live under `records/items/`; they are **not** collections of record-like rows. Tabular data belongs in a **dataset**; repeating structured entries that need URLs are **typed pages** plus bindings (or the reserved blog/article model).
+- A micro-app may render a list on a page from bindings, types, or embedded dataset snapshots. A record that should have its own URL is its own page in the tree, not a child invented by a micro-app.
+
+### Datasets
+
+**Datasets** are JSON files under `$TESSERA_DATA/datasets/` (schema, grid prefs, records). They are edited in the Datasets section. At flatten, preview, and publish, Tessera embeds snapshots for every dataset referenced by bindings (including datasets reached through `ref` fields) into `SiteDocument.datasets`. Visitors do not fetch raw dataset files; bindings and runtime modules consume the embedded snapshot.
 
 ### Blocks
 
@@ -104,7 +108,7 @@ Modules are uploaded or edited in the editor **Runtime modules** library (blobs 
 
 ### Component registry
 
-Micro-app implementations live in the shared catalogue and the renderer builtins, **registered by name**. Content never embeds scripts. A site has no build step and does not ship component source. Adding a new micro-app is a Tessera release, and that name is then available to every site. Changing text, JSON, layout trees, or which registered names a page calls does not require a release.
+Micro-app implementations live in the shared catalogue and the renderer builtins, **registered by name**. Content never embeds inline scripts in zone HTML. A site has no compile step for the public dist; catalogue micro-apps ship with Tessera. **Runtime modules** are an exception: site-owner ESM copied to `publish/runtime-modules/` (see [Runtime module](#runtime-module)). Adding a new **catalogue** micro-app is a Tessera release. Changing text, bindings, layout trees, dataset rows, runtime module source, or which registered names a page calls does not require a catalogue release.
 
 ### Skin
 
@@ -200,7 +204,7 @@ While a snapshot stays open, re-check `rev.json` on a fixed interval of **5 minu
 - Pages and items reference layouts, zones, media, **bindings**, and registered component names.
 - **Bindings** are part of site data: pair a registered component with a public id such as Willow’s `upcoming-events`. Insert with `{{upcoming-events}}` in text HTML or a component block named `upcoming-events`.
 - Relative asset URLs (`./…`) are required for subdirectory hosting; the renderer may normalize accidental root-absolute media paths at paint time.
-- **Datasets** are separate JSON files under `$TESSERA_DATA/datasets/` for typed tabular/nested data (events, products, branches). They are edited in the Datasets section and are not part of the published site document until a later rendering plan connects them.
+- **Datasets** are JSON files under `$TESSERA_DATA/datasets/` for typed tabular/nested data. They are edited in the Datasets section. Flatten, preview, and publish embed snapshots into `SiteDocument.datasets` for every dataset referenced by bindings (see [Datasets](#datasets)).
 
 ---
 
@@ -208,10 +212,10 @@ While a snapshot stays open, re-check `rev.json` on a fixed interval of **5 minu
 
 Nav is first-class document content, not merely demo chrome — and it is **distinct from page existence**.
 
-- **Pages** may exist without appearing in any nav (reachability ≠ visibility).
-- **Designed nav** (`document.nav`) is authored structure for the snapshot flavour (hand-chosen pages, headings, nested children).
-- **Pages-flavour nav** is the published page tree, written into each HTML file at publish. It is not rebuilt in the browser, and a micro-app does not extend it. `source` expansion that grows a hierarchy from a collection is a snapshot-era blur; the pages flavour does not use it.
-- **Content-implied nav** on a snapshot uses `source` on a nav node (`pageType` / `itemsTag`) so entries of that type become link data. That does not create pages.
+- **Pages** may exist without appearing in any nav (reachability ≠ visibility). The published page tree (`parentId`) drives URLs and sitemap; it is not automatically the sidebar menu.
+- **Designed nav** (`document.nav`) is authored structure: hand-chosen pages, headings, nested children, and optional `source` nodes.
+- **Pages flavour:** each HTML file is built at publish with the same frame and nav components as the snapshot renderer. Nav markup is **baked into the file** from `document.nav` (including `source` resolution where the chosen nav component supports it). It is not rebuilt in the browser on navigation, and a micro-app does not extend it.
+- **Snapshot flavour:** nav components read `document.nav` at runtime (including `source` on a nav node — `pageType`, `itemsTag`, `children`, and similar — so matching pages become link data). That does not create pages.
 - **Presentation is a component choice**, not a system mandate. Shipped options include tag grouping (`navTags`), top-level list (`navFlat`), sub-level nested list (`navTree`), and current-group expansion (`navCollapse`). Nav heading text is optional; blank headings still group links. Further presentations are added to the shared catalogue. A component might render the same resolved tree in different styles.
 - Physical shell chrome (drawer markup, overlay) remains a thin site/skin concern that *consumes* nav components or resolved nav data.
 
@@ -259,7 +263,7 @@ Without being limiting, Tessera should ship enough shared pieces to build a full
 | Bindings | Site-data `bindings[]` + `{{id}}` / component name insertion |
 | Chrome hooks | Stale/offline signal for banners |
 
-Components ship in the shared catalogue. A site names them from its records. A site does not ship its own scripts.
+Components ship in the shared catalogue. A site names them from bindings and layout mounts. Catalogue source ships with Tessera; **runtime modules** are site-owner ESM (see [Runtime module](#runtime-module)).
 
 Gallery, layout primitives, nav, bindings, and the blog are in the product. Listings and a document browser are the open rows. Sequencing is in [ROADMAP.md](./ROADMAP.md).
 
@@ -335,7 +339,7 @@ Criteria define “done enough,” not a build order (see [ROADMAP.md](./ROADMAP
 - [x] Bindings are site data (`document.bindings`) pairing content with a registered component under a public id.
 - [x] Content can insert a binding via `{{id}}` in text HTML and via a component block named with that id.
 - [x] A site-defined type resolves layout for its entries (type layout, otherwise site default) without recursive templates.
-- [ ] Items support list-on-page and as-pages presentation patterns in shipped components. Subpages lists child pages; a collection of records is still a binding.
+- [ ] **Listing patterns (author-facing):** Document and refine the general pattern for list-on-page views (bindings over typed pages, dataset list bindings, `subpages`, reserved blog) so authors are not required to wire ad-hoc bindings by hand. Willow’s people/events/news bindings are the reference implementation, not a separate `items`-as-collections model.
 
 ### Navigation
 
@@ -414,7 +418,7 @@ Parking lot for design that is sound enough to proceed in spirit but not yet nai
 3. **Hash vs Navigation API** — snapshot sites keep hash routing. Pages sites already have a path per page. Whether a snapshot site should leave hash routing is still open.
 4. **`localStorage` size** — strategy when documents are large (HTML-heavy converted sites); quotas, compression, or alternate cache.
 5. **Missing-page policy** — global silent home fallback vs site setting.
-6. **Nav source vs list-as-pages** — how much machinery is shared between content-implied nav links and generating pages from items.
+6. **Nav source vs list-as-pages** — how much machinery is shared between content-implied nav links and generating pages from typed entries or datasets.
 7. **HTML trust / sanitization** — the current model trusts authors; add sanitization if untrusted authors become a requirement.
 8. **Topbar vs sidebar** — how shell chrome consumes document nav flags/roles.
 9. **Fanciness scope** — motion and polish criteria when ready to schedule.
