@@ -43,3 +43,5 @@ export type {
   SpacerUnit,
   ToneId,
 } from "./sections.js";
+export { compileWidgetsToHtml, widgetsFromLegacyHtml } from "./widget.js";
+export type { AuthoredComposeZone, Widget } from "./widget.js";
