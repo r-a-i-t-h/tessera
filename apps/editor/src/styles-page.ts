@@ -260,6 +260,7 @@ export function bindStyleFormUndo(root: ParentNode, form: HTMLFormElement, saved
   });
   form.addEventListener("focusout", (event) => {
     const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
     if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target.isContentEditable)) return;
     if (target instanceof HTMLInputElement && (target.type === "checkbox" || target.type === "radio")) return;
     clearBurst(history);

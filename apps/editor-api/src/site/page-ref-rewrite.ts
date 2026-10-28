@@ -1,5 +1,35 @@
 import { rewritePageRefIds } from "@r-a-i-t-h/tessera-renderer";
+import type { Block } from "@r-a-i-t-h/tessera-model";
+import type { Widget } from "@r-a-i-t-h/tessera-sections";
 import type { ZoneAuthoring } from "./document.js";
+import { isWidgetBlocks } from "./widget-schema.js";
+
+function rewriteWidgetTree(value: unknown, from: string, to: string): { value: unknown; changed: boolean } {
+  if (Array.isArray(value)) {
+    let changed = false;
+    const next = value.map((item) => {
+      const result = rewriteWidgetTree(item, from, to);
+      if (result.changed) changed = true;
+      return result.value;
+    });
+    return { value: next, changed };
+  }
+  if (!value || typeof value !== "object") return { value, changed: false };
+  let changed = false;
+  const out: Record<string, unknown> = {};
+  for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+    if (key === "html" && typeof child === "string") {
+      const html = rewritePageRefIds(child, from, to);
+      if (html !== child) changed = true;
+      out[key] = html;
+      continue;
+    }
+    const result = rewriteWidgetTree(child, from, to);
+    if (result.changed) changed = true;
+    out[key] = result.value;
+  }
+  return { value: out, changed };
+}
 
 /** Rewrite durable page refs inside authored zone maps. */
 export function rewriteZonesPageRefs(
@@ -18,7 +48,13 @@ export function rewriteZonesPageRefs(
       continue;
     }
     if ("blocks" in zone && Array.isArray(zone.blocks)) {
-      const blocks = zone.blocks.map((block) => {
+      if (isWidgetBlocks(zone.blocks)) {
+        const result = rewriteWidgetTree(zone.blocks, from, to);
+        if (result.changed) changed = true;
+        next[id] = { blocks: result.value as Widget[] };
+        continue;
+      }
+      const blocks = (zone.blocks as Block[]).map((block) => {
         if (block.type !== "text") return block;
         const html = rewritePageRefIds(block.html, from, to);
         if (html !== block.html) changed = true;

@@ -35,7 +35,7 @@ const widgetLeaf = z
   .passthrough();
 
 /** Validates compose widget trees stored under `zones.*.blocks`. */
-export const WidgetBlocksSchema: z.ZodType<Widget[]> = z.lazy(() =>
+export const WidgetBlocksSchema: z.ZodType<Widget[], z.ZodTypeDef, unknown> = z.lazy(() =>
   z.array(
     z.union([
       widgetLeaf,
@@ -47,5 +47,5 @@ export const WidgetBlocksSchema: z.ZodType<Widget[]> = z.lazy(() =>
         cells: z.array(z.object({ className: z.string().optional(), sections: WidgetBlocksSchema }).passthrough()),
       }).passthrough(),
     ]),
-  ),
+  ) as z.ZodType<Widget[]>,
 );
