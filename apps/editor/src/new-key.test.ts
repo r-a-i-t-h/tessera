@@ -23,9 +23,9 @@ describe("triggerNewAction", () => {
     expect(triggerNewAction(root)).toBe(false);
   });
 
-  it("triggers Add record on dataset grids", () => {
+  it("triggers New record on dataset grids", () => {
     const root = document.createElement("div");
-    root.innerHTML = `<button type="button" data-dataset-add>Add record</button>`;
+    root.innerHTML = `<button type="button" data-dataset-add>New record</button>`;
     const onAdd = vi.fn();
     root.querySelector("[data-dataset-add]")?.addEventListener("click", onAdd);
 

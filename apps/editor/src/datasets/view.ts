@@ -185,7 +185,7 @@ async function mountDatasetGrid(
         <p><a href="#/data">Data</a> / <strong>${escapeHtml(fileState.title)}</strong>
           <span class="w3-text-grey w3-small"> · <a href="#/records/datasets/${encodeURIComponent(datasetId)}">Dataset setup</a></span></p>
         <p class="editor-toolbar-row">
-          <button type="button" class="w3-button w3-theme" data-dataset-add>Add record</button>
+          <button type="button" class="w3-button w3-theme" data-dataset-add>New record</button>
           ${gridMode === "view" ? `<button type="button" class="w3-button w3-white" data-dataset-edit-mode>Edit grid</button>` : `<button type="button" class="w3-button w3-theme" data-dataset-save-grid>Save grid</button><button type="button" class="w3-button w3-white" data-dataset-cancel-grid>Cancel</button>`}
         </p>
         ${clearFiltersLink}<div class="editor-dataset-grid-wrap"><table class="w3-table w3-bordered w3-small editor-dataset-grid"><thead><tr>${headerRow}</tr><tr>${filterRowHtml}</tr></thead><tbody>${body}</tbody></table></div>
