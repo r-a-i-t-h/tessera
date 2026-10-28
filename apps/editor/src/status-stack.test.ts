@@ -14,18 +14,30 @@ function editorRoot(): HTMLElement {
 }
 
 describe("status stack", () => {
-  it("appends messages instead of replacing earlier ones", () => {
+  it("appends progress and error messages without replacing earlier ones", () => {
     const root = editorRoot();
-    pushStatusMessage(root, "success", "Rendered 3 pages.");
-    const publishing = pushStatusMessage(root, "progress", "Publishing…");
-    pushStatusMessage(root, "success", "Published 3 files.");
+    const rendering = pushStatusMessage(root, "progress", "Rendering the whole site…");
+    pushStatusMessage(root, "error", "Render failed.");
 
     const host = statusStack(root);
     expect(host.hidden).toBe(false);
-    expect(host.children).toHaveLength(3);
-    expect(host.children[0]?.textContent).toBe("Rendered 3 pages.");
-    expect(host.children[1]).toBe(publishing.el);
-    expect(host.children[2]?.textContent).toBe("Published 3 files.");
+    expect(host.children).toHaveLength(2);
+    expect(host.children[0]).toBe(rendering.el);
+    expect(host.children[1]?.querySelector(".editor-render-status-body")?.textContent).toBe(
+      "Render failed.",
+    );
+  });
+
+  it("dismisses a banner when its close control is used", () => {
+    const root = editorRoot();
+    pushStatusMessage(root, "error", "First failure.");
+    pushStatusMessage(root, "error", "Second failure.");
+
+    const host = statusStack(root);
+    expect(host.children).toHaveLength(2);
+    host.children[0]?.querySelector<HTMLButtonElement>(".editor-render-status-dismiss")?.click();
+    expect(host.children).toHaveLength(1);
+    expect(host.querySelector(".editor-render-status-body")?.textContent).toBe("Second failure.");
   });
 
   it("hides the host when the last message is removed", () => {

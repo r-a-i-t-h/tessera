@@ -31,21 +31,33 @@ export function pushStatusMessage(
   options?: { html?: boolean },
 ): StatusEntry {
   const host = statusStack(root);
-  const p = document.createElement("p");
-  p.className = `editor-render-status w3-panel ${TONE_CLASS[tone]}`;
-  p.setAttribute("role", tone === "error" ? "alert" : "status");
+  const row = document.createElement("div");
+  row.className = `editor-render-status w3-panel ${TONE_CLASS[tone]}`;
+  row.setAttribute("role", tone === "error" ? "alert" : "status");
+
+  const body = document.createElement("div");
+  body.className = "editor-render-status-body";
   if (options?.html) {
-    p.innerHTML = content;
+    body.innerHTML = content;
   } else {
-    p.textContent = content;
+    body.textContent = content;
   }
-  host.appendChild(p);
+
+  const dismiss = document.createElement("button");
+  dismiss.type = "button";
+  dismiss.className = "editor-render-status-dismiss";
+  dismiss.setAttribute("aria-label", "Dismiss");
+  dismiss.textContent = "×";
+
+  row.append(body, dismiss);
+  host.appendChild(row);
   host.hidden = false;
-  return {
-    el: p,
-    remove: () => {
-      p.remove();
-      syncHostVisibility(host);
-    },
+
+  const remove = (): void => {
+    row.remove();
+    syncHostVisibility(host);
   };
+  dismiss.addEventListener("click", remove);
+
+  return { el: row, remove };
 }

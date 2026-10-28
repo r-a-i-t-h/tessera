@@ -318,7 +318,7 @@ export async function mount(root: HTMLElement): Promise<void> {
       form.requestSubmit();
       return;
     }
-    showEditorToast("Nothing was saved.");
+    showEditorToast("Nothing was saved.", { tone: "neutral" });
   });
   await render(root);
 }
@@ -408,10 +408,6 @@ async function render(root: HTMLElement): Promise<void> {
 }
 
 const previewUrl = "/preview/";
-
-function externalLink(href: string, label: string): string {
-  return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
-}
 
 type EditMode = "arrange" | "build" | "compose" | "frame" | "fields" | "raw";
 
@@ -554,7 +550,8 @@ async function runRender(root: HTMLElement): Promise<void> {
   const progress = pushStatusMessage(root, "progress", "Rendering the whole site…");
   try {
     const result = await renderSite();
-    pushStatusMessage(root, "success", renderNotice(result), { html: true });
+    progress.remove();
+    showEditorToast(renderNoticeText(result), { href: previewUrl });
   } catch (err) {
     progress.remove();
     pushStatusMessage(root, "error", err instanceof Error ? err.message : "Render failed.");
@@ -564,10 +561,29 @@ async function runRender(root: HTMLElement): Promise<void> {
   }
 }
 
-function renderNotice(result: RenderResult): string {
+function renderNoticeText(result: RenderResult): string {
   const pages = `${result.pages} ${result.pages === 1 ? "page" : "pages"}`;
-  const snapshot = result.snapshot ? ` Snapshot ${escapeHtml(result.snapshot.file)}.` : "";
-  return `Rendered ${pages} into the preview.${snapshot} ${externalLink(previewUrl, `Reload ${previewUrl}`)} to see it.`;
+  const snapshot = result.snapshot ? ` Snapshot ${result.snapshot.file}.` : "";
+  return `Rendered ${pages} into the preview.${snapshot} Open the preview to see it.`;
+}
+
+function publishNoticeHref(result: PublishResult): string | undefined {
+  const origin = result.origin?.trim();
+  return origin || undefined;
+}
+
+function publishNoticeText(result: PublishResult): string {
+  const where = result.installed
+    ? ` Installed at ${result.installed}.`
+    : " Copy that folder to the live host.";
+  const origin = result.origin?.trim();
+  const live = origin ? " Open the live site." : "";
+  if (result.dist.flavour === "pages") {
+    const count = result.dist.pages ?? 0;
+    return `Published ${count} HTML ${count === 1 ? "file" : "files"} to publish/.${where}${live}`;
+  }
+  const file = result.dist.snapshot ? ` ${result.dist.snapshot.file}.` : "";
+  return `Published the snapshot dist to publish/.${file}${where}${live}`;
 }
 
 async function runPublish(root: HTMLElement): Promise<void> {
@@ -579,7 +595,8 @@ async function runPublish(root: HTMLElement): Promise<void> {
   const progress = pushStatusMessage(root, "progress", "Publishing the copyable site…");
   try {
     const result = await publishSite();
-    pushStatusMessage(root, "success", publishNotice(result), { html: true });
+    progress.remove();
+    showEditorToast(publishNoticeText(result), { href: publishNoticeHref(result) });
   } catch (err) {
     progress.remove();
     pushStatusMessage(root, "error", err instanceof Error ? err.message : "Publish failed.");
@@ -587,20 +604,6 @@ async function runPublish(root: HTMLElement): Promise<void> {
     if (button) button.disabled = false;
     if (render) render.disabled = false;
   }
-}
-
-function publishNotice(result: PublishResult): string {
-  const where = result.installed
-    ? ` Installed at ${escapeHtml(result.installed)}.`
-    : " Copy that folder to the live host.";
-  const origin = result.origin?.trim();
-  const live = origin ? ` Open ${externalLink(origin, origin)}.` : "";
-  if (result.dist.flavour === "pages") {
-    const count = result.dist.pages ?? 0;
-    return `Published ${count} HTML ${count === 1 ? "file" : "files"} to publish/.${where}${live}`;
-  }
-  const file = result.dist.snapshot ? ` ${escapeHtml(result.dist.snapshot.file)}.` : "";
-  return `Published the snapshot dist to publish/.${file}${where}${live}`;
 }
 
 async function bindAccount(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {

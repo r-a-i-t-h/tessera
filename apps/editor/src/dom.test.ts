@@ -2,6 +2,7 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  editorToastDurationMs,
   errorPanel,
   escapeHtml,
   fieldId,
@@ -23,13 +24,15 @@ describe("editor DOM helpers", () => {
   });
 
   it("preserves status and form-error markup", () => {
-    expect(noticePanel("Saved & ready")).toBe(
-      `<p class="w3-panel w3-pale-green" role="status">Saved &amp; ready</p>`,
-    );
+    noticePanel("Saved & ready");
+    const toast = document.getElementById("editor-toast");
+    expect(toast?.querySelector(".editor-toast-text")?.textContent).toBe("Saved & ready");
+    expect(toast?.classList.contains("editor-toast--success")).toBe(true);
+    expect(noticePanel("")).toBe("");
     expect(errorPanel("<Failed>")).toBe(
       `<p class="w3-panel w3-pale-red" role="alert">&lt;Failed&gt;</p>`,
     );
-    expect(statusPanels("", "")).toBe("\n    ");
+    expect(statusPanels("", "")).toBe("");
     expect(formErrorPanel()).toBe(
       `<p data-form-error class="w3-panel w3-pale-red" role="alert" hidden></p>`,
     );
@@ -40,11 +43,32 @@ describe("editor DOM helpers", () => {
     vi.useRealTimers();
   });
 
-  it("shows a brief toast on the document body", () => {
+  it("scales toast duration with message length", () => {
+    expect(editorToastDurationMs("Saved.")).toBe(2400);
+    expect(editorToastDurationMs("x".repeat(120))).toBeGreaterThan(6000);
+  });
+
+  it("shows a neutral toast for null outcomes", () => {
     vi.useFakeTimers();
-    showEditorToast("Nothing was saved.");
+    showEditorToast("Nothing was saved.", { tone: "neutral" });
     const toast = document.getElementById("editor-toast");
-    expect(toast?.textContent).toBe("Nothing was saved.");
+    expect(toast?.classList.contains("editor-toast--neutral")).toBe(true);
+    expect(toast?.querySelector(".editor-toast-link")).toBeNull();
+  });
+
+  it("adds a link icon that opens in a new tab", () => {
+    showEditorToast("Rendered 3 pages into the preview.", { href: "/preview/" });
+    const link = document.querySelector<HTMLAnchorElement>(".editor-toast-link");
+    expect(link?.href).toContain("/preview/");
+    expect(link?.target).toBe("_blank");
+    expect(link?.rel).toBe("noopener noreferrer");
+    expect(link?.querySelector("svg")).not.toBeNull();
+  });
+
+  it("hides after the computed duration", () => {
+    vi.useFakeTimers();
+    showEditorToast("Saved.");
+    const toast = document.getElementById("editor-toast");
     expect(toast?.classList.contains("editor-toast--visible")).toBe(true);
     vi.advanceTimersByTime(2600);
     expect(toast?.classList.contains("editor-toast--visible")).toBe(false);
