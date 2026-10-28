@@ -400,6 +400,10 @@ async function render(root: HTMLElement): Promise<void> {
 
 const previewUrl = "/preview/";
 
+function externalLink(href: string, label: string): string {
+  return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+}
+
 type EditMode = "arrange" | "build" | "compose" | "frame" | "fields" | "raw";
 
 /** Set just before opening a newly created page, so that page starts on Compose. */
@@ -553,7 +557,7 @@ async function runRender(root: HTMLElement): Promise<void> {
 function renderNotice(result: RenderResult): string {
   const pages = `${result.pages} ${result.pages === 1 ? "page" : "pages"}`;
   const snapshot = result.snapshot ? ` Snapshot ${escapeHtml(result.snapshot.file)}.` : "";
-  return `Rendered ${pages} into the preview.${snapshot} <a href="${previewUrl}">Reload ${previewUrl}</a> to see it.`;
+  return `Rendered ${pages} into the preview.${snapshot} ${externalLink(previewUrl, `Reload ${previewUrl}`)} to see it.`;
 }
 
 async function runPublish(root: HTMLElement): Promise<void> {
@@ -565,7 +569,7 @@ async function runPublish(root: HTMLElement): Promise<void> {
   const progress = pushStatusMessage(root, "progress", "Publishing the copyable site…");
   try {
     const result = await publishSite();
-    pushStatusMessage(root, "success", publishNotice(result));
+    pushStatusMessage(root, "success", publishNotice(result), { html: true });
   } catch (err) {
     progress.remove();
     pushStatusMessage(root, "error", err instanceof Error ? err.message : "Publish failed.");
@@ -577,14 +581,16 @@ async function runPublish(root: HTMLElement): Promise<void> {
 
 function publishNotice(result: PublishResult): string {
   const where = result.installed
-    ? ` Installed at ${result.installed}.`
+    ? ` Installed at ${escapeHtml(result.installed)}.`
     : " Copy that folder to the live host.";
+  const origin = result.origin?.trim();
+  const live = origin ? ` Open ${externalLink(origin, origin)}.` : "";
   if (result.dist.flavour === "pages") {
     const count = result.dist.pages ?? 0;
-    return `Published ${count} HTML ${count === 1 ? "file" : "files"} to publish/.${where}`;
+    return `Published ${count} HTML ${count === 1 ? "file" : "files"} to publish/.${where}${live}`;
   }
-  const file = result.dist.snapshot ? ` ${result.dist.snapshot.file}.` : "";
-  return `Published the snapshot dist to publish/.${file}${where}`;
+  const file = result.dist.snapshot ? ` ${escapeHtml(result.dist.snapshot.file)}.` : "";
+  return `Published the snapshot dist to publish/.${file}${where}${live}`;
 }
 
 async function bindAccount(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {
@@ -1884,7 +1890,7 @@ function homeHtml(listing: RecordList, notice = "", error = "", canInitSite = tr
   const site = listing.records.find((row) => row.kind === "site");
   const body = site
     ? `<p>This site is <strong>${escapeHtml(site.title ?? site.id)}</strong>.</p>
-       <p><a class="w3-button w3-theme" href="${previewUrl}">Open preview</a></p>`
+       <p><a class="w3-button w3-theme" href="${previewUrl}" target="_blank" rel="noopener noreferrer">Open preview</a></p>`
     : startSiteHtml(canInitSite);
   return `${tesseraLogo3x5()}
     ${statusPanels(notice, error)}

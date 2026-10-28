@@ -254,6 +254,8 @@ export type PublishResult = {
   dist: DistResult;
   /** Set when `publishTo` was installed. */
   installed?: string;
+  /** Public site URL from Records → Site → Origin. */
+  origin?: string;
 };
 
 export function renderSite(): Promise<RenderResult> {

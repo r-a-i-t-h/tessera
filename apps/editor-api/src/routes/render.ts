@@ -56,11 +56,13 @@ renderRoutes.post("/publish", async (c) => {
 
   try {
     const published = await site.publish();
+    const origin = published.doc?.site.origin?.trim();
     return c.json({
       ok: true,
       pages: published.doc?.pages.length ?? 0,
       dist: published.dist,
       ...(published.installed ? { installed: published.installed } : {}),
+      ...(origin ? { origin } : {}),
     });
   } catch (err) {
     return apiError(c, 400, err instanceof Error ? err.message : "Could not publish the site.");
