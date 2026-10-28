@@ -265,12 +265,14 @@ import type { NavEntry } from "@r-a-i-t-h/tessera-model";
 import { isFullAdmin, routeAllowedForUser } from "./access.js";
 import { guideSectionQuery, parseRoute, stylesSheetQuery } from "./router.js";
 import {
+  bindStyleFormUndo,
   bindStylePanels,
   bindStylesheetEditors,
   openMaximizedStylesheet,
   paintSpecimen,
   previewStyle,
   readStyleForm,
+  styleFormSnapshot,
   stylesheetEditors,
   stylesPageHtml,
 } from "./styles-page.js";
@@ -487,6 +489,7 @@ async function bindStyles(
   const paint = () => paintSpecimen(root, previewStyle(form));
   form.addEventListener("input", paint);
   form.addEventListener("change", paint);
+  bindStyleFormUndo(root, form, styleFormSnapshot(form), paint);
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     const read = readStyleForm(form);

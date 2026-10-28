@@ -5,13 +5,8 @@ import { errorPanel, escapeHtml, noticePanel } from "./dom.js";
 import { STYLE_FIELDS, styleDraft, styleFieldValues, styleFromValues, styleGroups } from "./forms/style.js";
 import { mountMaximizedCodeEditor, type MaximizedCodeEditorHandle } from "./maximized-code-editor.js";
 import { stylesSheetHref } from "./router.js";
-import {
-  bindStyleColorFields,
-  hexForColorPicker,
-  styleColorPickerIcon,
-  swatchPresentation,
-  type StyleColorFieldMode,
-} from "./style-color-field.js";
+import { bindStyleColorFields, hexForColorPicker, styleColorPickerIcon, swatchPresentation, type StyleColorFieldMode } from "./style-color-field.js";
+import { canRedo, canUndo, clearBurst, noteChange, redo, undo, undoHistory, type UndoHistory } from "./undo.js";
 
 const PANELS_KEY = "tessera.styles.panels";
 
@@ -168,7 +163,7 @@ export function stylesPageHtml(record: Record<string, unknown>, notice = "", err
       <div class="style-tokens-layout">
         <form id="style-form">
           ${fields}
-          <p><button type="submit" class="w3-button w3-theme">Save styles</button></p>
+          <p class="style-form-actions"><button type="submit" class="w3-button w3-theme">Save styles</button><button type="button" class="w3-button w3-white" data-action="undo" title="Undo (Ctrl+Z)" disabled>Undo</button><button type="button" class="w3-button w3-white" data-action="redo" title="Redo (Ctrl+Shift+Z)" disabled>Redo</button><button type="button" class="w3-button w3-white" data-action="revert">Revert</button></p>
         </form>
         <div class="style-tokens-preview">${styleSpecimenHtml(values)}</div>
       </div>
@@ -191,6 +186,114 @@ function styleValues(form: HTMLFormElement): Record<string, string> {
     values[field.name] = input instanceof HTMLInputElement || input instanceof HTMLSelectElement ? input.value : "";
   }
   return values;
+}
+
+export function styleFormSnapshot(form: HTMLFormElement): string {
+  return JSON.stringify(styleValues(form));
+}
+
+export function applyStyleFormSnapshot(form: HTMLFormElement, snapshot: string): boolean {
+  let values: unknown;
+  try {
+    values = JSON.parse(snapshot);
+  } catch {
+    return false;
+  }
+  if (!values || typeof values !== "object" || Array.isArray(values)) return false;
+  const record = values as Record<string, unknown>;
+  for (const field of STYLE_FIELDS) {
+    const input = form.elements.namedItem(field.name);
+    if (!(input instanceof HTMLInputElement || input instanceof HTMLSelectElement)) continue;
+    const next = record[field.name];
+    input.value = typeof next === "string" ? next : "";
+  }
+  return true;
+}
+
+function syncStyleUndoButtons(scope: ParentNode, history: UndoHistory): void {
+  const undoButton = scope.querySelector<HTMLButtonElement>("#style-form [data-action=undo]");
+  const redoButton = scope.querySelector<HTMLButtonElement>("#style-form [data-action=redo]");
+  if (undoButton) undoButton.disabled = !canUndo(history);
+  if (redoButton) redoButton.disabled = !canRedo(history);
+}
+
+function styleTypingBurst(target: EventTarget | null): string | undefined {
+  if (
+    target instanceof HTMLTextAreaElement ||
+    (target instanceof HTMLInputElement && target.type !== "checkbox" && target.type !== "radio")
+  ) {
+    return target.name || target.id || "text";
+  }
+  return undefined;
+}
+
+/** Undo/redo for unsaved site style tokens (same stack model as record editors). */
+export function bindStyleFormUndo(root: ParentNode, form: HTMLFormElement, savedSnapshot: string, onPresentChange: () => void): void {
+  const scope = root;
+  let history = undoHistory(styleFormSnapshot(form));
+  syncStyleUndoButtons(scope, history);
+
+  const checkpoint = (burstId?: string): void => {
+    noteChange(history, styleFormSnapshot(form), burstId);
+    syncStyleUndoButtons(scope, history);
+  };
+
+  const restore = (direction: "undo" | "redo"): void => {
+    const moved = direction === "undo" ? undo(history) : redo(history);
+    if (!moved) return;
+    if (!applyStyleFormSnapshot(form, history.present)) {
+      if (direction === "undo") redo(history);
+      else undo(history);
+      return;
+    }
+    bindStyleColorFields(form);
+    onPresentChange();
+    syncStyleUndoButtons(scope, history);
+  };
+
+  form.addEventListener("input", (event) => {
+    const burst = styleTypingBurst(event.target);
+    if (burst) checkpoint(burst);
+  });
+  form.addEventListener("change", (event) => {
+    checkpoint(styleTypingBurst(event.target));
+  });
+  form.addEventListener("focusout", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target.isContentEditable)) return;
+    if (target instanceof HTMLInputElement && (target.type === "checkbox" || target.type === "radio")) return;
+    clearBurst(history);
+  });
+
+  scope.querySelector<HTMLButtonElement>("#style-form [data-action=undo]")?.addEventListener("click", () => {
+    restore("undo");
+  });
+  scope.querySelector<HTMLButtonElement>("#style-form [data-action=redo]")?.addEventListener("click", () => {
+    restore("redo");
+  });
+  scope.querySelector<HTMLButtonElement>("#style-form [data-action=revert]")?.addEventListener("click", () => {
+    if (!window.confirm("Discard unsaved style edits and restore the last saved site style?")) return;
+    history = undoHistory(savedSnapshot);
+    applyStyleFormSnapshot(form, history.present);
+    bindStyleColorFields(form);
+    onPresentChange();
+    syncStyleUndoButtons(scope, history);
+  });
+
+  const keys = new AbortController();
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      if (!form.isConnected) return;
+      if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
+      const undoKey = event.code === "KeyZ" && !event.shiftKey;
+      const redoKey = (event.code === "KeyZ" && event.shiftKey) || (event.code === "KeyY" && !event.shiftKey);
+      if (!undoKey && !redoKey) return;
+      event.preventDefault();
+      restore(undoKey ? "undo" : "redo");
+    },
+    { signal: keys.signal },
+  );
 }
 
 export function paintSpecimen(root: ParentNode, style: SiteStyle): void {

@@ -49,6 +49,13 @@ describe("site style page", () => {
     expect(html).toContain("#009688");
   });
 
+  it("offers undo for the site style form", () => {
+    const html = stylesPageHtml({ style: {} });
+    expect(html).toContain('data-action="undo"');
+    expect(html).toContain('data-action="redo"');
+    expect(html).toContain('data-action="revert"');
+  });
+
   it("places the token form left and chrome preview right", () => {
     const html = stylesPageHtml({ style: {} });
     expect(html).toContain('class="style-tokens-layout"');
