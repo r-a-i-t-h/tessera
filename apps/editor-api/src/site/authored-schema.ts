@@ -30,6 +30,32 @@ export class AuthoredRecordError extends Error {
 const id = z.string().min(1);
 const stringList = z.array(z.string());
 
+const itemAuthoredZone = z.unknown().superRefine((value, ctx) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "must be a mapping" });
+    return;
+  }
+  const row = value as Record<string, unknown>;
+  const variants = ["html", "component"].filter((key) => Object.prototype.hasOwnProperty.call(row, key));
+  if (variants.length !== 1) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "must be exactly one of html, component",
+    });
+    return;
+  }
+  if (variants[0] === "html" && typeof row.html !== "string") {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["html"], message: "must be a string" });
+  } else if (variants[0] === "component") {
+    if (typeof row.component !== "string" || !row.component) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["component"], message: "must be a non-empty string" });
+    }
+    if (row.props !== undefined && (!row.props || typeof row.props !== "object" || Array.isArray(row.props))) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["props"], message: "must be a mapping" });
+    }
+  }
+});
+
 const authoredZone = z.unknown().superRefine((value, ctx) => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "must be a mapping" });
@@ -106,7 +132,7 @@ const authoredTemplate = z.object({
 const authoredItem = z.object({
   id,
   tags: stringList.optional(),
-  zones,
+  zones: z.record(itemAuthoredZone).optional(),
 }).passthrough();
 
 const libraryMedia = z.object({

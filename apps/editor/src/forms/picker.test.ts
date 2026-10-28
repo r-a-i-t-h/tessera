@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkedFolderIds, documentLink, foldersValue, imageSlideSnippet, imageTag, mediaBlockSnippet, pickerUpload, renderPicker } from "./picker.js";
+import { checkedFolderIds, foldersValue, pickerUpload, renderPicker } from "./picker.js";
 import type { LibraryListing } from "./library.js";
 
 const listing: LibraryListing = {
@@ -77,15 +77,6 @@ describe("library picker", () => {
     const folderMode = renderPicker(listing, "folder", null);
     expect(folderMode).toContain('class="editor-picker-folder"');
     expect(folderMode).toContain('data-pick-folder="hall"');
-  });
-
-  it("inserts an image tag, a document link, a media block, and a slide", () => {
-    const image = listing.assets[0]!;
-    const doc = listing.assets[1]!;
-    expect(imageTag(image)).toBe('<img src="./media/porch.svg" alt="The porch" />');
-    expect(documentLink(doc)).toBe('<a href="./media/notes.pdf">Notes</a>');
-    expect(mediaBlockSnippet(image)).toContain("id: porch");
-    expect(imageSlideSnippet(image)).toContain("url: ./media/porch.svg");
   });
 
   it("round-trips gallery folder choices", () => {

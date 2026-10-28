@@ -3,7 +3,12 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { ensureAuthoringSchemaMigration, migrateAuthoredRecord } from "../src/site/migrate-authoring.js";
+import {
+  ensureAuthoringSchemaMigration,
+  ensureItemAuthoringRepair,
+  migrateAuthoredRecord,
+  migrateItemAuthoringRecord,
+} from "../src/site/migrate-authoring.js";
 import { readSchemaVersion } from "../src/store/meta.js";
 import { metaPath } from "../src/store/meta.js";
 
@@ -23,6 +28,54 @@ describe("migrateAuthoredRecord", () => {
       title: { html: "Welcome" },
     });
     expect(out.zones).not.toHaveProperty("agenda");
+  });
+});
+
+describe("migrateItemAuthoringRecord", () => {
+  it("keeps html and component zones, rewrites blocks, drops json", () => {
+    expect(
+      migrateItemAuthoringRecord({
+        id: "footer",
+        zones: {
+          footer: { html: "<p>Hi</p>" },
+          banner: { component: "eventList" },
+          stray: { json: [{ title: "x" }] },
+          broken: { blocks: [{ kind: "text", heading: "", level: 2, html: "<p>Fixed</p>" }] },
+        },
+      }),
+    ).toEqual({
+      id: "footer",
+      zones: {
+        footer: { html: "<p>Hi</p>" },
+        banner: { component: "eventList" },
+        broken: { html: "<p>Fixed</p>" },
+      },
+    });
+  });
+});
+
+describe("ensureItemAuthoringRepair", () => {
+  it("rewrites item yaml on disk", async () => {
+    const root = await mkdtemp(join(tmpdir(), "tessera-item-repair-"));
+    const records = join(root, "records");
+    await mkdir(join(records, "items"), { recursive: true });
+    await writeFile(
+      join(records, "items", "common-footer.yaml"),
+      `id: common-footer
+zones:
+  footer:
+    blocks:
+      - kind: text
+        heading: ""
+        level: 2
+        html: "<p>Footer</p>"
+`,
+    );
+    expect(await ensureItemAuthoringRepair(records)).toBe(true);
+    const yaml = await readFile(join(records, "items", "common-footer.yaml"), "utf8");
+    expect(yaml).toContain("html:");
+    expect(yaml).not.toContain("blocks:");
+    await rm(root, { recursive: true, force: true });
   });
 });
 

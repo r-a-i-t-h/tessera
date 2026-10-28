@@ -5,6 +5,7 @@ import {
   composeFormInner,
   frameFormInner,
   htmlByZoneForMode,
+  pageTabZonesMarkup,
   validateFrameZoneId,
 } from "./view.js";
 import { withZoneWidgets } from "./draft.js";
@@ -138,6 +139,32 @@ describe("validateFrameZoneId", () => {
       ok: true,
       id: "events_aside",
     });
+  });
+});
+
+describe("pageTabZonesMarkup", () => {
+  it("previews compose zones without editable phantom fields", () => {
+    const html = pageTabZonesMarkup(
+      {
+        id: "home",
+        title: "Home",
+        zones: {
+          title: { html: "Home" },
+          main: { blocks: [{ kind: "text", heading: "", level: 2, html: "<p>Body</p>" }] },
+          lead: { blocks: [{ kind: "text", heading: "", level: 2, html: "<p>Lead</p>" }] },
+        },
+      },
+      { ...pageLayout, declaredZones: ["title", "main", "lead"] },
+    );
+    expect(html).toContain('name="zones.title.html"');
+    expect(html).not.toContain('name="zones.main.html"');
+    expect(html).not.toContain('name="zones.lead"');
+    expect(html).not.toContain('data-insert="image"');
+    expect(html).toContain("editor-page-zone-preview");
+    expect(html).toContain("&lt;p&gt;Body&lt;/p&gt;");
+    expect(html).toContain("&lt;p&gt;Lead&lt;/p&gt;");
+    expect(html).not.toContain('class="editor-page-zone-preview tessera-text"');
+    expect(html).not.toContain("Off layout");
   });
 });
 

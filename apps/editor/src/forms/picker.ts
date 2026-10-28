@@ -18,28 +18,6 @@ export type PickedAsset = {
   caption?: string;
 };
 
-export function imageTag(asset: PickedAsset): string {
-  const alt = asset.alt || asset.title || asset.name;
-  return `<img src="${asset.url}" alt="${alt}" />`;
-}
-
-export function documentLink(asset: PickedAsset): string {
-  const label = asset.title || asset.name;
-  return `<a href="${asset.url}">${label}</a>`;
-}
-
-export function mediaBlockSnippet(asset: PickedAsset): string {
-  return `- type: media\n  id: ${asset.id}\n`;
-}
-
-export function imageSlideSnippet(asset: PickedAsset): string {
-  const alt = asset.alt || asset.title || asset.name;
-  const caption = asset.caption || asset.title || "";
-  const lines = [`- type: image`, `  url: ${asset.url}`, `  alt: ${alt}`];
-  if (caption) lines.push(`  caption: ${caption}`);
-  return `${lines.join("\n")}\n`;
-}
-
 const PICKER_ACCEPT = ".jpg,.jpeg,.png,.gif,.webp,.svg,.pdf";
 
 function pickerAssetThumb(asset: AssetRow): string {

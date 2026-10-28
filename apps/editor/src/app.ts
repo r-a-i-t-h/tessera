@@ -1,4 +1,4 @@
-import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
+import { parse as parseYaml } from "yaml";
 import {
   ApiError,
   cascadeBlog,
@@ -73,7 +73,6 @@ import { entryVisible } from "./forms/entries.js";
 import { arrangeMarkup, mountArrange, readArrangeRoot } from "./arrange/canvas.js";
 import { asLayoutNode, cleanNode, isFrame, newFrame, newPageLayout } from "./arrange/tree.js";
 import type { ArrangeInfo } from "./arrange/view.js";
-import { isLegacyScalarHtmlZone } from "./authoring-constants.js";
 import { rawHtmlField } from "./raw-html-field.js";
 import { mountWidgetComposer } from "./compose/widget-composer.js";
 import { syncComposeSiteLocalStyle } from "./compose/site-local-style.js";
@@ -89,6 +88,7 @@ import {
   templateBodyLayout,
   validateFrameZoneId,
   addFrameZoneToRecord,
+  pageTabZonesMarkup,
 } from "./compose/view.js";
 import {
   announceRoute,
@@ -122,7 +122,7 @@ import { loadNavBuildPalette } from "./nav-build/palette.js";
 import { mountNavBuild, navBuildMarkup, readNavBuildRoot } from "./nav-build/canvas.js";
 import { parseNavTree, serializeNavTree } from "./nav-build/tree.js";
 import { articleMeta, blogMeta, heroField, indexNote } from "./forms/article.js";
-import { formatJsonText, itemContent, itemZoneError, jsonText, newItemBody, tidyItemRecord, zonesDeclaredBy } from "./forms/item.js";
+import { formatJsonText, itemContent, itemZoneError, jsonText, newItemBody, normalizeItemZones, tidyItemRecord, zonesDeclaredBy } from "./forms/item.js";
 import {
   newPageBody,
   newTemplateBody,
@@ -218,15 +218,7 @@ import {
   bindDatasetFilters,
 } from "./forms/dataset-binding.js";
 import { datasetFieldCatalog } from "./dataset-field-catalog.js";
-import {
-  checkedFolderIds,
-  documentLink,
-  imageSlideSnippet,
-  imageTag,
-  mediaBlockSnippet,
-  type PickerMode,
-  type PickedAsset,
-} from "./forms/picker.js";
+import { checkedFolderIds } from "./forms/picker.js";
 import { openLibraryPicker } from "./library-picker.js";
 import {
   bindPageTargetPickerPanels,
@@ -2648,9 +2640,7 @@ function itemSection(rows: RecordSummary[], siteReady: boolean, zones: readonly 
       <p data-item-fill hidden><label for="new-item-content">Content</label>
         <select id="new-item-content" name="content" class="w3-select w3-border w3-margin-top">
           <option value="html">HTML</option>
-          <option value="json">JSON</option>
           <option value="component">Component</option>
-          <option value="blocks">Blocks</option>
         </select>
       </p>
       <p data-item-component hidden><label for="new-item-component">Component</label>
@@ -3833,10 +3823,10 @@ function fieldsHtml(
   const pageInline = kind === "content" ? { inline: true } : undefined;
   if (kind === "content" && record.type === "blog-index") return indexNote(record);
   if (kind === "content" && record.type === "article") {
-    return `${articleMeta(record)}${renderForm(recordSchema(kind, record, layout, types, pageIds) ?? { fields: [] }, record, pageInline)}${heroField(stringField(record, "hero"), options?.heroUrl)}${frameNote(layout)}`;
+    return `${articleMeta(record)}${renderForm(recordSchema(kind, record, layout, types, pageIds) ?? { fields: [] }, record, pageInline)}${heroField(stringField(record, "hero"), options?.heroUrl)}${frameNote(layout)}${pageTabZonesMarkup(record, layout)}`;
   }
   if (kind === "content" && record.type === "blog") {
-    return `${blogMeta(record)}${renderForm(recordSchema(kind, record, layout, types, pageIds) ?? { fields: [] }, record, pageInline)}${frameNote(layout)}${pageTabZoneFields(zonesOf(record), layout)}`;
+    return `${blogMeta(record)}${renderForm(recordSchema(kind, record, layout, types, pageIds) ?? { fields: [] }, record, pageInline)}${frameNote(layout)}${pageTabZonesMarkup(record, layout)}`;
   }
   if (kind === "bindings") return bindingFields(record);
   const schema = recordSchema(kind, record, layout, types, pageIds);
@@ -3848,9 +3838,9 @@ function fieldsHtml(
   const extras = schema.fields.filter((field) => !authoredNames.has(field.name));
   const zones =
     kind === "content"
-      ? `${layoutBanner(layout)}${frameNote(layout)}${typeFieldInputs(record, layout)}${pageTabZoneFields(zonesOf(record), layout)}`
+      ? `${layoutBanner(layout)}${frameNote(layout)}${typeFieldInputs(record, layout)}${pageTabZonesMarkup(record, layout)}`
       : kind === "items"
-        ? zoneFields(zonesOf(record), undefined, true)
+        ? itemZoneFields(normalizeItemZones(record))
         : "";
   return `${renderForm({ fields: base }, record, pageInline)}${zones}${extras.length ? renderForm({ fields: extras }, record) : ""}`;
 }
@@ -3937,62 +3927,22 @@ function typeFieldInputs(record: Record<string, unknown>, layout?: PageLayoutHin
   return `<fieldset class="editor-fieldset"><legend>Fields</legend><div class="editor-props">${inputs.join("")}</div></fieldset>`;
 }
 
-function pageTabZoneFields(zones: Record<string, unknown>, layout?: PageLayoutHint): string {
-  const filtered: Record<string, unknown> = {};
-  for (const [name, zone] of Object.entries(zones)) {
-    if (isLegacyScalarHtmlZone(name)) filtered[name] = zone;
-  }
-  return zoneFields(filtered, layout);
+function itemZoneFields(record: Record<string, unknown>): string {
+  const zones = zonesOf(record);
+  return Object.keys(zones)
+    .map((name) => itemZoneEditor(name, zones[name]))
+    .join("");
 }
 
-function zoneFields(zones: Record<string, unknown>, layout?: PageLayoutHint, item = false): string {
-  const declared = layout?.declaredZones ?? [];
-  const declaredSet = new Set(declared);
-  const onNames = declared.length ? declared : Object.keys(zones);
-  const off = declared.length ? Object.keys(zones).filter((name) => !declaredSet.has(name)) : [];
-  const onLayout = onNames.map((name) => zoneEditor(name, zones[name], false, item));
-  const offLayout = off.map((name) => zoneEditor(name, zones[name], true, item));
-  return `${onLayout.join("")}${
-    offLayout.length
-      ? `<section class="editor-off-layout">
-        <h2 class="w3-medium">Off layout</h2>
-        ${offLayout.join("")}
-      </section>`
-      : ""
-  }`;
-}
-
-function zoneEditor(name: string, zone: unknown, offLayout: boolean, item = false): string {
-  const label = zoneLabel(name, offLayout);
-  if (zone && typeof zone === "object" && !Array.isArray(zone) && "html" in zone) {
-    if (item) {
-      return rawHtmlField(
-        `zones.${name}.html`,
-        htmlZoneLabel(name, offLayout, item),
-        String((zone as { html: unknown }).html ?? ""),
-        htmlRows(name, item, true),
-      );
-    }
-    return `${insertButtons(`zones.${name}.html`, "html")}${textareaField(`zones.${name}.html`, htmlZoneLabel(name, offLayout, item), String((zone as { html: unknown }).html ?? ""), htmlRows(name, item, true))}`;
-  }
-  if (zone && typeof zone === "object" && !Array.isArray(zone) && "json" in zone) {
-    if (item) return jsonItemField(name, (zone as { json: unknown }).json);
-    return jsonZoneFields(name, (zone as { json: unknown }).json, offLayout);
-  }
-  if (zone === undefined) {
-    if (item) {
-      return rawHtmlField(`zones.${name}.html`, htmlZoneLabel(name, offLayout, item), "", htmlRows(name, item, false));
-    }
-    return `${insertButtons(`zones.${name}.html`, "html")}${textareaField(`zones.${name}.html`, htmlZoneLabel(name, offLayout, item), "", htmlRows(name, item, false))}`;
-  }
-  if (zone && typeof zone === "object" && !Array.isArray(zone) && "blocks" in zone) {
-    if (item) return blocksItemField(name, (zone as { blocks: unknown }).blocks);
-    return `${insertButtons(`zones.${name}`, "blocks")}${yamlField(`zones.${name}`, label, zone, 8)}`;
-  }
-  if (item && zone && typeof zone === "object" && !Array.isArray(zone) && "component" in zone) {
+function itemZoneEditor(name: string, zone: unknown): string {
+  if (zone && typeof zone === "object" && !Array.isArray(zone) && "component" in zone) {
     return componentItemField(name, zone as { component?: unknown; props?: unknown });
   }
-  return yamlField(`zones.${name}`, label, zone, 8);
+  const html =
+    zone && typeof zone === "object" && !Array.isArray(zone) && "html" in zone
+      ? String((zone as { html: unknown }).html ?? "")
+      : "";
+  return rawHtmlField(`zones.${name}.html`, `${labelize(name)} HTML`, html, 18);
 }
 
 function syncNewItemContent(form: HTMLFormElement): void {
@@ -4004,31 +3954,6 @@ function syncNewItemContent(form: HTMLFormElement): void {
   for (const row of form.querySelectorAll<HTMLElement>("[data-item-component]")) {
     row.hidden = !zone || content !== "component";
   }
-}
-
-function zoneLabel(name: string, offLayout: boolean): string {
-  if (offLayout) return `Off layout: ${name}`;
-  if (name === "main") return "Body";
-  return `Zone: ${name}`;
-}
-
-function htmlZoneLabel(name: string, offLayout: boolean, item: boolean): string {
-  if (item && !offLayout) return `${labelize(name)} HTML`;
-  return zoneLabel(name, offLayout);
-}
-
-function htmlRows(name: string, item: boolean, present: boolean): number {
-  if (item) return 18;
-  if (name === "main" || name === "hero" || (present && name === "minutes")) return 18;
-  return 6;
-}
-
-function jsonItemField(name: string, json: unknown): string {
-  return jsonBox(`zones.${name}.json`, `${labelize(name)} JSON`, json, "Raw JSON. Pretty-print formats this box.");
-}
-
-function blocksItemField(name: string, blocks: unknown): string {
-  return jsonBox(`zones.${name}.blocks`, `${labelize(name)} blocks`, Array.isArray(blocks) ? blocks : [], "A JSON array of blocks. Pretty-print formats this box.");
 }
 
 function componentItemField(name: string, zone: { component?: unknown; props?: unknown }): string {
@@ -4046,43 +3971,10 @@ function jsonBox(field: string, label: string, value: unknown, hint: string): st
     <span class="w3-text-grey">${escapeHtml(hint)}</span></p>`;
 }
 
-function jsonZoneFields(name: string, json: unknown, offLayout = false): string {
-  const legend = offLayout ? `Off layout: ${name}` : labelize(name);
-  if (json && typeof json === "object" && !Array.isArray(json)) {
-    const entries = Object.entries(json as Record<string, unknown>);
-    if (entries.every(([, v]) => v === undefined || ["string", "number", "boolean"].includes(typeof v))) {
-      return `<fieldset class="editor-fieldset${offLayout ? " editor-off-layout-fields" : ""}"><legend>${escapeHtml(legend)}</legend><div class="editor-props">${entries
-        .map(([k, v]) => {
-          const library =
-            typeof v === "string" || v === undefined
-              ? `<button type="button" class="w3-button w3-small w3-white" data-insert="id" data-target="${escapeHtml(`zones.${name}.json.${k}`)}">Library</button>`
-              : "";
-          return textField(`zones.${name}.json.${k}`, labelize(k), String(v ?? ""), "text", library);
-        })
-        .join("")}</div></fieldset>`;
-    }
-  }
-  return yamlField(`zones.${name}.json`, legend, json, 8);
-}
-
 function textField(name: string, label: string, value: string, type = "text", after = ""): string {
   const id = fieldId(name);
   return `<p><label for="${id}">${escapeHtml(label)}</label>
     <input id="${id}" name="${escapeHtml(name)}" data-kind="${type}" class="w3-input w3-border" value="${escapeHtml(value)}" />${after}</p>`;
-}
-
-function textareaField(name: string, label: string, value: string, rows: number): string {
-  const id = fieldId(name);
-  const extra = rows >= 14 ? " editor-body" : "";
-  return `<p><label for="${id}">${escapeHtml(label)}</label>
-    <textarea id="${id}" name="${escapeHtml(name)}" rows="${rows}" class="w3-input w3-border w3-margin-top${extra}">${escapeHtml(value)}</textarea></p>`;
-}
-
-function yamlField(name: string, label: string, value: unknown, rows: number): string {
-  const id = fieldId(name);
-  const text = stringifyYaml(value, { indent: 2, lineWidth: 0 }).trimEnd();
-  return `<p><span class="editor-code-head"><label for="${id}">${escapeHtml(label)}</label>${codeWrapToggle(id)}</span>
-    <textarea id="${id}" name="${escapeHtml(name)}" data-kind="yaml" rows="${rows}" spellcheck="false" class="w3-input w3-border w3-margin-top editor-yaml${codeWrapClass()}">${escapeHtml(text)}</textarea></p>`;
 }
 
 function labelize(key: string): string {
@@ -4222,19 +4114,11 @@ function syncLinkSource(form: HTMLFormElement): void {
 function saveRecordBody(kind: string, form: HTMLFormElement, original: unknown): unknown {
   const read = readFormValues(form, schemaFor(kind, original), original);
   // An item has no layout to re-declare an empty zone, so a cleared HTML box stays.
-  if (kind === "items") return tidyItemRecord(read);
-  return pruneEmptyHtmlZones(read);
-}
-
-function insertButtons(target: string, kind: "html" | "blocks"): string {
-  const name = escapeHtml(target);
-  if (kind === "html") {
-    return `<p><button type="button" class="w3-button w3-small w3-white" data-insert="image" data-target="${name}">Image</button>
-      <button type="button" class="w3-button w3-small w3-white" data-insert="document" data-target="${name}">Document</button></p>`;
+  if (kind === "items") {
+    const record = read && typeof read === "object" && !Array.isArray(read) ? (read as Record<string, unknown>) : {};
+    return tidyItemRecord(normalizeItemZones(record));
   }
-  return `<p><button type="button" class="w3-button w3-small w3-white" data-insert="media-image" data-target="${name}">Image</button>
-    <button type="button" class="w3-button w3-small w3-white" data-insert="media-document" data-target="${name}">Document</button>
-    <button type="button" class="w3-button w3-small w3-white" data-insert="slide" data-target="${name}">Image slide</button></p>`;
+  return pruneEmptyHtmlZones(read);
 }
 
 function bindJsonFormat(form: HTMLFormElement): void {
@@ -4290,28 +4174,13 @@ function bindPickers(form: HTMLFormElement): void {
 }
 
 async function insertFromLibrary(form: HTMLFormElement, insert: string, target: string): Promise<void> {
-  const mode: PickerMode = insert === "document" || insert === "media-document" ? "document" : "image";
-  const picked = await openLibraryPicker(insert === "id" ? "image" : mode);
+  if (insert !== "id") return;
+  const picked = await openLibraryPicker("image");
   if (!picked) return;
-  const control = form.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[name="${CSS.escape(target)}"]`);
-  if (insert === "id") {
-    if (control instanceof HTMLInputElement) {
-      control.value = picked.id;
-      control.dispatchEvent(new Event("input", { bubbles: true }));
-      form.dataset.dirty = "true";
-    }
-    return;
-  }
-  if (!("url" in picked) || !(control instanceof HTMLTextAreaElement)) return;
-  const text =
-    insert === "document"
-      ? documentLink(picked)
-      : insert === "slide"
-        ? imageSlideSnippet(picked)
-        : insert === "media-image" || insert === "media-document"
-          ? mediaBlockSnippet(picked)
-          : imageTag(picked);
-  insertAtCursor(control, text);
+  const control = form.querySelector<HTMLInputElement>(`[name="${CSS.escape(target)}"]`);
+  if (!control) return;
+  control.value = picked.id;
+  control.dispatchEvent(new Event("input", { bubbles: true }));
   form.dataset.dirty = "true";
 }
 
@@ -4341,13 +4210,6 @@ async function fillImageBox(button: HTMLButtonElement): Promise<void> {
   src?.dispatchEvent(new Event("change", { bubbles: true }));
   const form = button.closest("form");
   if (form) form.dataset.dirty = "true";
-}
-
-function insertAtCursor(el: HTMLTextAreaElement, text: string): void {
-  const start = el.selectionStart ?? el.value.length;
-  const end = el.selectionEnd ?? start;
-  el.value = `${el.value.slice(0, start)}${text}${el.value.slice(end)}`;
-  el.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
 function openPageTargetPicker(

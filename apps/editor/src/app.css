@@ -2914,3 +2914,28 @@ button.editor-picker-asset:hover {
   }
 }
 
+.editor-page-zone-preview {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  max-height: 18rem;
+  overflow: auto;
+  background: #fafafa;
+  user-select: text;
+  pointer-events: none;
+}
+
+textarea.editor-page-zone-preview {
+  pointer-events: auto;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.editor-page-zone-preview pre {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 0.85rem;
+}
+

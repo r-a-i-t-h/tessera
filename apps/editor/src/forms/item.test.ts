@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatJsonText, itemZoneError, jsonText, newItemBody, parseJsonText, tidyItemRecord, zonesDeclaredBy } from "./item.js";
+import { formatJsonText, itemZoneError, jsonText, newItemBody, normalizeItemZones, parseJsonText, tidyItemRecord, zonesDeclaredBy } from "./item.js";
 
 describe("new item", () => {
   it("unions zones in layout order and drops duplicates", () => {
@@ -41,42 +41,44 @@ describe("new item", () => {
 
   it("starts with no zone when none is chosen", () => {
     expect(newItemBody("note", "")).toEqual({ id: "note", zones: {} });
-    expect(newItemBody("note", "  ", "json")).toEqual({ id: "note", zones: {} });
+    expect(newItemBody("note", "  ", "html")).toEqual({ id: "note", zones: {} });
   });
 
-  it("starts a JSON item as an empty value in the named zone", () => {
-    expect(newItemBody("trustees", "aside", "json")).toEqual({
-      id: "trustees",
-      zones: { aside: { json: null } },
-    });
-  });
-
-  it("starts a component from its catalogue name and a block list as an empty array", () => {
+  it("starts a component from its catalogue name", () => {
     expect(newItemBody("banner", "header", "component", " eventList ")).toEqual({
       id: "banner",
       zones: { header: { component: "eventList" } },
     });
-    expect(newItemBody("slides", "main", "blocks")).toEqual({
-      id: "slides",
-      zones: { main: { blocks: [] } },
-    });
   });
 
-  it("drops blank component props and keeps an empty block list", () => {
+  it("drops blank component props", () => {
     expect(
       tidyItemRecord({
         id: "banner",
         zones: {
           header: { component: "eventList", props: null },
-          main: { blocks: null },
         },
       }),
     ).toEqual({
       id: "banner",
       zones: {
         header: { component: "eventList" },
-        main: { blocks: [] },
       },
+    });
+  });
+
+  it("rewrites widget blocks to html and drops json zones", () => {
+    expect(
+      normalizeItemZones({
+        id: "footer",
+        zones: {
+          footer: { blocks: [{ kind: "text", heading: "", level: 2, html: "<p>Hi</p>" }] },
+          data: { json: [{ x: 1 }] },
+        },
+      }),
+    ).toEqual({
+      id: "footer",
+      zones: { footer: { html: "<p>Hi</p>" } },
     });
   });
 

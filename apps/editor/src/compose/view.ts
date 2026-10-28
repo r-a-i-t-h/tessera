@@ -1,7 +1,8 @@
 import { COMPOSE_PALETTE_GROUP_LENGTHS, PALETTE, compileWidgetsToHtml, widgetsFromLegacyHtml, type Widget } from "@r-a-i-t-h/tessera-sections";
 import type { PageLayoutHint } from "../api.js";
 import { COMPOSE_LIST_EXPANDED_LABEL } from "../escape-key.js";
-import { escapeHtml } from "../dom.js";
+import { escapeHtml, fieldId } from "../dom.js";
+import { jsonText } from "../forms/item.js";
 import { draftYaml, isWidgetBlocks, parsePageYaml, withZoneWidgets } from "./draft.js";
 import { isLegacyScalarHtmlZone } from "../authoring-constants.js";
 import { readComposeWidgets } from "./widget-composer.js";
@@ -381,4 +382,58 @@ function dropFrameUiFields(record: Record<string, unknown>): Record<string, unkn
 
 function layoutBanner(_record: Record<string, unknown>, _layout?: PageLayoutHint): string {
   return "";
+}
+
+/** Page tab: legacy scalar HTML fields + read-only HTML source for compose-backed declared zones. */
+export function pageTabZonesMarkup(record: Record<string, unknown>, layout?: PageLayoutHint): string {
+  const zones = zonesOf(record);
+  const declared = layout?.declaredZones ?? [];
+  const names = declared.length ? declared : Object.keys(zones).filter((id) => isLegacyScalarHtmlZone(id));
+  if (!names.length) return "";
+  return names
+    .map((name) =>
+      isLegacyScalarHtmlZone(name)
+        ? legacyScalarZoneField(name, zones[name])
+        : composeZonePreviewSection(name, zones[name]),
+    )
+    .join("");
+}
+
+function legacyScalarZoneField(name: string, zone: unknown): string {
+  const html = isRecord(zone) && "html" in zone ? String(zone.html ?? "") : "";
+  const id = fieldId(`zones.${name}.html`);
+  const label = zoneLabel(name, false);
+  return `<section class="editor-zone"><p><label for="${id}">${escapeHtml(label)}</label>
+    <textarea id="${id}" name="${escapeHtml(`zones.${name}.html`)}" rows="6" spellcheck="false" class="w3-input w3-border w3-margin-top editor-html">${escapeHtml(html)}</textarea></p></section>`;
+}
+
+function composeZonePreviewSection(name: string, zone: unknown): string {
+  const label = zoneLabel(name, false);
+  const body = composeZonePreviewBody(zone);
+  return `<section class="editor-zone"><h2 class="w3-medium">${escapeHtml(label)}</h2>
+    ${body}
+    <p class="w3-small w3-text-grey">Read-only HTML source. Edit on <strong>Compose</strong>.</p></section>`;
+}
+
+function composeZoneSourceHtml(zone: unknown): string {
+  if (isRecord(zone) && "html" in zone && typeof zone.html === "string" && !("blocks" in zone)) {
+    return zone.html;
+  }
+  return compileWidgetsToHtml(widgetsForZone(zone));
+}
+
+function composeZonePreviewBody(zone: unknown): string {
+  if (isRecord(zone) && "component" in zone && !("html" in zone) && !("blocks" in zone)) {
+    const name = typeof zone.component === "string" ? zone.component : "";
+    const props = zone.props !== undefined ? jsonText(zone.props) : "";
+    const summary = props
+      ? `<pre class="editor-page-zone-preview">${escapeHtml(props)}</pre>`
+      : `<p class="w3-text-grey"><em>No props.</em></p>`;
+    return `<p class="w3-small w3-text-grey">Component <code>${escapeHtml(name || "?")}</code></p>${summary}`;
+  }
+  const source = composeZoneSourceHtml(zone).trim();
+  if (!source) {
+    return `<p class="w3-text-grey">Empty — add blocks on Compose.</p>`;
+  }
+  return `<textarea readonly rows="18" spellcheck="false" class="w3-input w3-border w3-margin-top editor-html editor-page-zone-preview">${escapeHtml(source)}</textarea>`;
 }

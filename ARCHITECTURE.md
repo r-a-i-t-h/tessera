@@ -124,7 +124,7 @@ Records live in `$TESSERA_DATA/records/`, off the web path. Each record is one Y
 | `site.yaml` | Site meta |
 | `nav.yaml` | Designed nav tree |
 
-HTML zones on **items** and layout **static** nodes still use YAML `html:` scalars. **Compose-backed page zones** persist an ordered **widget list** under `zones.<id>.blocks` (objects with `kind`, not renderer `type`). Assemble compiles widgets to a single `text` block for publish. The **`title`** zone may stay a plain `html:` string on the Page tab. Component implementations live in the shared catalogue; only bindings are records.
+HTML zones on **items** (and layout **static** nodes) use YAML `html:` scalars; items may also use a **`component`** mount per zone. **Compose-backed page zones** persist an ordered **widget list** under `zones.<id>.blocks` (objects with `kind`, not renderer `type`). Assemble compiles widgets to a single `text` block for publish. The **`title`** zone may stay a plain `html:` string on the Page tab. Component implementations live in the shared catalogue; only bindings are records.
 
 The editor form for a page lists the type's fields, then zones declared by the resolved layout (the type's layout, otherwise the site default). Extra keys on the page that the layout does not declare stay editable under **Off layout**. A type is site configuration: it names fields and a layout. It is not a built-in class. Willow's person type lists `role`, `email`, `photo`, and `precis` on the entry. `schemaVersion` is how records are stored.
 

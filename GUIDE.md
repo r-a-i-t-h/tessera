@@ -102,7 +102,7 @@ Pages are ordinary pages. [Articles](#/articles) expands each blog in the sideba
 
 ## Items
 
-An **item** is reusable zone content with no URL of its own — a shared footer, a JSON feed for a layout component, or a component mount reused on many pages. Records live under [Records → Items](#/records/items) (`records/items/<id>.yaml`). Open `#/items/<id>` to edit **tags** and each zone’s **HTML**, **JSON**, **blocks** (a JSON array), or a named **component** plus props.
+An **item** is reusable zone content with no URL of its own — typically shared HTML (a footer) or a **component** mount included on many pages. Records live under [Records → Items](#/records/items) (`records/items/<id>.yaml`). Open `#/items/<id>` to edit **tags** and each zone’s **HTML** or a named **component** plus props. Structured tabular data belongs in a [dataset](#datasets) plus a binding, not in item zones.
 
 **Includes** pull items into a page at render time. On a page, template, or layout, list item ids in **Includes** (comma-separated on the form). Tessera merges zones in order: the page’s own zones first, then the page’s includes, then the page layout’s includes, then the master frame’s includes when that layout differs. Each item id is merged once. Blocks in the same zone id are concatenated — page body, then shared footer.
 
@@ -115,9 +115,9 @@ includes:
 
 Put the footer on a **template** or **layout** when every page in that family should share it without repeating the list.
 
-A zone an item fills but the current layout does not declare stays off the painted page, yet its data remains on the merged zone map. A layout **component** can still read it (for example JSON in an `events` zone consumed via `fromZone` on the component props). That pattern suits structured lists edited as item JSON; tabular catalogues with many rows are usually a [dataset](#datasets) plus a binding instead.
+Tabular or structured data belongs in a [dataset](#datasets) plus a binding, not in item zones.
 
-**Bindings** configure registered components (`{{id}}`). **Items** supply zone payloads those components (or plain zone HTML) can read. A binding may also set `itemId` and `fromZone` in YAML to take JSON from an item zone rather than the current page.
+**Bindings** configure registered components (`{{id}}`). **Items** supply shared **HTML** or a **component** mount that merges into layout zones when included.
 
 Maintenance **Unused items** lists item records nothing includes. Themes may ship kit items; apply copies the listed ids without touching your pages.
 

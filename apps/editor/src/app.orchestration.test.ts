@@ -213,7 +213,8 @@ describe("editor route orchestration", () => {
     expect(zone?.options[0]?.textContent).toBe("-- none --");
     expect(zone?.value).toBe("");
     expect(form?.querySelector("#new-item-content")?.textContent).toContain("Component");
-    expect(form?.querySelector("#new-item-content")?.textContent).toContain("Blocks");
+    expect(form?.querySelector("#new-item-content")?.textContent).not.toContain("Blocks");
+    expect(form?.querySelector("#new-item-content")?.textContent).not.toContain("JSON");
 
     navigate("#/items/common-footer");
     await vi.waitFor(() => {
@@ -222,15 +223,8 @@ describe("editor route orchestration", () => {
     const htmlBox = root.querySelector<HTMLTextAreaElement>('[name="zones.footer.html"]');
     expect(htmlBox?.getAttribute("data-kind")).toBeNull();
     expect(htmlBox?.closest("p")?.textContent).toContain("Footer HTML");
-    expect(root.querySelector('[name="zones"]')).toBeNull();
-    const jsonBox = root.querySelector<HTMLTextAreaElement>('[name="zones.events.json"]');
-    expect(jsonBox?.getAttribute("data-kind")).toBe("json");
-    expect(jsonBox?.value).toBe(`[
-  {
-    "title": "Fair"
-  }
-]`);
-    expect(root.querySelector("[data-json-format]")?.textContent).toBe("Pretty-print");
+    expect(root.querySelector('[name="zones.events.json"]')).toBeNull();
+    expect(root.querySelector("[data-insert=\"image\"]")).toBeNull();
   });
 
   it("opens Site when setup records route has no record type", async () => {
