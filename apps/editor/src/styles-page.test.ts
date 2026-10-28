@@ -39,12 +39,13 @@ describe("site style page", () => {
     expect(stylesPageHtml({ style: {} })).toContain('href="#/styles?sheet=tessera">Tessera</a>');
   });
 
-  it("renders colour swatches with hex labels", () => {
+  it("renders colour swatches as text fields with picker controls", () => {
     const html = stylesPageHtml({ style: {} });
-    expect(html).toContain('class="style-color-swatch"');
-    expect(html).toContain('data-style-color-label');
-    expect(html).toContain('type="color"');
-    expect(html).toContain('class="style-frame-color-input"');
+    expect(html).toContain('class="style-color-control"');
+    expect(html).toContain('class="style-color-value-input"');
+    expect(html).toContain("style-color-picker-btn");
+    expect(html).toContain("style-color-picker");
+    expect(html).toContain('name="bar"');
     expect(html).toContain("#009688");
   });
 

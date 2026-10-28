@@ -1064,9 +1064,12 @@ img[data-hero-preview] {
   font-size: 1rem;
 }
 
+.editor-props .style-color-control {
+  margin-top: 0;
+}
+
 .editor-props .style-color-swatch {
   height: 2.15rem;
-  margin-top: 0;
 }
 
 .editor-props .w3-button {
@@ -1696,50 +1699,31 @@ img[data-hero-preview] {
   padding: 0 0.35rem;
 }
 
-.style-color {
-  position: absolute;
-  inset: 0;
-  box-sizing: border-box;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  border: none;
-  opacity: 0;
-  cursor: pointer;
-}
-
 .style-color-field {
   margin: 0;
   min-width: 0;
 }
 
+.style-color-control {
+  position: relative;
+  display: flex;
+  gap: 0.35rem;
+  align-items: stretch;
+  margin-top: 0.35rem;
+}
+
 .style-color-swatch {
   position: relative;
+  flex: 1;
+  min-width: 0;
   display: block;
   box-sizing: border-box;
-  width: 100%;
   height: 2.5rem;
-  margin-top: 0.35rem;
   border: 1px solid #ccc;
   overflow: hidden;
 }
 
-.style-color-label {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.8rem;
-  line-height: 1.2;
-  padding: 0 0.35rem;
-  text-align: center;
-}
-
-.style-frame-color-input {
+.style-color-value-input {
   position: absolute;
   inset: 0;
   box-sizing: border-box;
@@ -1756,23 +1740,48 @@ img[data-hero-preview] {
   text-align: center;
 }
 
-.style-frame-color-input::placeholder {
+.style-color-value-input::placeholder {
   color: inherit;
   opacity: 0.72;
 }
 
-.style-frame-color-input:focus {
+.style-color-value-input:focus {
   outline: 2px solid color-mix(in srgb, currentColor 35%, transparent);
   outline-offset: -2px;
 }
 
-.style-color::-webkit-color-swatch-wrapper {
-  padding: 0;
+.style-color-picker-btn {
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid #ccc !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #444;
 }
 
-.style-color::-webkit-color-swatch,
-.style-color::-moz-color-swatch {
-  border: none;
+.style-color-picker-btn:hover,
+.style-color-picker-btn:focus {
+  color: #111;
+}
+
+.style-color-picker-icon {
+  display: block;
+}
+
+.style-color-picker {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .style-tokens-layout {

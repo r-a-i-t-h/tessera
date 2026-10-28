@@ -5,7 +5,13 @@ import { errorPanel, escapeHtml, noticePanel } from "./dom.js";
 import { STYLE_FIELDS, styleDraft, styleFieldValues, styleFromValues, styleGroups } from "./forms/style.js";
 import { mountMaximizedCodeEditor, type MaximizedCodeEditorHandle } from "./maximized-code-editor.js";
 import { stylesSheetHref } from "./router.js";
-import { bindStyleColorFields, swatchForFrameColor, swatchForStyleToken } from "./style-color-field.js";
+import {
+  bindStyleColorFields,
+  hexForColorPicker,
+  styleColorPickerIcon,
+  swatchPresentation,
+  type StyleColorFieldMode,
+} from "./style-color-field.js";
 
 const PANELS_KEY = "tessera.styles.panels";
 
@@ -195,6 +201,27 @@ export function paintSpecimen(root: ParentNode, style: SiteStyle): void {
   specimen.dataset.side = style.navSide === "left" ? "left" : "right";
 }
 
+function colorSwatchFieldHtml(
+  id: string,
+  name: string,
+  label: string,
+  value: string,
+  mode: StyleColorFieldMode,
+): string {
+  const swatch = swatchPresentation(value, mode);
+  const pickerValue = hexForColorPicker(value, mode) ?? "#808080";
+  const placeholder = mode === "frame" ? ` placeholder="Default"` : "";
+  const pickLabel = escapeHtml(`Pick ${label}`);
+  return `<p class="style-color-field"><label for="${id}">${escapeHtml(label)}</label>
+    <span class="style-color-control" data-style-color-control data-style-color-mode="${mode}">
+      <span class="style-color-swatch" data-style-color-swatch style="background:${escapeHtml(swatch.background)};color:${escapeHtml(swatch.text)}">
+        <input id="${id}" name="${escapeHtml(name)}" class="style-color-value-input" type="text" value="${escapeHtml(value)}"${placeholder} aria-label="${escapeHtml(label)}" autocomplete="off" spellcheck="false" />
+      </span>
+      <button type="button" class="style-color-picker-btn w3-button w3-white" aria-label="${pickLabel}" title="${pickLabel}">${styleColorPickerIcon()}</button>
+      <input class="style-color-picker" type="color" value="${escapeHtml(pickerValue)}" tabindex="-1" aria-hidden="true" />
+    </span></p>`;
+}
+
 function fieldHtml(name: string, label: string, kind: string, value: string): string {
   const id = `style-${name}`;
   const wide = kind === "url" ? ` class="editor-prop-wide"` : "";
@@ -213,19 +240,10 @@ function fieldHtml(name: string, label: string, kind: string, value: string): st
       </select></p>`;
   }
   if (kind === "color") {
-    const swatch = swatchForStyleToken(value);
-    return `<p class="style-color-field"><label for="${id}">${escapeHtml(label)}</label>
-      <span class="style-color-swatch" data-style-color-swatch style="background:${escapeHtml(swatch.background)};color:${escapeHtml(swatch.text)}">
-        <span class="style-color-label" data-style-color-label>${escapeHtml(swatch.label)}</span>
-        <input id="${id}" name="${escapeHtml(name)}" class="style-color" type="color" value="${escapeHtml(value)}" aria-label="${escapeHtml(label)}" />
-      </span></p>`;
+    return colorSwatchFieldHtml(id, name, label, value, "token");
   }
   if (kind === "frameColor") {
-    const swatch = swatchForFrameColor(value);
-    return `<p class="style-color-field"><label for="${id}">${escapeHtml(label)}</label>
-      <span class="style-color-swatch style-color-swatch--text" data-style-color-swatch style="background:${escapeHtml(swatch.background)};color:${escapeHtml(swatch.text)}">
-        <input id="${id}" name="${escapeHtml(name)}" class="style-frame-color-input" type="text" value="${escapeHtml(value)}" placeholder="Default" aria-label="${escapeHtml(label)}" />
-      </span></p>`;
+    return colorSwatchFieldHtml(id, name, label, value, "frame");
   }
   const type = kind === "url" ? "url" : "text";
   return `<p${wide}><label for="${id}">${escapeHtml(label)}</label>
