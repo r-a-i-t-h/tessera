@@ -214,6 +214,15 @@ describe("schema forms", () => {
     expect(renderForm(panelTonesSchema!, { panelTones: [{ id: "ma-blue", label: "School blue", className: "ma-panel-blue" }] })).toContain(
       'href="#/styles?sheet=local">Site local</a>',
     );
+    const missingTonesHtml = renderForm(panelTonesSchema!, { id: "s", title: "S", homePageId: "home" });
+    expect(missingTonesHtml).not.toContain('">""</textarea>');
+    expect(missingTonesHtml).toMatch(/<textarea[^>]*name="panelTones"[^>]*>\s*<\/textarea>/);
+    const roundTrip = applySubmitted(
+      panelTonesSchema!,
+      { id: "s", title: "S", homePageId: "home" },
+      { id: "s", title: "S", homePageId: "home", panelTones: '""' },
+    );
+    expect(roundTrip).not.toHaveProperty("panelTones");
     const styleSchema = schemaFor("site", {
       id: "s",
       title: "S",

@@ -55,7 +55,10 @@ export function renderField(field: FieldSchema, value: unknown): string {
     ${control(`<select id="${id}" name="${escapeHtml(field.name)}" data-kind="select" class="w3-select w3-border">${choices}</select>`)}</p>`;
   }
   if (field.type === "yaml") {
-    const text = stringifyYaml(value ?? "", { indent: 2, lineWidth: 0 }).trimEnd();
+    const text =
+      value === undefined || value === null
+        ? ""
+        : stringifyYaml(value, { indent: 2, lineWidth: 0 }).trimEnd();
     return textarea(field, id, text, "yaml");
   }
   const text = displayString(field, value);
@@ -141,7 +144,12 @@ function applyField(target: Record<string, unknown>, field: FieldSchema, raw: Su
       if (!field.required) delete target[field.name];
       return;
     }
-    target[field.name] = parseYaml(text);
+    const parsed = parseYaml(text);
+    if ((parsed === "" || parsed === null) && !field.required) {
+      delete target[field.name];
+      return;
+    }
+    target[field.name] = parsed;
     return;
   }
   if (field.list) {
