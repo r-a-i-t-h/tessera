@@ -22,8 +22,10 @@ import {
   SITE_DOCUMENT_SCHEMA_VERSION,
   usesBlog,
 } from "@r-a-i-t-h/tessera-model";
+import { compileWidgetsToHtml, type Widget } from "@r-a-i-t-h/tessera-sections";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import type { RecordKind } from "./kinds.js";
+import { isWidgetBlocks } from "./widget-schema.js";
 import { projectLibrary } from "./library.js";
 import { projectRuntimeModules } from "./runtime-module.js";
 
@@ -31,7 +33,7 @@ export type ZoneAuthoring =
   | { html: string }
   | { json: unknown }
   | { component: string; props?: Record<string, unknown> }
-  | { blocks: Block[] };
+  | { blocks: Block[] | Widget[] };
 
 export type AuthoredPage = {
   id: string;
@@ -111,7 +113,13 @@ function zoneToBlocks(zone: ZoneAuthoring): Block[] {
       },
     ];
   }
-  if ("blocks" in zone && Array.isArray(zone.blocks)) return zone.blocks;
+  if ("blocks" in zone && Array.isArray(zone.blocks)) {
+    if (isWidgetBlocks(zone.blocks)) {
+      const html = compileWidgetsToHtml(zone.blocks).trim();
+      return html ? [{ type: "text", html }] : [];
+    }
+    return zone.blocks as Block[];
+  }
   throw new Error("Zone must be html, json, component, or blocks.");
 }
 

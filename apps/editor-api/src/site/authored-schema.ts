@@ -10,6 +10,7 @@ import {
 } from "@r-a-i-t-h/tessera-model";
 import { z } from "zod";
 import type { RecordKind } from "./kinds.js";
+import { isWidgetBlocks, WidgetBlocksSchema } from "./widget-schema.js";
 
 export type AuthoredKind = RecordKind | "site" | "nav";
 
@@ -55,10 +56,19 @@ const authoredZone = z.unknown().superRefine((value, ctx) => {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["props"], message: "must be a mapping" });
     }
   } else if (variants[0] === "blocks") {
-    const parsed = z.array(BlockSchema).safeParse(row.blocks);
-    if (!parsed.success) {
-      for (const issue of parsed.error.issues) {
-        ctx.addIssue({ ...issue, path: ["blocks", ...issue.path] });
+    if (isWidgetBlocks(row.blocks)) {
+      const parsed = WidgetBlocksSchema.safeParse(row.blocks);
+      if (!parsed.success) {
+        for (const issue of parsed.error.issues) {
+          ctx.addIssue({ ...issue, path: ["blocks", ...issue.path] });
+        }
+      }
+    } else {
+      const parsed = z.array(BlockSchema).safeParse(row.blocks);
+      if (!parsed.success) {
+        for (const issue of parsed.error.issues) {
+          ctx.addIssue({ ...issue, path: ["blocks", ...issue.path] });
+        }
       }
     }
   }
