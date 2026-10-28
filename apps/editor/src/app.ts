@@ -278,6 +278,7 @@ import {
 } from "./styles-page.js";
 import { usernameError } from "./username.js";
 import { cancelNewBindingForm, handleEscape, hasOpenModal } from "./escape-key.js";
+import { triggerNewAction } from "./new-key.js";
 import { bindDatasetsSetup, datasetsSetupSection, mountDatasetSetup } from "./datasets/setup.js";
 import { mountData } from "./datasets/view.js";
 
@@ -303,6 +304,18 @@ export async function mount(root: HTMLElement): Promise<void> {
       handleEscape(root, { onLibraryAddClose: () => { libraryAddOpen = false; } })
     ) {
       event.preventDefault();
+      return;
+    }
+    if (
+      event.code === "KeyN" &&
+      !event.altKey &&
+      !event.shiftKey &&
+      (event.metaKey || event.ctrlKey) &&
+      !event.defaultPrevented
+    ) {
+      event.preventDefault();
+      if (!hasOpenModal() && triggerNewAction(root)) return;
+      showEditorToast("Nothing created", { tone: "neutral" });
       return;
     }
     if (event.code !== "KeyS" || event.altKey || event.shiftKey || !(event.metaKey || event.ctrlKey)) return;

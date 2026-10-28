@@ -15,7 +15,6 @@ import { editorChrome, type EditorSection } from "../chrome.js";
 import { mergeEditorNav } from "../sidebar-nav.js";
 import { activateDialog } from "../dialog.js";
 import { escapeHtml } from "../dom.js";
-import { hasOpenModal } from "../escape-key.js";
 import { openLibraryPicker } from "../library-picker.js";
 import type { PickedAsset } from "../forms/picker.js";
 import { assetDisplayHtml } from "./asset-display.js";
@@ -35,29 +34,6 @@ import { readRecordForm, renderRecordForm } from "./record-form.js";
 
 type BindChrome = (root: HTMLElement) => void;
 
-let datasetViewShortcuts: AbortController | undefined;
-
-function stopDatasetViewShortcuts(): void {
-  datasetViewShortcuts?.abort();
-  datasetViewShortcuts = undefined;
-}
-
-function startDatasetViewShortcuts(onAddRecord: () => void): void {
-  stopDatasetViewShortcuts();
-  datasetViewShortcuts = new AbortController();
-  document.addEventListener(
-    "keydown",
-    (event) => {
-      if (event.code !== "KeyN" || event.altKey || event.shiftKey || !(event.metaKey || event.ctrlKey)) return;
-      if (hasOpenModal()) return;
-      if (!document.querySelector(".editor-dataset-page")) return;
-      event.preventDefault();
-      onAddRecord();
-    },
-    { signal: datasetViewShortcuts.signal },
-  );
-}
-
 export async function mountData(
   root: HTMLElement,
   user: PublicUser,
@@ -65,7 +41,6 @@ export async function mountData(
   bindChrome: BindChrome,
 ): Promise<void> {
   if (!datasetId) {
-    stopDatasetViewShortcuts();
     await mountDataList(root, user, bindChrome);
     return;
   }
@@ -445,7 +420,6 @@ async function mountDatasetGrid(
     });
   }
 
-  startDatasetViewShortcuts(() => void openRecordDialog(undefined));
   paint();
 }
 
