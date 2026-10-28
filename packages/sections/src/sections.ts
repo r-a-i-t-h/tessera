@@ -209,17 +209,20 @@ export type PaletteKind =
   | "gallery"
   | "pasted";
 
+/** Compose sidebar groups (each followed by a divider except after the last). */
+export const COMPOSE_PALETTE_GROUP_LENGTHS: readonly number[] = [3, 3, 8];
+
 export const PALETTE: { kind: PaletteKind; label: string }[] = [
   { kind: "heading", label: "Heading" },
+  { kind: "toc", label: "Contents" },
+  { kind: "subpages", label: "Subpages" },
+  { kind: "panel", label: "Panel" },
+  { kind: "columns", label: "Side by side" },
+  { kind: "card", label: "Card" },
   { kind: "text", label: "Text" },
   { kind: "spacer", label: "Spacer" },
-  { kind: "panel", label: "Panel" },
   { kind: "quote", label: "Quote" },
   { kind: "imgbox", label: "Image box" },
-  { kind: "card", label: "Card" },
-  { kind: "columns", label: "Side by side" },
-  { kind: "subpages", label: "Subpages" },
-  { kind: "toc", label: "Contents" },
   { kind: "youtube", label: "YouTube" },
   { kind: "gallery", label: "Gallery" },
   { kind: "pasted", label: "Pasted note" },

@@ -1,5 +1,6 @@
-import { PALETTE } from "@r-a-i-t-h/tessera-sections";
+import { COMPOSE_PALETTE_GROUP_LENGTHS, PALETTE } from "@r-a-i-t-h/tessera-sections";
 import type { PageLayoutHint } from "../api.js";
+import { COMPOSE_LIST_EXPANDED_LABEL } from "../escape-key.js";
 import { escapeHtml } from "../dom.js";
 import { draftYaml, parsePageYaml, withZoneHtml } from "./draft.js";
 import { readComposeHtml } from "./canvas.js";
@@ -108,9 +109,17 @@ export function frameFormInner(
 }
 
 function composePalette(): string {
+  const button = (item: (typeof PALETTE)[number]) =>
+    `<button type="button" class="w3-button w3-white w3-border" draggable="true" data-palette="${item.kind}">${item.label}</button>`;
+  let at = 0;
+  const groups = COMPOSE_PALETTE_GROUP_LENGTHS.map((length) => {
+    const slice = PALETTE.slice(at, at + length);
+    at += length;
+    return slice.map(button).join("");
+  });
   return `<div class="editor-palette">
-        <p><button type="button" class="w3-button w3-white w3-border" data-compose-list aria-pressed="false">List</button></p>
-        ${PALETTE.map((item) => `<button type="button" class="w3-button w3-white w3-border" draggable="true" data-palette="${item.kind}">${item.label}</button>`).join("")}
+        <p><button type="button" class="w3-button w3-white w3-border" data-compose-list aria-pressed="false">${COMPOSE_LIST_EXPANDED_LABEL}</button></p>
+        ${groups.join(`<hr class="editor-palette-rule">`)}
       </div>`;
 }
 

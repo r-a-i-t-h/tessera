@@ -36,7 +36,11 @@ import {
 import { setDragGhost } from "../drag-ghost.js";
 import { startDragScroll, type DragScroll } from "../drag-scroll.js";
 import { REORDER_ICONS } from "../editor-icons.js";
-import { hasOpenModal } from "../escape-key.js";
+import {
+  COMPOSE_LIST_COLLAPSED_LABEL,
+  COMPOSE_LIST_EXPANDED_LABEL,
+  hasOpenModal,
+} from "../escape-key.js";
 import { editorMediaHtml, editorMediaSrc } from "../forms/media-url.js";
 
 export type BindingChoice = { id: string; title?: string };
@@ -971,7 +975,7 @@ function onClick(form: HTMLFormElement, event: MouseEvent): void {
     event.preventDefault();
     const on = form.classList.toggle("editor-compose-list");
     listToggle.setAttribute("aria-pressed", on ? "true" : "false");
-    listToggle.textContent = on ? "Editors" : "List";
+    listToggle.textContent = on ? COMPOSE_LIST_COLLAPSED_LABEL : COMPOSE_LIST_EXPANDED_LABEL;
     return;
   }
   const move = target.closest<HTMLButtonElement>("[data-move]");

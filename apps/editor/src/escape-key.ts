@@ -1,3 +1,6 @@
+export const COMPOSE_LIST_EXPANDED_LABEL = "Collapse editors";
+export const COMPOSE_LIST_COLLAPSED_LABEL = "Expand editors";
+
 /** True when a modal dialog is open (Escape is handled on the dialog host). */
 export function hasOpenModal(): boolean {
   return Boolean(document.querySelector('[role="dialog"][aria-modal="true"]'));
@@ -74,7 +77,7 @@ function cancelComposeListMode(root: ParentNode): boolean {
   form.classList.remove("editor-compose-list");
   const toggle = form.querySelector<HTMLElement>("[data-compose-list]");
   toggle?.setAttribute("aria-pressed", "false");
-  if (toggle) toggle.textContent = "List";
+  if (toggle) toggle.textContent = COMPOSE_LIST_EXPANDED_LABEL;
   return true;
 }
 
