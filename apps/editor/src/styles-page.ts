@@ -5,6 +5,7 @@ import { errorPanel, escapeHtml, noticePanel } from "./dom.js";
 import { STYLE_FIELDS, styleDraft, styleFieldValues, styleFromValues, styleGroups } from "./forms/style.js";
 import { mountMaximizedCodeEditor, type MaximizedCodeEditorHandle } from "./maximized-code-editor.js";
 import { stylesSheetHref } from "./router.js";
+import { bindStyleColorFields, swatchForFrameColor, swatchForStyleToken } from "./style-color-field.js";
 
 const PANELS_KEY = "tessera.styles.panels";
 
@@ -59,6 +60,7 @@ function writeStylesheetOpen(id: string, open: boolean): void {
 }
 
 export function bindStylePanels(root: ParentNode): void {
+  bindStyleColorFields(root);
   const tokens = root.querySelector<HTMLDetailsElement>("details.style-tokens");
   tokens?.addEventListener("toggle", () => writeStyleTokensOpen(tokens.open));
 
@@ -211,12 +213,19 @@ function fieldHtml(name: string, label: string, kind: string, value: string): st
       </select></p>`;
   }
   if (kind === "color") {
-    return `<p><label for="${id}">${escapeHtml(label)}</label>
-      <input id="${id}" name="${escapeHtml(name)}" class="style-color" type="color" value="${escapeHtml(value)}" /></p>`;
+    const swatch = swatchForStyleToken(value);
+    return `<p class="style-color-field"><label for="${id}">${escapeHtml(label)}</label>
+      <span class="style-color-swatch" data-style-color-swatch style="background:${escapeHtml(swatch.background)};color:${escapeHtml(swatch.text)}">
+        <span class="style-color-label" data-style-color-label>${escapeHtml(swatch.label)}</span>
+        <input id="${id}" name="${escapeHtml(name)}" class="style-color" type="color" value="${escapeHtml(value)}" aria-label="${escapeHtml(label)}" />
+      </span></p>`;
   }
   if (kind === "frameColor") {
-    return `<p><label for="${id}">${escapeHtml(label)}</label>
-      <input id="${id}" name="${escapeHtml(name)}" class="w3-input w3-border" type="text" value="${escapeHtml(value)}" placeholder="Default" /></p>`;
+    const swatch = swatchForFrameColor(value);
+    return `<p class="style-color-field"><label for="${id}">${escapeHtml(label)}</label>
+      <span class="style-color-swatch style-color-swatch--text" data-style-color-swatch style="background:${escapeHtml(swatch.background)};color:${escapeHtml(swatch.text)}">
+        <input id="${id}" name="${escapeHtml(name)}" class="style-frame-color-input" type="text" value="${escapeHtml(value)}" placeholder="Default" aria-label="${escapeHtml(label)}" />
+      </span></p>`;
   }
   const type = kind === "url" ? "url" : "text";
   return `<p${wide}><label for="${id}">${escapeHtml(label)}</label>

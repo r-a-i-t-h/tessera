@@ -39,6 +39,15 @@ describe("site style page", () => {
     expect(stylesPageHtml({ style: {} })).toContain('href="#/styles?sheet=tessera">Tessera</a>');
   });
 
+  it("renders colour swatches with hex labels", () => {
+    const html = stylesPageHtml({ style: {} });
+    expect(html).toContain('class="style-color-swatch"');
+    expect(html).toContain('data-style-color-label');
+    expect(html).toContain('type="color"');
+    expect(html).toContain('class="style-frame-color-input"');
+    expect(html).toContain("#009688");
+  });
+
   it("places the token form left and chrome preview right", () => {
     const html = stylesPageHtml({ style: {} });
     expect(html).toContain('class="style-tokens-layout"');
