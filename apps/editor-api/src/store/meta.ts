@@ -45,3 +45,17 @@ export async function readSchemaVersion(file: string): Promise<number> {
   if (!Number.isFinite(version)) return 0;
   return Math.trunc(version);
 }
+
+export async function writeSchemaVersion(dataDirOrMetaPath: string, version: number): Promise<void> {
+  const file = dataDirOrMetaPath.endsWith("meta.json")
+    ? dataDirOrMetaPath
+    : metaPath(dataDirOrMetaPath);
+  let meta: Record<string, unknown> = {};
+  try {
+    meta = JSON.parse(await readText(file)) as Record<string, unknown>;
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+  }
+  meta.schemaVersion = Math.trunc(version);
+  await writeJsonAtomic(file, meta);
+}
