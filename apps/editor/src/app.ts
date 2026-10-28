@@ -74,6 +74,7 @@ import { arrangeMarkup, mountArrange, readArrangeRoot } from "./arrange/canvas.j
 import { asLayoutNode, cleanNode, isFrame, newFrame, newPageLayout } from "./arrange/tree.js";
 import type { ArrangeInfo } from "./arrange/view.js";
 import { isLegacyScalarHtmlZone } from "./authoring-constants.js";
+import { rawHtmlField } from "./raw-html-field.js";
 import { mountComposeCanvases } from "./compose/canvas.js";
 import { syncComposeSiteLocalStyle } from "./compose/site-local-style.js";
 import { draftYaml, dropArticleTitleZone, parsePageYaml } from "./compose/draft.js";
@@ -3964,6 +3965,14 @@ function zoneFields(zones: Record<string, unknown>, layout?: PageLayoutHint, ite
 function zoneEditor(name: string, zone: unknown, offLayout: boolean, item = false): string {
   const label = zoneLabel(name, offLayout);
   if (zone && typeof zone === "object" && !Array.isArray(zone) && "html" in zone) {
+    if (item) {
+      return rawHtmlField(
+        `zones.${name}.html`,
+        htmlZoneLabel(name, offLayout, item),
+        String((zone as { html: unknown }).html ?? ""),
+        htmlRows(name, item, true),
+      );
+    }
     return `${insertButtons(`zones.${name}.html`, "html")}${textareaField(`zones.${name}.html`, htmlZoneLabel(name, offLayout, item), String((zone as { html: unknown }).html ?? ""), htmlRows(name, item, true))}`;
   }
   if (zone && typeof zone === "object" && !Array.isArray(zone) && "json" in zone) {
@@ -3971,6 +3980,9 @@ function zoneEditor(name: string, zone: unknown, offLayout: boolean, item = fals
     return jsonZoneFields(name, (zone as { json: unknown }).json, offLayout);
   }
   if (zone === undefined) {
+    if (item) {
+      return rawHtmlField(`zones.${name}.html`, htmlZoneLabel(name, offLayout, item), "", htmlRows(name, item, false));
+    }
     return `${insertButtons(`zones.${name}.html`, "html")}${textareaField(`zones.${name}.html`, htmlZoneLabel(name, offLayout, item), "", htmlRows(name, item, false))}`;
   }
   if (zone && typeof zone === "object" && !Array.isArray(zone) && "blocks" in zone) {

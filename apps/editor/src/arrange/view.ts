@@ -7,6 +7,7 @@ import {
 } from "@r-a-i-t-h/tessera-skin-w3";
 import { codeWrapClass, codeWrapToggle } from "../code-wrap.js";
 import { escapeHtml } from "../dom.js";
+import { layoutStaticHtmlField } from "../raw-html-field.js";
 import { REORDER_ICONS } from "../editor-icons.js";
 import {
   COMPONENT_CHOICES,
@@ -161,7 +162,7 @@ function zoneFields(node: Extract<LayoutNode, { type: "zone" }>, info: ArrangeIn
 }
 
 function staticFields(html: string): string {
-  return `<p><label>HTML <textarea class="w3-input w3-border editor-html" data-field="html" rows="14" spellcheck="false">${escapeHtml(html)}</textarea></label></p>
+  return `${layoutStaticHtmlField(html)}
     <p class="w3-small w3-text-grey">${ZONE_ID_NOTE}</p>
     <p class="w3-small w3-text-grey">This fragment is the same on every page.</p>`;
 }
