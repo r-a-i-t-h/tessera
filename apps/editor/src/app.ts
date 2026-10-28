@@ -75,7 +75,7 @@ import { asLayoutNode, cleanNode, isFrame, newFrame, newPageLayout } from "./arr
 import type { ArrangeInfo } from "./arrange/view.js";
 import { isLegacyScalarHtmlZone } from "./authoring-constants.js";
 import { rawHtmlField } from "./raw-html-field.js";
-import { mountComposeCanvases } from "./compose/canvas.js";
+import { mountWidgetComposer } from "./compose/widget-composer.js";
 import { syncComposeSiteLocalStyle } from "./compose/site-local-style.js";
 import { draftYaml, dropArticleTitleZone, parsePageYaml } from "./compose/draft.js";
 import {
@@ -3609,7 +3609,7 @@ async function mountPageCanvas(
   if (!form.isConnected) return;
   await syncComposeSiteLocalStyle();
   const choices = pageChoices;
-  mountComposeCanvases(form, {
+  mountWidgetComposer(form, {
     bindings,
     folders,
     panelTones: layout?.panelTones ?? [],

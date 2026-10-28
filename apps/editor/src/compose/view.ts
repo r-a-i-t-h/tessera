@@ -4,7 +4,7 @@ import { COMPOSE_LIST_EXPANDED_LABEL } from "../escape-key.js";
 import { escapeHtml } from "../dom.js";
 import { draftYaml, isWidgetBlocks, parsePageYaml, withZoneWidgets } from "./draft.js";
 import { isLegacyScalarHtmlZone } from "../authoring-constants.js";
-import { readComposeWidgets } from "./canvas.js";
+import { readComposeWidgets } from "./widget-composer.js";
 import { readFormValues } from "../forms/form.js";
 import { schemaFor } from "../forms/schema.js";
 

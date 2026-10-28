@@ -1,7 +1,7 @@
 import { parseSections } from "@r-a-i-t-h/tessera-sections";
 import { Window } from "happy-dom";
 import { beforeAll, describe, expect, it } from "vitest";
-import { mountComposeCanvases, readComposeHtml } from "./canvas.js";
+import { mountWidgetComposer, readComposeHtml } from "./widget-composer.js";
 
 const dom = new Window();
 
@@ -31,7 +31,7 @@ describe("compose palette", () => {
     </form>`;
     const form = dom.document.querySelector("form");
     if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
-    mountComposeCanvases(form, {
+    mountWidgetComposer(form, {
       bindings: [],
       folders: [{ id: "lambs" }],
       htmlByZone: { main: "" },
@@ -73,7 +73,7 @@ describe("compose palette", () => {
     </form>`;
     const form = dom.document.querySelector("form");
     if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
-    mountComposeCanvases(form, { bindings: [], htmlByZone: { main: "" } });
+    mountWidgetComposer(form, { bindings: [], htmlByZone: { main: "" } });
 
     form.querySelector(`[data-palette="spacer"]`)?.dispatchEvent(new dom.MouseEvent("click", { bubbles: true }));
 
@@ -104,7 +104,7 @@ describe("compose palette", () => {
     </form>`;
     const form = dom.document.querySelector("form");
     if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
-    mountComposeCanvases(form, {
+    mountWidgetComposer(form, {
       bindings: [],
       htmlByZone: {
         main: `<h2>Market</h2><p>Opens at nine.</p><p>Closes at one.</p><ul><li>Bread</li></ul><div class="tessera-page-gallery" data-tessera="gallery" data-folder="lambs" data-mode="grid"></div>`,
@@ -158,7 +158,7 @@ describe("compose palette", () => {
     dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;
     const form = dom.document.querySelector("form");
     if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
-    mountComposeCanvases(form, {
+    mountWidgetComposer(form, {
       bindings: [],
       htmlByZone: {
         main: `<div class="tessera-text"><p>See <a data-tessera-page="hall" href="#">Hall</a>.</p></div>`,
@@ -175,7 +175,7 @@ describe("compose palette", () => {
     dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;
     const form = dom.document.querySelector("form");
     if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
-    mountComposeCanvases(form, {
+    mountWidgetComposer(form, {
       bindings: [],
       htmlByZone: { main: `<div class="tessera-text"><p>Hello</p></div>` },
     });
@@ -209,7 +209,7 @@ describe("compose palette", () => {
     dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;
     const form = dom.document.querySelector("form");
     if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
-    mountComposeCanvases(form, {
+    mountWidgetComposer(form, {
       bindings: [],
       pageTitles: { hall: "Great Hall" },
       htmlByZone: {
@@ -229,7 +229,7 @@ describe("compose palette", () => {
     dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;
     const form = dom.document.querySelector("form");
     if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
-    mountComposeCanvases(form, {
+    mountWidgetComposer(form, {
       bindings: [],
       htmlByZone: {
         main: `<div class="tessera-text"><h2>Title</h2><p>See <a href="https://example.com/hall">Hall</a>.</p></div>`,
@@ -254,7 +254,7 @@ describe("compose palette", () => {
     </form>`;
     const form = dom.document.querySelector("form");
     if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
-    mountComposeCanvases(form, {
+    mountWidgetComposer(form, {
       bindings: [],
       folders: [{ id: "lambs" }],
       htmlByZone: {
@@ -344,7 +344,7 @@ describe("compose drag ghost", () => {
     dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;
     const form = dom.document.querySelector("form");
     if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
-    mountComposeCanvases(form, {
+    mountWidgetComposer(form, {
       bindings: [],
       htmlByZone: { main: `<h2>Market</h2><p>Opens at nine.</p>` },
     });
@@ -395,7 +395,7 @@ describe("editing toolbar visibility", () => {
     dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;
     const form = dom.document.querySelector("form");
     if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
-    mountComposeCanvases(form, {
+    mountWidgetComposer(form, {
       bindings: [],
       htmlByZone: { main: `<h2>Title</h2><p>Body copy.</p>` },
     });
@@ -421,7 +421,7 @@ describe("section actions", () => {
     dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;
     const form = dom.document.querySelector("form");
     if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
-    mountComposeCanvases(form, {
+    mountWidgetComposer(form, {
       bindings: [],
       htmlByZone: { main: `<h2>First</h2><h2>Second</h2>` },
     });
@@ -698,7 +698,7 @@ describe("image preview", () => {
     dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;
     const form = dom.document.querySelector("form");
     if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
-    mountComposeCanvases(form, {
+    mountWidgetComposer(form, {
       bindings: [],
       htmlByZone: {
         main: `<div class="tessera-imgbox w3-display-container w3-container w3-padding-16 w3-card w3-center"><img src="./media/porch.svg" class="w3-image" alt="Porch"></div>`,
@@ -719,7 +719,7 @@ function mountZone(main: string): HTMLFormElement {
   dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;
   const form = dom.document.querySelector("form");
   if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
-  mountComposeCanvases(form, { bindings: [], htmlByZone: { main } });
+  mountWidgetComposer(form, { bindings: [], htmlByZone: { main } });
   return form;
 }
 
@@ -759,7 +759,7 @@ function mount(inner: string): HTMLFormElement {
   dom.document.body.innerHTML = `<form>${inner}</form>`;
   const form = dom.document.querySelector("form");
   if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
-  mountComposeCanvases(form, { bindings: [], htmlByZone: { main: "" } });
+  mountWidgetComposer(form, { bindings: [], htmlByZone: { main: "" } });
   return form;
 }
 
