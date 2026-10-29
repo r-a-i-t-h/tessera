@@ -104,4 +104,25 @@ zones:
     expect(yaml).not.toContain("\n    html:");
     await rm(root, { recursive: true, force: true });
   });
+
+  it("ignores macOS AppleDouble ._*.yaml files", async () => {
+    const root = await mkdtemp(join(tmpdir(), "tessera-migrate-apple-"));
+    const records = join(root, "records");
+    await mkdir(join(records, "content"), { recursive: true });
+    await writeFile(
+      join(records, "content", "note.yaml"),
+      `id: note
+title: Note
+zones:
+  main:
+    html: |
+      <p>Body</p>
+`,
+    );
+    await writeFile(join(records, "content", "._note.yaml"), "Mac OS X resource fork junk\n");
+    await writeFile(metaPath(root), '{"schemaVersion":3}\n');
+    expect(await ensureAuthoringSchemaMigration(root, records)).toBe(true);
+    expect(await readSchemaVersion(metaPath(root))).toBe(4);
+    await rm(root, { recursive: true, force: true });
+  });
 });

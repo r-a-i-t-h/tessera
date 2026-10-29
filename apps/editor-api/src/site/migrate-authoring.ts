@@ -7,7 +7,7 @@ import {
   LEGACY_SCALAR_HTML_ZONE_IDS,
 } from "./authoring-constants.js";
 import type { RecordKind } from "./kinds.js";
-import { KIND_DIRS } from "./kinds.js";
+import { isRecordId, KIND_DIRS } from "./kinds.js";
 import { isWidgetBlocks } from "./widget-schema.js";
 import { readSchemaVersion, writeSchemaVersion, metaPath } from "../store/meta.js";
 import { readText, writeTextAtomic } from "../store/fs.js";
@@ -119,7 +119,10 @@ async function listYamlIds(recordsDir: string, kind: RecordKind): Promise<string
     if ((err as NodeJS.ErrnoException).code === "ENOENT") return [];
     throw err;
   }
-  return names.filter((name) => name.endsWith(".yaml") && name !== "_order.yaml").map((name) => name.slice(0, -5));
+  return names
+    .filter((name) => name.endsWith(".yaml") && name !== "_order.yaml")
+    .map((name) => name.slice(0, -5))
+    .filter(isRecordId);
 }
 
 /**
