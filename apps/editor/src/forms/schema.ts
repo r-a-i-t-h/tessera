@@ -76,7 +76,14 @@ export const SITE_FORM: FormSchema = {
         "Shows a small fixed button while visitors scroll down. The editor always has its own back-to-top control; this setting applies to the preview and published site.",
     },
     { name: "historyMaxAgeDays", label: "History max age (days)", type: "number" },
-    { name: "version", label: "Version", type: "number", readOnly: true },
+    {
+      name: "version",
+      label: "Document schema",
+      type: "number",
+      readOnly: true,
+      helpHtml:
+        "Shape of the flattened <code>SiteDocument</code> JSON (preview snapshot and publish export). Set by Tessera, not edited here. Distinct from authoring schema in <code>meta.json</code>.",
+    },
     { name: "historyMaxEntries", label: "History max entries", type: "number" },
     { name: "panelTones", label: "Panel tones", type: "yaml", rows: 10 },
   ],
