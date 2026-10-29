@@ -39,7 +39,9 @@ export function layoutStaticHtmlField(value: string): string {
 }
 
 export type RawHtmlFieldOptions = {
-  openLibraryPicker: (mode: PickerMode) => Promise<PickedAsset | undefined>;
+  openLibraryPicker: (
+    mode: PickerMode,
+  ) => Promise<PickedAsset | { id: string; kind: "folder" } | undefined>;
   openPageTargetPicker: (
     choices: PageTargetChoices,
     current: string,
