@@ -3,6 +3,8 @@ import type { RecordList } from "../api.js";
 import {
   bindPageTargetPickerPanels,
   buildPageTargetChoices,
+  pageRefAnchor,
+  pageTitleFromChoices,
   parsePageTargetChoices,
   readPageTargetSectionOpen,
   renderPageTargetPicker,
@@ -126,5 +128,17 @@ describe("serializePageTargetChoices", () => {
     const choices = { nav: [{ id: "home", depth: 0, title: "Home" }], pages: [{ id: "home", title: "Home" }], articles: [] };
     const parsed = parsePageTargetChoices(serializePageTargetChoices(choices));
     expect(parsed).toEqual(choices);
+  });
+});
+
+describe("pageRefAnchor", () => {
+  it("builds durable page anchors", () => {
+    expect(pageRefAnchor("hall", "Great Hall")).toContain('data-tessera-page="hall"');
+    expect(pageRefAnchor("hall", "Great Hall")).toContain("Great Hall");
+  });
+
+  it("resolves titles from choices", () => {
+    const choices = { nav: [{ id: "home", depth: 0, title: "Home" }], pages: [{ id: "about", title: "About us" }], articles: [] };
+    expect(pageTitleFromChoices(choices, "about")).toBe("About us");
   });
 });

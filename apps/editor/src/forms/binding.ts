@@ -1,6 +1,6 @@
 import { escapeHtml, formErrorPanel } from "../dom.js";
 import type { PageTargetChoices } from "./page-target.js";
-import { serializePageTargetChoices } from "./page-target.js";
+import { pageTargetChoicesHidden } from "./page-target.js";
 import { pageIdError } from "./page.js";
 import { folderChecklist } from "./picker.js";
 import type { ControlValue } from "./nav.js";
@@ -1102,8 +1102,7 @@ function panelToItem(panel: ImageRevealPanelDraft): Record<string, unknown> | nu
 }
 
 function pageTargetChoicesField(choices: PageTargetChoices | undefined): string {
-  if (!choices) return "";
-  return `<input type="hidden" data-page-target-choices="${escapeHtml(serializePageTargetChoices(choices))}" />`;
+  return pageTargetChoicesHidden(choices);
 }
 
 function clampPanelsPerRowText(value: string): number {

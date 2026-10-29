@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkedFolderIds, foldersValue, pickerUpload, renderPicker } from "./picker.js";
+import { checkedFolderIds, documentLink, foldersValue, imageTag, pickerUpload, renderPicker } from "./picker.js";
 import type { LibraryListing } from "./library.js";
 
 const listing: LibraryListing = {
@@ -87,5 +87,12 @@ describe("library picker", () => {
     expect(ids).toEqual(["hall"]);
     expect(foldersValue(ids)).toBe("hall");
     expect(foldersValue(["hall", "garden"])).toEqual(["hall", "garden"]);
+  });
+
+  it("builds html snippets for library assets", () => {
+    const image = listing.assets[0]!;
+    const doc = listing.assets[1]!;
+    expect(imageTag(image)).toBe('<img src="./media/porch.svg" alt="The porch" />');
+    expect(documentLink(doc)).toBe('<a href="./media/notes.pdf">Notes</a>');
   });
 });

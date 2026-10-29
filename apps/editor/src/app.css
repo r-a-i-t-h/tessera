@@ -451,6 +451,27 @@ textarea.w3-input.editor-html {
   padding: 0.75rem 1rem;
 }
 
+.editor-raw-html {
+  margin: 0 0 1rem;
+}
+
+.editor-raw-html > label {
+  display: block;
+  margin: 0 0 0.35rem;
+}
+
+.editor-raw-html-tools {
+  display: inline-flex;
+  margin: 0 0 0.2rem;
+}
+
+.editor-raw-html textarea.w3-input.editor-html {
+  display: block;
+  width: 100%;
+  margin-top: 0.15rem;
+  box-sizing: border-box;
+}
+
 .style-sheet {
   margin: 1rem 0 1.5rem;
 }

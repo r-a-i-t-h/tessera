@@ -224,7 +224,8 @@ describe("editor route orchestration", () => {
     expect(htmlBox?.getAttribute("data-kind")).toBeNull();
     expect(htmlBox?.closest("p")?.textContent).toContain("Footer HTML");
     expect(root.querySelector('[name="zones.events.json"]')).toBeNull();
-    expect(root.querySelector("[data-insert=\"image\"]")).toBeNull();
+    expect(root.querySelector('[data-insert="image"]')).toBeTruthy();
+    expect(root.querySelector('[data-insert="page"]')).toBeTruthy();
   });
 
   it("opens Site when setup records route has no record type", async () => {

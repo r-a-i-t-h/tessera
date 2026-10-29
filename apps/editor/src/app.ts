@@ -73,7 +73,7 @@ import { entryVisible } from "./forms/entries.js";
 import { arrangeMarkup, mountArrange, readArrangeRoot } from "./arrange/canvas.js";
 import { asLayoutNode, cleanNode, isFrame, newFrame, newPageLayout } from "./arrange/tree.js";
 import type { ArrangeInfo } from "./arrange/view.js";
-import { rawHtmlField } from "./raw-html-field.js";
+import { rawHtmlField, bindRawHtmlField } from "./raw-html-field.js";
 import { mountWidgetComposer } from "./compose/widget-composer.js";
 import { syncComposeSiteLocalStyle } from "./compose/site-local-style.js";
 import { draftYaml, dropArticleTitleZone, parsePageYaml } from "./compose/draft.js";
@@ -224,6 +224,7 @@ import {
   bindPageTargetPickerPanels,
   buildPageTargetChoices,
   parsePageTargetChoices,
+  pageTargetChoicesHidden,
   renderPageTargetPicker,
   type PageTargetChoices,
 } from "./forms/page-target.js";
@@ -1561,6 +1562,27 @@ async function loadBindingChoices(): Promise<BindingChoices> {
     );
   } catch {
     return { folders: [], types: [], headings: [], datasets: [], datasetFields: {}, runtimeModules: [] };
+  }
+}
+
+async function loadPageTargetChoices(): Promise<PageTargetChoices | undefined> {
+  try {
+    const listing = await listRecords();
+    const [nav, siteData] = await Promise.all([
+      getRecord("nav", "nav").catch(() => undefined),
+      loadSiteData(listing),
+    ]);
+    const navEntries = Array.isArray(nav?.data) ? (nav.data as NavEntry[]) : [];
+    const site =
+      siteData ??
+      ({
+        id: "site",
+        title: "Site",
+        homePageId: "home",
+      } as Record<string, unknown>);
+    return buildPageTargetChoices(listing, site, navEntries);
+  } catch {
+    return undefined;
   }
 }
 
@@ -3103,6 +3125,10 @@ async function bindEdit(
   const heroUrl =
     record?.type === "article" ? await heroPreviewUrl(stringField(record, "hero")) : undefined;
   const contentExtras = heroUrl ? { heroUrl } : undefined;
+  const rawHtmlPageChoicesHidden =
+    kind === "items" || (kind === "layouts" && editMode === "arrange")
+      ? pageTargetChoicesHidden(await loadPageTargetChoices())
+      : "";
   const formInner =
     editMode === "arrange"
       ? layoutRoot && arrangeInfo
@@ -3177,7 +3203,7 @@ async function bindEdit(
      </div>
      <p class="w3-text-grey editor-record-note"><code>${escapeHtml(payload.file)}</code></p>
      <form id="record-form" class="w3-card w3-white w3-padding-large editor-card">
-       ${formInner}
+       ${rawHtmlPageChoicesHidden}${formInner}
        ${pageHost ? "" : `${saveStatus}${actionRow}`}
      </form>
      ${kind === "items" ? itemToolsHtml(id, showDuplicateTools ? duplicateSuggested : undefined) : ""}
@@ -4143,12 +4169,21 @@ function bindJsonFormat(form: HTMLFormElement): void {
 }
 
 function bindPickers(form: HTMLFormElement): void {
+  bindRawHtmlField(form, {
+    openLibraryPicker,
+    openPageTargetPicker,
+    onDirty: (target) => {
+      target.dataset.dirty = "true";
+    },
+  });
   form.addEventListener("click", (event) => {
     const button = (event.target as HTMLElement).closest("button");
     if (!button) return;
     if (button.dataset.insert && button.dataset.target) {
+      const insert = button.dataset.insert;
+      if (insert === "image" || insert === "document" || insert === "page") return;
       event.preventDefault();
-      void insertFromLibrary(form, button.dataset.insert, button.dataset.target);
+      void insertFromLibrary(form, insert, button.dataset.target);
     }
     if (button.dataset.library === "image") {
       event.preventDefault();

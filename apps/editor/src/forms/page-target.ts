@@ -80,6 +80,33 @@ export function serializePageTargetChoices(choices: PageTargetChoices): string {
   return JSON.stringify(choices);
 }
 
+export function pageTargetChoicesHidden(choices: PageTargetChoices | undefined): string {
+  if (!choices) return "";
+  return `<input type="hidden" data-page-target-choices="${escapeHtml(serializePageTargetChoices(choices))}" />`;
+}
+
+export function pageRefAnchor(pageId: string, label: string): string {
+  const safeId = pageId.replace(/[^a-zA-Z0-9_-]/g, "");
+  if (!safeId) return "";
+  const text = (label || safeId).replace(/</g, "");
+  return `<a data-tessera-page="${escapeHtml(safeId)}" href="#">${escapeHtml(text)}</a>`;
+}
+
+export function pageTitleFromChoices(choices: PageTargetChoices, id: string): string | undefined {
+  for (const row of choices.nav) {
+    if (row.id === id) return row.title;
+  }
+  for (const row of choices.pages) {
+    if (row.id === id) return row.title;
+  }
+  for (const group of choices.articles) {
+    for (const row of group.pages) {
+      if (row.id === id) return row.title;
+    }
+  }
+  return undefined;
+}
+
 const PANELS_KEY = "tessera.pageTarget.panels";
 
 export type PageTargetSectionId = "nav" | "pages" | "articles";

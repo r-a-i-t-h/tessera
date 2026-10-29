@@ -102,7 +102,7 @@ Pages are ordinary pages. [Articles](#/articles) expands each blog in the sideba
 
 ## Items
 
-An **item** is reusable zone content with no URL of its own — typically shared HTML (a footer) or a **component** mount included on many pages. Records live under [Records → Items](#/records/items) (`records/items/<id>.yaml`). Open `#/items/<id>` to edit **tags** and each zone’s **HTML** or a named **component** plus props. Structured tabular data belongs in a [dataset](#datasets) plus a binding, not in item zones.
+An **item** is reusable zone content with no URL of its own — typically shared HTML (a footer) or a **component** mount included on many pages. Records live under [Records → Items](#/records/items) (`records/items/<id>.yaml`). Open `#/items/<id>` to edit **tags** and each zone’s **HTML** or a named **component** plus props. HTML zones show **Image**, **Document**, and **Page** buttons above the textarea: pick a library asset or a site page (or external URL) and Tessera inserts the markup at the cursor. Structured tabular data belongs in a [dataset](#datasets) plus a binding, not in item zones.
 
 **Includes** pull items into a page at render time. On a page, template, or layout, list item ids in **Includes** (comma-separated on the form). Tessera merges zones in order: the page’s own zones first, then the page’s includes, then the page layout’s includes, then the master frame’s includes when that layout differs. Each item id is merged once. Blocks in the same zone id are concatenated — page body, then shared footer.
 

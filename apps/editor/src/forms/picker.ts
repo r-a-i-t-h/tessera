@@ -18,6 +18,16 @@ export type PickedAsset = {
   caption?: string;
 };
 
+export function imageTag(asset: PickedAsset): string {
+  const alt = asset.alt || asset.title || asset.name;
+  return `<img src="${asset.url}" alt="${alt}" />`;
+}
+
+export function documentLink(asset: PickedAsset): string {
+  const label = asset.title || asset.name;
+  return `<a href="${asset.url}">${label}</a>`;
+}
+
 const PICKER_ACCEPT = ".jpg,.jpeg,.png,.gif,.webp,.svg,.pdf";
 
 function pickerAssetThumb(asset: AssetRow): string {
