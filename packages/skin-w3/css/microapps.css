@@ -101,11 +101,12 @@
 .w3-table.tessera-dataset-table {
   border-radius: 0.5rem;
   overflow: hidden;
+  border-color: var(--tessera-sidebar, #ffffff) !important;
 }
 
 .w3-table.tessera-dataset-table thead.tessera-dataset-table__head {
-  background: var(--tessera-frame-bg, rgba(255, 255, 255, 0.75));
-  color: var(--tessera-text);
+  background: var(--tessera-sidebar, #ffffff);
+  color: var(--tessera-sidebar-text, #111111);
 }
 
 .w3-table.tessera-dataset-table thead.tessera-dataset-table__head th.tessera-dataset-table__th {
@@ -125,11 +126,11 @@
 }
 
 .w3-table.tessera-dataset-table thead.tessera-dataset-table__head th {
-  border-bottom: 1px solid #e6e6e6;
+  border-bottom: 1px solid var(--tessera-sidebar, #ffffff);
 }
 
 .w3-table.tessera-dataset-table tbody tr {
-  border-bottom: 1px solid #e6e6e6;
+  border-bottom: 1px solid var(--tessera-sidebar, #ffffff);
 }
 
 .w3-table.tessera-dataset-table tbody tr:last-child {
