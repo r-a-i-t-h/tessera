@@ -2,6 +2,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { contentZones, zoneBlocks } from "./fixtures/content-zones.js";
 import { createApp } from "../src/app.js";
 import { hashPassword } from "../src/auth/password.js";
 import { SessionStore } from "../src/auth/sessions.js";
@@ -33,7 +34,7 @@ describe("limited editor access", () => {
     await site.write("content", "home", {
       title: "Home",
       tags: ["page"],
-      zones: { main: { html: "<p>Hello</p>" } },
+      zones: contentZones("<p>Hello</p>"),
     });
     await site.writeSite({
       version: 2,

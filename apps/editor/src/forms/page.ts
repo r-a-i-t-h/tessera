@@ -5,8 +5,7 @@ export type NewPageBody = {
   id: string;
   title: string;
   zones: {
-    title: { html: string };
-    main: { html: string };
+    main: { blocks: [] };
   };
 };
 
@@ -20,8 +19,7 @@ export type CreatedPage = {
   tags?: string[];
   includes?: string[];
   zones: {
-    title: { html: string };
-    main: { html: string };
+    main: { blocks: unknown[] };
   } & Record<string, unknown>;
 };
 
@@ -59,7 +57,7 @@ export function suggestDuplicateId(id: string, existingIds: readonly string[]): 
   return `${id}-copy-${Date.now()}`;
 }
 
-/** A first version of a page: title zone plus an empty body, matching a blank home page. */
+/** A first version of a page: metadata title plus an empty body canvas. */
 export function newPageBody(id: string, title: string): NewPageBody {
   const pageId = id.trim();
   const name = title.trim() || pageId;
@@ -67,23 +65,22 @@ export function newPageBody(id: string, title: string): NewPageBody {
     id: pageId,
     title: name,
     zones: {
-      title: { html: escapeText(name) },
-      main: { html: "" },
+      main: { blocks: [] },
     },
   };
 }
 
 /** A prototype page. Compose fills `main`. It is not published. */
-export function newTemplateBody(id: string): { id: string; zones: { main: { html: string } } } {
+export function newTemplateBody(id: string): { id: string; zones: { main: { blocks: [] } } } {
   return {
     id: id.trim(),
-    zones: { main: { html: "" } },
+    zones: { main: { blocks: [] } },
   };
 }
 
 /**
- * Copy a template into a new page. The title zone is the new page's title.
- * Every other zone, plus tags and includes, travels with the page.
+ * Copy a template into a new page.
+ * Every zone, plus tags and includes, travels with the page.
  * `locked` is set only when the template says so.
  */
 export function pageFromTemplate(id: string, title: string, templateId: string, template: TemplateSource): CreatedPage {
@@ -92,7 +89,7 @@ export function pageFromTemplate(id: string, title: string, templateId: string, 
     id: page.id,
     title: page.title,
     templateId,
-    zones: zonesFromTemplate(template, page.zones.title.html),
+    zones: zonesFromTemplate(template),
   };
   const tags = stringList(template.tags);
   if (tags) created.tags = tags;
@@ -106,20 +103,19 @@ export function pageFromTemplate(id: string, title: string, templateId: string, 
   return created;
 }
 
-function zonesFromTemplate(template: TemplateSource, titleHtml: string): CreatedPage["zones"] {
+function zonesFromTemplate(template: TemplateSource): CreatedPage["zones"] {
   const zones: Record<string, unknown> = {
-    title: { html: titleHtml },
-    main: { html: "" },
+    main: { blocks: [] },
   };
   const source = template.zones;
   if (!source || typeof source !== "object" || Array.isArray(source)) {
     return zones as CreatedPage["zones"];
   }
   for (const [name, zone] of Object.entries(source)) {
-    if (name === "title") continue;
     if (!zone || typeof zone !== "object" || Array.isArray(zone)) continue;
     zones[name] = structuredClone(zone);
   }
+  if (!("main" in zones)) zones.main = { blocks: [] };
   return zones as CreatedPage["zones"];
 }
 
@@ -153,8 +149,4 @@ export function withSidebarLink(nav: unknown, id: string, title: string): Sideba
   }
   const name = title.trim() || id;
   return { ok: true, nav: [...nav, { id, title: name, sidebar: true }] };
-}
-
-function escapeText(value: string): string {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }

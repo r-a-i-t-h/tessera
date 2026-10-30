@@ -59,7 +59,7 @@ Dated site archives live in the sibling `backup/` directory (`TESSERA_BACKUP` ov
 - **Blocks** inside a zone: `text` | `media` | `image` | `component`. Structured tabular data uses **datasets** and dataset bindings, not zone JSON rows.
 - **Nav / media / site meta** — also in the flattened document.
 
-**Rule:** if a layout does not declare zone `aside`, contributions to `aside` are not painted. They remain on the merge map for diagnostics; gallery slides can still read another zone’s **image blocks** via component props (`fromZone`), which is separate from the removed zone-JSON content model.
+**Rule:** if a layout does not declare zone `aside`, contributions to `aside` are not painted. They remain on the merge map for diagnostics.
 
 ## Site directory
 
@@ -149,7 +149,7 @@ Saving a content page writes the new YAML, then appends the **previous raw file*
 
 The editor History panel lists earlier copies; clicking a time views that raw YAML (no restore). The save response names the new `site.<hash>.json`. That filename is the browser cache key: `rev.json` changes with it, and an open snapshot tab picks the new file up on its next poll.
 
-**Authoring schema** is `schemaVersion` in `$TESSERA_DATA/meta.json`. It is not `SiteDocument.version` (the number the renderer validates). **Schema 4** stores compose zones as widget `blocks` lists; the API migrates sites at **3** or below on boot (`html:` → widgets, drops page `json:` zones). The process reads `schemaVersion` and stamps it on each history entry. It does not bump the counter during normal saves. Missing or non-numeric means **0**. First boot copies `seed/meta.json` into `data/` only when `meta.json` is absent, so a later boot does not wipe the stamp.
+**Authoring schema** is `schemaVersion` in `$TESSERA_DATA/meta.json`. It is not `SiteDocument.version` (the number the renderer validates). **Schema 5** stores every page/template zone as widget `blocks` only (no zone `html` or `{ component }`; items stay `html` \| `component`). Upgrade **4** or below with `npm run migrate:authoring -w @r-a-i-t-h/tessera-editor-api` after a Tessera upgrade — not on editor API boot. Older **3→4** rules (html → widgets, drop page `json:`) are folded into that post-update script. The process reads `schemaVersion` and stamps it on each history entry. It does not bump the counter during normal saves. Missing or non-numeric means **0**. First boot copies `seed/meta.json` into `data/` only when `meta.json` is absent, so a later boot does not wipe the stamp.
 
 Updates replace the release tree and leave `$TESSERA_DATA` unchanged. There is no post-update rewrite of records.
 

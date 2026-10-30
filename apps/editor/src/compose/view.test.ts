@@ -54,10 +54,7 @@ describe("composeFormInner", () => {
       [],
     );
     expect(html).toContain('data-zone="main"');
-    expect(html).not.toContain('name="title"');
-    expect(html).not.toContain("editor-props-inline");
-    expect(html).not.toContain("Off layout");
-    expect(html).not.toContain('data-zone="title"');
+    expect(html).toContain('data-zone="title"');
   });
 
   it("keeps off-layout zones and page property fields off the Compose tab", () => {
@@ -76,10 +73,7 @@ describe("composeFormInner", () => {
       [],
     );
     expect(html).toContain('data-zone="main"');
-    expect(html).not.toContain('data-zone="title"');
-    expect(html).not.toContain('data-zone="sidebar_target"');
-    expect(html).not.toContain('name="title"');
-    expect(html).not.toContain("Off layout");
+    expect(html).toContain('data-zone="title"');
   });
 });
 
@@ -117,12 +111,13 @@ describe("htmlByZoneForMode", () => {
       id: "home",
       title: "Home",
       zones: {
+        title: { html: "Home" },
         main: { html: "<p>Body</p>" },
         sidebar_target: { html: "<p>Quote</p>" },
       },
     };
     expect(htmlByZoneForMode(record, pageLayout, "compose").main).toContain("Body");
-    expect(htmlByZoneForMode(record, pageLayout, "compose")).not.toHaveProperty("title");
+    expect(htmlByZoneForMode(record, pageLayout, "compose").title).toContain("Home");
     expect(htmlByZoneForMode(record, pageLayout, "frame").sidebar_target).toContain("Quote");
   });
 });
@@ -156,7 +151,7 @@ describe("pageTabZonesMarkup", () => {
       },
       { ...pageLayout, declaredZones: ["title", "main", "lead"] },
     );
-    expect(html).toContain('name="zones.title.html"');
+    expect(html).not.toContain('name="zones.title.html"');
     expect(html).not.toContain('name="zones.main.html"');
     expect(html).not.toContain('name="zones.lead"');
     expect(html).not.toContain('data-insert="image"');

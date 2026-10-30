@@ -2,6 +2,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { contentZones, zoneBlocks } from "./fixtures/content-zones.js";
 import { pageHistoryPath } from "../src/site/history.js";
 import { SiteStore } from "../src/site/store.js";
 
@@ -17,7 +18,7 @@ describe("content rename", () => {
     const site = new SiteStore(dir, join(dir, "out.json"));
     await site.write("layouts", "standard", { root: { type: "zone", id: "main" } });
     await site.writeSite({ version: 2, id: "demo", title: "Demo", homePageId: "home", defaultLayoutId: "standard" });
-    await site.write("content", "home", { title: "Home", zones: { main: { html: "<p>Hi</p>" } } });
+    await site.write("content", "home", { title: "Home", zones: contentZones("<p>Hi</p>") });
     return site;
   }
 
@@ -26,16 +27,16 @@ describe("content rename", () => {
     await site.writeNav([{ id: "about", title: "About", sidebar: true }]);
     await site.write("content", "about", {
       title: "About",
-      zones: { main: { html: "<p>About</p>" } },
+      zones: contentZones("<p>About</p>"),
     });
     await site.write("content", "team", {
       title: "Team",
       parentId: "about",
-      zones: { main: { html: "<p>Team</p>" } },
+      zones: contentZones("<p>Team</p>"),
     });
     await site.write("content", "about", {
       title: "About us",
-      zones: { main: { html: "<p>About us</p>" } },
+      zones: contentZones("<p>About us</p>"),
     });
     const historyFile = pageHistoryPath(dir, "about");
     await expect(readFile(historyFile, "utf8")).resolves.toContain("About");
@@ -57,14 +58,14 @@ describe("content rename", () => {
       title: "News",
       type: "blog",
       fields: { pageSize: "10" },
-      zones: { title: { html: "News" } },
+      zones: { title: zoneBlocks("News") },
     });
     await site.write("content", "fair", {
       title: "Fair",
       type: "article",
       parentId: "news",
       fields: { date: "2026-07-14" },
-      zones: { main: { html: "<p>Hi</p>" } },
+      zones: contentZones("<p>Hi</p>"),
     });
     await site.renameContent("fair", "summer-fair");
     const article = await site.read("content", "summer-fair");
@@ -78,7 +79,7 @@ describe("content rename", () => {
       title: "News",
       type: "blog",
       fields: { pageSize: "10" },
-      zones: { title: { html: "News" } },
+      zones: { title: zoneBlocks("News") },
     });
     await expect(site.renameContent("news-index", "index")).rejects.toThrow(/blog instead/i);
   });
@@ -87,12 +88,12 @@ describe("content rename", () => {
     const site = await store();
     await site.write("content", "about", {
       title: "About",
-      zones: { main: { html: "<p>About</p>" } },
+      zones: contentZones("<p>About</p>"),
     });
     await site.write("content", "home", {
       title: "Home",
       zones: {
-        main: { html: `<p>See <a data-tessera-page="about" href="#">About</a>.</p>` },
+        main: zoneBlocks(`<p>See <a data-tessera-page="about" href="#">About</a>.</p>`),
       },
     });
     await site.write("bindings", "banner", {
@@ -101,9 +102,10 @@ describe("content rename", () => {
     });
     await site.renameContent("about", "story");
     const home = await site.read("content", "home");
-    const main = (home.zones as Record<string, { html?: string }>).main;
-    expect(main?.html).toContain('data-tessera-page="story"');
-    expect(main?.html).not.toContain('data-tessera-page="about"');
+    const main = (home.zones as Record<string, { blocks?: { html?: string }[] }>).main;
+    const widgetHtml = main?.blocks?.[0]?.html ?? "";
+    expect(widgetHtml).toContain('data-tessera-page="story"');
+    expect(widgetHtml).not.toContain('data-tessera-page="about"');
     const binding = await site.read("bindings", "banner");
     const items = (binding.props as { items: { href: string }[] }).items;
     expect(items[0]?.href).toBe("story");

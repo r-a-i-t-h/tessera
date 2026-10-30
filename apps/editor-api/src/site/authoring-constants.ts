@@ -2,17 +2,18 @@
  * Authoring schema decisions (Phase 0). See packages/sections `widget.ts` and site migration.
  */
 
-/** Last schema before compose zones persisted as widget `blocks` lists (html/json/component shorthands). */
-export const AUTHORING_SCHEMA_LEGACY_MAX = 3 as const;
+/** Last schema before compose zones were blocks-only (no zone html/component on pages). */
+export const AUTHORING_SCHEMA_LEGACY_MAX = 4 as const;
 
 /**
- * Target `meta.json` `schemaVersion` after widget migration completes.
- * Run migration when `readSchemaVersion(meta) < AUTHORING_SCHEMA_TARGET`.
+ * Target `meta.json` `schemaVersion` after blocks-only page zones.
+ * Run post-update migration when `readSchemaVersion(meta) < AUTHORING_SCHEMA_TARGET`.
+ * Not run on editor API boot.
  */
-export const AUTHORING_SCHEMA_TARGET = 4 as const;
+export const AUTHORING_SCHEMA_TARGET = 5 as const;
 
 /**
- * Persisted shape for compose-backed zones (main, lead, minutes, frame html zones, …):
+ * Persisted shape for compose-backed zones (main, title, lead, frame zones, …):
  *
  * ```yaml
  * zones:
@@ -31,13 +32,6 @@ export const AUTHORING_SCHEMA_TARGET = 4 as const;
  * - Nested palette containers (panel, card, columns) keep nested arrays as `sections` on the widget JSON (same as today’s Section tree).
  */
 export const COMPOSE_ZONE_BLOCKS_KEY = "blocks" as const;
-
-/**
- * Zones that stay **`html:` plain string** on the Page tab (not widget canvas), until unified later:
- * - `title` on blog/listing pages (layout title outlet; often plain text matching record title).
- * - Articles: body on widget surface (`main`); page title is record `title` + hero, not a title zone on canvas.
- */
-export const LEGACY_SCALAR_HTML_ZONE_IDS = ["title"] as const;
 
 /** Insert widget compile rule: persisted `{ kind: insert, id }` → `{{id}}` in compiled zone HTML at assemble (see `compileWidgetsToHtml`). */
 export const INSERT_WIDGET_COMPILE = "mustache-in-text-html" as const;

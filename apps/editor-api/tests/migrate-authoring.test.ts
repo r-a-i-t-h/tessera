@@ -13,7 +13,7 @@ import { readSchemaVersion } from "../src/store/meta.js";
 import { metaPath } from "../src/store/meta.js";
 
 describe("migrateAuthoredRecord", () => {
-  it("converts html zones to widget blocks except title", () => {
+  it("converts html zones to widget blocks including title", () => {
     const out = migrateAuthoredRecord({
       id: "home",
       title: "Home",
@@ -21,13 +21,15 @@ describe("migrateAuthoredRecord", () => {
         main: { html: "<p>Hi</p>" },
         title: { html: "Welcome" },
         agenda: { json: [{ item: "x" }] },
+        mount: { component: "searchBox" },
       },
     });
     expect(out.zones).toEqual({
       main: { blocks: expect.arrayContaining([expect.objectContaining({ kind: "text" })]) },
-      title: { html: "Welcome" },
+      title: { blocks: expect.arrayContaining([expect.objectContaining({ kind: "text" })]) },
     });
     expect(out.zones).not.toHaveProperty("agenda");
+    expect(out.zones).not.toHaveProperty("mount");
   });
 });
 
@@ -97,7 +99,7 @@ zones:
     await writeFile(metaPath(root), '{"schemaVersion":3}\n');
     const migrated = await ensureAuthoringSchemaMigration(root, records);
     expect(migrated).toBe(true);
-    expect(await readSchemaVersion(metaPath(root))).toBe(4);
+    expect(await readSchemaVersion(metaPath(root))).toBe(5);
     const yaml = await readFile(join(records, "content", "note.yaml"), "utf8");
     expect(yaml).toContain("blocks:");
     expect(yaml).toContain("kind:");
@@ -122,7 +124,7 @@ zones:
     await writeFile(join(records, "content", "._note.yaml"), "Mac OS X resource fork junk\n");
     await writeFile(metaPath(root), '{"schemaVersion":3}\n');
     expect(await ensureAuthoringSchemaMigration(root, records)).toBe(true);
-    expect(await readSchemaVersion(metaPath(root))).toBe(4);
+    expect(await readSchemaVersion(metaPath(root))).toBe(5);
     await rm(root, { recursive: true, force: true });
   });
 });

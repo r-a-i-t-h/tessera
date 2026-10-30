@@ -415,7 +415,7 @@ Criteria define “done enough,” not a build order (see [ROADMAP.md](./ROADMAP
 
 Parking lot for design that is sound enough to proceed in spirit but not yet nailed. Organic “good enough” solutions are welcome; this is not a blocker list.
 
-1. **Binding content sources** — beyond `itemId` + `fromZone` (e.g. page zone, inline JSON, query over items).
+1. **Binding content sources** — beyond `itemId` (e.g. page zone, inline JSON, query over items).
 2. **Cold-start offline** — behaviour when the browser requests the site while already offline (HTTP cache vs Service Worker vs legacy appcache/manifest). Required mid-session offline is specified; cold-start is icing.
 3. **Hash vs Navigation API** — snapshot sites keep hash routing. Pages sites already have a path per page. Whether a snapshot site should leave hash routing is still open.
 4. **`localStorage` size** — strategy when documents are large (HTML-heavy converted sites); quotas, compression, or alternate cache.

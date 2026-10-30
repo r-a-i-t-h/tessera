@@ -1,7 +1,6 @@
 import {
   AspectIdSchema,
   BindingSchema,
-  BlockSchema,
   FolderSchema,
   LayoutSchema,
   NavEntrySchema,
@@ -10,7 +9,7 @@ import {
 } from "@r-a-i-t-h/tessera-model";
 import { z } from "zod";
 import type { RecordKind } from "./kinds.js";
-import { isWidgetBlocks, WidgetBlocksSchema } from "./widget-schema.js";
+import { WidgetBlocksSchema } from "./widget-schema.js";
 
 export type AuthoredKind = RecordKind | "site" | "nav";
 
@@ -29,6 +28,31 @@ export class AuthoredRecordError extends Error {
 
 const id = z.string().min(1);
 const stringList = z.array(z.string());
+
+const contentAuthoredZone = z.unknown().superRefine((value, ctx) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "must be a mapping" });
+    return;
+  }
+  const row = value as Record<string, unknown>;
+  if ("html" in row || "component" in row) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "must use blocks only (html and component are not allowed on pages or templates)",
+    });
+    return;
+  }
+  if (!("blocks" in row) || !Array.isArray(row.blocks)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "must include a blocks list" });
+    return;
+  }
+  const parsed = WidgetBlocksSchema.safeParse(row.blocks);
+  if (!parsed.success) {
+    for (const issue of parsed.error.issues) {
+      ctx.addIssue({ ...issue, path: ["blocks", ...issue.path] });
+    }
+  }
+});
 
 const itemAuthoredZone = z.unknown().superRefine((value, ctx) => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -56,51 +80,7 @@ const itemAuthoredZone = z.unknown().superRefine((value, ctx) => {
   }
 });
 
-const authoredZone = z.unknown().superRefine((value, ctx) => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "must be a mapping" });
-    return;
-  }
-  const row = value as Record<string, unknown>;
-  const variants = ["html", "component", "blocks"].filter((key) =>
-    Object.prototype.hasOwnProperty.call(row, key),
-  );
-  if (variants.length !== 1) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "must be exactly one of html, component, or blocks",
-    });
-    return;
-  }
-  if (variants[0] === "html" && typeof row.html !== "string") {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["html"], message: "must be a string" });
-  } else if (variants[0] === "component") {
-    if (typeof row.component !== "string" || !row.component) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["component"], message: "must be a non-empty string" });
-    }
-    if (row.props !== undefined && (!row.props || typeof row.props !== "object" || Array.isArray(row.props))) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["props"], message: "must be a mapping" });
-    }
-  } else if (variants[0] === "blocks") {
-    if (isWidgetBlocks(row.blocks)) {
-      const parsed = WidgetBlocksSchema.safeParse(row.blocks);
-      if (!parsed.success) {
-        for (const issue of parsed.error.issues) {
-          ctx.addIssue({ ...issue, path: ["blocks", ...issue.path] });
-        }
-      }
-    } else {
-      const parsed = z.array(BlockSchema).safeParse(row.blocks);
-      if (!parsed.success) {
-        for (const issue of parsed.error.issues) {
-          ctx.addIssue({ ...issue, path: ["blocks", ...issue.path] });
-        }
-      }
-    }
-  }
-});
-
-const zones = z.record(authoredZone).optional();
+const zones = z.record(contentAuthoredZone).optional();
 
 const authoredPage = z.object({
   id,

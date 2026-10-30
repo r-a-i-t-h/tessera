@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { contentZones, zoneBlocks } from "./fixtures/content-zones.js";
 import { createApp } from "../src/app.js";
 import { hashPassword } from "../src/auth/password.js";
 import { SessionStore } from "../src/auth/sessions.js";
@@ -30,7 +31,7 @@ describe("record routes", () => {
     await site.write("content", "home", {
       title: "Home",
       tags: ["page"],
-      zones: { main: { html: "<p>Hello</p>" } },
+      zones: contentZones("<p>Hello</p>"),
     });
     await site.writeSite({
       version: 2,
@@ -112,7 +113,7 @@ describe("record routes", () => {
     await site.write("templates", "animal", {
       isLocked: true,
       layoutId: "standard",
-      zones: { main: { html: "<h2>Animal name</h2>" } },
+      zones: contentZones("<h2>Animal name</h2>"),
     });
     await mkdir(join(siteDir, "templates"), { recursive: true });
     await writeFile(
@@ -160,7 +161,7 @@ describe("record routes", () => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        data: { title: "Welcome", zones: { main: { html: "<p>Updated</p>" } } },
+        data: { title: "Welcome", zones: contentZones("<p>Updated</p>") },
       }),
     });
     expect(saved.status).toBe(200);
@@ -192,8 +193,8 @@ describe("record routes", () => {
       title: "Home",
       tags: ["page"],
       zones: {
-        main: { html: "<p>Hello</p>" },
-        meta: { component: "pageMeta", props: { date: "2026-09-10" } },
+        main: zoneBlocks("<p>Hello</p>"),
+        meta: { blocks: [{ kind: "text", heading: "", level: 2, html: "<p>Meta</p>" }] },
       },
     });
     const read = await app().request("/api/records/content/home", {
@@ -236,7 +237,7 @@ describe("record routes", () => {
     await site.write("content", "home", {
       title: "Home",
       tags: ["page"],
-      zones: { main: { html: "<p>Hello</p>" } },
+      zones: contentZones("<p>Hello</p>"),
     });
     const before = await app().request("/api/records/content/home", {
       headers: { Authorization: `Bearer ${token}` },
@@ -258,8 +259,8 @@ describe("record routes", () => {
       title: "Home",
       tags: ["page"],
       zones: {
-        main: { html: "<p>Hello</p>" },
-        sidebar_target: { html: "<p>Quote</p>" },
+        main: zoneBlocks("<p>Hello</p>"),
+        sidebar_target: zoneBlocks("<p>Quote</p>"),
       },
     });
     const after = await app().request("/api/records/content/home", {
@@ -297,7 +298,16 @@ describe("record routes", () => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        raw: "id: home\ntitle: Welcome\nzones:\n  main:\n    html: <p>Updated</p>\n",
+        raw: `id: home
+title: Welcome
+zones:
+  main:
+    blocks:
+      - kind: text
+        heading: ""
+        level: 2
+        html: <p>Updated</p>
+`,
       }),
     });
     expect(saved.status).toBe(200);
@@ -325,7 +335,16 @@ describe("record routes", () => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        raw: "id: home\ntitle: Welcome\nzones:\n  main:\n    html: <p>Updated</p>\n",
+        raw: `id: home
+title: Welcome
+zones:
+  main:
+    blocks:
+      - kind: text
+        heading: ""
+        level: 2
+        html: <p>Updated</p>
+`,
       }),
     });
     const unchanged = (await same.json()) as { historyAppended: boolean; historyCount: number };
@@ -394,7 +413,7 @@ describe("record routes", () => {
     const versioned = new SiteStore(siteDir, join(siteDir, "out.json"), async () => 1);
     await versioned.write("content", "home", {
       title: "After schema",
-      zones: { main: { html: "<p>Next</p>" } },
+      zones: contentZones("<p>Next</p>"),
     });
     const entry = await versioned.pageHistoryEntry("home", 0);
     expect(entry?.schemaVersion).toBe(1);
@@ -419,12 +438,12 @@ describe("record routes", () => {
     await site.write("content", "events", {
       title: "Events",
       masterLayoutId: "events-frame",
-      zones: { main: { html: "<p>List</p>" } },
+      zones: contentZones("<p>List</p>"),
     });
     await site.write("content", "fair", {
       title: "Fair",
       parentId: "events",
-      zones: { main: { html: "<p>On the green</p>" } },
+      zones: contentZones("<p>On the green</p>"),
     });
 
     const read = await app().request("/api/records/content/fair", {
@@ -443,25 +462,25 @@ describe("record routes", () => {
   it("omits an unpublished page and refuses to unpublish or delete a parent or the home page", async () => {
     await site.write("content", "about", {
       title: "About",
-      zones: { main: { html: "<p>About</p>" } },
+      zones: contentZones("<p>About</p>"),
     });
     await site.write("content", "note", {
       title: "Note",
       parentId: "about",
-      zones: { main: { html: "<p>Note</p>" } },
+      zones: contentZones("<p>Note</p>"),
     });
     await expect(
       site.write("content", "about", {
         title: "About",
         published: false,
-        zones: { main: { html: "<p>About</p>" } },
+        zones: contentZones("<p>About</p>"),
       }),
     ).rejects.toThrow(/note/);
     await expect(
       site.write("content", "home", {
         title: "Home",
         published: false,
-        zones: { main: { html: "<p>Hello</p>" } },
+        zones: contentZones("<p>Hello</p>"),
       }),
     ).rejects.toThrow(/home page/);
 
@@ -469,7 +488,7 @@ describe("record routes", () => {
       title: "Note",
       parentId: "about",
       published: false,
-      zones: { main: { html: "<p>Note</p>" } },
+      zones: contentZones("<p>Note</p>"),
     });
     const hidden = await site.flatten();
     expect(hidden?.pages.map((page) => page.id).sort()).toEqual(["about", "home"]);
@@ -493,7 +512,7 @@ describe("record routes", () => {
     await site.write("content", "about", {
       title: "About",
       published: true,
-      zones: { main: { html: "<p>About</p>" } },
+      zones: contentZones("<p>About</p>"),
     });
 
     await site.duplicateRecord("items", "footer", "footer-copy");
@@ -511,7 +530,7 @@ describe("record routes", () => {
     expect(await site.read("content", "about-copy")).toMatchObject({
       title: "About (copy)",
       published: false,
-      zones: { main: { html: "<p>About</p>" } },
+      zones: contentZones("<p>About</p>"),
     });
 
     const res = await app().request("/api/records/content/about/duplicate", {
@@ -532,7 +551,7 @@ describe("record routes", () => {
     await site.write("content", "home", {
       title: "Home",
       tags: ["page"],
-      zones: { main: { html: "<p>{{in-use}}</p>" } },
+      zones: contentZones("<p>{{in-use}}</p>"),
     });
     await expect(site.deleteBinding("in-use")).rejects.toThrow(/still used/);
     await site.deleteBinding("in-use").catch(() => undefined);

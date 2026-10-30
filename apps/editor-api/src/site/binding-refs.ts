@@ -4,7 +4,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-/** Binding ids referenced as `{{id}}` or `type: component` blocks with `name`. */
+/** Binding ids referenced as `{{id}}`, insert widgets, or `type: component` blocks with `name`. */
 export function recordUsesBinding(record: unknown, bindingId: string): boolean {
   return bindingIdsIn(record).includes(bindingId);
 
@@ -31,6 +31,7 @@ export function recordUsesBinding(record: unknown, bindingId: string): boolean {
       }
       if (!isRecord(item)) return;
       if (item.type === "component" && typeof item.name === "string") note(item.name);
+      if (item.kind === "insert" && typeof item.id === "string") note(item.id);
       for (const entry of Object.values(item)) walk(entry);
     }
   }

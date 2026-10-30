@@ -31,6 +31,7 @@ import { installPublish } from "./install-publish.js";
 import {
   assembleDocument,
   authoredPageToPage,
+  type AuthoredItem,
   type AuthoredPage,
   fromYaml,
   recordToYaml,
@@ -729,12 +730,6 @@ export class SiteStore {
         else delete fields[key];
       }
       next.fields = fields;
-      const zones =
-        next.zones && typeof next.zones === "object" && !Array.isArray(next.zones)
-          ? { ...(next.zones as Record<string, unknown>) }
-          : {};
-      zones.title = { html: escapeText(typeof next.title === "string" ? next.title : "") };
-      next.zones = zones;
     }
     if (type === "blog") {
       const rawFields = next.fields;
@@ -1131,7 +1126,7 @@ export class SiteStore {
       }
     }
     for (const id of await this.listIds("items")) {
-      const item = (await this.read("items", id)) as { id: string; zones?: AuthoredPage["zones"] };
+      const item = (await this.read("items", id)) as AuthoredItem;
       const zones = rewriteZonesPageRefs(item.zones, from, to);
       if (zones.changed) {
         await this.commitRecord(

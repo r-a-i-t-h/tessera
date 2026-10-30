@@ -6,7 +6,7 @@ describe("authored record validation", () => {
     expect(() => validateAuthoredRecord("content", "home", {
       id: "home",
       title: 42,
-      zones: { main: { html: "<p>Hello</p>" } },
+      zones: { main: { blocks: [] } },
     })).toThrow(expect.objectContaining({
       name: "AuthoredRecordError",
       kind: "content",
@@ -17,10 +17,19 @@ describe("authored record validation", () => {
     expect(() => validateAuthoredRecord("content", "home", {
       id: "home",
       title: "Home",
-      zones: { main: { component: 42 } },
+      zones: { main: { html: "<p>Hello</p>" } },
     })).toThrow(expect.objectContaining({
       name: "AuthoredRecordError",
-      field: "zones.main.component",
+      field: "zones.main",
+    }));
+
+    expect(() => validateAuthoredRecord("content", "home", {
+      id: "home",
+      title: "Home",
+      zones: { main: { component: "searchBox" } },
+    })).toThrow(expect.objectContaining({
+      name: "AuthoredRecordError",
+      field: "zones.main",
     }));
   });
 

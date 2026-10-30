@@ -22,12 +22,14 @@ import {
   SITE_DOCUMENT_SCHEMA_VERSION,
   usesBlog,
 } from "@r-a-i-t-h/tessera-model";
-import { compileWidgetsToHtml, type Widget } from "@r-a-i-t-h/tessera-sections";
+import { compileWidgetsToHtml, widgetsFromLegacyHtml, type Widget } from "@r-a-i-t-h/tessera-sections";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import type { RecordKind } from "./kinds.js";
 import { isWidgetBlocks } from "./widget-schema.js";
 import { projectLibrary } from "./library.js";
 import { projectRuntimeModules } from "./runtime-module.js";
+
+export type PageZoneAuthoring = { blocks: Widget[] };
 
 export type ZoneAuthoring =
   | { html: string }
@@ -47,7 +49,7 @@ export type AuthoredPage = {
   fields?: Record<string, string>;
   tags?: string[];
   includes?: string[];
-  zones?: Record<string, ZoneAuthoring>;
+  zones?: Record<string, PageZoneAuthoring>;
 };
 
 export type AuthoredItem = {
@@ -68,7 +70,19 @@ export function fromYaml<T>(text: string): T {
   return parseYaml(text) as T;
 }
 
-export function zonesToAuthoring(zones: Record<string, Block[]> | undefined): Record<string, ZoneAuthoring> {
+export function pageZonesToAuthoring(zones: Record<string, Block[]> | undefined): Record<string, PageZoneAuthoring> {
+  const out: Record<string, PageZoneAuthoring> = {};
+  for (const [id, blocks] of Object.entries(zones ?? {})) {
+    const html = blocks
+      .filter((block): block is Block & { type: "text"; html: string } => block.type === "text")
+      .map((block) => block.html)
+      .join("");
+    out[id] = { blocks: html ? widgetsFromLegacyHtml(html) : [] };
+  }
+  return out;
+}
+
+export function itemZonesToAuthoring(zones: Record<string, Block[]> | undefined): Record<string, ZoneAuthoring> {
   const out: Record<string, ZoneAuthoring> = {};
   for (const [id, blocks] of Object.entries(zones ?? {})) {
     if (blocks.length === 1 && blocks[0]?.type === "text") {
@@ -84,6 +98,11 @@ export function zonesToAuthoring(zones: Record<string, Block[]> | undefined): Re
     }
   }
   return out;
+}
+
+/** @deprecated Use {@link pageZonesToAuthoring} or {@link itemZonesToAuthoring}. */
+export function zonesToAuthoring(zones: Record<string, Block[]> | undefined): Record<string, ZoneAuthoring> {
+  return itemZonesToAuthoring(zones);
 }
 
 export function authoringToZones(zones: Record<string, ZoneAuthoring> | undefined): Record<string, Block[]> {
@@ -129,7 +148,7 @@ export function pageToAuthoring(page: Page): AuthoredPage {
     ...(page.fields && Object.keys(page.fields).length ? { fields: page.fields } : {}),
     ...(page.tags?.length ? { tags: page.tags } : {}),
     ...(page.includes?.length ? { includes: page.includes } : {}),
-    zones: zonesToAuthoring(page.zones),
+    zones: pageZonesToAuthoring(page.zones),
   };
 }
 
@@ -137,7 +156,7 @@ export function itemToAuthoring(item: Item): AuthoredItem {
   return {
     id: item.id,
     ...(item.tags?.length ? { tags: item.tags } : {}),
-    zones: zonesToAuthoring(item.zones),
+    zones: itemZonesToAuthoring(item.zones),
   };
 }
 

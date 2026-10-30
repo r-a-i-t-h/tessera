@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, readFile, readdir, rm, unlink, writeFile } from "node:f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { contentZones, zoneBlocks } from "./fixtures/content-zones.js";
 import { createApp } from "../src/app.js";
 import { hashPassword } from "../src/auth/password.js";
 import { SessionStore } from "../src/auth/sessions.js";
@@ -74,7 +75,7 @@ describe("asset library", () => {
     const records = join(root, "records");
     const site = new SiteStore(records, join(root, "preview", "data", "site.json"));
     await site.write("layouts", "page", { root: { type: "zone", id: "main" } });
-    await site.write("content", "home", { title: "Home", zones: { main: { html: "<p>Hi</p>" } } });
+    await site.write("content", "home", { title: "Home", zones: contentZones("<p>Hi</p>") });
     await site.writeSite({ version: 2, id: "demo", title: "Demo", homePageId: "home", defaultLayoutId: "page" });
     const library = new AssetLibrary(site, join(root, "files"));
     return { site, library };

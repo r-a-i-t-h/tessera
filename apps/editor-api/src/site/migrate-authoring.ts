@@ -1,11 +1,7 @@
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { compileWidgetsToHtml, widgetsFromLegacyHtml } from "@r-a-i-t-h/tessera-sections";
-import {
-  AUTHORING_SCHEMA_LEGACY_MAX,
-  AUTHORING_SCHEMA_TARGET,
-  LEGACY_SCALAR_HTML_ZONE_IDS,
-} from "./authoring-constants.js";
+import { AUTHORING_SCHEMA_LEGACY_MAX, AUTHORING_SCHEMA_TARGET } from "./authoring-constants.js";
 import type { RecordKind } from "./kinds.js";
 import { isRecordId, KIND_DIRS } from "./kinds.js";
 import { isWidgetBlocks } from "./widget-schema.js";
@@ -15,19 +11,10 @@ import { recordToYaml, yamlToRecord } from "./document.js";
 
 const COMPOSE_MIGRATE_KINDS: RecordKind[] = ["content", "templates"];
 
-function isLegacyScalarHtmlZone(zoneId: string): boolean {
-  return (LEGACY_SCALAR_HTML_ZONE_IDS as readonly string[]).includes(zoneId);
-}
-
-/** Migrate one authored zone from schema ≤3 to widget `blocks` lists. */
-export function migrateAuthoredZone(zoneId: string, zone: unknown): unknown | undefined {
+/** Migrate one page/template zone to widget `blocks` lists (schema ≤4 → 5). */
+export function migrateAuthoredZone(_zoneId: string, zone: unknown): unknown | undefined {
   if (!zone || typeof zone !== "object" || Array.isArray(zone)) return zone;
   const row = zone as Record<string, unknown>;
-
-  if (isLegacyScalarHtmlZone(zoneId)) {
-    if ("html" in row && typeof row.html === "string") return { html: row.html };
-    return zone;
-  }
 
   if ("blocks" in row && Array.isArray(row.blocks)) {
     if (isWidgetBlocks(row.blocks)) return zone;
@@ -43,8 +30,8 @@ export function migrateAuthoredZone(zoneId: string, zone: unknown): unknown | un
     return undefined;
   }
 
-  if ("component" in row && typeof row.component === "string") {
-    return zone;
+  if ("component" in row) {
+    return undefined;
   }
 
   return zone;
@@ -126,10 +113,10 @@ async function listYamlIds(recordsDir: string, kind: RecordKind): Promise<string
 }
 
 /**
- * When `meta.json` `schemaVersion` is below {@link AUTHORING_SCHEMA_TARGET}, rewrite zone YAML
- * (html → widget blocks, drop json zones) and bump the counter.
+ * Post-update migration: rewrite page/template zone YAML to blocks-only and bump `schemaVersion`.
+ * Do not call from editor API startup — run `scripts/migrate-authoring-zones.ts` after upgrade.
  */
-export async function ensureAuthoringSchemaMigration(dataDir: string, recordsDir: string): Promise<boolean> {
+export async function runAuthoringZoneMigration(dataDir: string, recordsDir: string): Promise<boolean> {
   const meta = metaPath(dataDir);
   const current = await readSchemaVersion(meta);
   if (current >= AUTHORING_SCHEMA_TARGET) {
@@ -157,6 +144,9 @@ export async function ensureAuthoringSchemaMigration(dataDir: string, recordsDir
   await writeSchemaVersion(meta, AUTHORING_SCHEMA_TARGET);
   return true;
 }
+
+/** @deprecated Use {@link runAuthoringZoneMigration} from post-update script only. */
+export const ensureAuthoringSchemaMigration = runAuthoringZoneMigration;
 
 /** Rewrite item zones on disk: widget blocks → html, drop json. */
 export async function ensureItemAuthoringRepair(recordsDir: string): Promise<boolean> {

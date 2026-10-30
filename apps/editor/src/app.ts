@@ -2421,7 +2421,7 @@ async function createArticle(root: HTMLElement, listing: RecordList, blogId: str
         type: "article",
         parentId: blogId,
         fields: { date },
-        zones: { main: { html: "" } },
+        zones: { main: { blocks: [] } },
       };
     },
     save: saveRecord,
@@ -2526,7 +2526,7 @@ async function createBlog(root: HTMLElement, listing: RecordList): Promise<void>
         title: pageTitle,
         type: "blog",
         fields: { pageSize: "10" },
-        zones: { title: { html: pageTitle }, lead: { html: "" } },
+        zones: { title: { blocks: [] }, lead: { blocks: [] } },
       };
     },
     save: saveRecord,

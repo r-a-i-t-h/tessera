@@ -12,7 +12,7 @@
     "start": "node dist/server.js",
     "seed:user": "tsx scripts/make-seed-user.ts",
     "reset:password": "tsx scripts/reset-user-password.ts",
-    "flatten:site": "tsx scripts/flatten-site.ts",
+    "migrate:authoring": "tsx scripts/migrate-authoring-zones.ts",
     "stamp:snapshot": "tsx scripts/stamp-snapshot.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"

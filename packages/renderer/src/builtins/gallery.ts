@@ -1,9 +1,4 @@
-import {
-  captionFromFilename,
-  type Block,
-  type Folder,
-  type SiteDocument,
-} from "@r-a-i-t-h/tessera-model";
+import { captionFromFilename, type Folder, type SiteDocument } from "@r-a-i-t-h/tessera-model";
 import { normalizeSiteAssetUrl } from "../assets.js";
 import type { ComponentFn } from "../types.js";
 import { registerGalleryElement, type GalleryItem } from "./gallery-element.js";
@@ -57,22 +52,6 @@ export function slidesFromFolders(
   return slides;
 }
 
-/** Slides from explicit `image` blocks in a zone (document order). */
-export function slidesFromImageBlocks(blocks: Block[] | undefined): GallerySlide[] {
-  if (!blocks?.length) return [];
-  const slides: GallerySlide[] = [];
-  for (const b of blocks) {
-    if (b.type !== "image") continue;
-    const caption = b.caption ?? captionFromFilename(b.url.split("/").pop() ?? b.url);
-    slides.push({
-      url: normalizeSiteAssetUrl(b.url),
-      caption,
-      alt: b.alt ?? caption,
-    });
-  }
-  return slides;
-}
-
 function folderIdsFromProps(props: Record<string, unknown>): string[] {
   const raw = props.folders ?? props.folder;
   if (typeof raw === "string") return [raw];
@@ -90,11 +69,10 @@ function slidesToItems(slides: GallerySlide[]): GalleryItem[] {
 }
 
 /**
- * Gallery from folder id(s) and/or inline `image` blocks in a zone.
+ * Gallery from library folder id(s).
  *
  * Props:
  * - `folders` / `folder` — first-class folder id(s); optional `filter` regex on filename
- * - `fromZone` — zone of `image` blocks (default `slides` when no folders)
  * - `mode` — `grid` | `slides`; `autoplay`
  */
 export const gallery: ComponentFn = (ctx, props = {}) => {
@@ -104,14 +82,7 @@ export const gallery: ComponentFn = (ctx, props = {}) => {
   const autoplay = props.autoplay === true || props.autoplay === "true";
   const folderIds = folderIdsFromProps(props);
   const filter = typeof props.filter === "string" ? props.filter : undefined;
-  const fromZone = typeof props.fromZone === "string" ? props.fromZone : "slides";
-
-  let slides: GallerySlide[] = [];
-  if (folderIds.length) {
-    slides = slidesFromFolders(ctx.document, folderIds, filter);
-  } else {
-    slides = slidesFromImageBlocks(ctx.zones.get(fromZone));
-  }
+  const slides = folderIds.length ? slidesFromFolders(ctx.document, folderIds, filter) : [];
 
   const items = slidesToItems(slides).map((item) => ({
     ...item,

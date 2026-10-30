@@ -54,7 +54,6 @@ export {
   registerGalleryComponents,
   gallery,
   slidesFromFolders,
-  slidesFromImageBlocks,
   type GallerySlide,
 } from "./builtins/gallery.js";
 export {

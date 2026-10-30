@@ -2,6 +2,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { contentZones, zoneBlocks } from "./fixtures/content-zones.js";
 import { SiteStore } from "../src/site/store.js";
 
 describe("blog ops", () => {
@@ -16,7 +17,7 @@ describe("blog ops", () => {
     const site = new SiteStore(dir, join(dir, "out.json"));
     await site.write("layouts", "standard", { root: { type: "zone", id: "main" } });
     await site.writeSite({ version: 2, id: "demo", title: "Demo", homePageId: "home", defaultLayoutId: "standard" });
-    await site.write("content", "home", { title: "Home", zones: { main: { html: "<p>Hi</p>" } } });
+    await site.write("content", "home", { title: "Home", zones: contentZones("<p>Hi</p>") });
     return site;
   }
 
@@ -26,7 +27,7 @@ describe("blog ops", () => {
       title: "News",
       type: "blog",
       fields: { pageSize: "10" },
-      zones: { title: { html: "News" }, lead: { html: "" } },
+      zones: { title: zoneBlocks("News"), lead: zoneBlocks("") },
     });
     const index = await site.read("content", "news-index");
     expect(index).toMatchObject({ type: "blog-index", parentId: "news" });
@@ -36,7 +37,7 @@ describe("blog ops", () => {
       parentId: "news",
       includes: ["common-footer"],
       fields: { date: "2026-07-14", precis: "Crumbs" },
-      zones: { main: { html: "<p>Hi</p>" } },
+      zones: contentZones("<p>Hi</p>"),
     });
     const fair = await site.read("content", "fair");
     expect(fair.parentId).toBe("news");
@@ -49,7 +50,7 @@ describe("blog ops", () => {
       title: "News",
       type: "blog",
       fields: { pageSize: "10" },
-      zones: { title: { html: "News" } },
+      zones: { title: zoneBlocks("News") },
     });
     await site.deleteBlog("news");
     await expect(site.read("content", "news")).rejects.toThrow();
@@ -63,14 +64,14 @@ describe("blog ops", () => {
       title: "News",
       type: "blog",
       fields: { pageSize: "10" },
-      zones: { title: { html: "News" } },
+      zones: { title: zoneBlocks("News") },
     });
     await site.write("content", "fair", {
       title: "Fair",
       type: "article",
       parentId: "news",
       fields: { date: "2026-07-14" },
-      zones: { main: { html: "<p>Hi</p>" } },
+      zones: contentZones("<p>Hi</p>"),
     });
     await expect(site.deleteBlog("news")).rejects.toThrow(/cascade delete/);
     await site.renameBlog("news", "willow");

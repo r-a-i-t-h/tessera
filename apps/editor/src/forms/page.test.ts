@@ -7,6 +7,11 @@ import {
   suggestDuplicateId,
   withSidebarLink,
 } from "./page.js";
+import { widgetsFromLegacyHtml } from "@r-a-i-t-h/tessera-sections";
+
+function blocks(html = "") {
+  return { blocks: widgetsFromLegacyHtml(html) };
+}
 
 describe("new page", () => {
   it("suggests a free duplicate id", () => {
@@ -22,21 +27,19 @@ describe("new page", () => {
     expect(pageIdError("home", ["home"])).toMatch(/already exists/);
   });
 
-  it("writes a title zone and an empty body", () => {
+  it("starts with an empty main canvas only", () => {
     expect(newPageBody(" about ", " About us ")).toEqual({
       id: "about",
       title: "About us",
       zones: {
-        title: { html: "About us" },
-        main: { html: "" },
+        main: { blocks: [] },
       },
     });
     expect(newPageBody("cafe", "Tom & <Jerry>")).toEqual({
       id: "cafe",
       title: "Tom & <Jerry>",
       zones: {
-        title: { html: "Tom &amp; &lt;Jerry&gt;" },
-        main: { html: "" },
+        main: { blocks: [] },
       },
     });
   });
@@ -44,7 +47,7 @@ describe("new page", () => {
   it("starts a template as an empty prototype body", () => {
     expect(newTemplateBody(" animal ")).toEqual({
       id: "animal",
-      zones: { main: { html: "" } },
+      zones: { main: { blocks: [] } },
     });
   });
 
@@ -53,7 +56,7 @@ describe("new page", () => {
       pageFromTemplate("daisy", "Daisy", "animal", {
         isLocked: true,
         type: " animal ",
-        zones: { main: { html: "<h2>Animal name</h2><p>Where it lives.</p>" } },
+        zones: { main: blocks("<h2>Animal name</h2><p>Where it lives.</p>") },
       }),
     ).toEqual({
       id: "daisy",
@@ -62,13 +65,12 @@ describe("new page", () => {
       locked: true,
       type: "animal",
       zones: {
-        title: { html: "Daisy" },
-        main: { html: "<h2>Animal name</h2><p>Where it lives.</p>" },
+        main: blocks("<h2>Animal name</h2><p>Where it lives.</p>"),
       },
     });
   });
 
-  it("copies tags, includes, and zones other than the title", () => {
+  it("copies tags, includes, and zones from the template", () => {
     expect(
       pageFromTemplate("priya", "Priya Nair", "person", {
         isLocked: true,
@@ -77,8 +79,8 @@ describe("new page", () => {
         includes: ["common-footer"],
         fields: { role: "", email: "" },
         zones: {
-          title: { html: "Sample person" },
-          main: { html: "<p>About them.</p>" },
+          title: blocks("Sample person"),
+          main: blocks("<p>About them.</p>"),
         },
       }),
     ).toEqual({
@@ -91,8 +93,8 @@ describe("new page", () => {
       includes: ["common-footer"],
       fields: { role: "", email: "" },
       zones: {
-        title: { html: "Priya Nair" },
-        main: { html: "<p>About them.</p>" },
+        title: blocks("Sample person"),
+        main: blocks("<p>About them.</p>"),
       },
     });
   });
@@ -100,11 +102,11 @@ describe("new page", () => {
   it("leaves a page unlocked when the template is only a blueprint", () => {
     const page = pageFromTemplate("note", "Note", "free", {
       isLocked: false,
-      zones: { main: { html: "<p>Start here.</p>" } },
+      zones: { main: blocks("<p>Start here.</p>") },
     });
     expect(page.locked).toBeUndefined();
     expect(page.type).toBeUndefined();
-    expect(page.zones.main.html).toBe("<p>Start here.</p>");
+    expect(page.zones.main).toEqual(blocks("<p>Start here.</p>"));
   });
 
   it("appends a sidebar link and leaves a non-list nav alone", () => {

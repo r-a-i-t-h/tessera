@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { captionFromFilename } from "@r-a-i-t-h/tessera-model";
-import {
-  ComponentRegistry,
-  gallery,
-  slidesFromFolders,
-  slidesFromImageBlocks,
-} from "../index.js";
+import { ComponentRegistry, gallery, slidesFromFolders } from "../index.js";
 import type { RenderContext } from "../types.js";
 import { makeFixtureDoc } from "./fixtures.js";
 
@@ -55,16 +50,6 @@ describe("slidesFromFolders", () => {
   });
 });
 
-describe("slidesFromImageBlocks", () => {
-  it("uses document order and explicit captions", () => {
-    const slides = slidesFromImageBlocks([
-      { type: "image", url: "./x/01-alpha.svg" },
-      { type: "image", url: "./x/beta.svg", caption: "Beta explicit" },
-    ]);
-    expect(slides.map((s) => s.caption)).toEqual(["Alpha", "Beta explicit"]);
-  });
-});
-
 describe("gallery component", () => {
   it("emits tessera-gallery from folder props", () => {
     const doc = makeFixtureDoc();
@@ -99,19 +84,10 @@ describe("gallery component", () => {
     expect(html).toContain("./media/sample/02-b.svg");
   });
 
-  it("emits from inline image zone", () => {
+  it("shows empty state when no folders are configured", () => {
     const doc = makeFixtureDoc();
     const registry = new ComponentRegistry();
     registry.define("gallery", gallery);
-    const zones = new Map([
-      [
-        "slides",
-        [
-          { type: "image" as const, url: "./inline/01-x.svg" },
-          { type: "image" as const, url: "./inline/02-y.svg", caption: "Y" },
-        ],
-      ],
-    ]);
     const ctx: RenderContext = {
       document: doc,
       page: doc.pages[0]!,
@@ -119,15 +95,13 @@ describe("gallery component", () => {
         layoutId: "with-aside",
         layoutSource: "site",
       },
-      zones,
+      zones: new Map(),
       registry,
       renderBlocks: () => "",
       mediaHtml: () => "",
       escapeHtml: (s) =>
         s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;"),
     };
-    const html = gallery(ctx, { fromZone: "slides" });
-    expect(html).toContain("./inline/01-x.svg");
-    expect(html).toContain("Y");
+    expect(gallery(ctx, {})).toContain("No gallery images");
   });
 });

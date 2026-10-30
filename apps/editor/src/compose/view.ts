@@ -1,10 +1,8 @@
 import { COMPOSE_PALETTE_GROUP_LENGTHS, PALETTE, compileWidgetsToHtml, widgetsFromLegacyHtml, type Widget } from "@r-a-i-t-h/tessera-sections";
 import type { PageLayoutHint } from "../api.js";
 import { COMPOSE_LIST_EXPANDED_LABEL } from "../escape-key.js";
-import { escapeHtml, fieldId } from "../dom.js";
-import { jsonText } from "../forms/item.js";
+import { escapeHtml } from "../dom.js";
 import { draftYaml, isWidgetBlocks, parsePageYaml, withZoneWidgets } from "./draft.js";
-import { isLegacyScalarHtmlZone } from "../authoring-constants.js";
 import { readComposeWidgets } from "./widget-composer.js";
 import { readFormValues } from "../forms/form.js";
 import { schemaFor } from "../forms/schema.js";
@@ -56,15 +54,11 @@ export function composeFormInner(
   _options?: { heroUrl?: string },
   _pageIds?: readonly string[],
 ): string {
-  const zoneLayout =
-    kind === "content" && record.type === "article" && layout
-      ? { ...layout, declaredZones: ["main"], offLayoutZones: [] }
-      : layout;
-  const zones = pageLayoutZoneViews(record, zoneLayout);
+  const zones = pageLayoutZoneViews(record, layout);
   const locked = record.locked === true;
   const palette = locked ? "" : composePalette();
-  return `${layoutBanner(record, zoneLayout)}
-    ${frameNote(zoneLayout)}
+  return `${layoutBanner(record, layout)}
+    ${frameNote(layout)}
     <div class="editor-compose-layout">
       ${palette}
       <div class="editor-zones">
@@ -82,11 +76,7 @@ export function frameFormInner(
   _options?: { heroUrl?: string },
   _pageIds?: readonly string[],
 ): string {
-  const zoneLayout =
-    kind === "content" && record.type === "article" && layout
-      ? { ...layout, declaredZones: ["main"], offLayoutZones: [] }
-      : layout;
-  const zones = frameZoneViews(record, zoneLayout);
+  const zones = frameZoneViews(record, layout);
   const locked = record.locked === true;
   const palette = locked ? "" : composePalette();
   const master = layout?.masterLayoutId ? escapeHtml(layout.masterLayoutId) : "";
@@ -100,7 +90,7 @@ export function frameFormInner(
           }.</p>`
         : `<p class="w3-small w3-text-grey">This page has no master frame. Saved frame zones stay on the page until a frame declares them.</p>`
     }`;
-  return `${frameNote(zoneLayout)}
+  return `${frameNote(layout)}
     ${banner}
     <div class="editor-compose-layout">
       ${palette}
@@ -269,7 +259,7 @@ export function validateFrameZoneId(
 }
 
 export function addFrameZoneToRecord(record: Record<string, unknown>, id: string): Record<string, unknown> {
-  const zones = { ...zonesOf(record), [id]: { html: "" } };
+  const zones = { ...zonesOf(record), [id]: { blocks: [] } };
   return { ...record, zones };
 }
 
@@ -328,10 +318,6 @@ function zoneLabel(name: string, frame: boolean): string {
 
 function zoneView(name: string, zone: unknown, off: boolean, frame = false): ZoneView {
   const label = zoneLabel(name, frame);
-  if (isLegacyScalarHtmlZone(name)) {
-    const html = isRecord(zone) ? String(zone.html ?? "") : "";
-    return { name, label, off, kind: "note", html, widgets: [] };
-  }
   if (zone === undefined || isComposeHtmlZone(zone) || isComposeWidgetZone(zone)) {
     const widgets = widgetsForZone(zone);
     return {
@@ -384,27 +370,13 @@ function layoutBanner(_record: Record<string, unknown>, _layout?: PageLayoutHint
   return "";
 }
 
-/** Page tab: legacy scalar HTML fields + read-only HTML source for compose-backed declared zones. */
+/** Page tab: read-only HTML source for layout-declared zones (edit on Compose). */
 export function pageTabZonesMarkup(record: Record<string, unknown>, layout?: PageLayoutHint): string {
   const zones = zonesOf(record);
   const declared = layout?.declaredZones ?? [];
-  const names = declared.length ? declared : Object.keys(zones).filter((id) => isLegacyScalarHtmlZone(id));
+  const names = declared.length ? declared : Object.keys(zones);
   if (!names.length) return "";
-  return names
-    .map((name) =>
-      isLegacyScalarHtmlZone(name)
-        ? legacyScalarZoneField(name, zones[name])
-        : composeZonePreviewSection(name, zones[name]),
-    )
-    .join("");
-}
-
-function legacyScalarZoneField(name: string, zone: unknown): string {
-  const html = isRecord(zone) && "html" in zone ? String(zone.html ?? "") : "";
-  const id = fieldId(`zones.${name}.html`);
-  const label = zoneLabel(name, false);
-  return `<section class="editor-zone"><p><label for="${id}">${escapeHtml(label)}</label>
-    <textarea id="${id}" name="${escapeHtml(`zones.${name}.html`)}" rows="6" spellcheck="false" class="w3-input w3-border w3-margin-top editor-html">${escapeHtml(html)}</textarea></p></section>`;
+  return names.map((name) => composeZonePreviewSection(name, zones[name])).join("");
 }
 
 function composeZonePreviewSection(name: string, zone: unknown): string {
@@ -423,14 +395,6 @@ function composeZoneSourceHtml(zone: unknown): string {
 }
 
 function composeZonePreviewBody(zone: unknown): string {
-  if (isRecord(zone) && "component" in zone && !("html" in zone) && !("blocks" in zone)) {
-    const name = typeof zone.component === "string" ? zone.component : "";
-    const props = zone.props !== undefined ? jsonText(zone.props) : "";
-    const summary = props
-      ? `<pre class="editor-page-zone-preview">${escapeHtml(props)}</pre>`
-      : `<p class="w3-text-grey"><em>No props.</em></p>`;
-    return `<p class="w3-small w3-text-grey">Component <code>${escapeHtml(name || "?")}</code></p>${summary}`;
-  }
   const source = composeZoneSourceHtml(zone).trim();
   if (!source) {
     return `<p class="w3-text-grey">Empty — add blocks on Compose.</p>`;

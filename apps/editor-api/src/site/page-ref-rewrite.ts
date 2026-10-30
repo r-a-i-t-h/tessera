@@ -32,26 +32,26 @@ function rewriteWidgetTree(value: unknown, from: string, to: string): { value: u
 }
 
 /** Rewrite durable page refs inside authored zone maps. */
-export function rewriteZonesPageRefs(
-  zones: Record<string, ZoneAuthoring> | undefined,
+export function rewriteZonesPageRefs<T extends ZoneAuthoring>(
+  zones: Record<string, T> | undefined,
   from: string,
   to: string,
-): { zones: Record<string, ZoneAuthoring> | undefined; changed: boolean } {
+): { zones: Record<string, T> | undefined; changed: boolean } {
   if (!zones) return { zones, changed: false };
   let changed = false;
-  const next: Record<string, ZoneAuthoring> = {};
+  const next: Record<string, T> = {};
   for (const [id, zone] of Object.entries(zones)) {
     if ("html" in zone && typeof zone.html === "string") {
       const html = rewritePageRefIds(zone.html, from, to);
       if (html !== zone.html) changed = true;
-      next[id] = { ...zone, html };
+      next[id] = { ...zone, html } as T;
       continue;
     }
     if ("blocks" in zone && Array.isArray(zone.blocks)) {
       if (isWidgetBlocks(zone.blocks)) {
         const result = rewriteWidgetTree(zone.blocks, from, to);
         if (result.changed) changed = true;
-        next[id] = { blocks: result.value as Widget[] };
+        next[id] = { blocks: result.value as Widget[] } as T;
         continue;
       }
       const blocks = (zone.blocks as Block[]).map((block) => {
@@ -60,7 +60,7 @@ export function rewriteZonesPageRefs(
         if (html !== block.html) changed = true;
         return { ...block, html };
       });
-      next[id] = { blocks };
+      next[id] = { blocks } as T;
       continue;
     }
     next[id] = zone;
