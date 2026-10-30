@@ -6,7 +6,7 @@ import { expandPageElements } from "./page-elements.js";
 import { resolvePageRefs } from "./page-refs.js";
 import type { ComponentRegistry } from "./registry.js";
 import { indexDocument, mergeZones } from "./merge.js";
-import type { MicroAppMount, RenderContext, ZoneMap } from "./types.js";
+import type { MicroAppMount, RenderContext } from "./types.js";
 
 export type Skin = {
   /** Map a region role + optional className to a final class string. */
@@ -61,17 +61,6 @@ function imageBlockToHtml(
   return `<img src="${src}" alt="${alt}" />`;
 }
 
-function zoneJsonFromMap(zones: ZoneMap, zoneId: string): unknown[] {
-  const blocks = zones.get(zoneId) ?? [];
-  const out: unknown[] = [];
-  for (const b of blocks) {
-    if (b.type !== "json") continue;
-    if (Array.isArray(b.data)) out.push(...b.data);
-    else out.push(b.data);
-  }
-  return out;
-}
-
 export function renderPage(options: RenderPageOptions): string {
   const { document, pageId, registry, skin } = options;
   const { layoutsById, pagesById, itemsById, mediaById } = indexDocument(document);
@@ -97,7 +86,6 @@ export function renderPage(options: RenderPageOptions): string {
     zones,
     registry,
     renderBlocks: (blocks) => renderBlocks(blocks, ctx),
-    zoneJson: <T = unknown>(zoneId: string) => zoneJsonFromMap(zones, zoneId) as T[],
     mediaHtml: (id) => mediaToHtml(mediaById.get(id), assetUrl),
     escapeHtml,
     mountMicroApps: options.mountMicroApps,
@@ -122,8 +110,6 @@ function renderBlock(block: Block, ctx: RenderContext): string {
   switch (block.type) {
     case "text":
       return authoredHtml(block.html, ctx);
-    case "json":
-      return "";
     case "media":
       return ctx.mediaHtml(block.id);
     case "image":

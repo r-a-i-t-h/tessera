@@ -62,13 +62,13 @@ const authoredZone = z.unknown().superRefine((value, ctx) => {
     return;
   }
   const row = value as Record<string, unknown>;
-  const variants = ["html", "json", "component", "blocks"].filter((key) =>
+  const variants = ["html", "component", "blocks"].filter((key) =>
     Object.prototype.hasOwnProperty.call(row, key),
   );
   if (variants.length !== 1) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "must be exactly one of html, json, component, or blocks",
+      message: "must be exactly one of html, component, or blocks",
     });
     return;
   }

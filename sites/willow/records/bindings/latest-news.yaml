@@ -1,7 +1,0 @@
-id: latest-news
-component: datedList
-props:
-  types:
-    - news
-  when: past
-  limit: 3

@@ -96,7 +96,6 @@ describe("imageRevealGallery component", () => {
       zones: new Map(),
       registry,
       renderBlocks: () => "",
-      zoneJson: () => [],
       mediaHtml: () => "",
       pageHref: (id) => `/pages/${id}.html`,
       escapeHtml: (s) =>
@@ -137,7 +136,6 @@ describe("imageRevealGallery component", () => {
       zones: new Map(),
       registry: new ComponentRegistry(),
       renderBlocks: () => "",
-      zoneJson: () => [],
       mediaHtml: () => "",
       escapeHtml: (s) => s,
     };

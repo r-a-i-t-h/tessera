@@ -16,7 +16,6 @@ function context(document: SiteDocument, pageId: string): RenderContext {
     zones: new Map(),
     registry: new ComponentRegistry(),
     renderBlocks: () => "",
-    zoneJson: () => [],
     mediaHtml: () => "",
     escapeHtml,
   };

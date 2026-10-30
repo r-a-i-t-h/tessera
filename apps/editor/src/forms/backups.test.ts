@@ -14,7 +14,7 @@ describe("backups page", () => {
         ok: true,
         directory: "/backup",
         backups: [{ name: "2026.tar.gz", size: 1024, mtime: "2026-01-01T15:30:00.000Z" }],
-        examples: [{ name: "willow", title: "Willow" }],
+        examples: [],
       },
       [{ id: "tessera-w3-starter", name: "Starter" }],
       "",
@@ -27,7 +27,7 @@ describe("backups page", () => {
     expect(html).toContain("<summary>Themes</summary>");
     expect(html).toContain("<summary>Initialise</summary>");
     expect(html).toContain('data-action="reseed"');
-    expect(html).toContain('data-example="willow"');
+    expect(html).toContain("No example archives are in the backup folder yet.");
     expect(html).not.toContain("<h2");
     expect(html).toContain('datetime="2026-01-01T15:30:00.000Z"');
     expect(html).toContain("editor-backup-when");

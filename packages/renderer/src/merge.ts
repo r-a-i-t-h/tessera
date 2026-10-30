@@ -29,8 +29,7 @@ function appendIncludes(
  * Merge page zones, then the page's includes, then the page layout's includes,
  * then the master frame's includes when that layout is a different one.
  * The same item id is merged once. Contributions to zones the layout does not
- * declare remain available on the ZoneMap for components (e.g. JSON data for a
- * custom list) but are not shown unless a layout zone node or component reads them.
+ * declare remain available on the ZoneMap for components that read them.
  */
 export function mergeZones(
   document: SiteDocument,

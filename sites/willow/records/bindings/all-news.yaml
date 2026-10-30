@@ -1,6 +1,0 @@
-id: all-news
-component: datedList
-props:
-  types:
-    - news
-  when: all

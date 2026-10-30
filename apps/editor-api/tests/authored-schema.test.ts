@@ -1,10 +1,5 @@
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { AuthoredRecordError, validateAuthoredRecord } from "../src/site/authored-schema.js";
-import { fromYaml } from "../src/site/document.js";
-import { isRecordKind } from "../src/site/kinds.js";
-import { repoRoot } from "../src/site/paths.js";
-import { SiteStore } from "../src/site/store.js";
 
 describe("authored record validation", () => {
   it("reports a field path for invalid page values", () => {
@@ -42,7 +37,7 @@ describe("authored record validation", () => {
       title: "Editor-only title",
       locked: true,
       templateId: "base",
-      zones: { main: { json: { draft: true } } },
+      zones: { main: { blocks: [] } },
     })).not.toThrow();
     expect(() => validateAuthoredRecord("media", "logo", {
       id: "logo",
@@ -72,22 +67,5 @@ describe("authored record validation", () => {
       title: "Uploads",
       parentId: "photos",
     })).not.toThrow();
-  });
-
-  it("accepts every authored record in the Willow reference site", async () => {
-    const store = new SiteStore(join(repoRoot, "sites", "willow", "records"));
-    for (const summary of await store.list()) {
-      if (summary.kind === "site") {
-        validateAuthoredRecord("site", summary.id, await store.readSite());
-      } else if (summary.kind === "nav") {
-        validateAuthoredRecord("nav", "nav", await store.readNav());
-      } else if (isRecordKind(summary.kind)) {
-        validateAuthoredRecord(
-          summary.kind,
-          summary.id,
-          fromYaml(await store.readRaw(summary.kind, summary.id)),
-        );
-      }
-    }
   });
 });

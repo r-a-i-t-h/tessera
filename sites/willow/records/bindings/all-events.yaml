@@ -1,6 +1,0 @@
-id: all-events
-component: datedList
-props:
-  types:
-    - event
-  when: all

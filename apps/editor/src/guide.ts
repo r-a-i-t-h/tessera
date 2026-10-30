@@ -26,7 +26,7 @@ export function guideHtml(): string {
         ${toc("Bindings", "bindings")}
         ${toc("Stylesheets", "stylesheets")}
         ${toc("What the Styles page changes", "what-the-styles-page-changes")}
-        ${toc("A standing side menu on Willow", "a-standing-side-menu-on-willow")}
+        ${toc("A standing side menu", "a-standing-side-menu")}
         ${toc("A different frame for a section", "a-different-frame-for-a-section")}
         ${toc("Maintenance", "maintenance")}
         ${toc("Aspects", "aspects")}
@@ -166,16 +166,12 @@ export function guideHtml(): string {
     </table>
     <p>Lengths are values such as <code>300px</code> or <code>1.5rem</code>. Colours are hex, such as <code>#009688</code>, except <strong>Card frame</strong>, which also accepts <code>rgb</code>/<code>rgba</code>/<code>hsl</code>.</p>
 
-    <h2 id="a-standing-side-menu-on-willow">A standing side menu on Willow</h2>
-    <p>The drawer is already in the master layout, with id <code>mySidebar</code>. To keep it open on a wide window, add <code>w3-collapse</code> to that region’s classes:</p>
-    <pre>className: w3-sidebar w3-bar-block w3-collapse wh-drawer</pre>
-    <p>Then give the page a left margin in ${sheetLink("site", "site layout")}:</p>
-    <pre>@media (min-width: 993px) {
-  .wh-drawer { width: 16rem; }
-  .wh-main { margin-left: 16rem; }
-}</pre>
-    <p>Below 993px it stays a drawer opened by Menu, and that flyout may slide in. Leave <code>w3-animate-left</code> off the standing column: from 993px up the column is already on the page, and a slide on every new page is only noise. Keep the ids <code>mySidebar</code> and <code>myOverlay</code>. The runtime binds open and close to those two ids.</p>
-    <p>A starter site already has this column, on the left. Its master uses <code>tessera-sidebar</code> and <code>w3-collapse</code>, its shell links ${sheetLink("tessera", "Tessera")}, and the <a href="#/records/site">site record</a> sets Menu side to left. The ${stylesPage} page can move the standing column. Below 993px the column hides. The Menu button sits on the right of the bar and opens a flyout from the right, so the site title stays put and the left of the page stays in view. The flyout position is in ${sheetLink("site", "site layout")}.</p>
+    <h2 id="a-standing-side-menu">A standing side menu</h2>
+    <p>The drawer is already in the master layout, with id <code>mySidebar</code>. The bundled starter keeps it open on a wide window with <code>w3-collapse</code> on that region:</p>
+    <pre>className: w3-sidebar w3-bar-block w3-collapse tessera-sidebar</pre>
+    <p>Margin rules for the main column live in ${sheetLink("tessera", "Tessera")} and ${sheetLink("site", "site layout")} for the starter theme.</p>
+    <p>Below 993px it stays a drawer opened by Menu. Keep the ids <code>mySidebar</code> and <code>myOverlay</code>. The runtime binds open and close to those two ids.</p>
+    <p>A new site from Initialise already has this column on the left. Its master uses <code>tessera-sidebar</code> and <code>w3-collapse</code>, its shell links ${sheetLink("tessera", "Tessera")}, and the <a href="#/records/site">site record</a> sets Menu side to left. The ${stylesPage} page can move the standing column. Below 993px the column hides. The Menu button sits on the right of the bar and opens a flyout from the right.</p>
 
     <h2 id="a-different-frame-for-a-section">A different frame for a section</h2>
     <p>The <a href="#/records/site">site record</a> names the frame every page uses until a page names another. On that page, <strong>Frame</strong> is the layout. Leave it as <strong>Inherit</strong> on the children: they use the nearest parent that set one. A page further down can name its own, and that starts again. Naming the site's frame on a nested page steps that subtree back to the site frame.</p>
@@ -206,7 +202,7 @@ export function guideHtml(): string {
     <p>The <a href="#/records/site">site record</a> lists extra tones for Compose <strong>Panel</strong> and <strong>Quote</strong> sections in <code>panelTones</code> on the Site form (same key in <code>records/site.yaml</code>). They appear in the Tone dropdown and style that block only; they are not aspects and do not change the page chrome. Put their CSS in ${sheetLink("local", "site local")} so a theme reinstall does not wipe it. Theme apply does not clear the catalog. Panel is a nested-block container (like Card): the tone styles the shell, and you drop other Compose sections inside it.</p>
     <p><strong>Compose preview.</strong> Built-in tones use W3 classes such as <code>w3-sand</code> on the panel shell; the editor loads W3.CSS, so those fills show while you edit. Custom tones paint your <code>className</code> on the same shell; rules live in ${sheetLink("local", "site local")}. The editor loads that file in Compose as well, so shell background and colour on your tone class preview there too.</p>
     <p>Keep typed divergence small. Put the callout <strong>fill and default text colour on the panel shell</strong> (your tone class on the <code>w3-panel</code> wrapper). Scope stronger typography to <strong>direct children</strong> of <code>.rt-panel-body</code> — standalone <strong>Heading</strong> blocks (<code>h1</code>–<code>h6</code> with <code>tessera-block</code>), <strong>Text</strong> widgets (<code>.tessera-text</code>), and optionally a title line inside Text — not cards, quotes, images, or blocks nested inside those. Example <code>panelTones</code> on the site record and matching CSS:</p>
-    <pre>id: willow-hall
+    <pre>id: demo-site
 title: Willow Hall
 homePageId: home
 panelTones:

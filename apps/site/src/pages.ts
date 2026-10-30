@@ -20,29 +20,21 @@ const stubDocument: SiteDocument = parseSiteDocument({
   pages: [{ id: "mount", title: "Mount", zones: {} }],
 });
 
-function mountContext(registry: ComponentRegistry, mount: MicroAppMount): RenderContext {
-  const fromZone = mount.fromZone ?? "data";
-  const zones = new Map<string, import("@r-a-i-t-h/tessera-model").Block[]>();
-  if (mount.data) zones.set(fromZone, [{ type: "json", data: mount.data }]);
+function mountContext(registry: ComponentRegistry, _mount: MicroAppMount): RenderContext {
   return {
     document: stubDocument,
     page: stubDocument.pages[0]!,
     profile: { layoutId: "bare", layoutSource: "site" },
-    zones,
+    zones: new Map(),
     registry,
     renderBlocks: () => "",
-    zoneJson: <T = unknown>(zoneId: string) => (zoneId === fromZone ? ((mount.data ?? []) as T[]) : []),
     mediaHtml: () => "",
     escapeHtml,
   };
 }
 
 function renderMount(registry: ComponentRegistry, mount: MicroAppMount): string {
-  const props = {
-    ...(mount.props ?? {}),
-    ...(mount.fromZone ? { fromZone: mount.fromZone } : {}),
-  };
-  return registry.render(mount.component, mountContext(registry, mount), props);
+  return registry.render(mount.component, mountContext(registry, mount), mount.props ?? {});
 }
 
 /** Fill leftover micro-app mounts. Static HTML from the pages dist stays put. */

@@ -1,7 +1,0 @@
-id: admin-index
-title: Index
-parentId: admin
-type: blog-index
-zones:
-  title:
-    html: Index

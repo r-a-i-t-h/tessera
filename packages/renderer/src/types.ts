@@ -8,9 +8,7 @@ export type MicroAppMount = {
   id: string;
   component: string;
   itemId?: string;
-  fromZone?: string;
   props?: Record<string, unknown>;
-  data?: unknown[];
 };
 
 export type RenderContext = {
@@ -22,8 +20,6 @@ export type RenderContext = {
   zones: ZoneMap;
   registry: ComponentRegistry;
   renderBlocks: (blocks: Block[]) => string;
-  /** Read JSON payloads from a zone (for list-style components). */
-  zoneJson: <T = unknown>(zoneId: string) => T[];
   mediaHtml: (id: string) => string;
   escapeHtml: (s: string) => string;
   /**

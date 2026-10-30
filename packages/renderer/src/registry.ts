@@ -5,8 +5,7 @@ import type { ComponentFn, RenderContext } from "./types.js";
  * The flattened content file only references names + props.
  *
  * @example
- * registry.define("eventList", eventList);
- * // site.json: { "type": "component", "name": "eventList", "props": { "fromZone": "events" } }
+ * registry.define("greet", greet);
  */
 export class ComponentRegistry {
   private readonly fns = new Map<string, ComponentFn>();

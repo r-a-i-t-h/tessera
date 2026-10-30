@@ -1,4 +1,4 @@
-import { cp, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -8,13 +8,10 @@ import { SessionStore } from "../src/auth/sessions.js";
 import * as blank from "../src/site/blank.js";
 import {
   createDataBackup,
-  ensureExampleArchives,
   importDataBackup,
   listBackups,
-  listExamples,
   reseedSite,
   restoreDataBackup,
-  restoreExample,
 } from "../src/site/backup.js";
 import { UserStore } from "../src/store/users.js";
 
@@ -29,18 +26,6 @@ describe("site backups", () => {
     const dir = await mkdtemp(join(tmpdir(), prefix));
     dirs.push(dir);
     return dir;
-  }
-
-  async function writePackedExample(seedDir: string, title: string): Promise<void> {
-    const source = await tempDir("tessera-packed-");
-    await mkdir(join(source, "records"), { recursive: true });
-    await writeFile(join(source, "meta.json"), `{"schemaVersion":1,"from":"${title}"}\n`);
-    await writeFile(join(source, "records", "site.yaml"), `title: ${title}\n`);
-    const scratch = await tempDir("tessera-packed-out-");
-    const created = await createDataBackup(source, scratch);
-    const examples = join(seedDir, "examples");
-    await mkdir(examples, { recursive: true });
-    await cp(join(scratch, created.name), join(examples, "willow.tar.gz"));
   }
 
   async function siteWith(page: string): Promise<{ site: string; backup: string }> {
@@ -91,52 +76,6 @@ describe("site backups", () => {
     const created = await createDataBackup(other, backup);
     await expect(restoreDataBackup(site, backup, created.name)).rejects.toThrow(/meta\.json/);
     expect(await readFile(join(site, "records", "site.yaml"), "utf8")).toContain("Before");
-  });
-
-  it("archives a demo into the backup folder once and restores it without replacing editors", async () => {
-    const { site, backup } = await siteWith("Live");
-    const sources = await tempDir("tessera-sources-");
-    const willow = join(sources, "willow");
-    await mkdir(join(willow, "records"), { recursive: true });
-    await writeFile(join(willow, "meta.json"), '{"schemaVersion":1,"from":"willow"}\n');
-    await writeFile(join(willow, "records", "site.yaml"), "title: Willow\n");
-    await mkdir(join(willow, "users"), { recursive: true });
-    await writeFile(join(willow, "users", "admin.json"), '{"username":"intruder"}\n');
-
-    await ensureExampleArchives(backup, { sitesDir: sources });
-    await writeFile(join(willow, "records", "site.yaml"), "title: Changed source\n");
-    await ensureExampleArchives(backup, { sitesDir: sources });
-
-    const found = await listExamples(backup);
-    expect(found.map((item) => item.name)).toContain("willow");
-    expect((await listBackups(backup)).some((item) => item.name === "willow.tar.gz")).toBe(false);
-
-    await restoreExample(site, backup, "willow");
-    expect(await readFile(join(site, "records", "site.yaml"), "utf8")).toBe("title: Willow\n");
-    expect(await readFile(join(site, "users", "admin.json"), "utf8")).toContain("admin");
-    expect(await readFile(join(site, "meta.json"), "utf8")).toContain("willow");
-  });
-
-  it("replaces the example archive when a later release ships different bytes", async () => {
-    const { site, backup } = await siteWith("Live");
-    await mkdir(backup, { recursive: true });
-    await writeFile(join(backup, "2026-01-01T000000Z.tar.gz"), "keep\n");
-    const seed = await tempDir("tessera-seed-");
-
-    await writePackedExample(seed, "First");
-    await ensureExampleArchives(backup, { seedDir: seed });
-    const installed = await stat(join(backup, "willow.tar.gz"));
-
-    await ensureExampleArchives(backup, { seedDir: seed });
-    expect((await stat(join(backup, "willow.tar.gz"))).mtimeMs).toBe(installed.mtimeMs);
-
-    await writePackedExample(seed, "Second");
-    await ensureExampleArchives(backup, { seedDir: seed });
-    expect(await readFile(join(backup, "2026-01-01T000000Z.tar.gz"), "utf8")).toBe("keep\n");
-
-    await restoreExample(site, backup, "willow");
-    expect(await readFile(join(site, "records", "site.yaml"), "utf8")).toBe("title: Second\n");
-    expect(await readFile(join(site, "users", "admin.json"), "utf8")).toContain("admin");
   });
 
   it("re-seeds over the current site and rolls back when the seed cannot be written", async () => {

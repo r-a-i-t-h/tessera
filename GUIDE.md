@@ -17,7 +17,7 @@ Designers shipping a drop-in look should read [THEME-BUILDER.md](./THEME-BUILDER
 - [Bindings](#bindings)
 - [Stylesheets](#stylesheets)
 - [What the Styles page changes](#what-the-styles-page-changes)
-- [A standing side menu on Willow](#a-standing-side-menu-on-willow)
+- [A standing side menu](#a-standing-side-menu)
 - [A different frame for a section](#a-different-frame-for-a-section)
 - [Maintenance](#maintenance)
 - [Aspects](#aspects)
@@ -182,16 +182,16 @@ A class on a layout region is an ordinary CSS class. These stylesheets supply th
 - **[W3.CSS](#/styles?sheet=w3)** (`skin/w3.css`), linked by every shell. Examples: `w3-sidebar`, `w3-bar-block`, `w3-collapse`, `w3-hide-large`, `w3-row`, `w3-col`. `w3-collapse` on a `w3-sidebar` shows that sidebar from 993px up and hides it below that, where the Menu button opens it. `w3-hide-large` hides an element from 993px up.
 - **[Tessera](#/styles?sheet=tessera)** (`skin/tessera.css`), linked by every shell. The default frame and shared widgets: `tessera-sidebar`, `tessera-bar`, `tessera-main`, `tessera-content`, `tessera-footer`, link clusters, video, pasted notes, and `tessera-imgbox`. Tokens changed on the [Styles](#/styles) page override `:root` in this file. Defaults stay here.
 - **[Micro-apps](#/styles?sheet=microapps)** (`skin/microapps.css`). The gallery lives here.
-- **[Site CSS](#/styles?sheet=site)** (`shell/site.css`). Theme / frame layout for this site. Willow’s look is here: `wh-header`, `wh-topnav`, `wh-drawer`, `wh-main`, and the colours under `--wh-`. `.wh-drawer` is `display: none` until Menu runs. Theme apply may replace this file.
+- **[Site CSS](#/styles?sheet=site)** (`shell/site.css`). Theme / frame layout for this site. The starter theme keeps frame tweaks here. Theme apply may replace this file.
 - **[Site local](#/styles?sheet=local)** (`shell/local.css`). Durable site-owned rules (panel tones, local tweaks). Theme apply does not overwrite it. Linked after `site.css`.
 
-A shell that links a W3 theme, such as `skin/w3-theme-teal.css`, keeps [that theme file](#/styles?sheet=theme) between W3 and Tessera. Willow paints those colours in [site layout](#/styles?sheet=site) instead. The fonts link is a URL, not one of these files.
+A shell that links a W3 theme, such as `skin/w3-theme-teal.css`, keeps [that theme file](#/styles?sheet=theme) between W3 and Tessera. The fonts link is a URL, not one of these files.
 
 The [Styles](#/styles) page can open each of these files. Saving W3, Tessera, micro-apps, or the theme stores a copy for this site and leaves the shared file alone. Saving site layout writes `shell/site.css`; saving site local writes `shell/local.css`. The preview uses a save immediately. Publish updates the published copy.
 
 ## What the Styles page changes
 
-[Styles](#/styles) saves `site.style`. A pages build writes tokens that differ from the Tessera defaults into a style element after the stylesheet links, and adds `leftnav` or `rightnav` on the body. That style element overrides those variables in [Tessera](#/styles?sheet=tessera). A token left at its default stays in the stylesheet, so editing it there shows in the preview. Editing a stylesheet does not change this form. Willow’s master layout uses `wh-` classes, so saving the tokens leaves the hall looking the same. The specimen on the [Styles](#/styles) page is the default frame, which is the frame a blank site starts with.
+[Styles](#/styles) saves `site.style`. A pages build writes tokens that differ from the Tessera defaults into a style element after the stylesheet links, and adds `leftnav` or `rightnav` on the body. That style element overrides those variables in [Tessera](#/styles?sheet=tessera). A token left at its default stays in the stylesheet, so editing it there shows in the preview. Editing a stylesheet does not change this form. The specimen on the [Styles](#/styles) page is the default frame, which is the frame a blank site starts with.
 
 | Field | Effect on the default chrome |
 |-------|-------------------------------|
@@ -201,7 +201,7 @@ The [Styles](#/styles) page can open each of these files. Saving W3, Tessera, mi
 | Base font size | Body text size. |
 | Font A–D | The four faces behind the A B C D buttons. Font A is the one visitors start on. |
 | Fonts stylesheet | An https URL that loads those faces. A Google Fonts CSS link is the usual value. |
-| Menu side | Left or right. Moves a `tessera-sidebar`. Willow’s drawer is a separate element and stays on the left. |
+| Menu side | Left or right. Moves a `tessera-sidebar` standing column. |
 | Bar, Bar text | Top bar and footer fill and type. |
 | Sidebar, Sidebar text | Sidebar fill and type. The current link uses Accent for its fill and Bar text for its type. |
 | Page background, Text | Page fill and body type. |
@@ -212,26 +212,19 @@ The [Styles](#/styles) page can open each of these files. Saving W3, Tessera, mi
 
 Lengths are values such as `300px` or `1.5rem`. Colours are hex, such as `#009688`, except **Card frame**, which also accepts `rgb`/`rgba`/`hsl`.
 
-## A standing side menu on Willow
+## A standing side menu
 
-The drawer is already in the master layout, with id `mySidebar`. To keep it open on a wide window, add `w3-collapse` to that region’s classes:
+The drawer is already in the master layout, with id `mySidebar`. The bundled starter keeps it open on a wide window with `w3-collapse` on that region:
 
 ```yaml
-className: w3-sidebar w3-bar-block w3-collapse wh-drawer
+className: w3-sidebar w3-bar-block w3-collapse tessera-sidebar
 ```
 
-Then give the page a left margin in [site layout](#/styles?sheet=site):
+Margin rules for the main column live in [Tessera](#/styles?sheet=tessera) and [site layout](#/styles?sheet=site) for the starter theme.
 
-```css
-@media (min-width: 993px) {
-  .wh-drawer { width: 16rem; }
-  .wh-main { margin-left: 16rem; }
-}
-```
+Below 993px it stays a drawer opened by Menu. Keep the ids `mySidebar` and `myOverlay`. The runtime binds open and close to those two ids.
 
-Below 993px it stays a drawer opened by Menu, and that flyout may slide in. Leave `w3-animate-left` off the standing column: from 993px up the column is already on the page, and a slide on every new page is only noise. Keep the ids `mySidebar` and `myOverlay`. The runtime binds open and close to those two ids.
-
-A starter site already has this column, on the left. Its master uses `tessera-sidebar` and `w3-collapse`, its shell links [Tessera](#/styles?sheet=tessera), and the [site record](#/records/site) sets Menu side to left. The [Styles](#/styles) page can move the standing column. Below 993px the column hides. The Menu button sits on the right of the bar and opens a flyout from the right, so the site title stays put and the left of the page stays in view. The flyout position is in [site layout](#/styles?sheet=site).
+A new site from Initialise already has this column on the left. Its master uses `tessera-sidebar` and `w3-collapse`, its shell links [Tessera](#/styles?sheet=tessera), and the [site record](#/records/site) sets Menu side to left. The [Styles](#/styles) page can move the standing column. Below 993px the column hides. The Menu button sits on the right of the bar and opens a flyout from the right.
 
 ## A different frame for a section
 
@@ -274,8 +267,8 @@ The [site record](#/records/site) lists extra tones for Compose **Panel** and **
 Keep typed divergence small. Put the callout **fill and default text colour on the panel shell** (your tone class on the `w3-panel` wrapper). Scope stronger typography to **direct children** of `.rt-panel-body` — standalone **Heading** blocks (`h1`–`h6` with `tessera-block`), **Text** widgets (`.tessera-text`), and optionally a title line inside Text — not cards, quotes, images, or blocks nested inside those. Example `panelTones` on the site record and matching CSS:
 
 ```yaml
-id: willow-hall
-title: Willow Hall
+id: demo-site
+title: Demo site
 homePageId: home
 panelTones:
   - id: callout

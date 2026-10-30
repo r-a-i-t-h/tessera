@@ -5,7 +5,6 @@ import { makeFixtureDoc } from "./fixtures.js";
 function buildRegistry() {
   const registry = new ComponentRegistry();
   registry.define("greet", () => "greet");
-  registry.define("eventList", () => "events");
   return registry;
 }
 

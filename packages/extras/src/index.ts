@@ -1,20 +1,12 @@
 import type { ComponentFn } from "@r-a-i-t-h/tessera-renderer";
 import { blogArticle, blogFeed, blogIndex } from "./blog.js";
 import { openDaysTable } from "./open-days.js";
-import { aboutRenderer, eventList, infoCard, now, pageNav } from "./pure.js";
+import { aboutRenderer, infoCard, now, pageNav } from "./pure.js";
 import { randomCells } from "./random-cells.js";
 import { registerCardElement } from "./rt-card.js";
 import { registerDatasetElements } from "./dataset-element.js";
 import { datasetCards, datasetPlainList, datasetTable } from "./dataset-present.js";
 import { runtimeModule } from "./runtime-module-present.js";
-import {
-  articleByline,
-  datedList,
-  peopleGrid,
-  profileFacts,
-  profileKicker,
-  profilePhoto,
-} from "./willow.js";
 
 /**
  * Shared component catalogue. Every site may name these. A site does not
@@ -29,21 +21,14 @@ export function registerExtras(define: (name: string, fn: ComponentFn) => unknow
   registerCardElement();
   define("now", now);
   define("pageNav", pageNav);
-  define("eventList", eventList);
   define("aboutRenderer", aboutRenderer);
   define("infoCard", infoCard);
   define("randomCells", randomCells);
   define("openDaysTable", openDaysTable);
-  define("datedList", datedList);
   define("datasetTable", datasetTable);
   define("datasetCards", datasetCards);
   define("datasetPlainList", datasetPlainList);
   define("runtimeModule", runtimeModule);
-  define("peopleGrid", peopleGrid);
-  define("articleByline", articleByline);
-  define("profileKicker", profileKicker);
-  define("profilePhoto", profilePhoto);
-  define("profileFacts", profileFacts);
   define("blogArticle", blogArticle);
   define("blogFeed", blogFeed);
   define("blogIndex", blogIndex);

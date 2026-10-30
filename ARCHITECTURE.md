@@ -23,9 +23,9 @@ The editor **API** lives in `apps/editor-api` (`@r-a-i-t-h/tessera-editor-api`):
 | `@r-a-i-t-h/tessera-demo-kit` | Chrome helpers the runtime uses (fonts, nav sidebar, w3 helpers) |
 | `@r-a-i-t-h/tessera-extras` | Shared component catalogue. Every site may name these. A new component is a Tessera release |
 | `@r-a-i-t-h/tessera-sections` | Compose palette. Parses section HTML in the editor; authoring stores widget `blocks` on disk (schema 4) |
-| `@r-a-i-t-h/tessera-site` | One Vite host for the shared runtime. Dev serves `data/shell` and `data/preview` (a placeholder while `data/shell` is missing). `TESSERA_SITE` serves `sites/<name>/shell` instead |
+| `@r-a-i-t-h/tessera-site` | One Vite host for the shared runtime. Dev serves `data/shell` and `data/preview` (a placeholder while `data/shell` is missing). |
 
-The example site lives under `sites/willow`. It is not an npm workspace. The editing back-end is `apps/editor-api`; the login SPA is `apps/editor`.
+The editing back-end is `apps/editor-api`; the login SPA is `apps/editor`.
 
 ## Editor API
 
@@ -47,7 +47,7 @@ Same origin is deliberate: the session cookie is `httpOnly` + `SameSite=Lax` wit
 
 The published site is `publish/` inside the same directory (or a copy of that tree). The editor process does not serve it. Stopping the editor leaves the static files working. There is one path, `TESSERA_DATA` (default `data/` in a checkout, empty apart from `meta.json` and the seed editor). On a VPS, node-vps-kit sets it to `/opt/tessera/<name>/data`, which is the site directory and is not replaced when the release in `current/` changes. Records, history, users, `meta.json`, and the export are derived from it.
 
-Dated site archives live in the sibling `backup/` directory (`TESSERA_BACKUP` overrides it). They are not inside the release and not inside `publish/`. A restore replaces the site directory from a `YYYY-MM-DDTHHMMSSZ.tar.gz` after writing a safety archive. The Willow example is also a file in that folder (`willow.tar.gz`). Each boot copies it from `seed/examples/` when that archive is missing or its bytes differ from the copy already in `backup/`. A checkout with no packed seed archives `sites/willow/` only when that filename is absent. Restoring the example fills `data/` and keeps `users/`. Re-seed does the same with the starter site: a master layout (header, left sidebar with `searchBox`, footer zone that includes a `common-footer` item), a standard type and layout, a Hello world home page, a Search page, a first sidebar link, and a blog with one article dated 2026-10-09. The sidebar stays open on the left from 993px up and becomes a Menu button on the right of the bar plus a flyout from the right below that.
+Dated site archives live in the sibling `backup/` directory (`TESSERA_BACKUP` overrides it). They are not inside the release and not inside `publish/`. A restore replaces the site directory from a `YYYY-MM-DDTHHMMSSZ.tar.gz` after writing a safety archive. **Re-seed** replaces the open site with the bundled starter theme after a safety backup and keeps editors: a master layout (header, left sidebar with `navFlat`, footer zone that includes a `common-footer` item), a standard type and layout, a Hello world home page, a Search page, a first sidebar link, and a blog with one article dated 2026-10-09. The sidebar uses `w3-collapse` from 993px up and becomes a Menu button plus a flyout below that breakpoint.
 
 ## Content model
 
@@ -56,17 +56,17 @@ Dated site archives live in the sibling `backup/` directory (`TESSERA_BACKUP` ov
 - **Style** — optional `site.style` tokens (sidebar width, bar, colours, fonts, nav side). Missing fields use the defaults in `style.ts`. The editor’s Styles page writes this object. A pages build writes tokens that differ from those defaults into a style element after the stylesheet links. That element overrides those variables in `skin/tessera.css`. Defaults stay in the stylesheet, so editing them there changes the preview. The same page can edit the linked stylesheets. Saving W3, Tessera, micro-apps, or a theme file stores a copy in `shell/css/` for this site. `site.css` and durable `local.css` stay in the shell.
 - **Type** — site-defined `{ id, layoutId?, fields[] }`. `resolvePageProfile` uses that layout, otherwise `site.defaultLayoutId`. A type does not invent zones. Subject tags do not select it.
 - **Item** — reusable zone contributions (footer, promo, …), pulled in via `page.includes` or a layout's `includes`.
-- **Blocks** inside a zone: `text` | `json` | `media` | `component`.
+- **Blocks** inside a zone: `text` | `media` | `image` | `component`. Structured tabular data uses **datasets** and dataset bindings, not zone JSON rows.
 - **Nav / media / site meta** — also in the flattened document.
 
-**Rule:** if a layout does not declare zone `aside`, contributions to `aside` are not painted. They remain on the merge map so components can still read “data zones” (e.g. JSON for a list) via `ctx.zoneJson("events")`.
+**Rule:** if a layout does not declare zone `aside`, contributions to `aside` are not painted. They remain on the merge map for diagnostics; gallery slides can still read another zone’s **image blocks** via component props (`fromZone`), which is separate from the removed zone-JSON content model.
 
 ## Site directory
 
 `$TESSERA_DATA` is the instance. Swapping the directory swaps the site, including who may edit it.
 
 ```
-sites/willow/
+$TESSERA_DATA/                 # default `data/` in a checkout
   meta.json                 # schemaVersion
   users/                    # editors; created on first boot from the release seed
   history/                  # append-only page history, not published
@@ -96,7 +96,7 @@ sites/willow/
 
 `shell/` is the document shell: head, one mount (`#app`), and CSS. It does not contain the header, the nav, or TypeScript. That frame is the master layout. `publish/tessera.js` and `publish/skin/` are install bytes stamped by the site build. A new **catalogue** component lands in `@r-a-i-t-h/tessera-extras` and every site may name it from bindings; **runtime modules** are site-owner ESM (see Runtime modules). The editor API does not execute site code. The runtime loads the document, registers the catalogue, and mounts the render. It does not paint a sidebar or a top bar of its own.
 
-The editor process serves the working snapshot at `/preview/` on the editor origin. The shell HTML is returned unchanged, so `./tessera.js`, `./data/`, `./skin/`, and `./media/` resolve inside that folder the same way they would in any directory on a static host. `tessera.js` and `skin/` come from the site build, `/data/*` comes from `preview/data` and not from `publish/`, and `media/` comes from `files/`. A signed-in editor session is required. `npm run dev:site` still serves the instance on port 5173 with live TypeScript: `data/shell` and `data/preview` (a short placeholder while `data/shell` is missing). `/data/*` is the SPA snapshot in `preview/`. `media/` and `img/` still come from `data/publish` on that dev server. `TESSERA_SITE=willow` serves that reference shell against the same runtime and keeps reading `sites/willow/publish`, which has no `preview/`. Saving and **Render site** refresh the preview only. **Publish** rebuilds `publish/` in the site's `delivery` flavour (`pages` by default, or `snapshot`) and leaves that folder alone until the next publish. `npm run build -w @r-a-i-t-h/tessera-site` builds `tessera.js` and `tessera-pages.js` and stamps `tessera.js` and `skin/` into each reference `publish/` tree. That build is not the preview. Copy `publish/` to the live host when `publishTo` is unset. When `site.yaml` sets `publishTo` to an existing directory this process can write, Publish copies `publish/` into that directory and then replaces the files there. It does not create a missing directory, rename the directory, or run as root. On Ubuntu, `/var/www` stays `root:root` mode `755`; `chown` the live folder to the app user once so the process can write inside it. Nginx, as `www-data`, can read the files when directories are `755` and files are `644`. That folder should hold only the published site: a file placed there by hand is removed on the next successful install. One publish runs at a time. A failed copy leaves the current live files in place.
+The editor process serves the working snapshot at `/preview/` on the editor origin. The shell HTML is returned unchanged, so `./tessera.js`, `./data/`, `./skin/`, and `./media/` resolve inside that folder the same way they would in any directory on a static host. `tessera.js` and `skin/` come from the site build, `/data/*` comes from `preview/data` and not from `publish/`, and `media/` comes from `files/`. A signed-in editor session is required. `npm run dev:site` still serves the instance on port 5173 with live TypeScript: `data/shell` and `data/preview` (a short placeholder while `data/shell` is missing). `/data/*` is the SPA snapshot in `preview/`. `media/` and `img/` still come from `data/publish` on that dev server. Saving and **Render site** refresh the preview only. **Publish** rebuilds `publish/` in the site's `delivery` flavour (`pages` by default, or `snapshot`) and leaves that folder alone until the next publish. `npm run build -w @r-a-i-t-h/tessera-site` builds `tessera.js` and `tessera-pages.js` for preview/publish stamping. That build is not the preview. Copy `publish/` to the live host when `publishTo` is unset. When `site.yaml` sets `publishTo` to an existing directory this process can write, Publish copies `publish/` into that directory and then replaces the files there. It does not create a missing directory, rename the directory, or run as root. On Ubuntu, `/var/www` stays `root:root` mode `755`; `chown` the live folder to the app user once so the process can write inside it. Nginx, as `www-data`, can read the files when directories are `755` and files are `644`. That folder should hold only the published site: a file placed there by hand is removed on the next successful install. One publish runs at a time. A failed copy leaves the current live files in place.
 
 ## Datasets
 

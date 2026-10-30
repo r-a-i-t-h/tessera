@@ -8,7 +8,6 @@ export {
   BLOG_INDEX_LAYOUT_ID,
   BlockSchema,
   TextBlockSchema,
-  JsonBlockSchema,
   MediaBlockSchema,
   ImageBlockSchema,
   ZonesSchema,
@@ -79,7 +78,6 @@ export {
 export type {
   Block,
   TextBlock,
-  JsonBlock,
   MediaBlock,
   ImageBlock,
   ComponentBlock,

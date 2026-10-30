@@ -31,7 +31,6 @@ import { projectRuntimeModules } from "./runtime-module.js";
 
 export type ZoneAuthoring =
   | { html: string }
-  | { json: unknown }
   | { component: string; props?: Record<string, unknown> }
   | { blocks: Block[] | Widget[] };
 
@@ -74,8 +73,6 @@ export function zonesToAuthoring(zones: Record<string, Block[]> | undefined): Re
   for (const [id, blocks] of Object.entries(zones ?? {})) {
     if (blocks.length === 1 && blocks[0]?.type === "text") {
       out[id] = { html: blocks[0].html };
-    } else if (blocks.length === 1 && blocks[0]?.type === "json") {
-      out[id] = { json: blocks[0].data };
     } else if (blocks.length === 1 && blocks[0]?.type === "component") {
       const block = blocks[0];
       out[id] = {
@@ -98,13 +95,10 @@ export function authoringToZones(zones: Record<string, ZoneAuthoring> | undefine
 }
 
 function zoneToBlocks(zone: ZoneAuthoring): Block[] {
-  if ("html" in zone && zone.html !== undefined && !("blocks" in zone) && !("json" in zone) && !("component" in zone)) {
+  if ("html" in zone && zone.html !== undefined && !("blocks" in zone) && !("component" in zone)) {
     return [{ type: "text", html: zone.html }];
   }
-  if ("json" in zone && !("blocks" in zone) && !("html" in zone) && !("component" in zone)) {
-    return [{ type: "json", data: zone.json }];
-  }
-  if ("component" in zone && zone.component && !("blocks" in zone) && !("html" in zone) && !("json" in zone)) {
+  if ("component" in zone && zone.component && !("blocks" in zone) && !("html" in zone)) {
     return [
       {
         type: "component",
@@ -120,7 +114,7 @@ function zoneToBlocks(zone: ZoneAuthoring): Block[] {
     }
     return zone.blocks as Block[];
   }
-  throw new Error("Zone must be html, json, component, or blocks.");
+  throw new Error("Zone must be html, component, or blocks.");
 }
 
 export function pageToAuthoring(page: Page): AuthoredPage {

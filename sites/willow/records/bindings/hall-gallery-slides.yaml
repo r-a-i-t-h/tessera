@@ -1,7 +1,0 @@
-id: hall-gallery-slides
-component: gallery
-props:
-  folders:
-    - hall-gallery
-  mode: slides
-  autoplay: true

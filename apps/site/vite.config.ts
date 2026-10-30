@@ -8,17 +8,13 @@ const repoRoot = join(appRoot, "..", "..");
 const skinDir = join(repoRoot, "packages", "skin-w3", "css");
 const emptyIndex = join(appRoot, "empty", "shell", "index.html");
 
-const SITE_NAMES = ["willow"] as const;
-
 /**
- * Dev serves one runtime (`src/main.ts`) and the selected site's static shell.
- * `TESSERA_SITE` selects `sites/<name>`. Otherwise the instance directory is
- * `TESSERA_DATA` or `data/`. A missing shell index is the empty placeholder.
- * `sites/` is not the instance unless `TESSERA_SITE` says so.
+ * Dev serves one runtime (`src/main.ts`) and the instance static shell.
+ * `TESSERA_DATA` or `data/` is the instance directory.
  */
 const requestedSite = process.env.TESSERA_SITE;
-if (requestedSite && !SITE_NAMES.includes(requestedSite as (typeof SITE_NAMES)[number])) {
-  throw new Error(`Unknown site "${requestedSite}". Expected one of: ${SITE_NAMES.join(", ")}`);
+if (requestedSite) {
+  throw new Error(`TESSERA_SITE is no longer supported; use TESSERA_DATA for your instance directory.`);
 }
 
 function instanceRootFromEnv(): string {
@@ -37,12 +33,11 @@ function instanceRootFromEnv(): string {
 }
 
 const instanceRoot = instanceRootFromEnv();
-export const siteRoot = requestedSite ? join(repoRoot, "sites", requestedSite) : instanceRoot;
-export const siteName = requestedSite ?? "instance";
+export const siteRoot = instanceRoot;
+export const siteName = "instance";
 export const shellRoot = join(siteRoot, "shell");
 export const publishRoot = join(siteRoot, "publish");
-/** Instance preview snapshot. Reference sites have no `preview/` and keep using `publish/`. */
-export const previewRoot = requestedSite ? undefined : join(siteRoot, "preview");
+export const previewRoot = join(siteRoot, "preview");
 
 const MIME: Record<string, string> = {
   ".css": "text/css; charset=utf-8",

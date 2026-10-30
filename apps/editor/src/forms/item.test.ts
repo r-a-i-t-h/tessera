@@ -45,9 +45,9 @@ describe("new item", () => {
   });
 
   it("starts a component from its catalogue name", () => {
-    expect(newItemBody("banner", "header", "component", " eventList ")).toEqual({
+    expect(newItemBody("banner", "header", "component", " searchBox ")).toEqual({
       id: "banner",
-      zones: { header: { component: "eventList" } },
+      zones: { header: { component: "searchBox" } },
     });
   });
 
@@ -56,18 +56,18 @@ describe("new item", () => {
       tidyItemRecord({
         id: "banner",
         zones: {
-          header: { component: "eventList", props: null },
+          header: { component: "searchBox", props: null },
         },
       }),
     ).toEqual({
       id: "banner",
       zones: {
-        header: { component: "eventList" },
+        header: { component: "searchBox" },
       },
     });
   });
 
-  it("rewrites widget blocks to html and drops json zones", () => {
+  it("rewrites widget blocks to html and drops legacy json zones", () => {
     expect(
       normalizeItemZones({
         id: "footer",

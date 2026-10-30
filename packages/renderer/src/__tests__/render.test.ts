@@ -6,13 +6,6 @@ import { makeFixtureDoc } from "./fixtures.js";
 function registryWithDefaults() {
   const registry = new ComponentRegistry();
   registry.define("greet", (_ctx, props = {}) => `Hi ${String(props.name ?? "")}`);
-  registry.define("eventList", (ctx, props = {}) => {
-    const zone = typeof props.fromZone === "string" ? props.fromZone : "events";
-    return ctx
-      .zoneJson<{ title: string }>(zone)
-      .map((e) => e.title)
-      .join(",");
-  });
   return registry;
 }
 
@@ -28,7 +21,6 @@ describe("renderPage", () => {
     expect(html).toContain("Home title");
     expect(html).toContain("<p>Hello</p>");
     expect(html).toContain("Hi world");
-    expect(html).toContain("Alpha,Beta");
     expect(html).toContain("Page aside");
     expect(html).toContain("Promo aside");
     expect(html).toContain("Shared footer");
@@ -51,12 +43,13 @@ describe("renderPage", () => {
     expect(html).not.toContain("Promo aside");
   });
 
-  it("keeps undeclared zone data available to components via zoneJson", () => {
+  it("merges undeclared zone contributions onto the zone map", () => {
     const doc = makeFixtureDoc();
+    doc.pages[0]!.zones.extra = [{ type: "text", html: "<p>Extra zone</p>" }];
     const { itemsById } = indexDocument(doc);
     const page = doc.pages.find((p) => p.id === "home")!;
     const zones = mergeZones(doc, page, itemsById);
-    expect(zones.get("events")?.[0]).toMatchObject({ type: "json" });
+    expect(zones.get("extra")?.[0]).toMatchObject({ type: "text", html: "<p>Extra zone</p>" });
   });
 
   it("normalizes root-absolute media URLs to relative", () => {
@@ -69,20 +62,6 @@ describe("renderPage", () => {
     });
     expect(html).toContain('src="./media/rooted.svg"');
     expect(html).not.toContain('src="/media/rooted.svg"');
-  });
-
-  it("does not paint raw json blocks as HTML", () => {
-    const doc = makeFixtureDoc();
-    doc.layouts[0]!.root = {
-      type: "region",
-      children: [{ type: "zone", id: "events" }],
-    };
-    const html = renderPage({
-      document: doc,
-      pageId: "home",
-      registry: registryWithDefaults(),
-    });
-    expect(html).not.toContain("Alpha");
   });
 
   it("throws for unknown page or layout", () => {

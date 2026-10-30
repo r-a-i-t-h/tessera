@@ -64,12 +64,12 @@ export function dropArticleTitleZone(record: Record<string, unknown>): Record<st
 
 function isDataZone(zone: unknown): boolean {
   if (!zone || typeof zone !== "object" || Array.isArray(zone)) return false;
-  return "json" in zone || "blocks" in zone || "component" in zone;
+  return "blocks" in zone || "component" in zone;
 }
 
 function isNonComposeZone(zone: unknown): boolean {
   if (!zone || typeof zone !== "object" || Array.isArray(zone)) return false;
-  return "json" in zone || "component" in zone;
+  return "component" in zone;
 }
 
 export function isWidgetBlocks(value: unknown): value is { kind: string }[] {

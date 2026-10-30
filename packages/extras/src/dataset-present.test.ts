@@ -94,7 +94,6 @@ describe("dataset presentations", () => {
         zones: new Map(),
         registry,
         renderBlocks: () => "",
-        zoneJson: () => [],
         mediaHtml: () => "",
         escapeHtml: (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;"),
       },
@@ -152,7 +151,6 @@ describe("dataset presentations", () => {
         zones: new Map(),
         registry,
         renderBlocks: () => "",
-        zoneJson: () => [],
         mediaHtml: () => "",
         escapeHtml: (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;"),
       },
@@ -205,7 +203,6 @@ describe("dataset presentations", () => {
       zones: new Map(),
       registry,
       renderBlocks: () => "",
-      zoneJson: () => [],
       mediaHtml: () => "",
       escapeHtml: (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;"),
     };
@@ -253,7 +250,6 @@ describe("dataset presentations", () => {
       zones: new Map(),
       registry,
       renderBlocks: () => "",
-      zoneJson: () => [],
       mediaHtml: () => "",
       escapeHtml: (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;"),
     };

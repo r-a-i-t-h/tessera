@@ -13,7 +13,6 @@ function ctxFor(doc = makeFixtureDoc()): RenderContext {
     zones: new Map(),
     registry: new ComponentRegistry(),
     renderBlocks: () => "",
-    zoneJson: () => [],
     mediaHtml: () => "",
     escapeHtml: (s) => s,
   };

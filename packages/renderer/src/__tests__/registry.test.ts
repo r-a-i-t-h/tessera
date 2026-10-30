@@ -15,7 +15,6 @@ function minimalCtx(registry: ComponentRegistry): RenderContext {
     zones: new Map(),
     registry,
     renderBlocks: () => "",
-    zoneJson: () => [],
     mediaHtml: () => "",
     escapeHtml: (s) => s,
   };

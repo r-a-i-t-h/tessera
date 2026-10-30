@@ -163,8 +163,6 @@ function walkBlocks(
           for (const id of nested) onMedia(id);
         }
         break;
-      case "json":
-        break;
       default: {
         const _exhaustive: never = block;
         return _exhaustive;

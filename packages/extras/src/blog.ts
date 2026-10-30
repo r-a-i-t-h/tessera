@@ -1,7 +1,7 @@
 import { blogHeroStyle, blogHeroWidth, type Page, type SiteDocument } from "@r-a-i-t-h/tessera-model";
 import { hrefForPage, type ComponentFn } from "@r-a-i-t-h/tessera-renderer";
 import type { BlogCard } from "./blog-runtime.js";
-import { formatDate } from "./willow.js";
+import { formatDate } from "./format-date.js";
 
 function embed(value: unknown): string {
   return JSON.stringify(value).replace(/</g, "\\u003c");

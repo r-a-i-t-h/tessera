@@ -42,7 +42,7 @@ GitHub CI runs the existing install, typecheck, test, and build commands on Node
 | `@r-a-i-t-h/tessera-demo-kit` | `packages/demo-kit` (fonts, nav chrome, w3 helpers) |
 | `@r-a-i-t-h/tessera-extras` | `packages/extras` (shared component catalogue) |
 | `@r-a-i-t-h/tessera-sections` | `packages/sections` (Compose palette; widget `blocks` on disk, section HTML in the editor) |
-| `@r-a-i-t-h/tessera-site` | `apps/site` (one runtime; dev serves `data/shell`, or `sites/<name>/shell` when `TESSERA_SITE` is set) |
+| `@r-a-i-t-h/tessera-site` | `apps/site` (shared runtime; dev serves `data/shell` and `data/preview`) |
 | `@r-a-i-t-h/tessera-editor` | `apps/editor` |
 | `@r-a-i-t-h/tessera-editor-api` | `apps/editor-api` |
 
@@ -52,9 +52,7 @@ A site is a directory, not a package. Tessera’s version is the editor and the 
 
 | Directory | Notes |
 |-----------|--------|
-| `sites/willow` | Community showcase (templates, types, bindings, gallery). Copied to `backup/willow.tar.gz` on boot when the release archive differs; not the running site |
-
-Willow’s committed `publish/data`, `publish/img`, and `publish/media` files are reference fixtures for the showcase and its tests. Runtime JavaScript, CSS, and generated HTML under `publish/` are build artifacts and remain ignored.
+| `data/` | Default instance directory (`TESSERA_DATA`); empty until you restore a backup or initialise from the editor |
 
 Each directory has `records/` (YAML records), `datasets/` (tabular JSON edited in the editor; embedded into the flattened document when bindings reference them), `runtime-modules/` (optional owner ESM), `shell/` (document shell: `index.html`, `site.css`, and durable `local.css`), and `publish/` (static export: per-page HTML or snapshot `data/`, media, stamped runtimes, and referenced runtime modules). `meta.json` holds `schemaVersion`. Users and page history live in the same directory and are created when the editor runs. A site has no separate compile step for the public dist; catalogue components ship with Tessera, and runtime modules are site-owned script files copied at publish.
 
@@ -70,7 +68,7 @@ sudo /opt/tessera/<name>/current/deploy/grant-publish.sh /var/www/<site>
 
 The script creates the final directory when its parent already exists, gives the tree to the unit's user, and leaves it readable by nginx. The folder should contain only the published site. Nginx can serve the copy with the editor stopped. The editor process does not serve it, and the SPA preview does not write into it. `npm run build -w @r-a-i-t-h/tessera-site` builds `tessera.js` and `tessera-pages.js` and stamps `tessera.js`, plus skin CSS, into each reference site’s `publish/` tree. Adding a **catalogue** component is a Tessera release (then every site may name it from bindings). **Runtime modules** are site files, not catalogue releases. A checkout builds the stamped runtimes before a pages or snapshot dist can be written. The packed release already includes them.
 
-The editor’s Backups page writes a dated `tar.gz` of `data/` into the sibling `backup/` folder (`TESSERA_BACKUP` overrides it). A file of the form `2026-09-28T191500Z.tar.gz` dropped there over SFTP can be downloaded or restored. Restore writes a safety archive first. Each boot copies `seed/examples/willow.tar.gz` into that folder when the file is missing or the release copy has changed. A checkout with no packed seed archives `sites/willow/` the first time only. Dated backups are left as they are. Restoring that archive fills `data/` and keeps the site’s editors. The Backups page can also re-seed the open site onto that same starter (safety archive first, editors kept). A starter site can also be written when the directory has no records yet.
+The editor’s Backups page writes a dated `tar.gz` of `data/` into the sibling `backup/` folder (`TESSERA_BACKUP` overrides it). A file of the form `2026-09-28T191500Z.tar.gz` dropped there over SFTP can be downloaded or restored. Restore writes a safety archive first. Dated backups are left as they are. The Backups page can also **re-seed** the open site onto the bundled starter theme (`tessera-w3-starter`: safety archive first, editors kept). Initialise writes the same starter when the directory has no records yet.
 
 ## Release
 

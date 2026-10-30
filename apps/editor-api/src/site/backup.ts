@@ -9,9 +9,7 @@ import { adoptLegacyRecordsDir } from "./records-dir.js";
 
 export const BACKUP_NAME_RE = /^\d{4}-\d{2}-\d{2}T\d{6}Z\.tar\.gz$/;
 
-const EXAMPLE_TITLES: Record<SiteName, string> = {
-  willow: "Willow",
-};
+const EXAMPLE_TITLES: Partial<Record<SiteName, string>> = {};
 
 export interface BackupInfo {
   name: string;
@@ -76,7 +74,6 @@ export function exampleArchiveName(name: SiteName): string {
 
 /**
  * Place each demo archive in `backup/`.
- * A packed seed replaces the copy when its bytes differ, so an update refreshes Willow.
  * A checkout archive of `sites/<name>/` is written only when that file is absent.
  */
 export async function ensureExampleArchives(
@@ -122,7 +119,7 @@ export async function listExamples(backupDir: string): Promise<ExampleInfo[]> {
   const out: ExampleInfo[] = [];
   for (const name of SITE_NAMES) {
     if (await isFile(join(backupDir, exampleArchiveName(name)))) {
-      out.push({ name, title: EXAMPLE_TITLES[name] });
+      out.push({ name, title: EXAMPLE_TITLES[name] ?? name });
     }
   }
   return out;

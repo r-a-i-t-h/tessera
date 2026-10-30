@@ -79,7 +79,7 @@ describe("record routes", () => {
       users,
       sessions,
       site,
-      siteRoot: join(repoRoot, "sites", "willow"),
+      siteRoot: join(repoRoot, "sites"),
     });
     const res = await guarded.request("/api/render", {
       method: "POST",
@@ -193,7 +193,7 @@ describe("record routes", () => {
       tags: ["page"],
       zones: {
         main: { html: "<p>Hello</p>" },
-        meta: { json: { date: "2026-09-10" } },
+        meta: { component: "pageMeta", props: { date: "2026-09-10" } },
       },
     });
     const read = await app().request("/api/records/content/home", {

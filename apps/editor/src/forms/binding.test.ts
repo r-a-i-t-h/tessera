@@ -6,24 +6,18 @@ import {
   bindingSentence,
   embedDraftFromForm,
   embedRecord,
-  datedDraft,
-  datedRecord,
   galleryDraft,
   galleryDraftFromForm,
   galleryRecord,
   imageRevealDraft,
   imageRevealRecord,
   limitError,
-  linksRecord,
   navHeadings,
   newBindingError,
   newBindingRecord,
-  peopleRecord,
   readNewBinding,
   renderBindingForm,
-  renderDatedForm,
   renderGalleryForm,
-  renderLinksForm,
   renderNewBinding,
   blankNewBinding,
 } from "./binding.js";
@@ -41,31 +35,15 @@ const slides = {
   props: { folders: ["hall-gallery"], mode: "slides", autoplay: true },
 };
 
-const upcoming = {
-  id: "upcoming-events",
-  component: "datedList",
-  props: { types: ["event"], when: "upcoming", limit: 3 },
-};
-
 describe("binding sentences", () => {
-  it("describes a gallery, a dated list, and a people grid with the pages that use them", () => {
+  it("describes a gallery with the pages that use it", () => {
     expect(bindingSentence(hall, [{ id: "gallery", title: "Gallery" }])).toBe(
       "Grid of the hall-gallery folder. On Gallery.",
     );
     expect(bindingSentence(slides)).toBe("Slides of the hall-gallery folder.");
-    expect(bindingSentence(upcoming, [{ id: "home", title: "Home" }])).toBe("The next 3 event pages. On Home.");
-    expect(
-      bindingSentence(
-        { component: "peopleGrid", props: { types: ["person"] } },
-        [{ id: "people", title: "People" }],
-      ),
-    ).toBe("Every person page. On People.");
-    expect(bindingSentence({ component: "peopleGrid", props: { types: ["person"], limit: 3 } })).toBe(
-      "The first 3 person pages.",
-    );
   });
 
-  it("names several folders, pages, and the other list windows", () => {
+  it("names several folders and pages", () => {
     expect(
       bindingSentence({
         component: "gallery",
@@ -73,13 +51,6 @@ describe("binding sentences", () => {
       }),
     ).toBe("Slides of the hall-gallery and lambs folders.");
     expect(bindingSentence({ component: "gallery", props: { mode: "grid" } })).toBe("A gallery with no folders yet.");
-    expect(bindingSentence({ component: "datedList", props: { types: ["news"], when: "past", limit: 3 } })).toBe(
-      "The latest 3 news pages.",
-    );
-    expect(bindingSentence({ component: "datedList", props: { types: ["event"], when: "all" } })).toBe(
-      "Every event page.",
-    );
-    expect(bindingSentence({ component: "datedList", props: {} })).toBe("A dated list with no type yet.");
     expect(
       bindingSentence(hall, [
         { id: "home", title: "Home" },
@@ -95,16 +66,13 @@ describe("binding sentences", () => {
     ).toBe("Grid of the hall-gallery folder. On Home, Gallery, and Events.");
   });
 
-  it("describes link groups and leaves unknown components on the raw file", () => {
+  it("leaves unknown components on the raw file", () => {
     expect(bindingSentence({ component: "linkCluster", props: { source: "children", variant: "list" } })).toBe(
-      "A list of this page's children.",
+      "linkCluster. Edit the raw file.",
     );
-    expect(bindingSentence({ component: "linkCluster", props: { source: "type", type: "event", variant: "pills" } })).toBe(
-      "Pills for every event page.",
+    expect(bindingSentence({ component: "datedList", props: { types: ["event"], when: "upcoming" } })).toBe(
+      "datedList. Edit the raw file.",
     );
-    expect(
-      bindingSentence({ component: "linkCluster", props: { source: "nav", heading: "What's on", variant: "cards" } }),
-    ).toBe("Cards for the What's on menu.");
     expect(bindingSentence({ component: "eventList" })).toBe("eventList. Edit the raw file.");
   });
 
@@ -243,20 +211,6 @@ describe("binding records", () => {
     });
   });
 
-  it("reads an older dated list and writes types and when", () => {
-    const draft = datedDraft({
-      component: "datedList",
-      props: { type: "event", upcoming: true, limit: 3, empty: "None yet." },
-    });
-    expect(draft.types).toEqual(["event"]);
-    expect(draft.when).toBe("upcoming");
-    expect(datedRecord("upcoming-events", draft)).toEqual({
-      id: "upcoming-events",
-      component: "datedList",
-      props: { types: ["event"], when: "upcoming", limit: 3, empty: "None yet." },
-    });
-  });
-
   it("writes datasetTable props from a dataset draft", () => {
     const record = newBindingRecord({
       ...blankNewBinding(),
@@ -345,24 +299,6 @@ describe("binding records", () => {
     ).toBe("Dataset table for Branches, filtered by Open equals Yes.");
   });
 
-  it("omits an empty people type list and drops a link type when the source is children", () => {
-    expect(peopleRecord("people-grid", { types: [], limit: "", propsExtra: {}, recordExtra: {} })).toEqual({
-      id: "people-grid",
-      component: "peopleGrid",
-    });
-    expect(
-      linksRecord("pills", {
-        title: "What's on",
-        source: "children",
-        type: "event",
-        heading: "Events",
-        variant: "pills",
-        propsExtra: {},
-        recordExtra: {},
-      }).props,
-    ).toEqual({ source: "children", variant: "pills", title: "What's on" });
-  });
-
   it("finds insert tokens and nav headings", () => {
     expect(bindingIdsIn({ zones: { main: { html: "Hello {{upcoming-events}} and {{hall-gallery}} {{upcoming-events}}" } } })).toEqual([
       "upcoming-events",
@@ -386,36 +322,6 @@ describe("binding forms", () => {
     expect(playing).toContain("data-gallery-autoplay");
     expect(playing).not.toContain("data-gallery-autoplay hidden");
     expect(playing).toContain("checked");
-  });
-
-  it("explains a dated list and that children follow the page", () => {
-    const dated = renderDatedForm("upcoming-events", datedDraft(upcoming), ["event", "news"]);
-    expect(dated).toContain('value="event" checked');
-    const links = renderLinksForm(
-      "whats-on",
-      {
-        title: "",
-        source: "children",
-        type: "",
-        heading: "",
-        variant: "list",
-        propsExtra: {},
-        recordExtra: {},
-      },
-      { folders: [], types: ["event"], headings: ["What's on"], datasets: [], datasetFields: {} },
-    );
-    expect(links).toContain("data-links-type hidden");
-    expect(
-      renderBindingForm("upcoming-events", upcoming, {
-        folders: [],
-        types: ["event"],
-        headings: [],
-        datasets: [],
-        datasetFields: {},
-      }),
-    ).toContain(
-      "dated-when",
-    );
   });
 
   it("walks a new gallery from the id to the pictures, then writes a folder list", () => {

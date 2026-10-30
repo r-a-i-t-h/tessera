@@ -88,7 +88,6 @@ describe("gallery component", () => {
       zones: new Map(),
       registry,
       renderBlocks: () => "",
-      zoneJson: () => [],
       mediaHtml: () => "",
       escapeHtml: (s) =>
         s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;"),
@@ -123,7 +122,6 @@ describe("gallery component", () => {
       zones,
       registry,
       renderBlocks: () => "",
-      zoneJson: () => [],
       mediaHtml: () => "",
       escapeHtml: (s) =>
         s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;"),

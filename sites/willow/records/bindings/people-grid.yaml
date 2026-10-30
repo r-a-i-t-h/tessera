@@ -1,5 +1,0 @@
-id: people-grid
-component: peopleGrid
-props:
-  types:
-    - person

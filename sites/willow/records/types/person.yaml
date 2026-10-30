@@ -1,7 +1,0 @@
-id: person
-layoutId: profile
-fields:
-  - id: role
-  - id: email
-  - id: photo
-  - id: precis

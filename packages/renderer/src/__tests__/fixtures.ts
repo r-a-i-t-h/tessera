@@ -62,16 +62,6 @@ export function makeFixtureDoc(): SiteDocument {
             { type: "text", html: "<p>Hello</p>" },
             { type: "component", name: "greet", props: { name: "world" } },
             { type: "media", id: "pic" },
-            { type: "component", name: "eventList", props: { fromZone: "events" } },
-          ],
-          events: [
-            {
-              type: "json",
-              data: [
-                { title: "Alpha" },
-                { title: "Beta" },
-              ],
-            },
           ],
           aside: [{ type: "text", html: "<p>Page aside</p>" }],
         },

@@ -59,7 +59,7 @@ describe("requireEditor gate", () => {
     ["POST", "/api/backups/upload"],
     ["POST", "/api/backups/example.tar.gz/delete"],
     ["POST", "/api/backups/example.tar.gz/restore"],
-    ["POST", "/api/examples/willow/restore"],
+    ["POST", "/api/backups/examples/willow/restore"],
     ["POST", "/api/users"],
     ["PATCH", "/api/users/bob"],
     ["DELETE", "/api/users/bob"],

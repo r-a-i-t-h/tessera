@@ -8,35 +8,12 @@ function stubCtx(overrides: Partial<RenderContext> = {}): RenderContext {
   doc.bindings = [
     {
       id: "farm-open-days",
-      component: "eventList",
-      itemId: "open-days-data",
-      fromZone: "events",
-      props: { limit: 2 },
+      component: "greet",
+      props: { name: "Open" },
     },
   ];
-  doc.items.push({
-    id: "open-days-data",
-    zones: {
-      events: [
-        {
-          type: "json",
-          data: [
-            { title: "Day A" },
-            { title: "Day B" },
-            { title: "Day C" },
-          ],
-        },
-      ],
-    },
-  });
   const registry = new ComponentRegistry();
-  registry.define("eventList", (c, props = {}) => {
-    const fromZone = String(props.fromZone ?? "events");
-    const limit = typeof props.limit === "number" ? props.limit : undefined;
-    let rows = c.zoneJson<{ title?: string }>(fromZone);
-    if (limit !== undefined) rows = rows.slice(0, limit);
-    return rows.map((r) => r.title).join(",");
-  });
+  registry.define("greet", (_c, props = {}) => `Hi ${String(props.name ?? "")}`);
   return {
     document: doc,
     page: doc.pages[0]!,
@@ -47,7 +24,6 @@ function stubCtx(overrides: Partial<RenderContext> = {}): RenderContext {
     zones: new Map(),
     registry,
     renderBlocks: () => "",
-    zoneJson: () => [],
     mediaHtml: () => "",
     escapeHtml: (s) => s,
     ...overrides,
@@ -57,13 +33,13 @@ function stubCtx(overrides: Partial<RenderContext> = {}): RenderContext {
 describe("site-data bindings", () => {
   it("resolves component name via document bindings", () => {
     const ctx = stubCtx();
-    expect(renderNamed("farm-open-days", ctx)).toBe("Day A,Day B");
+    expect(renderNamed("farm-open-days", ctx)).toBe("Hi Open");
   });
 
   it("expands mustache placeholders in text", () => {
     const ctx = stubCtx();
     const html = expandMustache("<p>Open:</p>{{farm-open-days}}", ctx);
-    expect(html).toBe("<p>Open:</p>Day A,Day B");
+    expect(html).toBe("<p>Open:</p>Hi Open");
   });
 
   it("leaves a comment for unknown mustache ids", () => {

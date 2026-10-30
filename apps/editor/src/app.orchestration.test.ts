@@ -176,7 +176,6 @@ describe("editor route orchestration", () => {
         id: "common-footer",
         zones: {
           footer: { html: "<p>New site</p>" },
-          events: { json: [{ title: "Fair" }] },
         },
       },
       raw: "id: common-footer\n",

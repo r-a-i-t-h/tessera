@@ -13,20 +13,20 @@ describe("parsePageYaml", () => {
 });
 
 describe("withZoneHtml", () => {
-  it("writes canvas HTML and leaves JSON zones alone", () => {
+  it("writes canvas HTML and leaves component zones alone", () => {
     const next = withZoneHtml(
       {
         id: "home",
         zones: {
           main: { html: "<p>Old</p>" },
-          meta: { json: { role: "host" } },
+          meta: { component: "greet" },
         },
       },
       { main: "<h2>New</h2>", meta: "<p>nope</p>", aside: "<p>Aside</p>" },
     );
     expect(next.zones).toEqual({
       main: { html: "<h2>New</h2>" },
-      meta: { json: { role: "host" } },
+      meta: { component: "greet" },
       aside: { html: "<p>Aside</p>" },
     });
   });
@@ -44,9 +44,9 @@ describe("dropArticleTitleZone", () => {
     expect(
       dropArticleTitleZone({
         type: "article",
-        zones: { title: { json: { kicker: "Fair" } }, main: { html: "" } },
+        zones: { title: { blocks: [] }, main: { html: "" } },
       }).zones,
-    ).toEqual({ title: { json: { kicker: "Fair" } }, main: { html: "" } });
+    ).toEqual({ title: { blocks: [] }, main: { html: "" } });
     expect(dropArticleTitleZone({ type: "page", zones: { title: { html: "Home" } } }).zones).toEqual({
       title: { html: "Home" },
     });

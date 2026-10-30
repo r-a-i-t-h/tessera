@@ -72,16 +72,6 @@ cp apps/site/dist/*.js "$DEST/runtime/"
 cp packages/skin-w3/css/*.css "$DEST/skin/"
 cp -R apps/editor-api/seed "$DEST/seed"
 mkdir -p "$DEST/seed/examples"
-# A committed seed/examples archive is the demo that ships.
-if [ ! -f "apps/editor-api/seed/examples/willow.tar.gz" ] && [ -f "sites/willow/meta.json" ]; then
-  tar -czf "$DEST/seed/examples/willow.tar.gz" \
-    --exclude=users \
-    --exclude=history \
-    --exclude=.sessions.json \
-    --exclude=node_modules \
-    --exclude=backup \
-    -C "sites/willow" .
-fi
 cp -R deploy "$DEST/deploy"
 echo "pack-release: bundling reset-user-password"
 node_modules/esbuild/bin/esbuild apps/editor-api/scripts/reset-user-password.ts \

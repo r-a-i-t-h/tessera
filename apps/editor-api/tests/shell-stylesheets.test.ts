@@ -9,15 +9,19 @@ import {
 } from "../src/site/shell-stylesheets.js";
 
 describe("shell stylesheet parsing", () => {
-  it("preserves the Willow shell stylesheet order and ignores other links", async () => {
-    const shell = await readFile(join(repoRoot, "sites", "willow", "shell", "index.html"), "utf8");
+  it("preserves the starter shell stylesheet order and ignores other links", async () => {
+    const shell = await readFile(
+      join(repoRoot, "apps", "editor-api", "seed", "themes", "tessera-w3-starter", "shell", "index.html"),
+      "utf8",
+    );
     expect(parseShellStylesheetLinks(shell)).toEqual([
       "./skin/w3.css",
+      "./skin/w3-theme-teal.css",
       "./skin/tessera.css",
       "./skin/microapps.css",
       "./site.css",
       "./local.css",
-      "https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap",
+      "https://fonts.googleapis.com/css?family=Lekton|Roboto|Orbitron|Thasadith",
     ]);
   });
 

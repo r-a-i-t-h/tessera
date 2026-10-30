@@ -48,7 +48,6 @@ export type BindingOnPage = {
   id: string;
   component: string;
   itemId?: string;
-  fromZone?: string;
   sources: string[];
 };
 
@@ -103,7 +102,6 @@ function noteBinding(
     id: binding.id,
     component: binding.component,
     ...(binding.itemId ? { itemId: binding.itemId } : {}),
-    ...(binding.fromZone ? { fromZone: binding.fromZone } : {}),
     sources: [source],
   });
 }

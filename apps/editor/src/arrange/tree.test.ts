@@ -26,7 +26,10 @@ import {
   tagOptions,
 } from "./tree.js";
 
-const layoutsDir = join(dirname(fileURLToPath(import.meta.url)), "../../../../sites/willow/records/layouts");
+const layoutsDir = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../../../apps/editor-api/seed/themes/tessera-w3-starter/records/layouts",
+);
 
 function load(name: string): LayoutNode {
   const file = parse(readFileSync(join(layoutsDir, name), "utf8")) as { root: unknown };
@@ -43,36 +46,33 @@ function labels(node: LayoutNode, into: string[] = []): string[] {
 }
 
 describe("layout arrange tree", () => {
-  it("keeps Willow’s master nested and names the menus", () => {
+  it("reads the starter master layout and names the menus", () => {
     const root = load("master.yaml");
     expect(isFrame(root)).toBe(true);
     expect(cleanNode(cleanNode(root))).toEqual(cleanNode(root));
     expect(LayoutNodeSchema.safeParse(cleanNode(root)).success).toBe(true);
     const names = labels(root);
-    expect(names).toContain("Region : topnav");
     expect(names).toContain("Region : mySidebar");
     expect(names).toContain("HTML : myOverlay");
     expect(names).not.toContain("header");
     expect(names).not.toContain("Overlay");
     expect(names).not.toContain("Close");
     expect(names).not.toContain("Custom HTML");
-    expect(names).toContain("Menu · Top-level · Top bar");
     expect(names).toContain("Menu · Top-level · Sidebar");
     expect(names).toContain("Page");
     const html = treeHtml(root, "");
     expect(html).toContain("data-tag=\"header\"");
-    expect(html).toContain("data-drawer=\"closed\"");
-    expect(html.indexOf("header")).toBeLessThan(html.indexOf("Menu · Top-level · Top bar"));
+    expect(html).toContain("data-drawer=\"open\"");
     const drawer = getNode(root, [1]);
-    expect(drawer && drawerState(drawer)).toBe("closed");
-    expect(drawer && stayOpenNote(drawer)).toMatch(/site\.css/);
+    expect(drawer && drawerState(drawer)).toBe("open");
+    expect(stayOpenNote(drawer!)).toBeUndefined();
   });
 
   it("reads a page layout as zones inside regions", () => {
     const standard = load("standard.yaml");
     expect(isFrame(standard)).toBe(false);
-    expect(labels(standard)).toContain("Zone : aside");
-    expect(getNode(standard, [1, 3, 1])?.type).toBe("region");
+    expect(labels(standard)).toContain("Zone : main");
+    expect(getNode(standard, [0, 0])?.type).toBe("zone");
   });
 
   it("moves a child down without losing it", () => {
@@ -105,7 +105,7 @@ describe("layout arrange tree", () => {
     const drawer = getNode(root, [1]);
     if (drawer?.type !== "region") throw new Error("expected the drawer");
     const open = applyField(drawer, "stayOpen", "true");
-    expect(open.type === "region" && open.className).toContain("wh-drawer");
+    expect(open.type === "region" && open.className).toContain("w3-sidebar");
     expect(open.type === "region" && open.className).toContain("w3-collapse");
     expect(drawerState(open)).toBe("open");
     const shut = applyField(open, "stayOpen", "false");
@@ -144,11 +144,11 @@ describe("layout arrange tree", () => {
     expect(nodeLabel({ type: "static", html: "<p>Footer</p>" })).toBe("HTML");
   });
 
-  it("names Willow standard layout regions from id or skin preset", () => {
+  it("names starter standard layout zones", () => {
     const root = load("standard.yaml");
     const names = labels(root);
-    expect(names).toContain("Region : content");
-    expect(names).toContain("Region : main");
+    expect(names).toContain("Zone : title");
+    expect(names).toContain("Zone : main");
   });
 
   it("offers skin presets on regions in the inspector", () => {

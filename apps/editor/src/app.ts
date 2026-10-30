@@ -182,8 +182,6 @@ import {
   bindingKind,
   bindingSentence,
   blankNewBinding,
-  datedDraftFromForm,
-  datedRecord,
   bindingControls,
   embedDraftFromForm,
   embedRecord,
@@ -192,13 +190,9 @@ import {
   imageRevealDraftFromForm,
   imageRevealRecord,
   limitError,
-  linksDraftFromForm,
-  linksRecord,
   navHeadings,
   newBindingError,
   newBindingRecord,
-  peopleDraftFromForm,
-  peopleRecord,
   runtimeModuleBindingDraftFromForm,
   runtimeModuleBindingRecord,
   readNewBinding,
@@ -1379,7 +1373,6 @@ function bindNewBinding(root: HTMLElement, listing: RecordList, choices: Binding
       paint();
       return;
     }
-    if (target.name === "links-source") syncLinkSource(form);
     if (target.name === "gallery-mode") syncGalleryMode(form);
     if (target.name === "dataset-presentation") syncDatasetPresentation(form);
     if (target.name === "dataset-dataset") {
@@ -2666,7 +2659,7 @@ function itemSection(rows: RecordSummary[], siteReady: boolean, zones: readonly 
         </select>
       </p>
       <p data-item-component hidden><label for="new-item-component">Component</label>
-        <input id="new-item-component" name="component" class="w3-input w3-border w3-margin-top" autocomplete="off" spellcheck="false" placeholder="eventList" />
+        <input id="new-item-component" name="component" class="w3-input w3-border w3-margin-top" autocomplete="off" spellcheck="false" placeholder="gallery" />
       </p>
       ${formErrorPanel()}
       <p><button type="submit" class="w3-button w3-theme">Create item</button></p>
@@ -4023,14 +4016,12 @@ function pruneEmptyHtmlZones(data: unknown, declaredZones?: readonly string[]): 
       Array.isArray((zone as { blocks: unknown }).blocks) &&
       (zone as { blocks: unknown[] }).blocks.length === 0 &&
       !("html" in zone) &&
-      !("json" in zone) &&
       !("component" in zone);
     const emptyHtml =
       zone &&
       typeof zone === "object" &&
       !Array.isArray(zone) &&
       "html" in zone &&
-      !("json" in zone) &&
       !("blocks" in zone) &&
       !("component" in zone) &&
       String((zone as { html: unknown }).html ?? "").trim() === "";
@@ -4069,24 +4060,6 @@ function bindingBody(id: string, form: HTMLFormElement, original: unknown, choic
   const kind = bindingKind(original);
   const controls = bindingControls(form);
   if (kind === "gallery") return galleryRecord(id, galleryDraftFromForm(controls, folderSelection(form) ?? []));
-  if (kind === "dated") {
-    const draft = datedDraftFromForm(controls);
-    const problem = limitError(draft.limit);
-    if (problem) throw new Error(problem);
-    return datedRecord(id, draft);
-  }
-  if (kind === "people") {
-    const draft = peopleDraftFromForm(controls);
-    const problem = limitError(draft.limit);
-    if (problem) throw new Error(problem);
-    return peopleRecord(id, draft);
-  }
-  if (kind === "links") {
-    const draft = linksDraftFromForm(controls);
-    if (draft.source === "type" && !draft.type.trim()) throw new Error("Choose a type.");
-    if (draft.source === "nav" && !draft.heading.trim()) throw new Error("Enter a menu heading.");
-    return linksRecord(id, draft);
-  }
   if (kind === "imageReveal") return imageRevealRecord(id, imageRevealDraftFromForm(controls));
   if (kind === "embed") return embedRecord(id, embedDraftFromForm(controls));
   if (kind === "dataset") {
@@ -4111,7 +4084,6 @@ function bindBindingForm(form: HTMLFormElement, choices?: BindingChoices): void 
     const target = event.target;
     if (!(target instanceof HTMLSelectElement)) return;
     if (target.name === "gallery-mode") syncGalleryMode(form);
-    if (target.name === "links-source") syncLinkSource(form);
     if (target.name === "dataset-presentation") syncDatasetPresentation(form);
     if (target.name === "dataset-dataset" && choices) {
       void enrichBindingChoices(choices, target.value).then((next) => {
@@ -4127,14 +4099,6 @@ function syncGalleryMode(form: HTMLFormElement): void {
   const mode = form.querySelector<HTMLSelectElement>("[name=gallery-mode]")?.value;
   const autoplay = form.querySelector<HTMLElement>("[data-gallery-autoplay]");
   if (autoplay) autoplay.hidden = mode !== "slides";
-}
-
-function syncLinkSource(form: HTMLFormElement): void {
-  const source = form.querySelector<HTMLSelectElement>("[name=links-source]")?.value;
-  const type = form.querySelector<HTMLElement>("[data-links-type]");
-  const heading = form.querySelector<HTMLElement>("[data-links-heading]");
-  if (type) type.hidden = source !== "type";
-  if (heading) heading.hidden = source !== "nav";
 }
 
 function saveRecordBody(kind: string, form: HTMLFormElement, original: unknown): unknown {

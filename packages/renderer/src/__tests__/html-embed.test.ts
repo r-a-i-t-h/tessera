@@ -28,7 +28,6 @@ describe("htmlEmbed", () => {
       zones: new Map(),
       registry: createDefaultRegistry(),
       renderBlocks: () => "",
-      zoneJson: () => [],
       mediaHtml: () => "",
       escapeHtml: (s) => s,
     };

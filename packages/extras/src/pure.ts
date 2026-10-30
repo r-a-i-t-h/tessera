@@ -19,39 +19,6 @@ export const pageNav: ComponentFn = (ctx) => {
     .join("");
 };
 
-/**
- * Custom list from JSON data stored in a zone.
- *
- * Content (site.json) holds the data; this module owns how it is rendered.
- * Layout/page places `{ "type": "component", "name": "eventList", "props": { "fromZone": "events" } }`.
- *
- * The `events` zone need not appear as a layout zone node — contributions still
- * land on ctx.zones so components can read them via ctx.zoneJson("events").
- */
-export const eventList: ComponentFn = (ctx, props = {}) => {
-  const fromZone = typeof props.fromZone === "string" ? props.fromZone : "events";
-  const limit = typeof props.limit === "number" ? props.limit : undefined;
-
-  type EventRow = { title?: string; when?: string; where?: string };
-  let rows = ctx.zoneJson<EventRow>(fromZone);
-  if (limit !== undefined) rows = rows.slice(0, limit);
-
-  if (rows.length === 0) {
-    return `<p class="w3-text-grey"><em>No events.</em></p>`;
-  }
-
-  const items = rows
-    .map((e) => {
-      const title = ctx.escapeHtml(e.title ?? "Untitled");
-      const when = e.when ? `<span class="w3-text-grey"> — ${ctx.escapeHtml(e.when)}</span>` : "";
-      const where = e.where ? `<div class="w3-small">${ctx.escapeHtml(e.where)}</div>` : "";
-      return `<li class="w3-padding-small"><strong>${title}</strong>${when}${where}</li>`;
-    })
-    .join("");
-
-  return `<ul class="w3-ul w3-border w3-round">${items}</ul>`;
-};
-
 /** Demo of reading resolved page profile (section inheritance + layout). */
 export const aboutRenderer: ComponentFn = (ctx) => {
   const { layoutId, layoutSource, typeId } = ctx.profile;

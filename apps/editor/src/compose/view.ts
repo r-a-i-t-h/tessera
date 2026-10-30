@@ -347,7 +347,7 @@ function zoneView(name: string, zone: unknown, off: boolean, frame = false): Zon
 }
 
 function isComposeHtmlZone(zone: unknown): boolean {
-  return isRecord(zone) && "html" in zone && !("json" in zone) && !("blocks" in zone) && !("component" in zone);
+  return isRecord(zone) && "html" in zone && !("blocks" in zone) && !("component" in zone);
 }
 
 function isComposeWidgetZone(zone: unknown): boolean {

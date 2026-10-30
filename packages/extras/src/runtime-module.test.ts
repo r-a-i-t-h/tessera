@@ -23,7 +23,6 @@ describe("runtimeModule", () => {
       zones: new Map(),
       registry,
       renderBlocks: () => "",
-      zoneJson: () => [],
       mediaHtml: () => "",
       escapeHtml,
     } satisfies RenderContext;

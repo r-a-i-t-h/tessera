@@ -26,11 +26,6 @@ export const TextBlockSchema = z.object({
   html: z.string(),
 });
 
-export const JsonBlockSchema = z.object({
-  type: z.literal("json"),
-  data: z.unknown(),
-});
-
 export const MediaBlockSchema = z.object({
   type: z.literal("media"),
   id: z.string(),
@@ -44,10 +39,9 @@ export const ImageBlockSchema = z.object({
   alt: z.string().optional(),
 });
 
-export type Block = TextBlock | JsonBlock | MediaBlock | ImageBlock | ComponentBlock;
+export type Block = TextBlock | MediaBlock | ImageBlock | ComponentBlock;
 
 export type TextBlock = z.infer<typeof TextBlockSchema>;
-export type JsonBlock = z.infer<typeof JsonBlockSchema>;
 export type MediaBlock = z.infer<typeof MediaBlockSchema>;
 export type ImageBlock = z.infer<typeof ImageBlockSchema>;
 
@@ -60,7 +54,6 @@ export type ComponentBlock = {
 export const BlockSchema: z.ZodType<Block> = z.lazy(() =>
   z.discriminatedUnion("type", [
     TextBlockSchema,
-    JsonBlockSchema,
     MediaBlockSchema,
     ImageBlockSchema,
     z.object({
@@ -311,8 +304,6 @@ export const BindingSchema = z.object({
   component: z.string().min(1),
   /** When set, read zones from this item instead of the current page merge. */
   itemId: z.string().optional(),
-  /** Zone id whose JSON (or other data) the component reads (often via `fromZone`). */
-  fromZone: z.string().optional(),
   props: z.record(z.unknown()).optional(),
 });
 
