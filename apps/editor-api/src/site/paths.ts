@@ -14,10 +14,17 @@ export function apiRootFromModule(moduleDir: string): string {
 const here = dirname(fileURLToPath(import.meta.url));
 export const editorApiRoot = apiRootFromModule(here);
 
-/** Monorepo checkout when `sites/` sits two levels above the API; otherwise the release root. */
+/** Monorepo checkout (workspace root two levels above the API); otherwise the release root. */
+function isMonorepoRoot(candidate: string): boolean {
+  return (
+    existsSync(join(candidate, "package.json")) &&
+    existsSync(join(candidate, "apps", "editor-api"))
+  );
+}
+
 export function resolveRepoRoot(apiRoot: string): string {
   const monorepo = join(apiRoot, "..", "..");
-  return existsSync(join(monorepo, "sites")) ? monorepo : apiRoot;
+  return isMonorepoRoot(monorepo) ? monorepo : apiRoot;
 }
 
 export const repoRoot = resolveRepoRoot(editorApiRoot);
@@ -112,7 +119,7 @@ export function resolveRuntimeDirs(
   const releaseBundle = join(apiRoot, "runtime");
   const checkoutSkin = join(monorepoRoot, "packages", "skin-w3", "css");
   const releaseSkin = join(apiRoot, "skin");
-  const checkout = existsSync(join(monorepoRoot, "sites"));
+  const checkout = isMonorepoRoot(monorepoRoot);
   let bundleDir = releaseBundle;
   if (existsSync(join(checkoutBundle, "tessera.js"))) bundleDir = checkoutBundle;
   else if (existsSync(join(releaseBundle, "tessera.js"))) bundleDir = releaseBundle;

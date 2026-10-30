@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { repoRoot } from "../src/site/paths.js";
+import { editorApiRoot } from "../src/site/paths.js";
 import {
   parseShellStylesheetLinks,
   stylesheetsFromShell,
@@ -11,7 +11,7 @@ import {
 describe("shell stylesheet parsing", () => {
   it("preserves the starter shell stylesheet order and ignores other links", async () => {
     const shell = await readFile(
-      join(repoRoot, "apps", "editor-api", "seed", "themes", "tessera-w3-starter", "shell", "index.html"),
+      join(editorApiRoot, "seed", "themes", "tessera-w3-starter", "shell", "index.html"),
       "utf8",
     );
     expect(parseShellStylesheetLinks(shell)).toEqual([

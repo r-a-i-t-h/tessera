@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { apiRootFromModule, resolveRuntimeDirs, resolveSpaDir } from "../src/site/paths.js";
+import { apiRootFromModule, resolveRepoRoot, resolveRuntimeDirs, resolveSpaDir } from "../src/site/paths.js";
 
 describe("release paths", () => {
   const dirs: string[] = [];
@@ -15,6 +15,14 @@ describe("release paths", () => {
     expect(apiRootFromModule("/repo/apps/editor-api/src/site")).toBe("/repo/apps/editor-api");
     expect(apiRootFromModule("/repo/apps/editor-api/dist/site")).toBe("/repo/apps/editor-api");
     expect(apiRootFromModule("/opt/tessera/willow/current/dist")).toBe("/opt/tessera/willow/current");
+  });
+
+  it("resolves the monorepo root without a sites/ directory", async () => {
+    const checkout = await mkdtemp(join(tmpdir(), "tessera-checkout-"));
+    dirs.push(checkout);
+    await mkdir(join(checkout, "apps", "editor-api"), { recursive: true });
+    await writeFile(join(checkout, "package.json"), '{"name":"tessera"}\n');
+    expect(resolveRepoRoot(join(checkout, "apps", "editor-api"))).toBe(checkout);
   });
 
   it("serves spa/ from a release and the editor build from a checkout", async () => {
@@ -63,7 +71,8 @@ describe("release paths", () => {
     dirs.push(checkout);
     const apiRoot = join(checkout, "apps", "editor-api");
     const built = join(checkout, "apps", "site", "dist");
-    await mkdir(join(checkout, "sites"), { recursive: true });
+    await mkdir(apiRoot, { recursive: true });
+    await writeFile(join(checkout, "package.json"), '{"name":"tessera"}\n');
     await mkdir(built, { recursive: true });
     await mkdir(join(checkout, "packages", "skin-w3", "css"), { recursive: true });
     await mkdir(join(apiRoot, "runtime"), { recursive: true });
@@ -80,7 +89,8 @@ describe("release paths", () => {
     const checkout = await mkdtemp(join(tmpdir(), "tessera-checkout-"));
     dirs.push(checkout);
     const apiRoot = join(checkout, "apps", "editor-api");
-    await mkdir(join(checkout, "sites"), { recursive: true });
+    await mkdir(apiRoot, { recursive: true });
+    await writeFile(join(checkout, "package.json"), '{"name":"tessera"}\n');
     await mkdir(join(checkout, "packages", "skin-w3", "css"), { recursive: true });
     expect(resolveRuntimeDirs(apiRoot, checkout)).toEqual({
       bundleDir: join(checkout, "apps", "site", "dist"),
