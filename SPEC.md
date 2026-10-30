@@ -286,7 +286,7 @@ Gallery, layout primitives, nav, bindings, and the blog are in the product. List
 - The **library** holds images and PDFs. A virtual move does not change the published URL. The **Styles** page edits chrome tokens on the site record.
 - A page is a page. A site-defined type names its fields and its layout. Subject tags filter and do not choose the type. Editor forms are drawn from a field schema for the record kind (string, number, date, Checkbox, SingleSelect), including fields that have no value yet. Keys the schema does not name stay on the form. `schemaVersion` is the authoring-file format, not a Person field list. There is no per-page draft flag.
 - A content-page save appends the previous raw file to `$TESSERA_DATA/history/content/<id>.history`. That history is an editor file, not a field on the published page. The framing is a proof of concept; the authoring spec will replace it.
-- **Authoring schema** (`schemaVersion` in `$TESSERA_DATA/meta.json`) is separate from `SiteDocument.version`. The app reads the counter and does not bump it. Updates leave the records in `$TESSERA_DATA` as they are.
+- **Authoring schema** (`schemaVersion` in `$TESSERA_DATA/meta.json`) is separate from `SiteDocument.version`. The app reads the counter and does not bump it on save. When the stamp is behind the release target, post-update migration runs on editor API boot.
 - The renderer never depends on the editor. The editor API serves the real snapshot runtime from `/preview/`; the editing screen does not embed it yet. Hosting that render beside Compose is the next editor step.
 - Flatten output **is** the renderer contract.
 

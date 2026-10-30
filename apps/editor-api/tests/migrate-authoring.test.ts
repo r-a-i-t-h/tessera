@@ -107,6 +107,34 @@ zones:
     await rm(root, { recursive: true, force: true });
   });
 
+  it("schema 4 → 5 converts title html scalars while main stays blocks", async () => {
+    const root = await mkdtemp(join(tmpdir(), "tessera-migrate-title-"));
+    const records = join(root, "records");
+    await mkdir(join(records, "content"), { recursive: true });
+    await writeFile(
+      join(records, "content", "home.yaml"),
+      `id: home
+title: Home
+zones:
+  title:
+    html: Summer fair
+  main:
+    blocks:
+      - kind: text
+        heading: ""
+        level: 2
+        html: "<p>Body</p>"
+`,
+    );
+    await writeFile(metaPath(root), '{"schemaVersion":4}\n');
+    expect(await ensureAuthoringSchemaMigration(root, records)).toBe(true);
+    expect(await readSchemaVersion(metaPath(root))).toBe(5);
+    const yaml = await readFile(join(records, "content", "home.yaml"), "utf8");
+    expect(yaml).toContain("blocks:");
+    expect(yaml).not.toContain("\n    html:");
+    await rm(root, { recursive: true, force: true });
+  });
+
   it("ignores macOS AppleDouble ._*.yaml files", async () => {
     const root = await mkdtemp(join(tmpdir(), "tessera-migrate-apple-"));
     const records = join(root, "records");

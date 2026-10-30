@@ -7,8 +7,8 @@ export const AUTHORING_SCHEMA_LEGACY_MAX = 4 as const;
 
 /**
  * Target `meta.json` `schemaVersion` after blocks-only page zones.
- * Run post-update migration when `readSchemaVersion(meta) < AUTHORING_SCHEMA_TARGET`.
- * Not run on editor API boot.
+ * When `readSchemaVersion(meta) < AUTHORING_SCHEMA_TARGET`, post-update migration runs on
+ * editor API boot (and via `npm run migrate:authoring` for an offline pass).
  */
 export const AUTHORING_SCHEMA_TARGET = 5 as const;
 

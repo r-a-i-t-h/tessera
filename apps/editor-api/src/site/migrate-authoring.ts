@@ -11,7 +11,11 @@ import { recordToYaml, yamlToRecord } from "./document.js";
 
 const COMPOSE_MIGRATE_KINDS: RecordKind[] = ["content", "templates"];
 
-/** Migrate one page/template zone to widget `blocks` lists (schema ≤4 → 5). */
+/**
+ * Migrate one page/template zone to widget `blocks` (schema ≤4 → 5).
+ * Under schema 4, compose zones were usually already `blocks`; `title` could stay a plain
+ * `html:` scalar — v5 converts those too. Does not run when loading YAML for edit.
+ */
 export function migrateAuthoredZone(_zoneId: string, zone: unknown): unknown | undefined {
   if (!zone || typeof zone !== "object" || Array.isArray(zone)) return zone;
   const row = zone as Record<string, unknown>;
@@ -114,7 +118,8 @@ async function listYamlIds(recordsDir: string, kind: RecordKind): Promise<string
 
 /**
  * Post-update migration: rewrite page/template zone YAML to blocks-only and bump `schemaVersion`.
- * Do not call from editor API startup — run `scripts/migrate-authoring-zones.ts` after upgrade.
+ * Runs on editor API boot when the stamp is below {@link AUTHORING_SCHEMA_TARGET}; the CLI
+ * script is the same logic for an offline run.
  */
 export async function runAuthoringZoneMigration(dataDir: string, recordsDir: string): Promise<boolean> {
   const meta = metaPath(dataDir);
@@ -145,7 +150,7 @@ export async function runAuthoringZoneMigration(dataDir: string, recordsDir: str
   return true;
 }
 
-/** @deprecated Use {@link runAuthoringZoneMigration} from post-update script only. */
+/** @deprecated Alias for {@link runAuthoringZoneMigration}. */
 export const ensureAuthoringSchemaMigration = runAuthoringZoneMigration;
 
 /** Rewrite item zones on disk: widget blocks → html, drop json. */

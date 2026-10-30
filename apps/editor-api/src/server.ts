@@ -8,7 +8,7 @@ import { editorApiRoot, repoRoot, resolveBackupDir, resolveDataRoot, resolveDist
 import { adoptLegacyRecordsDir } from "./site/records-dir.js";
 import { SiteStore } from "./site/store.js";
 import { ensureMetaFile, metaPath, readSchemaVersion } from "./store/meta.js";
-import { ensureItemAuthoringRepair } from "./site/migrate-authoring.js";
+import { runAuthoringZoneMigration } from "./site/migrate-authoring.js";
 import { UserStore } from "./store/users.js";
 
 const root = editorApiRoot;
@@ -23,7 +23,7 @@ const port = Number(process.env.PORT ?? 7356);
 const users = new UserStore(dataDir);
 await users.load(seedDir);
 await ensureMetaFile(dataDir, seedDir);
-await ensureItemAuthoringRepair(layout.records);
+await runAuthoringZoneMigration(dataDir, layout.records);
 await ensureExampleArchives(backupDir, {
   seedDir,
   sitesDir: existsSync(sitesDir) ? sitesDir : undefined,
