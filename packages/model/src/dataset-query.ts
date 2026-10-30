@@ -189,7 +189,7 @@ function sortKey(record: DatasetRootRecord, fieldId: string, fields: readonly Da
   if (fieldId === "added") return record.added;
   if (fieldId === "modified") return record.modified;
   const field = fieldById(fields, fieldId);
-  if (!field || field.kind === "object" || field.kind === "list") return "";
+  if (!field) return "";
   return record[fieldId];
 }
 
@@ -214,7 +214,7 @@ function resolveFieldList(snapshot: DatasetSnapshot, requested?: readonly string
       continue;
     }
     const field = fieldById(schemaFields, id);
-    if (field && field.kind !== "object" && field.kind !== "list") out.push(field);
+    if (field) out.push(field);
   }
   return out;
 }
@@ -309,19 +309,6 @@ function collectRefTargets(
   for (const field of fields) {
     if (field.kind === "ref" && field.dataset && obj[field.id] !== undefined && obj[field.id] !== null) {
       if (!seen.has(field.dataset)) pending.push(field.dataset);
-    }
-    if (field.kind === "object" && field.fields?.length) {
-      const nested = obj[field.id];
-      if (nested && typeof nested === "object" && !Array.isArray(nested)) {
-        collectRefTargets(field.fields, nested as Record<string, unknown>, pending, seen);
-      }
-    }
-    if (field.kind === "list" && Array.isArray(obj[field.id])) {
-      for (const item of obj[field.id] as unknown[]) {
-        if (item && typeof item === "object" && !Array.isArray(item)) {
-          collectRefTargets(field.fields ?? [], item as Record<string, unknown>, pending, seen);
-        }
-      }
     }
   }
 }

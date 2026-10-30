@@ -1,7 +1,7 @@
 import {
   documentDatasetMap,
   fieldById,
-  type DatasetFieldKindAny,
+  type DatasetFieldKind,
   queryDatasetRecords,
   type DatasetQueryOptions,
   type DatasetRowView,
@@ -48,7 +48,7 @@ export type DatasetViewPayload = {
   frameColor?: string;
 };
 
-function columnCellFormat(kind?: DatasetFieldKindAny): DatasetColumnCellFormat | undefined {
+function columnCellFormat(kind?: DatasetFieldKind): DatasetColumnCellFormat | undefined {
   if (kind === "url" || kind === "asset") return kind;
   return undefined;
 }
@@ -67,7 +67,7 @@ function isSortableColumn(fieldId: string, snapshot: DatasetSnapshot): boolean {
   if (fieldId === "uid" || fieldId === "added" || fieldId === "modified") return true;
   const field = fieldById(snapshot.schema.fields, fieldId);
   if (!field) return false;
-  if (field.kind === "object" || field.kind === "list" || field.kind === "asset") {
+  if (field.kind === "asset") {
     return false;
   }
   return true;

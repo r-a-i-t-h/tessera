@@ -1,10 +1,10 @@
-import { fieldById, rootColumnFieldIds, type DatasetFieldKindAny } from "@r-a-i-t-h/tessera-model";
+import { fieldById, rootColumnFieldIds, type DatasetFieldKind } from "@r-a-i-t-h/tessera-model";
 import { getDataset } from "./api.js";
 
 export type DatasetFieldOption = {
   id: string;
   label: string;
-  kind: DatasetFieldKindAny | "uid" | "added" | "modified";
+  kind: DatasetFieldKind | "uid" | "added" | "modified";
   enumOptions?: readonly { value: string; label: string }[];
 };
 

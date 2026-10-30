@@ -6,8 +6,6 @@ export const DATASET_RECORD_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 /** Schema field ids that map to record metadata, not user-defined columns. */
 export const DATASET_RESERVED_FIELD_IDS = ["uid", "added", "modified"] as const;
 
-export const DATASET_MAX_FIELD_DEPTH = 4;
-
 export const DATASET_SCALAR_KINDS = [
   "string",
   "text",
@@ -20,17 +18,13 @@ export const DATASET_SCALAR_KINDS = [
   "ref",
 ] as const;
 
-/** Scalar kinds only; object/list were removed from the schema editor. */
+/** Flat scalar columns. Nested object/list kinds are rejected at parse. */
 export const DATASET_FIELD_KINDS = [...DATASET_SCALAR_KINDS] as const;
 
-const LEGACY_REMOVED_FIELD_KINDS = new Set(["object", "list", "html"]);
-
-export const DATASET_LEGACY_NESTED_KINDS = ["object", "list"] as const;
+const REMOVED_FIELD_KINDS = new Set(["object", "list", "html"]);
 
 export type DatasetScalarKind = (typeof DATASET_SCALAR_KINDS)[number];
 export type DatasetFieldKind = (typeof DATASET_FIELD_KINDS)[number];
-/** Scalar kinds plus nested kinds kept for migration helpers over old data. */
-export type DatasetFieldKindAny = DatasetFieldKind | (typeof DATASET_LEGACY_NESTED_KINDS)[number];
 
 export type DatasetEnumOption = { value: string; label: string };
 
@@ -38,14 +32,13 @@ export type DatasetField = {
   key: string;
   id: string;
   label: string;
-  kind: DatasetFieldKindAny;
+  kind: DatasetFieldKind;
   required?: boolean;
   default?: unknown;
   many?: boolean;
   options?: DatasetEnumOption[];
   dataset?: string;
   labelField?: string;
-  fields?: DatasetField[];
 };
 
 export type DatasetSchemaBody = {
@@ -120,28 +113,17 @@ const EnumOptionSchema = z.object({
 
 const FieldKindSchema = z.enum(DATASET_FIELD_KINDS);
 
-function fieldDepth(fields: DatasetField[], depth = 1): number {
-  let max = depth;
-  for (const field of fields) {
-    if (field.kind === "object" || field.kind === "list") {
-      const nested = field.fields ?? [];
-      max = Math.max(max, fieldDepth(nested, depth + 1));
-    }
-  }
-  return max;
-}
-
 function fieldIdReserved(id: string): boolean {
   return (DATASET_RESERVED_FIELD_IDS as readonly string[]).includes(id);
 }
 
-function parseField(raw: unknown, depth: number): DatasetField {
+function parseField(raw: unknown): DatasetField {
   if (!raw || typeof raw !== "object") throw new Error("Field must be an object.");
   const o = raw as Record<string, unknown>;
   const key = typeof o.key === "string" ? o.key.trim() : "";
   const id = typeof o.id === "string" ? o.id.trim() : "";
   const label = typeof o.label === "string" ? o.label : id;
-  if (typeof o.kind === "string" && LEGACY_REMOVED_FIELD_KINDS.has(o.kind)) {
+  if (typeof o.kind === "string" && REMOVED_FIELD_KINDS.has(o.kind)) {
     throw new Error(`Field type ${o.kind} is no longer supported.`);
   }
   const kind = FieldKindSchema.parse(o.kind);
@@ -171,9 +153,6 @@ function parseField(raw: unknown, depth: number): DatasetField {
 
 function validateFieldDefault(field: DatasetField): void {
   if (field.default === undefined) return;
-  if (field.kind === "object" || field.kind === "list") {
-    throw new Error(`Default is not allowed on ${field.kind} field ${field.id}.`);
-  }
   if (!valueMatchesField(field, field.default, true)) {
     throw new Error(`Default on ${field.id} does not match its kind.`);
   }
@@ -181,12 +160,7 @@ function validateFieldDefault(field: DatasetField): void {
 
 export function parseDatasetFields(raw: unknown): DatasetField[] {
   if (!Array.isArray(raw)) throw new Error("Schema fields must be an array.");
-  const filtered = raw.filter((item) => {
-    if (!item || typeof item !== "object") return false;
-    const kind = (item as Record<string, unknown>).kind;
-    return typeof kind === "string" && !LEGACY_REMOVED_FIELD_KINDS.has(kind);
-  });
-  const fields = filtered.map((f) => parseField(f, 1));
+  const fields = raw.map((f) => parseField(f));
   assertUniqueFieldKeys(fields);
   assertUniqueFieldIds(fields);
   return fields;
@@ -208,11 +182,8 @@ function assertUniqueFieldIds(fields: DatasetField[]): void {
   });
 }
 
-function walkFields(fields: DatasetField[], fn: (f: DatasetField) => void): void {
-  for (const field of fields) {
-    fn(field);
-    if (field.fields?.length) walkFields(field.fields, fn);
-  }
+function walkFields(fields: readonly DatasetField[], fn: (f: DatasetField) => void): void {
+  for (const field of fields) fn(field);
 }
 
 export function parseDatasetSchema(raw: unknown): DatasetSchemaBody {
@@ -271,12 +242,7 @@ export function sanitizeViewColumns(columns: readonly string[], fields: readonly
 }
 
 export function rootColumnFieldIds(fields: readonly DatasetField[]): string[] {
-  const out: string[] = [];
-  for (const field of fields) {
-    if (field.kind === "object" || field.kind === "list") continue;
-    out.push(field.id);
-  }
-  return out;
+  return fields.map((field) => field.id);
 }
 
 export function fieldById(fields: readonly DatasetField[], id: string): DatasetField | undefined {
@@ -440,7 +406,7 @@ export function formatRecordDisplayName(
   const text = trimmed.replace(DISPLAY_NAME_PLACEHOLDER, (_full, key: string) => {
     if (key === "uid") return String(record.uid ?? "");
     const field = fieldById(fields, key);
-    if (!field || field.kind === "object" || field.kind === "list") return "";
+    if (!field) return "";
     return scalarDisplayValue(record, field, ctx);
   });
   return text.replace(/\s+/g, " ").trim();
@@ -472,21 +438,6 @@ function validateSystemRoot(record: Record<string, unknown>): DatasetValidationI
   return issues;
 }
 
-function validateSystemListItem(record: Record<string, unknown>, pathPrefix: string): DatasetValidationIssue[] {
-  const issues: DatasetValidationIssue[] = [];
-  const p = (suffix: string) => (pathPrefix ? `${pathPrefix}.${suffix}` : suffix);
-  if (typeof record.uid !== "number" || !Number.isInteger(record.uid) || record.uid < 1) {
-    issues.push({ path: p("uid"), message: "uid must be a positive integer." });
-  }
-  if (typeof record.added !== "string" || !isIsoTimestamp(record.added)) {
-    issues.push({ path: p("added"), message: "added must be an ISO timestamp." });
-  }
-  if (typeof record.modified !== "string" || !isIsoTimestamp(record.modified)) {
-    issues.push({ path: p("modified"), message: "modified must be an ISO timestamp." });
-  }
-  return issues;
-}
-
 function valueMatchesField(field: DatasetField, value: unknown, forDefault = false): boolean {
   if (value === undefined || value === null) return !field.required && forDefault;
   switch (field.kind) {
@@ -512,9 +463,6 @@ function valueMatchesField(field: DatasetField, value: unknown, forDefault = fal
       return typeof value === "string" && value.length > 0;
     case "ref":
       return typeof value === "number" && Number.isInteger(value) && value > 0;
-    case "object":
-    case "list":
-      return false;
     default:
       return false;
   }
@@ -535,33 +483,6 @@ function validateValueAtField(
     return issues;
   }
   if (!present) return issues;
-
-  if (field.kind === "object") {
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
-      issues.push({ path, message: "Expected an object." });
-      return issues;
-    }
-    issues.push(...validateObjectFields(field.fields ?? [], value as Record<string, unknown>, path));
-    return issues;
-  }
-
-  if (field.kind === "list") {
-    if (!Array.isArray(value)) {
-      issues.push({ path, message: "Expected a list." });
-      return issues;
-    }
-    value.forEach((item, index) => {
-      if (!item || typeof item !== "object" || Array.isArray(item)) {
-        issues.push({ path: `${path}.${index}`, message: "Expected a list item object." });
-        return;
-      }
-      issues.push(...validateSystemListItem(item as Record<string, unknown>, `${path}.${index}`));
-      issues.push(
-        ...validateObjectFields(field.fields ?? [], item as Record<string, unknown>, `${path}.${index}`),
-      );
-    });
-    return issues;
-  }
 
   if (!valueMatchesField(field, value)) {
     issues.push({ path, message: `Value does not match ${field.kind}.` });
@@ -606,7 +527,7 @@ export function validateAllRecords(file: DatasetFile): Map<number, DatasetValida
   return map;
 }
 
-function textKinds(kind: DatasetFieldKindAny): boolean {
+function textKinds(kind: DatasetFieldKind): boolean {
   return kind === "string" || kind === "text" || kind === "url";
 }
 
@@ -654,7 +575,6 @@ function transformScalarValue(
 
 function applyDefault(field: DatasetField): unknown {
   if (field.default === undefined) return undefined;
-  if (field.kind === "object" || field.kind === "list") return undefined;
   return structuredClone(field.default);
 }
 
@@ -663,16 +583,9 @@ function adaptObjectFields(
   prevFields: readonly DatasetField[],
   nextFields: readonly DatasetField[],
   ctx: AdaptRecordsContext,
-  isListItem: boolean,
 ): Record<string, unknown> {
   const prevByKey = new Map(prevFields.map((f) => [f.key, f]));
-  const out: Record<string, unknown> = isListItem
-    ? {
-        uid: obj.uid,
-        added: obj.added,
-        modified: obj.modified,
-      }
-    : {};
+  const out: Record<string, unknown> = {};
 
   for (const nextField of nextFields) {
     const prevField = prevByKey.get(nextField.key);
@@ -683,41 +596,8 @@ function adaptObjectFields(
     }
 
     const oldId = prevField.id;
-    let value = oldId in obj ? obj[oldId] : undefined;
-
-    if (prevField.kind === "object" && nextField.kind === "object") {
-      if (value && typeof value === "object" && !Array.isArray(value)) {
-        value = adaptObjectFields(
-          value as Record<string, unknown>,
-          prevField.fields ?? [],
-          nextField.fields ?? [],
-          ctx,
-          false,
-        );
-      } else {
-        value = undefined;
-      }
-    } else if (prevField.kind === "list" && nextField.kind === "list") {
-      if (Array.isArray(value)) {
-        value = value.map((item) => {
-          if (!item || typeof item !== "object" || Array.isArray(item)) return item;
-          return adaptObjectFields(
-            item as Record<string, unknown>,
-            prevField.fields ?? [],
-            nextField.fields ?? [],
-            ctx,
-            true,
-          );
-        });
-      } else {
-        value = undefined;
-      }
-    } else if (prevField.kind === nextField.kind && (prevField.kind === "object" || prevField.kind === "list")) {
-      value = applyDefault(nextField);
-    } else {
-      value = transformScalarValue(value, prevField, nextField, ctx);
-    }
-
+    const raw = oldId in obj ? obj[oldId] : undefined;
+    const value = transformScalarValue(raw, prevField, nextField, ctx);
     if (value !== undefined) out[nextField.id] = value;
   }
 
@@ -731,7 +611,7 @@ export function adaptRecords(
   ctx: AdaptRecordsContext,
 ): DatasetRootRecord[] {
   return records.map((record) => {
-    const adapted = adaptObjectFields(record, previous.fields, next.fields, ctx, false);
+    const adapted = adaptObjectFields(record, previous.fields, next.fields, ctx);
     return {
       uid: record.uid,
       added: record.added,
@@ -761,11 +641,6 @@ export function summarizeSchemaAdaptation(
       defaultsApplied.push({ key, id: n.id });
     }
   }
-  walkFields(next.fields, (f) => {
-    if (!prevByKey.has(f.key) && f.default !== undefined && !defaultsApplied.some((d) => d.key === f.key)) {
-      defaultsApplied.push({ key: f.key, id: f.id });
-    }
-  });
 
   return { renames, removals, defaultsApplied };
 }
@@ -773,12 +648,6 @@ export function summarizeSchemaAdaptation(
 export function emptyRootRecordDraft(schema: DatasetSchemaBody): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   applyDefaultsToObject(out, schema.fields);
-  return out;
-}
-
-export function emptyListItemDraft(fields: readonly DatasetField[]): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  applyDefaultsToObject(out, fields);
   return out;
 }
 
@@ -794,15 +663,6 @@ export function stripEmptyOptionalFields(
 ): Record<string, unknown> {
   const out = { ...obj };
   for (const field of fields) {
-    if (field.kind === "object" || field.kind === "list") {
-      if (field.kind === "list" && Array.isArray(out[field.id])) {
-        out[field.id] = (out[field.id] as unknown[]).map((item) => {
-          if (!item || typeof item !== "object" || Array.isArray(item)) return item;
-          return stripEmptyOptionalFields(item as Record<string, unknown>, field.fields ?? []);
-        });
-      }
-      continue;
-    }
     const v = out[field.id];
     if (v === undefined || v === null || v === "") delete out[field.id];
     if (field.kind === "boolean" && v === false && !field.required) delete out[field.id];

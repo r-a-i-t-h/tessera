@@ -100,7 +100,7 @@ The editor process serves the working snapshot at `/preview/` on the editor orig
 
 ## Datasets
 
-Structured collections (events, products, meeting rows, branches, and similar) live in `$TESSERA_DATA/datasets/<id>.json`. Each file holds a field tree (`schema`), view prefs (`view.columns`, `view.displayName`), a `nextUid` counter, and `records` as nested JSON documents. Root records store `uid`, `added`, `modified`, and schema field values. `view.displayName` is a template such as `{make} {model} {year}` used in pickers and labels. Grid columns come from `view.columns` (optional `uid`, schema scalar fields, and optional `added` / `modified`). List items carry `uid` and timestamps only.
+Structured collections (events, products, meeting rows, branches, and similar) live in `$TESSERA_DATA/datasets/<id>.json`. Each file is one flat table: a `schema` of scalar fields, view prefs (`view.columns`, `view.displayName`), a `nextUid` counter, and `records`. A field kind is string, text, url, number, boolean, date, enum, asset (optional `many`), or ref (a uid in another dataset). There are no nested object or list columns. Each record stores `uid`, `added`, `modified`, and the schema field values. `view.displayName` is a template such as `{make} {model} {year}` used in pickers and labels. Grid columns come from `view.columns` (optional `uid`, schema fields, and optional `added` / `modified`). Publish embeds a referenced dataset when a binding’s rows point at it through `ref`.
 
 The editor **Datasets** section designs the schema and edits records (grid, inline grid edit, and record dialog). Saving a schema runs `adaptRecords` in `@r-a-i-t-h/tessera-model` so renames, removals, and defaults rewrite stored rows. Bindings that reference a dataset embed its payload at flatten/preview/publish time.
 
@@ -129,7 +129,7 @@ Records live in `$TESSERA_DATA/records/`, off the web path. Each record is one Y
 
 HTML zones on **items** (and layout **static** nodes) use YAML `html:` scalars; items may also use a **`component`** mount per zone. **Compose-backed page zones** persist an ordered **widget list** under `zones.<id>.blocks` (objects with `kind`, not renderer `type`). Assemble compiles widgets to a single `text` block for publish. The **`title`** zone may stay a plain `html:` string on the Page tab. Component implementations live in the shared catalogue; only bindings are records.
 
-The editor form for a page lists the type's fields, then zones declared by the resolved layout (the type's layout, otherwise the site default). Extra keys on the page that the layout does not declare stay editable under **Off layout**. A type is site configuration: it names fields and a layout. It is not a built-in class. Willow's person type lists `role`, `email`, `photo`, and `precis` on the entry. `schemaVersion` is how records are stored.
+The editor form for a page lists the type's fields, then zones declared by the resolved layout (the type's layout, otherwise the site default). Extra keys on the page that the layout does not declare stay editable under **Off layout**. A type is site configuration: it names string fields and a layout. It is not a built-in class. The Page tab asks for those strings. `schemaVersion` is how records are stored.
 
 Compose (`@r-a-i-t-h/tessera-sections`) parses a zone’s HTML into sections and paints it back in the editor. On disk (authoring schema 4), compose-backed page zones store **widget `blocks`** under `zones.<id>.blocks`; assemble compiles them to renderer `text` HTML in the flattened document. Fields and Raw file still edit the same page (Raw shows YAML; Fields round-trip through the section model). A block that does not parse back stays raw HTML. A locked page keeps the section arrangement fixed and still edits the words and pictures inside it. A template is the same body, stored under `records/templates/`, and is not a layout.
 
@@ -194,9 +194,9 @@ The global `media[]` catalog is every asset. Gallery components still reference 
 ```json
 "bindings": [
   {
-    "id": "upcoming-events",
-    "component": "datedList",
-    "props": { "tag": "event", "limit": 3, "upcoming": true }
+    "id": "branch-list",
+    "component": "datasetTable",
+    "props": { "dataset": "branches" }
   }
 ]
 ```
@@ -204,11 +204,11 @@ The global `media[]` catalog is every asset. Gallery components still reference 
 Content inserts the populated view with mustache or a component block:
 
 ```html
-{{upcoming-events}}
+{{branch-list}}
 ```
 
 ```json
-{ "type": "component", "name": "upcoming-events" }
+{ "type": "component", "name": "branch-list" }
 ```
 
 **What requires a Tessera release:** adding a new **catalogue** component implementation (then available to every site). **Runtime modules** are site-owner ESM copied at publish; they are not catalogue releases.  

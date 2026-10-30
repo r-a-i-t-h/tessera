@@ -126,7 +126,6 @@ export function readSchemaForm(root: HTMLElement, draft: SchemaDraft): SchemaDra
       kind: resolvedKind,
       required: line.querySelector<HTMLInputElement>(`[data-schema-required="${index}"]${scoped}`)?.checked === true,
     };
-    delete field.fields;
     if (field.kind === "asset") {
       field.many = line.querySelector<HTMLInputElement>(`[data-schema-many="${index}"]${scoped}`)?.checked === true;
     }

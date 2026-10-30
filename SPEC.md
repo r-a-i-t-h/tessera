@@ -17,7 +17,7 @@ It is the successor to Rec-Tem (“recursive templates”). The mosaic metaphor 
 ### Goals
 
 - Deliver a full small site either as a **snapshot** (one flattened payload loaded once and reused for in-browser navigation) or as **pages** (one HTML file per page in a tree, with nav written into each file).
-- Support static page content, **typed pages** (each with its own URL in the tree), **datasets** (tabular/nested data embedded at publish when bindings reference them), and **bindings** that show lists on a page via registered components or runtime modules.
+- Support static page content, **typed pages** (each with its own URL in the tree), **datasets** (one flat table per file, embedded at publish when bindings reference them, with `ref` fields pointing at rows in other datasets), and **bindings** that show lists on a page via registered components or runtime modules.
 - Keep sites **mobile layout friendly** (adaptive layout; default skin is W3.CSS).
 - Ship enough shared components to build a complete site (listings, blog, gallery, document browser, layout primitives) without blocking site-specific components.
 - Provide a clear inclusion story without recursive zones (see [Inclusion](#6-inclusion-without-recursive-zones)).
@@ -88,9 +88,11 @@ A date still in the future is hidden on the blog, the index, previous/next, and 
 Zone content is composed of blocks such as:
 
 - **text** — trusted authored HTML (no embedded JavaScript).
-- **json** — structured data for components (often not painted directly).
 - **media** — references into the media catalog.
+- **image** — an image block (gallery slides read these from a zone).
 - **component** — a named registry entry (see inclusion).
+
+Structured rows are not a block kind. They live in a dataset.
 
 ### Micro-app
 
@@ -98,7 +100,7 @@ A **micro-app** is an interactive client-side mount on a page: an event list, a 
 
 “Component” remains the implementation word (a registry function, a web component). The product term for the visitor-facing mount is micro-app.
 
-Micro-apps are client-only in both flavours. The pages publisher writes an empty mount and a JSON description of the data that mount needs. It does not run the micro-app.
+Micro-apps are client-only in both flavours. The pages publisher writes an empty mount and a JSON description of the component and its props. It does not run the micro-app. Dataset rows travel in the embedded dataset snapshot.
 
 ### Runtime module
 
@@ -202,9 +204,9 @@ While a snapshot stays open, re-check `rev.json` on a fixed interval of **5 minu
 
 - Content is trusted authored material: `text` blocks may contain HTML. Dynamics are never authored as inline scripts inside the document.
 - Pages and items reference layouts, zones, media, **bindings**, and registered component names.
-- **Bindings** are part of site data: pair a registered component with a public id such as Willow’s `upcoming-events`. Insert with `{{upcoming-events}}` in text HTML or a component block named `upcoming-events`.
+- **Bindings** are part of site data: pair a registered component with a public id such as `branch-list`. Insert with `{{branch-list}}` in text HTML or a component block named `branch-list`.
 - Relative asset URLs (`./…`) are required for subdirectory hosting; the renderer may normalize accidental root-absolute media paths at paint time.
-- **Datasets** are JSON files under `$TESSERA_DATA/datasets/` for typed tabular/nested data. They are edited in the Datasets section. Flatten, preview, and publish embed snapshots into `SiteDocument.datasets` for every dataset referenced by bindings (see [Datasets](#datasets)).
+- **Datasets** are JSON files under `$TESSERA_DATA/datasets/`. Each file is one flat table (scalar fields, optional multi-asset columns, and `ref` pointers). They are edited in the Datasets section. Flatten, preview, and publish embed snapshots into `SiteDocument.datasets` for every dataset referenced by bindings, including datasets reached through `ref` fields (see [Datasets](#datasets)).
 
 ---
 
@@ -225,13 +227,13 @@ Nav is first-class document content, not merely demo chrome — and it is **dist
 
 Rec-Tem’s strength was content that could add zones without knowing what would fill them. Tessera forbids inventing zones from content. The replacement:
 
-1. **Bindings live in the site document** — not only in TypeScript. Example: Willow lists upcoming events with `datedList` registered as binding id `upcoming-events`.
-2. Other content inserts the populated view with `{{upcoming-events}}` (or a component block with that name). Authors do not re-wire data to the component at each call site.
+1. **Bindings live in the site document** — not only in TypeScript. Example: a dataset list binding `branch-list` uses the catalogue component `datasetTable`.
+2. Other content inserts the populated view with `{{branch-list}}` (or a component block with that name). Authors do not re-wire data to the component at each call site.
 3. Component implementations live in the Tessera catalogue (a release to add a new Y). Binding rows (Z → X + Y) are data and can change with `site.json`.
 
 ```text
-bindings[]: { id: "upcoming-events", component: "datedList", props: { tag: "event", limit: 3, upcoming: true } }
-content: "{{upcoming-events}}"
+bindings[]: { id: "branch-list", component: "datasetTable", props: { dataset: "branches" } }
+content: "{{branch-list}}"
 ```
 
 **Note:** Iteration over items that themselves invented nested zones (old Rec-Tem) is **out**. Iteration via bindings + components is **in**.
@@ -339,14 +341,14 @@ Criteria define “done enough,” not a build order (see [ROADMAP.md](./ROADMAP
 - [x] Bindings are site data (`document.bindings`) pairing content with a registered component under a public id.
 - [x] Content can insert a binding via `{{id}}` in text HTML and via a component block named with that id.
 - [x] A site-defined type resolves layout for its entries (type layout, otherwise site default) without recursive templates.
-- [ ] **Listing patterns (author-facing):** Document and refine the general pattern for list-on-page views (bindings over typed pages, dataset list bindings, `subpages`, reserved blog) so authors are not required to wire ad-hoc bindings by hand. Willow’s people/events/news bindings are the reference implementation, not a separate `items`-as-collections model.
+- [ ] **Listing patterns (author-facing):** Document and refine the general pattern for list-on-page views (dataset list bindings, `linkCluster` and `subpages` over typed pages, reserved blog) so authors are not required to wire ad-hoc bindings by hand. Items stay reusable zone bags, not collections of rows.
 
 ### Navigation
 
 - [x] Page existence does not imply nav visibility (designed nav is authored separately).
 - [x] Nav nodes may declare `source` for content-implied links (e.g. by page/item tag).
 - [x] Multiple nav presentations ship as components (`navTags`, `navTree`, `navCollapse`); none is mandatory.
-- [x] Shell chrome may consume a nav component (Willow’s master layout uses `navFlat`).
+- [x] Shell chrome may consume a nav component (the starter master layout uses `navFlat`).
 
 ### Gallery and presentation
 

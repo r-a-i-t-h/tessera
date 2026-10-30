@@ -122,7 +122,6 @@ export type { SiteStyle } from "./style.js";
 export {
   DATASET_RECORD_ID,
   DATASET_RESERVED_FIELD_IDS,
-  DATASET_MAX_FIELD_DEPTH,
   DATASET_SCALAR_KINDS,
   DATASET_FIELD_KINDS,
   parseDatasetFields,
@@ -137,7 +136,6 @@ export {
   adaptRecords,
   summarizeSchemaAdaptation,
   emptyRootRecordDraft,
-  emptyListItemDraft,
   stripEmptyOptionalFields,
   displayNamePlaceholders,
   validateDisplayNameTemplate,
@@ -164,8 +162,6 @@ export {
 export type {
   DatasetScalarKind,
   DatasetFieldKind,
-  DatasetFieldKindAny,
-  DATASET_LEGACY_NESTED_KINDS,
   DatasetEnumOption,
   DatasetField,
   DatasetSchemaBody,

@@ -12,21 +12,21 @@ A page stays a poster. It points at an optional type, holds string fields, inclu
 
 A type still has three jobs, all about pages:
 
-- **Shared layout.** Pages do not store a layout id. `resolvePageProfile` takes the layout from the type. On Willow, `event` and `news` share the article layout, `person` uses profile, and `meeting` uses meeting.
+- **Shared layout.** Pages do not store a layout id. `resolvePageProfile` takes the layout from the type.
 - **Short text on the poster.** The type names the strings the Page tab asks for. They stay strings, in text boxes. When a layout zone has the same id and no authored HTML, the renderer prints that string into the zone. A filled zone wins.
-- **A family of real pages.** Nav `source.pageType`, `linkCluster`, and `peopleGrid` select pages of that type. Each match is still its own URL.
+- **A family of real pages.** Nav `source.pageType` and `linkCluster` select pages of that type. Each match is still its own URL.
 
 Items are reusable zone bags. Bindings pair a public id with a registered component. Neither is a page, and neither stretches `Page`.
 
-**Datasets and runtime modules (since this review).** Tabular or nested data that is not prose on a page belongs in **`datasets/`** and reaches visitors through **dataset list** bindings (embedded into the flattened document at publish) or a **runtime module** binding. That is the schema-led path for booleans, numbers, dates, and refs — not extra fields on every page poster. **Runtime modules** are site-owner ESM under `runtime-modules/`; Tessera copies referenced files into `publish/` and runs them in the browser only. Catalogue micro-apps still ship with Tessera.
+**Datasets and runtime modules (since this review).** Tabular data that is not prose on a page belongs in **`datasets/`** and reaches visitors through **dataset list** bindings (embedded into the flattened document at publish) or a **runtime module** binding. Each dataset is one flat table: scalar fields, optional `asset.many`, and `ref` pointers to a row in another dataset. There are no nested object or list columns. That is the schema-led path for booleans, numbers, dates, and refs — not extra fields on every page poster. **Runtime modules** are site-owner ESM under `runtime-modules/`; Tessera copies referenced files into `publish/` and runs them in the browser only. Catalogue micro-apps still ship with Tessera.
 
-Page **posters** stay string fields plus zones for prose. Willow still lists events and news via **typed pages** and `datedList` on string `date` fields; that listing path is separate from datasets and remains fragile (see splinters below).
+Page **posters** stay string fields plus zones for prose. Repeating structured rows belong in datasets. A row that needs its own URL is a page (a typed page, or the reserved blog), not a dataset record.
 
-`blog`, `article`, and `blog-index` are reserved words in the type slot. They are not site type records. Articles have their own editor controls, including a real date picker, and the store requires `YYYY-MM-DD`. Meetings and events on Willow still use string dates on the page poster for `datedList`; dataset-backed rows use typed fields in `datasets/` instead.
+`blog`, `article`, and `blog-index` are reserved words in the type slot. They are not site type records. Articles have their own editor controls, including a real date picker, and the store requires `YYYY-MM-DD`. Dataset rows use the date kind on the dataset schema.
 
 ## Known splinters we are leaving
 
-**Legacy list bindings (`datedList`, `peopleGrid`, …) are not in the binding wizard.** Sites that still name those components edit the binding YAML directly. Blog/article listings use the reserved blog types and `bootBlog` hydration (`<script type="application/json" class="tessera-blog-data">`), not zone JSON content. Structured lists belong in **datasets** and dataset bindings.
+**Zone JSON and the Willow list components are gone.** A zone is `html`, `component`, or `blocks` (`text`, `media`, `image`, `component`). `datedList`, `peopleGrid`, `eventList`, and the profile lines are not registered, so a binding that still names them does not render. Structured lists belong in **datasets** and dataset bindings. Blog listings use the reserved blog types and `bootBlog` hydration (`<script type="application/json" class="tessera-blog-data">`).
 
 **`fields.showIndexInNav` is one hardcoded name in the shared form reader** (`apps/editor/src/forms/form.ts`). Page fields are strings, and a checkbox on a dotted name would otherwise become a boolean, which `stringFields` drops. The blog save path rewrites `true` or `"true"` to the string `"true"` and deletes anything else. The editor branch does the same rewrite one step earlier so the draft matches. The page-level Show in nav checkbox is a real boolean and uses the normal path. This is the only boolean hiding in the string map. Leave it. A second checkbox under `fields.` should share one rule rather than add another named branch.
 
@@ -48,15 +48,13 @@ A React (or similar) port would colocate a control and its handler. It would als
 
 A later front end, if it happens, should be a new client of the existing API. Porting this editor screen by screen is not planned.
 
-## What still works without typed fields
+## What still works without typed fields on pages
 
-These do not need `datedList`'s string-date trick:
+Page types stay string fields. These do not need a date kind on the type:
 
 - Nav `pageType` and `linkCluster` link pages by id and title.
-- `peopleGrid` and the profile components (`profileKicker`, `profilePhoto`, `profileFacts`) show title and string fields such as `role`, `photo`, and `email`.
-- `articleByline` prints filled-in strings on the current page and formats `date` when the string parses.
 - `pageNav` lists pages with no type. Search can filter by type id.
 - Blog sorting uses the reserved article date, which is validated.
-- `agendaList` and `attendeeList` read JSON rows from a zone. That is data on a page, not a query of pages by type.
+- Dataset fields have a real date kind. Dataset list bindings sort and filter those values.
 
 No code change follows from this review.

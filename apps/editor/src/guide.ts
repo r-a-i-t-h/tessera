@@ -114,22 +114,19 @@ export function guideHtml(): string {
     <p>Prefer <strong>Bindings + Insert</strong> for wizard-supported components. Page sections store settings in zone HTML — fine for simple blocks; risky for complex micro-apps.</p>
     <h3 class="w3-medium">Gallery: binding vs Compose section</h3>
     <ul>
-      <li><strong>Gallery binding</strong> — Primary: folders, filters, slides, reuse (Willow’s hall gallery).</li>
+      <li><strong>Gallery binding</strong> — Primary: folders, filters, slides, reuse across pages.</li>
       <li><strong>Gallery Compose section</strong> — Quick fix: one folder on this page only. Move to a binding when it matters.</li>
     </ul>
     <p>Other binding kinds are <strong>binding only</strong> (no Compose section).</p>
     <h3 class="w3-medium">Binding kinds</h3>
     <ul>
       <li><strong>Gallery</strong> — Library folders as grid or slides.</li>
-      <li><strong>Dated list</strong> — Dated pages by type. Willow’s upcoming events.</li>
-      <li><strong>People grid</strong> — Pages of a type with photo and role.</li>
-      <li><strong>Link group</strong> — Children, pages of a type, or a menu heading.</li>
       <li><strong>Reveal banner</strong> — Cropped panels, hover grow, click-to-reveal, then link (Miller’s Ark homepage hero). Panel image: site-relative path; panel link: page id or external URL (Choose page in the binding editor). Insert only.</li>
       <li><strong>Dataset list</strong> — Rows from a <a href="${guideSectionHref("datasets")}">dataset</a>: table, cards, or plain list; or the same data passed to a <strong>runtime module</strong> for a custom view. Sort, limit, column pick, and filters are binding props.</li>
       <li><strong>Embed</strong> — Raw HTML from a ticket vendor, payment provider, or similar (scripts and iframes kept on publish). Paste in the binding editor; insert with Compose → Insert. Not a layout Component.</li>
       <li><strong>Runtime module</strong> — Client JavaScript from the catalog with binding props only (no dataset). See <a href="${guideSectionHref("runtime-modules")}">Runtime modules</a>.</li>
     </ul>
-    <p>Menus, breadcrumbs, profile lines, and <strong>Subpages</strong> are not bindings. Unsupported components use the raw binding file.</p>
+    <p>Menus, breadcrumbs, and <code>linkCluster</code> belong on a layout (see <a href="${guideSectionHref("menu-components")}">Menu components</a>). <strong>Subpages</strong> is a Compose section. Structured rows belong in a <a href="${guideSectionHref("datasets")}">dataset</a>, not in a zone. Unsupported components use the raw binding file.</p>
 
   <h2 id="stylesheets">Stylesheets</h2>
     <p>A class on a layout region is an ordinary CSS class. These stylesheets supply them, and they do not stand in for each other.</p>
@@ -137,14 +134,14 @@ export function guideHtml(): string {
       <li><strong>${sheetLink("w3", "W3.CSS")}</strong> (<code>skin/w3.css</code>), linked by every shell. Examples: <code>w3-sidebar</code>, <code>w3-bar-block</code>, <code>w3-collapse</code>, <code>w3-hide-large</code>, <code>w3-row</code>, <code>w3-col</code>. <code>w3-collapse</code> on a <code>w3-sidebar</code> shows that sidebar from 993px up and hides it below that, where the Menu button opens it. <code>w3-hide-large</code> hides an element from 993px up.</li>
       <li><strong>${sheetLink("tessera", "Tessera")}</strong> (<code>skin/tessera.css</code>), linked by every shell. The default frame and shared widgets: <code>tessera-sidebar</code>, <code>tessera-bar</code>, <code>tessera-main</code>, <code>tessera-content</code>, <code>tessera-footer</code>, link clusters, video, pasted notes, and <code>tessera-imgbox</code>. Tokens changed on the ${stylesPage} page override <code>:root</code> in this file. Defaults stay here.</li>
       <li><strong>${sheetLink("microapps", "Micro-apps")}</strong> (<code>skin/microapps.css</code>). The gallery lives here.</li>
-      <li><strong>${sheetLink("site", "Site CSS")}</strong> (<code>shell/site.css</code>). Theme / frame layout for this site. Willow’s look is here: <code>wh-header</code>, <code>wh-topnav</code>, <code>wh-drawer</code>, <code>wh-main</code>, and the colours under <code>--wh-</code>. <code>.wh-drawer</code> is <code>display: none</code> until Menu runs. Theme apply may replace this file.</li>
+      <li><strong>${sheetLink("site", "Site CSS")}</strong> (<code>shell/site.css</code>). Theme / frame layout for this site. The starter theme keeps frame tweaks here. Theme apply may replace this file.</li>
       <li><strong>${sheetLink("local", "Site local")}</strong> (<code>shell/local.css</code>). Durable site-owned rules (panel tones, local tweaks). Theme apply does not overwrite it. Linked after <code>site.css</code>.</li>
     </ul>
-    <p>A shell that links a W3 theme, such as <code>skin/w3-theme-teal.css</code>, keeps ${sheetLink("theme", "that theme file")} between W3 and Tessera. Willow paints those colours in ${sheetLink("site", "site layout")} instead. The fonts link is a URL, not one of these files.</p>
+    <p>A shell that links a W3 theme, such as <code>skin/w3-theme-teal.css</code>, keeps ${sheetLink("theme", "that theme file")} between W3 and Tessera. The fonts link is a URL, not one of these files.</p>
     <p>The ${stylesPage} page can open each of these files. Saving W3, Tessera, micro-apps, or the theme stores a copy for this site and leaves the shared file alone. Saving site layout writes <code>shell/site.css</code>; saving site local writes <code>shell/local.css</code>. The preview uses a save immediately. Publish updates the published copy.</p>
 
     <h2 id="what-the-styles-page-changes">What the Styles page changes</h2>
-    <p>${stylesPage} saves <code>site.style</code>. A pages build writes tokens that differ from the Tessera defaults into a style element after the stylesheet links, and adds <code>leftnav</code> or <code>rightnav</code> on the body. That style element overrides those variables in ${sheetLink("tessera", "Tessera")}. A token left at its default stays in the stylesheet, so editing it there shows in the preview. Editing a stylesheet does not change this form. Willow’s master layout uses <code>wh-</code> classes, so saving the tokens leaves the hall looking the same. The specimen on the ${stylesPage} page is the default frame, which is the frame a blank site starts with.</p>
+    <p>${stylesPage} saves <code>site.style</code>. A pages build writes tokens that differ from the Tessera defaults into a style element after the stylesheet links, and adds <code>leftnav</code> or <code>rightnav</code> on the body. That style element overrides those variables in ${sheetLink("tessera", "Tessera")}. A token left at its default stays in the stylesheet, so editing it there shows in the preview. Editing a stylesheet does not change this form. The specimen on the ${stylesPage} page is the default frame, which is the frame a blank site starts with.</p>
     <table class="w3-table w3-bordered">
       <thead><tr><th>Field</th><th>Effect on the default chrome</th></tr></thead>
       <tbody>
@@ -154,7 +151,7 @@ export function guideHtml(): string {
         <tr><td>Base font size</td><td>Body text size.</td></tr>
         <tr><td>Font A–D</td><td>The four faces behind the A B C D buttons. Font A is the one visitors start on.</td></tr>
         <tr><td>Fonts stylesheet</td><td>An https URL that loads those faces. A Google Fonts CSS link is the usual value.</td></tr>
-        <tr><td>Menu side</td><td>Left or right. Moves a <code>tessera-sidebar</code>. Willow’s drawer is a separate element and stays on the left.</td></tr>
+        <tr><td>Menu side</td><td>Left or right. Moves a <code>tessera-sidebar</code> standing column.</td></tr>
         <tr><td>Bar, Bar text</td><td>Top bar and footer fill and type.</td></tr>
         <tr><td>Sidebar, Sidebar text</td><td>Sidebar fill and type. The current link uses Accent for its fill and Bar text for its type.</td></tr>
         <tr><td>Page background, Text</td><td>Page fill and body type.</td></tr>

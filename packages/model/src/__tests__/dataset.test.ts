@@ -85,6 +85,16 @@ describe("validateRootRecord", () => {
       }),
     ).toThrow(/reserved/);
   });
+
+  it("rejects nested and html field kinds", () => {
+    for (const kind of ["object", "list", "html"]) {
+      expect(() =>
+        parseDatasetSchema({
+          fields: [{ key: "f1", id: "extra", label: "Extra", kind }],
+        }),
+      ).toThrow(new RegExp(`Field type ${kind} is no longer supported`));
+    }
+  });
 });
 
 describe("formatRecordDisplayName", () => {

@@ -39,7 +39,7 @@ That is a small-site CMS for prose pages, media, and a designed menu. It is one 
    → [SPEC §9](./SPEC.md#9-editor-boundary)
 
 2. **Listing patterns (author-facing)**  
-   First-class guidance and UX beyond ad-hoc bindings: list-on-page via typed pages + bindings, dataset list bindings, `subpages`, and the reserved blog. Willow’s people/events/news are the reference; the blog is separate.  
+   First-class guidance and UX beyond ad-hoc bindings: dataset list bindings, `linkCluster` and `subpages` over typed pages, and the reserved blog. The blog stays separate from datasets.  
    → [SPEC §2](./SPEC.md#pages-items-and-datasets), [acceptance](./SPEC.md#inclusion-and-items)
 
 3. **Editor chrome**  

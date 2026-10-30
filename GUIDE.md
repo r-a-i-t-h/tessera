@@ -153,7 +153,7 @@ Use **Bindings + Insert** for any component Tessera offers through the binding w
 
 | Approach | When to use |
 |----------|-------------|
-| **Gallery binding** | Primary — multiple folders, filename filter, slides, reuse across pages (Willow’s hall gallery). |
+| **Gallery binding** | Primary — multiple folders, filename filter, slides, reuse across pages. |
 | **Gallery Compose section** | Quick fix — one folder on **this page only**. Migrate to a binding when the gallery matters. |
 
 Other binding kinds have **no** Compose section shortcut — configure them only as bindings.
@@ -161,9 +161,6 @@ Other binding kinds have **no** Compose section shortcut — configure them only
 ### Binding kinds
 
 - **Gallery** — Pictures from library folders, as a grid or slides.
-- **Dated list** — Pages of a type with a date field. Upcoming, past, or all. Willow’s upcoming events list is one of these.
-- **People grid** — Pages of a type, using photo and role fields.
-- **Link group** — Titled links: this page’s children, every page of a type, or one menu heading.
 - **Reveal banner** — Grid of image panels (Miller’s Ark–style homepage hero): set banner width, height, and panels per row (2–6); optional title size (1–2 em) and expanded gap (default 10px, the space left beside a grown panel); up to six panels with image, title, and link. Each panel shows its slice of full-size artwork; hover to grow on desktop; click or tap to reveal the full banner, then navigate. Insert only; no Compose palette section. Panel **image** is a site-relative library path (e.g. `./media/hero/img1.jpg`). Panel **link** is a **page id** (same id as Pages or Nav) or a full external URL (`https://…`, `mailto:…`); use **Choose page** in the binding editor. Do not use `./` or publish paths for panel links.
 - **Dataset list** — Rows from a [dataset](#datasets): table, cards, or plain list; or the same data passed to a **runtime module** for a custom view. Sort, limit, column pick, and filters are binding props.
 - **Embed** — Raw HTML from a ticket vendor, payment form, or similar (scripts and iframes kept on publish). Paste in the binding editor; insert with Compose → Insert. Not a layout Component.
@@ -173,7 +170,7 @@ Create these from [Records → Bindings](#/records/bindings) (wizard) or edit th
 
 ### What is not a binding
 
-Menus, breadcrumbs, and profile lines (`articleByline`, `profileKicker`, `profilePhoto`, `profileFacts`) belong on a **layout**. **Subpages** is a Compose section. A list stored as JSON in a zone is page content, not a binding.
+Menus, breadcrumbs, and `linkCluster` belong on a **layout** (see [Menu components](#menu-components)). **Subpages** is a Compose section. Structured rows belong in a [dataset](#datasets), not in a zone.
 
 ## Stylesheets
 

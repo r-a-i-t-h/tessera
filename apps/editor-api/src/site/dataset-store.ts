@@ -13,7 +13,6 @@ import {
   formatRecordDisplayName,
   type DatasetFile,
   type DatasetRootRecord,
-  type DatasetSchemaBody,
   DATASET_RECORD_ID,
 } from "@r-a-i-t-h/tessera-model";
 import { readJson, writeTextAtomic } from "../store/fs.js";
@@ -170,29 +169,6 @@ export class DatasetStore {
     await unlink(filePath(this.datasetsDir, id));
   }
 
-  private assignNestedUids(record: Record<string, unknown>, file: DatasetFile, rootModified: { touched: boolean }): void {
-    const walk = (obj: Record<string, unknown>, fields: DatasetSchemaBody["fields"]): void => {
-      for (const field of fields) {
-        if (field.kind !== "list") continue;
-        const items = obj[field.id];
-        if (!Array.isArray(items)) continue;
-        for (const item of items) {
-          if (!item || typeof item !== "object" || Array.isArray(item)) continue;
-          const row = item as Record<string, unknown>;
-          if (typeof row.uid !== "number") {
-            row.uid = file.nextUid++;
-            const t = nowIso();
-            row.added = t;
-            row.modified = t;
-            rootModified.touched = true;
-          }
-          walk(row, field.fields ?? []);
-        }
-      }
-    };
-    walk(record, file.schema.fields);
-  }
-
   private normalizeRootRecord(
     incoming: Record<string, unknown>,
     existing: DatasetRootRecord | undefined,
@@ -202,21 +178,15 @@ export class DatasetStore {
     delete cleaned.added;
     delete cleaned.modified;
 
-    const rootModified = { touched: false };
     if (existing) {
       cleaned.uid = existing.uid;
       cleaned.added = existing.added;
+      cleaned.modified = nowIso();
     } else {
       cleaned.uid = file.nextUid++;
       const t = nowIso();
       cleaned.added = t;
       cleaned.modified = t;
-    }
-
-    this.assignNestedUids(cleaned, file, rootModified);
-
-    if (existing) {
-      cleaned.modified = nowIso();
     }
 
     const rootFieldIds = new Set(file.schema.fields.map((f) => f.id));
