@@ -1,6 +1,8 @@
 import { activateDialog, type DialogController } from "../dialog.js";
 import { escapeHtml, formErrorPanel, showFormError } from "../dom.js";
 import type { RuntimeModuleAsset } from "../api.js";
+import { buildRuntimeModuleEntityItems } from "../entity-opener-items.js";
+import { entityOpenerHtml } from "../entity-opener.js";
 import { mountMaximizedCodeEditor, type MaximizedCodeEditorHandle } from "../maximized-code-editor.js";
 import { readDataTransfer } from "./drop.js";
 import { pageIdError } from "./page.js";
@@ -146,12 +148,18 @@ function runtimeModuleDuplicateToolsHtml(suggestedId: string): string {
   </form>`;
 }
 
-export function renderRuntimeModulePage(mod: RuntimeModuleAsset, raw: string, duplicateSuggestedId: string): string {
-  const title = escapeHtml(mod.title?.trim() || mod.id);
+export function renderRuntimeModulePage(
+  mod: RuntimeModuleAsset,
+  raw: string,
+  duplicateSuggestedId: string,
+  modules: RuntimeModuleAsset[],
+): string {
+  const title = mod.title?.trim() || mod.id;
+  const titleHtml = entityOpenerHtml(title, mod.id, buildRuntimeModuleEntityItems(modules, mod.id));
   return `<div class="editor-toolbar">
       <div class="editor-toolbar-row">
         <a class="w3-button w3-white editor-back" href="${runtimeModulesRouteHash()}" aria-label="Back" title="Back (Escape)">←</a>
-        <h1 class="w3-large">${title}</h1>
+        ${titleHtml}
         <p class="editor-actions">
           <button type="submit" form="runtime-module-form" class="w3-button w3-theme">Save</button>
           <button type="button" data-runtime-delete class="w3-button w3-white w3-border w3-border-red">Delete</button>

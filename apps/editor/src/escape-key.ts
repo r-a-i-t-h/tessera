@@ -1,3 +1,5 @@
+import { closeEntityOpener } from "./entity-opener.js";
+
 export const COMPOSE_LIST_EXPANDED_LABEL = "Collapse editors";
 export const COMPOSE_LIST_COLLAPSED_LABEL = "Expand editors";
 
@@ -24,6 +26,7 @@ export function handleEscape(root: ParentNode, handlers?: EscapeHandlers): boole
     return true;
   }
   if (cancelDatasetGridEdit(root)) return true;
+  if (closeEntityOpener(root)) return true;
   if (followBackLink(root)) return true;
   if (followLibraryParent(root)) return true;
   return false;

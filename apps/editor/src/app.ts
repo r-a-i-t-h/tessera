@@ -268,6 +268,9 @@ import {
 import { usernameError } from "./username.js";
 import { cancelNewBindingForm, handleEscape, hasOpenModal } from "./escape-key.js";
 import { triggerNewAction } from "./new-key.js";
+import { triggerOpenAction, isEntityOpenShortcut } from "./open-key.js";
+import { bindEntityOpener, entityOpenerHtml } from "./entity-opener.js";
+import { buildEditEntityItems, buildUserEntityItems } from "./entity-opener-items.js";
 import { bindDatasetsSetup, datasetsSetupSection, mountDatasetSetup } from "./datasets/setup.js";
 import { mountData } from "./datasets/view.js";
 
@@ -305,6 +308,11 @@ export async function mount(root: HTMLElement): Promise<void> {
       event.preventDefault();
       if (!hasOpenModal() && triggerNewAction(root)) return;
       showEditorToast("Nothing created", { tone: "neutral" });
+      return;
+    }
+    if (isEntityOpenShortcut(event)) {
+      event.preventDefault();
+      if (!hasOpenModal() && triggerOpenAction(root)) return;
       return;
     }
     if (event.code !== "KeyS" || event.altKey || event.shiftKey || !(event.metaKey || event.ctrlKey)) return;
@@ -800,11 +808,12 @@ async function bindUser(
   }
   root.innerHTML = chrome(
     user,
-    `${userDetailToolbar(target, user)}${userEditHtml(target, user, notice, error)}`,
+    `${userDetailToolbar(target, user, listing.users)}${userEditHtml(target, user, notice, error)}`,
     false,
     "users",
   );
   bindChrome(root);
+  bindEntityOpener(root);
   bindUserToolbarActions(root, user, target.username);
   const form = root.querySelector<HTMLFormElement>("#edit-user-form");
   form?.addEventListener("submit", (event) => {
@@ -896,9 +905,10 @@ function userRow(item: ManagedUser, actor: PublicUser): string {
     </li>`;
 }
 
-function userDetailToolbar(target: ManagedUser, actor: PublicUser): string {
+function userDetailToolbar(target: ManagedUser, actor: PublicUser, users: ManagedUser[]): string {
   const self = target.username === actor.username;
   const name = escapeHtml(target.username);
+  const titleHtml = entityOpenerHtml(name, target.username, buildUserEntityItems(users.map((u) => u.username), target.username));
   const toggle = self
     ? ""
     : target.disabled
@@ -910,7 +920,7 @@ function userDetailToolbar(target: ManagedUser, actor: PublicUser): string {
   return `<div class="editor-toolbar">
       <div class="editor-toolbar-row">
         <a class="w3-button w3-white editor-back" href="#/users" aria-label="Back" title="Back (Escape)">←</a>
-        <h1 class="w3-large">${name}</h1>
+        ${titleHtml}
         <p class="editor-actions">
           <button type="submit" form="edit-user-form" class="w3-button w3-theme">Save</button>
           ${toggle}
@@ -3146,10 +3156,12 @@ async function bindEdit(
   const place = editPlace(kind, id, record);
   const homeId = kind === "content" ? await loadHomePageId() : "";
   const listingForDuplicate = await listRecords();
+  const pageHost = host === "page";
+  const entityItems = pageHost ? await buildEditEntityItems(kind, id, record, listingForDuplicate) : [];
+  const titleHtml = pageHost ? entityOpenerHtml(place.heading, id, entityItems) : "";
   const existingIdsForKind = listingForDuplicate.records.filter((row) => row.kind === kind).map((row) => row.id);
   const duplicateSuggested = suggestDuplicateId(id, existingIdsForKind);
   const showDuplicateTools = duplicateToolsVisible(kind, id, record, editMode, homeId);
-  const pageHost = host === "page";
   const fieldsTabLabel = editsBody(kind) ? "Page" : "Fields";
   const showContentRename =
     editMode === "fields" &&
@@ -3215,7 +3227,7 @@ async function bindEdit(
       `<div class="editor-toolbar">
          <div class="editor-toolbar-row">
            <a class="w3-button w3-white editor-back" href="${place.back}" aria-label="Back" title="Back (Escape)">←</a>
-           <h1 class="w3-large">${escapeHtml(place.heading)}</h1>
+           ${titleHtml}
            ${actionRow}
          </div>
          ${saveStatus}
@@ -3226,6 +3238,7 @@ async function bindEdit(
       await editNavContext(place, kind, record),
     );
     bindChrome(root);
+    bindEntityOpener(root);
   }
   if (editMode === "compose" || editMode === "frame" || editMode === "arrange" || editMode === "build") {
     root.querySelector(".editor-main")?.classList.add("editor-compose");
@@ -4597,8 +4610,9 @@ async function bindRuntimeModules(root: HTMLElement, user: PublicUser, moduleId:
     const { text } = await getRuntimeModuleRaw(mod.id);
     const moduleIds = modules.map((row) => row.id);
     const duplicateSuggested = suggestDuplicateId(mod.id, moduleIds);
-    root.innerHTML = chrome(user, renderRuntimeModulePage(mod, text, duplicateSuggested), true, "records", RUNTIME_MODULES_NAV);
+    root.innerHTML = chrome(user, renderRuntimeModulePage(mod, text, duplicateSuggested, modules), true, "records", RUNTIME_MODULES_NAV);
     bindChrome(root);
+    bindEntityOpener(root);
     bindRuntimeModuleEditor(root);
     bindRuntimeModuleDuplicate(
       root,

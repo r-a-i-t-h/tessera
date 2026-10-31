@@ -12,6 +12,8 @@ import {
   type PublicUser,
 } from "../api.js";
 import { editorChrome, type EditorSection } from "../chrome.js";
+import { buildDatasetEntityItems } from "../entity-opener-items.js";
+import { bindEntityOpener, entityOpenerHtml } from "../entity-opener.js";
 import { mergeEditorNav } from "../sidebar-nav.js";
 import { activateDialog } from "../dialog.js";
 import { escapeHtml } from "../dom.js";
@@ -189,7 +191,7 @@ async function mountDatasetGrid(
       `<div class="editor-toolbar">
         <div class="editor-toolbar-row">
           <a class="w3-button w3-white editor-back" href="#/data" aria-label="Back" title="Back (Escape)">←</a>
-          <h1 class="w3-large">${escapeHtml(fileState.title)}</h1>
+          ${entityOpenerHtml(fileState.title, datasetId, buildDatasetEntityItems(datasetSummaries, datasetId))}
           <p class="editor-actions">
             <button type="button" class="w3-button w3-theme" data-dataset-add>New record</button>
             ${gridToolbarActions}
@@ -205,6 +207,7 @@ async function mountDatasetGrid(
       mergeEditorNav({ datasets: navDatasets, activeDataset: datasetId }),
     );
     bindChrome(root);
+    bindEntityOpener(root);
     bindGridEvents(root);
   };
 

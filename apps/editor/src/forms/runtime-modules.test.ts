@@ -71,6 +71,10 @@ describe("runtime module editor", () => {
       { id: "demo", url: "./runtime-modules/demo.mjs", ext: "mjs", title: "Demo" },
       "export default function mount() {}",
       "demo-copy",
+      [
+        { id: "demo", url: "./runtime-modules/demo.mjs", ext: "mjs", title: "Demo" },
+        { id: "other", url: "./runtime-modules/other.js", ext: "js" },
+      ],
     );
     expect(html).toContain('editor-back" href="#/records/runtimeModules"');
     expect(runtimeModulesRouteHash("demo")).toBe("#/records/runtimeModules/demo");
