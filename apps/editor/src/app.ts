@@ -269,6 +269,8 @@ import { usernameError } from "./username.js";
 import { cancelNewBindingForm, handleEscape, hasOpenModal } from "./escape-key.js";
 import { triggerNewAction } from "./new-key.js";
 import { triggerOpenAction, isEntityOpenShortcut } from "./open-key.js";
+import { isCommandPaletteShortcut, triggerPaletteAction } from "./palette-key.js";
+import { mountCommandPalette } from "./command-palette.js";
 import { bindEntityOpener, entityOpenerHtml } from "./entity-opener.js";
 import { buildEditEntityItems, buildUserEntityItems } from "./entity-opener-items.js";
 import { bindDatasetsSetup, datasetsSetupSection, mountDatasetSetup } from "./datasets/setup.js";
@@ -287,6 +289,14 @@ function chrome(
 let libraryAddOpen = true;
 
 export async function mount(root: HTMLElement): Promise<void> {
+  const paletteRoot = document.createElement("div");
+  paletteRoot.id = "editor-command-palette-root";
+  document.body.appendChild(paletteRoot);
+  mountCommandPalette(paletteRoot, {
+    onRender: () => runRender(root),
+    onPublish: () => runPublish(root),
+  });
+
   window.addEventListener("hashchange", () => void render(root));
   document.addEventListener("keydown", (event) => {
     if (
@@ -313,6 +323,11 @@ export async function mount(root: HTMLElement): Promise<void> {
     if (isEntityOpenShortcut(event)) {
       event.preventDefault();
       if (!hasOpenModal() && triggerOpenAction(root)) return;
+      return;
+    }
+    if (isCommandPaletteShortcut(event)) {
+      event.preventDefault();
+      if (!hasOpenModal()) void triggerPaletteAction();
       return;
     }
     if (event.code !== "KeyS" || event.altKey || event.shiftKey || !(event.metaKey || event.ctrlKey)) return;

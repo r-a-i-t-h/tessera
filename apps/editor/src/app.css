@@ -449,6 +449,56 @@ body {
   padding: 0.4rem 0.6rem;
 }
 
+.editor-command-palette-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 12vh 1rem 1rem;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.editor-command-palette {
+  width: min(36rem, 100%);
+  max-height: min(24rem, 70vh);
+  display: flex;
+  flex-direction: column;
+  padding: 0.65rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.editor-command-palette-search {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.editor-command-palette-list {
+  margin: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  font-size: 0.875rem;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.editor-picker-category {
+  display: inline-block;
+  min-width: 6.5rem;
+  margin-right: 0.65rem;
+  color: #777;
+  font-size: 0.8125rem;
+}
+
+.editor-command-palette-list [role="option"][aria-selected="true"] {
+  background: rgba(0, 150, 136, 0.12);
+}
+
+.editor-command-palette-list [role="option"][aria-selected="true"] .editor-entity-opener-option {
+  color: #009688;
+}
+
 .editor-toolbar .editor-actions {
   margin: 0 0.35rem 0 auto;
 }

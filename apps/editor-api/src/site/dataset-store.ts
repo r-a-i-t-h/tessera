@@ -47,6 +47,18 @@ export type DatasetSummary = {
 export class DatasetStore {
   constructor(private readonly datasetsDir: string) {}
 
+  private summaryCache: DatasetSummary[] | null = null;
+  private listingGeneration = 0;
+
+  listingVersion(): string {
+    return String(this.listingGeneration);
+  }
+
+  private bumpSummaryCache(): void {
+    this.summaryCache = null;
+    this.listingGeneration += 1;
+  }
+
   private async ensureDir(): Promise<void> {
     await mkdir(this.datasetsDir, { recursive: true });
   }
@@ -63,14 +75,17 @@ export class DatasetStore {
     await queueWrite(path, async () => {
       await writeTextAtomic(path, `${JSON.stringify(file, null, 2)}\n`);
     });
+    this.bumpSummaryCache();
   }
 
   async list(): Promise<DatasetSummary[]> {
+    if (this.summaryCache) return this.summaryCache;
     await this.ensureDir();
     let names: string[];
     try {
       names = await readdir(this.datasetsDir);
     } catch {
+      this.summaryCache = [];
       return [];
     }
     const out: DatasetSummary[] = [];
@@ -92,10 +107,11 @@ export class DatasetStore {
       }
     }
     const titleKey = (row: DatasetSummary) => row.title.trim() || row.id;
-    return out.sort((a, b) => {
+    this.summaryCache = out.sort((a, b) => {
       const byTitle = titleKey(a).localeCompare(titleKey(b), undefined, { sensitivity: "base" });
       return byTitle !== 0 ? byTitle : a.id.localeCompare(b.id, undefined, { sensitivity: "base" });
     });
+    return this.summaryCache;
   }
 
   async read(id: string): Promise<{ file: DatasetFile; issues: Map<number, { path: string; message: string }[]> }> {
@@ -167,6 +183,7 @@ export class DatasetStore {
 
   async deleteDataset(id: string): Promise<void> {
     await unlink(filePath(this.datasetsDir, id));
+    this.bumpSummaryCache();
   }
 
   private normalizeRootRecord(
@@ -278,6 +295,14 @@ export class ValidationError extends Error {
   }
 }
 
+const datasetStores = new Map<string, DatasetStore>();
+
 export function datasetStoreForSiteRoot(siteRoot: string): DatasetStore {
-  return new DatasetStore(join(siteRoot, "datasets"));
+  const dir = join(siteRoot, "datasets");
+  let store = datasetStores.get(dir);
+  if (!store) {
+    store = new DatasetStore(dir);
+    datasetStores.set(dir, store);
+  }
+  return store;
 }

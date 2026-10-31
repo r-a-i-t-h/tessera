@@ -1,4 +1,5 @@
 import { escapeHtml } from "./dom.js";
+import { pickerItemFromOpener, wirePickerList } from "./entity-picker.js";
 
 export type EntityOpenerItem = {
   id: string;
@@ -6,8 +7,6 @@ export type EntityOpenerItem = {
   hash: string;
   filterText: string;
 };
-
-const DEBOUNCE_MS = 120;
 
 let documentClickBound = false;
 
@@ -43,7 +42,7 @@ function jsonDataScript(items: EntityOpenerItem[]): string {
 }
 
 /** Toolbar title or searchable entity opener when at least one other entity exists in scope. */
-export function entityOpenerHtml(currentLabel: string, currentId: string, items: EntityOpenerItem[]): string {
+export function entityOpenerHtml(currentLabel: string, _currentId: string, items: EntityOpenerItem[]): string {
   if (items.length < 1) {
     return `<h1 class="w3-large">${escapeHtml(currentLabel)}</h1>`;
   }
@@ -105,42 +104,39 @@ function wireHost(host: HTMLElement): void {
   const list = host.querySelector<HTMLElement>(".editor-entity-opener-list");
   if (!toggle || !panel || !input || !list) return;
 
-  const items = parseItems(host);
+  const openerItems = parseItems(host);
   const mountId =
     typeof crypto !== "undefined" && "randomUUID" in crypto
       ? crypto.randomUUID()
       : `entity-opener-${Math.random().toString(36).slice(2)}`;
   const listId = `editor-entity-opener-list-${mountId}`;
   list.id = listId;
-  input.setAttribute("aria-controls", listId);
 
-  let activeIndex = -1;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  let needle = "";
+  const getItems = () => openerItems.map(pickerItemFromOpener);
 
-  const getOptions = () => list.querySelectorAll<HTMLElement>('[role="option"]');
-
-  const setActive = (index: number) => {
-    const options = getOptions();
-    const next = index < 0 || index >= options.length ? -1 : index;
-    activeIndex = next;
-    options.forEach((opt, i) => {
-      opt.setAttribute("aria-selected", i === next ? "true" : "false");
-    });
-    if (next >= 0) {
-      const active = options[next]!;
-      input.setAttribute("aria-activedescendant", active.id);
-      active.scrollIntoView({ block: "nearest" });
-    } else {
-      input.removeAttribute("aria-activedescendant");
-    }
+  const navigate = (hash: string) => {
+    closeEntityOpenerHost(host);
+    if (window.location.hash !== hash) window.location.hash = hash;
   };
+
+  const picker = wirePickerList({
+    input,
+    list,
+    listId,
+    getItems,
+    onSelect: (item) => {
+      if (item.hash) navigate(item.hash);
+    },
+    onEscape: () => {
+      closeEntityOpenerHost(host);
+      toggle.focus();
+    },
+  });
 
   const setOpen = (open: boolean) => {
     if (!open) {
       closeEntityOpenerHost(host);
-      needle = "";
-      setActive(-1);
+      picker.resetFilter();
       return;
     }
     panel.hidden = false;
@@ -149,31 +145,9 @@ function wireHost(host: HTMLElement): void {
     input.setAttribute("aria-expanded", "true");
   };
 
-  const navigate = (hash: string) => {
-    setOpen(false);
-    if (window.location.hash !== hash) window.location.hash = hash;
-  };
-
-  const renderList = () => {
-    const q = needle.trim().toLowerCase();
-    const filtered = q ? items.filter((item) => item.filterText.includes(q)) : items;
-    if (!filtered.length) {
-      list.innerHTML = `<li class="w3-text-grey editor-entity-opener-empty" role="presentation">No matches.</li>`;
-      setActive(-1);
-      return;
-    }
-    list.innerHTML = filtered
-      .map((item, i) => {
-        const optId = `${listId}-opt-${i}`;
-        return `<li role="option" id="${escapeHtml(optId)}" aria-selected="false" data-entity-hash="${escapeHtml(item.hash)}"><button type="button" class="editor-entity-opener-option" tabindex="-1">${escapeHtml(item.label)}</button></li>`;
-      })
-      .join("");
-    setActive(-1);
-  };
-
   const openPanel = () => {
     setOpen(true);
-    renderList();
+    picker.renderList();
     input.focus();
     input.select();
   };
@@ -182,66 +156,12 @@ function wireHost(host: HTMLElement): void {
     if (panel.hidden) openPanel();
     else setOpen(false);
   });
-
-  input.addEventListener("input", () => {
-    clearTimeout(timer);
-    timer = setTimeout(() => {
-      needle = input.value;
-      renderList();
-    }, DEBOUNCE_MS);
-  });
-
-  input.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      event.stopPropagation();
-      setOpen(false);
-      toggle.focus();
-      return;
-    }
-    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-      if (panel.hidden) return;
-      const options = getOptions();
-      if (!options.length || options[0]?.classList.contains("editor-entity-opener-empty")) return;
-      event.preventDefault();
-      if (event.key === "ArrowDown") {
-        setActive(activeIndex < options.length - 1 ? activeIndex + 1 : activeIndex);
-      } else if (activeIndex <= 0) {
-        setActive(-1);
-      } else {
-        setActive(activeIndex - 1);
-      }
-      return;
-    }
-    if (event.key === "Enter") {
-      event.preventDefault();
-      if (activeIndex >= 0) {
-        const option = getOptions()[activeIndex];
-        const hash = option?.dataset.entityHash;
-        if (hash) navigate(hash);
-        return;
-      }
-      const q = input.value.trim().toLowerCase();
-      const filtered = q ? items.filter((item) => item.filterText.includes(q)) : items;
-      if (filtered.length === 1) navigate(filtered[0]!.hash);
-    }
-  });
-
-  list.addEventListener("click", (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLElement)) return;
-    const row = target.closest<HTMLElement>("[data-entity-hash]");
-    const hash = row?.dataset.entityHash;
-    if (hash) navigate(hash);
-  });
 }
 
-/** Wire entity opener controls under root (idempotent). */
 export function bindEntityOpener(root: ParentNode): void {
   root.querySelectorAll<HTMLElement>("[data-entity-opener]").forEach((host) => wireHost(host));
 }
 
-/** Close an open entity opener panel. Returns true when a panel was closed. */
 export function closeEntityOpener(root: ParentNode): boolean {
   let closed = false;
   for (const host of root.querySelectorAll<HTMLElement>("[data-entity-opener]")) {
@@ -254,7 +174,6 @@ export function closeEntityOpener(root: ParentNode): boolean {
   return closed;
 }
 
-/** Open the visible entity opener and focus its filter field. */
 export function openEntityOpener(root: ParentNode): boolean {
   for (const host of root.querySelectorAll<HTMLElement>("[data-entity-open]")) {
     if (!isVisibleOpener(host)) continue;

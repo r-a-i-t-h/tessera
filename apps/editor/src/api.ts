@@ -1,4 +1,5 @@
 import type { DatasetFile, DatasetField, SchemaAdaptationSummary } from "@r-a-i-t-h/tessera-model";
+import { invalidateEditorIndex } from "./editor-index-cache.js";
 
 export type PublicUser = {
   ok: true;
@@ -42,6 +43,10 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const data: unknown = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new ApiError(res.status, errorMessage(data, res.statusText));
+  }
+  const method = (init.method ?? "GET").toUpperCase();
+  if (method !== "GET" && method !== "HEAD" && path.startsWith("/api/")) {
+    invalidateEditorIndex();
   }
   return data as T;
 }

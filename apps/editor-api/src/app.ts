@@ -18,6 +18,7 @@ import { themeRoutes } from "./routes/themes.js";
 import { stylesheetRoutes } from "./routes/stylesheets.js";
 import { userRoutes } from "./routes/users.js";
 import { datasetRoutes } from "./routes/datasets.js";
+import { editorIndexRoutes } from "./routes/editor-index.js";
 import type { SiteStore } from "./site/store.js";
 import { mountPreview, type PreviewRoots } from "./preview.js";
 import { mountSpa } from "./spa.js";
@@ -91,6 +92,7 @@ export function createApp(opts: {
   app.route("/api", backupRoutes);
   app.route("/api", userRoutes);
   app.route("/api", datasetRoutes);
+  app.route("/api", editorIndexRoutes);
 
   if (opts.preview) mountPreview(app, opts.preview);
   if (opts.spaDir) mountSpa(app, opts.spaDir);

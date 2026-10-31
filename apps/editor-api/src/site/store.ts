@@ -126,6 +126,19 @@ export class SiteStore {
   /** True while this process is writing `publish/` or installing it. */
   private publishing = false;
 
+  private listCache: RecordSummary[] | null = null;
+  private listingGeneration = 0;
+
+  /** Bumps when record listings change (for editor index versioning). */
+  listingVersion(): string {
+    return String(this.listingGeneration);
+  }
+
+  private bumpListingCache(): void {
+    this.listCache = null;
+    this.listingGeneration += 1;
+  }
+
   constructor(
     readonly recordsDir: string,
     readonly flattenOut?: string,
@@ -150,6 +163,7 @@ export class SiteStore {
   }
 
   async list(): Promise<RecordSummary[]> {
+    if (this.listCache) return this.listCache;
     const out: RecordSummary[] = [];
     try {
       const site = fromYaml<{ id?: string; title?: string }>(await readText(this.siteFile()));
@@ -186,6 +200,7 @@ export class SiteStore {
         });
       }
     }
+    this.listCache = out;
     return out;
   }
 
@@ -534,6 +549,7 @@ export class SiteStore {
       if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
     }
     await writeTextAtomic(path, nextText);
+    this.bumpListingCache();
     if (options.rebuild === false) return { previous };
     try {
       const rebuilt = await this.rebuild();
@@ -798,6 +814,7 @@ export class SiteStore {
     }
     const order = (await this.readOrder(kind)).filter((item) => item !== id);
     await writeTextAtomic(this.orderFile(kind), toYaml(order));
+    this.bumpListingCache();
   }
 
   private async navWithBlogSources(data: unknown): Promise<unknown> {
