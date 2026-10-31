@@ -179,15 +179,25 @@ async function mountDatasetGrid(
       ? `<p class="editor-dataset-grid-meta"><button type="button" class="editor-dataset-clear-filters" data-dataset-clear-filters>Clear filters</button></p>`
       : "";
 
+    const gridToolbarActions =
+      gridMode === "view"
+        ? `<button type="button" class="w3-button w3-white" data-dataset-edit-mode>Edit grid</button>`
+        : `<button type="button" class="w3-button w3-theme" data-dataset-save-grid>Save grid</button><button type="button" class="w3-button w3-white" data-dataset-cancel-grid>Cancel</button>`;
+
     root.innerHTML = editorChrome(
       user,
-      `<div class="editor-dataset-page" data-dataset-id="${escapeHtml(datasetId)}">
-        <p><a href="#/data">Data</a> / <strong>${escapeHtml(fileState.title)}</strong>
-          <span class="w3-text-grey w3-small"> · <a href="#/records/datasets/${encodeURIComponent(datasetId)}">Dataset setup</a></span></p>
-        <p class="editor-toolbar-row">
-          <button type="button" class="w3-button w3-theme" data-dataset-add>New record</button>
-          ${gridMode === "view" ? `<button type="button" class="w3-button w3-white" data-dataset-edit-mode>Edit grid</button>` : `<button type="button" class="w3-button w3-theme" data-dataset-save-grid>Save grid</button><button type="button" class="w3-button w3-white" data-dataset-cancel-grid>Cancel</button>`}
-        </p>
+      `<div class="editor-toolbar">
+        <div class="editor-toolbar-row">
+          <a class="w3-button w3-white editor-back" href="#/data" aria-label="Back" title="Back (Escape)">←</a>
+          <h1 class="w3-large">${escapeHtml(fileState.title)}</h1>
+          <p class="editor-actions">
+            <button type="button" class="w3-button w3-theme" data-dataset-add>New record</button>
+            ${gridToolbarActions}
+          </p>
+        </div>
+      </div>
+      <div class="editor-dataset-page" data-dataset-id="${escapeHtml(datasetId)}">
+        <p class="w3-text-grey w3-small"><a href="#/records/datasets/${encodeURIComponent(datasetId)}">Dataset setup</a></p>
         ${clearFiltersLink}<div class="editor-dataset-grid-wrap"><table class="w3-table w3-bordered w3-small editor-dataset-grid"><thead><tr>${headerRow}</tr><tr>${filterRowHtml}</tr></thead><tbody>${body}</tbody></table></div>
       </div>`,
       true,

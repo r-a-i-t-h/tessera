@@ -23,6 +23,7 @@ export function handleEscape(root: ParentNode, handlers?: EscapeHandlers): boole
     handlers?.onLibraryAddClose?.();
     return true;
   }
+  if (cancelDatasetGridEdit(root)) return true;
   if (followBackLink(root)) return true;
   if (followLibraryParent(root)) return true;
   return false;
@@ -85,6 +86,13 @@ function closeLibraryAddPanel(root: ParentNode): boolean {
   const panel = root.querySelector<HTMLDetailsElement>("#library-add");
   if (!panel?.open) return false;
   panel.open = false;
+  return true;
+}
+
+function cancelDatasetGridEdit(root: ParentNode): boolean {
+  const cancel = root.querySelector<HTMLButtonElement>("[data-dataset-cancel-grid]");
+  if (!cancel) return false;
+  cancel.click();
   return true;
 }
 

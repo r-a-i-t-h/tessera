@@ -34,6 +34,21 @@ describe("handleEscape", () => {
     expect(clicks).toBe(1);
   });
 
+  it("cancels dataset grid edit before navigating back", () => {
+    const root = document.createElement("div");
+    root.innerHTML = `<button type="button" data-dataset-cancel-grid>Cancel</button>
+      <a class="editor-back" href="#/data">Back</a>`;
+    let cancelled = false;
+    root.querySelector("[data-dataset-cancel-grid]")?.addEventListener("click", () => {
+      cancelled = true;
+    });
+    window.location.hash = "#/data/meetings";
+
+    expect(handleEscape(root)).toBe(true);
+    expect(cancelled).toBe(true);
+    expect(window.location.hash).toBe("#/data/meetings");
+  });
+
   it("follows the editor back link when nothing else is open", () => {
     const root = document.createElement("div");
     root.innerHTML = `<a class="editor-back" href="#/pages">Back</a>`;
