@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 
 import { afterEach, describe, expect, it } from "vitest";
-import { bindBackupUpload, renderBackupsPage } from "./backups.js";
+import { bindBackupUpload, bindThemeImport, renderBackupsPage } from "./backups.js";
 
 describe("backups page", () => {
   afterEach(() => {
@@ -26,6 +26,8 @@ describe("backups page", () => {
     expect(html).toContain("<summary>Upload archive</summary>");
     expect(html).toContain("<summary>Themes</summary>");
     expect(html).toContain("data-theme-export");
+    expect(html).toContain("data-theme-import");
+    expect(html).toContain("Import theme");
     expect(html).toContain("Create theme");
     expect(html).toContain("<summary>Initialise</summary>");
     expect(html).toContain('data-action="reseed"');
@@ -54,5 +56,26 @@ describe("backups page", () => {
     await Promise.resolve();
     expect(uploaded).toHaveLength(1);
     expect(uploaded[0]?.name).toBe("site.tar.gz");
+  });
+
+  it("uploads a theme kit file chosen in the form", async () => {
+    const uploaded: File[] = [];
+    document.body.innerHTML = renderBackupsPage(
+      { ok: true, directory: "/backup", backups: [], examples: [] },
+      [],
+      "",
+      "",
+    );
+    bindThemeImport(document.body, (file) => {
+      uploaded.push(file);
+    });
+    const form = document.querySelector<HTMLFormElement>("[data-theme-import]")!;
+    const input = form.querySelector<HTMLInputElement>('input[name="file"]')!;
+    const file = new File(["kit"], "my-theme.tar.gz", { type: "application/gzip" });
+    Object.defineProperty(input, "files", { value: [file] });
+    form.requestSubmit();
+    await Promise.resolve();
+    expect(uploaded).toHaveLength(1);
+    expect(uploaded[0]?.name).toBe("my-theme.tar.gz");
   });
 });

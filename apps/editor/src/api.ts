@@ -468,6 +468,12 @@ export function resetThemeDemo(id: string): Promise<RestoreResult> {
   return request(`/api/themes/${encodeURIComponent(id)}/reset-demo`, { method: "POST" });
 }
 
+export function uploadThemeKit(file: File): Promise<{ ok: true; kit: ThemeKitInfo }> {
+  const body = new FormData();
+  body.append("file", file);
+  return request("/api/themes/import", { method: "POST", body });
+}
+
 export async function exportThemeKitDownload(options: {
   id: string;
   name: string;

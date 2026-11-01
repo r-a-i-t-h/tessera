@@ -400,7 +400,7 @@ function assertArchiveSafe(listing: string): void {
   }
 }
 
-async function extractTar(archive: string, destDir: string): Promise<void> {
+export async function extractTar(archive: string, destDir: string): Promise<void> {
   await mkdir(destDir, { recursive: true });
   const listing = await runTarCapture(["-tzf", archive]);
   assertArchiveSafe(listing);

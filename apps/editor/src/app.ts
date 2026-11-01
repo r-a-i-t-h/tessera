@@ -57,6 +57,7 @@ import {
   updateUser,
   uploadLibrary,
   uploadBackup,
+  uploadThemeKit,
   rescanLibrary,
   createLibraryFolder,
   updateLibraryFolder,
@@ -155,7 +156,7 @@ import {
   withTypeChoices,
   type AspectChoice,
 } from "./forms/schema.js";
-import { bindBackupUpload, bindThemeExport, renderBackupsPage } from "./forms/backups.js";
+import { bindBackupUpload, bindThemeExport, bindThemeImport, renderBackupsPage } from "./forms/backups.js";
 import { readDataTransfer } from "./forms/drop.js";
 import {
   assetDetail,
@@ -1861,6 +1862,15 @@ async function bindBackups(root: HTMLElement, user: PublicUser, notice = "", err
       if (button) button.disabled = false;
     }
   });
+  bindThemeImport(root, (file) =>
+    uploadThemeKit(file)
+      .then((result) =>
+        bindBackups(root, user, `Imported theme kit ${result.kit.name} (${result.kit.id}).`),
+      )
+      .catch((err) =>
+        bindBackups(root, user, "", err instanceof Error ? err.message : "Theme import failed."),
+      ),
+  );
   root.querySelector("[data-action=backup]")?.addEventListener("click", async () => {
     const button = root.querySelector<HTMLButtonElement>("[data-action=backup]");
     if (button) button.disabled = true;

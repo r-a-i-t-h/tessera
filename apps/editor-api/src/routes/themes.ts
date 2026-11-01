@@ -5,6 +5,7 @@ import { apiError } from "../http.js";
 import { authenticatedEditor, authenticatedSiteRoot } from "../middleware/editor-site.js";
 import { applyThemeKit, listThemeKits, resetThemeDemo } from "../site/theme-kit.js";
 import { exportThemeKit } from "../site/theme-export.js";
+import { importThemeKitArchive } from "../site/theme-import.js";
 
 export const themeRoutes = new Hono();
 themeRoutes.use("/themes/:id/*", authenticatedSiteRoot);
@@ -14,6 +15,31 @@ themeRoutes.get("/themes", authenticatedEditor, async (c) => {
   if (!seedDir) return apiError(c, 404, "No theme seed directory configured.");
   const kits = await listThemeKits(seedDir);
   return c.json({ ok: true, kits });
+});
+
+themeRoutes.post("/themes/import", authenticatedSiteRoot, async (c) => {
+  const denied = assertFullAdmin(c);
+  if (denied) return denied;
+  const seedDir = c.get("seedDir");
+  if (!seedDir) return apiError(c, 404, "No theme seed directory configured.");
+
+  try {
+    const form = await c.req.parseBody();
+    const file = form.file;
+    if (!(file instanceof File)) return apiError(c, 400, "Choose a theme kit archive.");
+    const limits = c.get("uploadLimits");
+    if (file.size > limits.maxTotalBytes) {
+      return apiError(c, 413, `Archive exceeds the ${limits.maxTotalBytes}-byte upload limit.`);
+    }
+    if (!/\.tar\.gz$/i.test(file.name)) {
+      return apiError(c, 400, "Theme kit must be a .tar.gz archive.");
+    }
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const kit = await importThemeKitArchive(seedDir, bytes);
+    return c.json({ ok: true, kit });
+  } catch (err) {
+    return apiError(c, 400, err instanceof Error ? err.message : "Could not import this theme.");
+  }
 });
 
 themeRoutes.post("/themes/export", authenticatedSiteRoot, async (c) => {

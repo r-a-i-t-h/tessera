@@ -319,6 +319,47 @@ zones:
     }
   });
 
+  it("POST /api/themes/import installs a kit into seed themes", async () => {
+    const importSeed = join(root, "import-seed");
+    await cp(seedDir, importSeed, { recursive: true });
+
+    const bytes = await exportThemeKit(root, {
+      id: "imported-via-api",
+      name: "Imported via API",
+    });
+    const body = new FormData();
+    body.append("file", new File([bytes], "imported-via-api.tar.gz", { type: "application/gzip" }));
+
+    const res = await createApp({
+      users,
+      sessions,
+      site,
+      siteRoot: root,
+      backupDir,
+      seedDir: importSeed,
+    }).request("/api/themes/import", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body,
+    });
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as { kit: { id: string; name: string } };
+    expect(json.kit).toMatchObject({ id: "imported-via-api", name: "Imported via API" });
+
+    const list = await createApp({
+      users,
+      sessions,
+      site,
+      siteRoot: root,
+      backupDir,
+      seedDir: importSeed,
+    }).request("/api/themes", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const kits = ((await list.json()) as { kits: { id: string }[] }).kits.map((k) => k.id);
+    expect(kits).toContain("imported-via-api");
+  });
+
   it("POST /api/themes/export returns a gzip attachment", async () => {
     const res = await app().request("/api/themes/export", {
       method: "POST",

@@ -95,12 +95,19 @@ export function renderBackupsPage(
       <p class="w3-small w3-text-grey">Apply a design without changing your page content. A safety backup is written first.</p>
       ${themeRows}
       <hr class="w3-margin-top w3-margin-bottom" />
-      <p class="w3-small w3-text-grey">Create a theme kit from this site’s design (layouts, shell, shared items). Page content and the media library are not included. Install a kit by unpacking it into the server’s <code>seed/themes/</code> folder, then reload Backups.</p>
+      <p class="w3-small w3-text-grey">Create a theme kit from this site’s design (layouts, shell, shared items). Page content and the media library are not included.</p>
       <form id="theme-export-form" data-theme-export class="w3-margin-top">
         <p><label class="w3-small">Kit id<br /><input name="id" type="text" class="w3-input w3-border" required pattern="[a-z][a-z0-9-]*" title="Lowercase letters, digits, and hyphens" placeholder="my-theme" /></label></p>
         <p><label class="w3-small">Display name<br /><input name="name" type="text" class="w3-input w3-border" required placeholder="My theme" /></label></p>
         <p><label class="w3-small">Stack<br /><select name="stack" class="w3-select w3-border"><option value="w3" selected>W3</option><option value="custom">Custom</option></select></label></p>
         <p><button type="submit" class="w3-button w3-white">Create theme</button></p>
+      </form>
+      <hr class="w3-margin-top w3-margin-bottom" />
+      <form id="theme-import-form" data-theme-import class="w3-margin-top">
+        <p class="w3-small w3-text-grey">Install a theme kit archive (.tar.gz) on this server.</p>
+        <p><input name="file" type="file" accept=".tar.gz,application/gzip,application/x-gzip" /></p>
+        <p id="theme-import-status" class="w3-text-grey w3-small" hidden></p>
+        <p><button type="submit" class="w3-button w3-white">Import theme</button></p>
       </form>
     </div>`,
   );
@@ -134,6 +141,53 @@ function setBackupUploadStatus(form: HTMLFormElement, message: string): void {
   if (!status) return;
   status.hidden = !message;
   status.textContent = message;
+}
+
+export function bindThemeImport(
+  root: ParentNode,
+  upload: (file: File) => void | Promise<void>,
+): void {
+  const form = root.querySelector<HTMLFormElement>("[data-theme-import]");
+  if (!form) return;
+
+  function setStatus(message: string): void {
+    const status = form.querySelector<HTMLElement>("#theme-import-status");
+    if (!status) return;
+    status.hidden = !message;
+    status.textContent = message;
+  }
+
+  form.addEventListener("change", () => {
+    const input = form.querySelector<HTMLInputElement>('input[name="file"]');
+    const file = input?.files?.[0];
+    if (!file) {
+      setStatus("");
+      return;
+    }
+    setStatus(isBackupArchive(file) ? `${file.name} selected.` : "Choose a .tar.gz theme kit archive.");
+  });
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const input = form.querySelector<HTMLInputElement>('input[name="file"]');
+    const file = input?.files?.[0];
+    if (!file || !isBackupArchive(file)) {
+      setStatus("Choose a .tar.gz theme kit archive.");
+      return;
+    }
+    const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+    if (button) button.disabled = true;
+    setStatus("");
+    void (async () => {
+      try {
+        await upload(file);
+      } finally {
+        if (button) button.disabled = false;
+        if (input) input.value = "";
+        setStatus("");
+      }
+    })();
+  });
 }
 
 export function bindThemeExport(
