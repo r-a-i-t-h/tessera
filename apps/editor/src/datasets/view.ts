@@ -2,6 +2,7 @@ import type { DatasetField, DatasetRootRecord } from "@r-a-i-t-h/tessera-model";
 import { emptyRootRecordDraft, fieldById, formatRecordDisplayName } from "@r-a-i-t-h/tessera-model";
 import {
   appendDatasetRecord,
+  clearDatasetRecords,
   datasetRootRecords,
   deleteDatasetRecord,
   getDataset,
@@ -186,6 +187,9 @@ async function mountDatasetGrid(
         ? `<button type="button" class="w3-button w3-white" data-dataset-edit-mode>Edit grid</button>`
         : `<button type="button" class="w3-button w3-theme" data-dataset-save-grid>Save grid</button><button type="button" class="w3-button w3-white" data-dataset-cancel-grid>Cancel</button>`;
 
+    const recordCount = fileState.records.length;
+    const clearAllDisabled = recordCount === 0 || gridMode === "edit" ? " disabled" : "";
+
     root.innerHTML = editorChrome(
       user,
       `<div class="editor-toolbar">
@@ -195,6 +199,7 @@ async function mountDatasetGrid(
           <p class="editor-actions">
             <button type="button" class="w3-button w3-theme" data-dataset-add>New record</button>
             ${gridToolbarActions}
+            <button type="button" class="w3-button w3-white w3-border w3-border-red" data-dataset-clear-all${clearAllDisabled}>Delete all records</button>
           </p>
         </div>
       </div>
@@ -251,6 +256,29 @@ async function mountDatasetGrid(
       paint();
     });
     host.querySelector("[data-dataset-save-grid]")?.addEventListener("click", () => void saveGridEdits());
+    host.querySelector("[data-dataset-clear-all]")?.addEventListener("click", () => {
+      if (gridMode === "edit" || fileState.records.length === 0) return;
+      const n = fileState.records.length;
+      const label = fileState.title.trim() || datasetId;
+      if (
+        !window.confirm(
+          `Delete all ${n} record${n === 1 ? "" : "s"} from ${label}? This cannot be undone.`,
+        )
+      ) {
+        return;
+      }
+      void clearDatasetRecords(datasetId)
+        .then((res) => {
+          fileState = res.file;
+          filters = {};
+          sort = undefined;
+          gridMode = "view";
+          paint();
+        })
+        .catch((err) => {
+          window.alert(err instanceof Error ? err.message : "Could not delete records.");
+        });
+    });
     host.querySelectorAll("[data-sort-col]").forEach((el) => {
       el.addEventListener("click", () => {
         const col = (el as HTMLElement).dataset.sortCol!;

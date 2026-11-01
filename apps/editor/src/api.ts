@@ -613,6 +613,13 @@ export function createDataset(id: string, title: string): Promise<{ ok: true; fi
   return request("/api/datasets", { method: "POST", body: JSON.stringify({ id, title }) });
 }
 
+export function duplicateDataset(sourceId: string, nextId: string): Promise<{ ok: true; file: DatasetFile }> {
+  return request(`/api/datasets/${encodeURIComponent(sourceId)}/duplicate`, {
+    method: "POST",
+    body: JSON.stringify({ id: nextId }),
+  });
+}
+
 export function getDataset(id: string): Promise<{
   ok: true;
   file: DatasetFile;
@@ -685,6 +692,10 @@ export function patchDatasetRecords(
 
 export function deleteDatasetRecord(id: string, uid: number): Promise<{ ok: true; file: DatasetFile }> {
   return request(`/api/datasets/${encodeURIComponent(id)}/records/${uid}`, { method: "DELETE" });
+}
+
+export function clearDatasetRecords(id: string): Promise<{ ok: true; file: DatasetFile }> {
+  return request(`/api/datasets/${encodeURIComponent(id)}/records`, { method: "DELETE" });
 }
 
 export function datasetRootRecords(id: string): Promise<{

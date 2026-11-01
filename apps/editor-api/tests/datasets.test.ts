@@ -71,4 +71,37 @@ describe("DatasetStore", () => {
     const { file } = await store.read("meetings");
     expect(file.records[0]?.summary).toBe("Hi");
   });
+
+  it("duplicates schema, view, and records under a new id", async () => {
+    await store.create("items", "Items");
+    await store.updateSchema("items", {
+      fields: [{ key: "f1", id: "name", label: "Name", kind: "string", required: true }],
+    });
+    await store.updateView("items", { columns: ["uid", "name"], displayName: "{name}" });
+    await store.appendRecord("items", { name: "Alpha" });
+    const copy = await store.duplicate("items", "items-copy");
+    expect(copy.id).toBe("items-copy");
+    expect(copy.title).toBe("Items copy");
+    expect(copy.schema.fields.map((f) => f.id)).toEqual(["name"]);
+    expect(copy.view.columns).toEqual(["uid", "name"]);
+    expect(copy.records).toHaveLength(1);
+    expect(copy.records[0]?.name).toBe("Alpha");
+    const list = await store.list();
+    expect(list.map((d) => d.id).sort()).toEqual(["items", "items-copy"]);
+  });
+
+  it("clears all records and resets nextUid", async () => {
+    await store.create("items", "Items");
+    await store.updateSchema("items", {
+      fields: [{ key: "f1", id: "name", label: "Name", kind: "string", required: true }],
+    });
+    await store.appendRecord("items", { name: "Alpha" });
+    await store.appendRecord("items", { name: "Beta" });
+    const file = await store.clearAllRecords("items");
+    expect(file.records).toEqual([]);
+    expect(file.nextUid).toBe(1);
+    expect(file.schema.fields).toHaveLength(1);
+    const { file: again } = await store.read("items");
+    expect(again.records).toEqual([]);
+  });
 });

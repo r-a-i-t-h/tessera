@@ -5,6 +5,7 @@ import {
   applySchemaAction,
   focusSchemaFieldId,
   readSchemaForm,
+  readViewColumnsFromSchemaForm,
   renderSchemaForm,
   schemaDraftFromFields,
 } from "./schema-form.js";
@@ -25,7 +26,7 @@ describe("schema form", () => {
   it("shows an empty state when there are no fields", () => {
     const html = renderSchemaForm(schemaDraftFromFields([]));
     expect(html).toContain("No fields yet");
-    expect(html).not.toContain("Record metadata");
+    expect(html).toContain("editor-dataset-schema-meta-visible");
   });
 
   it("allows id and title as schema fields", () => {
@@ -89,6 +90,23 @@ describe("schema form", () => {
     select!.value = "url";
     const draft = readSchemaForm(host, schemaDraftFromFields(fields));
     expect(draft.fields[0]?.kind).toBe("url");
+  });
+
+  it("reads view column checkboxes in schema order", () => {
+    const fields: DatasetField[] = [
+      { key: "a", id: "title", label: "Title", kind: "string" },
+      { key: "b", id: "count", label: "Count", kind: "number" },
+    ];
+    const host = document.createElement("div");
+    host.innerHTML = renderSchemaForm(schemaDraftFromFields(fields), { viewColumns: ["uid", "title"] });
+    const draft = schemaDraftFromFields(fields);
+    expect(readViewColumnsFromSchemaForm(host, draft)).toEqual(["uid", "title"]);
+  });
+
+  it("renders visible checkboxes on schema rows", () => {
+    const html = renderSchemaForm(schemaDraftFromFields(sample), { viewColumns: ["title"] });
+    expect(html).toContain("data-schema-visible");
+    expect(html).toContain('data-view-col="uid"');
   });
 
   it("does not offer removed field kinds", () => {

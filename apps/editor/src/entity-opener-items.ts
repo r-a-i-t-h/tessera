@@ -137,15 +137,20 @@ export async function buildEditEntityItems(
 export function buildDatasetEntityItems(
   datasets: DatasetSummary[],
   currentId: string,
+  surface: "data" | "setup" = "data",
 ): EntityOpenerItem[] {
   return datasets
     .filter((d) => d.id !== currentId)
     .map((d) => {
       const label = d.title.trim() || d.id;
+      const hash =
+        surface === "setup"
+          ? `#/records/datasets/${encodeURIComponent(d.id)}`
+          : `#/data/${encodeURIComponent(d.id)}`;
       return {
         id: d.id,
         label,
-        hash: `#/data/${encodeURIComponent(d.id)}`,
+        hash,
         filterText: filterText(label, d.id),
       };
     });

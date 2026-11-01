@@ -141,6 +141,24 @@ export class DatasetStore {
     return file;
   }
 
+  async duplicate(sourceId: string, nextId: string): Promise<DatasetFile> {
+    if (!isRecordId(nextId)) throw new Error("Dataset id is invalid.");
+    const source = await this.readFile(sourceId);
+    const path = filePath(this.datasetsDir, nextId);
+    try {
+      await readJson(path);
+      throw new Error("A dataset with that id already exists.");
+    } catch (err) {
+      if (err instanceof Error && err.message.includes("already exists")) throw err;
+    }
+    const file: DatasetFile = structuredClone(source);
+    file.id = nextId;
+    const baseTitle = source.title.trim() || source.id;
+    file.title = baseTitle === source.id ? nextId : `${baseTitle} copy`;
+    await this.writeFile(file);
+    return file;
+  }
+
   async updateTitle(id: string, title: string): Promise<DatasetFile> {
     const file = await this.readFile(id);
     file.title = title.trim() || file.id;
@@ -271,6 +289,16 @@ export class DatasetStore {
     const next = file.records.filter((r) => r.uid !== uid);
     if (next.length === file.records.length) throw new Error("Record not found.");
     file.records = next;
+    await this.writeFile(file);
+    return file;
+  }
+
+  /** Removes every row; schema and view are unchanged. Resets the uid counter. */
+  async clearAllRecords(id: string): Promise<DatasetFile> {
+    const file = await this.readFile(id);
+    if (file.records.length === 0) return file;
+    file.records = [];
+    file.nextUid = 1;
     await this.writeFile(file);
     return file;
   }

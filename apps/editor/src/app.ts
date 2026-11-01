@@ -332,6 +332,14 @@ export async function mount(root: HTMLElement): Promise<void> {
     }
     if (event.code !== "KeyS" || event.altKey || event.shiftKey || !(event.metaKey || event.ctrlKey)) return;
     if (event.defaultPrevented) return;
+    const datasetSave = document.querySelector<HTMLButtonElement>(
+      ".editor-dataset-setup [data-dataset-save]:not([disabled])",
+    );
+    if (datasetSave?.isConnected) {
+      event.preventDefault();
+      datasetSave.click();
+      return;
+    }
     const active = document.activeElement;
     const focused = active instanceof HTMLElement ? active.closest("form") : null;
     const form =

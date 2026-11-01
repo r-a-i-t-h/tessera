@@ -6,6 +6,7 @@ import {
 } from "@r-a-i-t-h/tessera-model";
 import { escapeHtml } from "../dom.js";
 import { iconButton, REORDER_ICONS } from "../editor-icons.js";
+import { availableViewColumns } from "./grid.js";
 
 export type SchemaDraft = {
   fields: DatasetField[];
@@ -17,7 +18,28 @@ export type SchemaFormOptions = {
   datasetOptions?: DatasetRefOption[];
   /** Omit self when picking ref targets. */
   excludeDatasetId?: string;
+  /** Column ids shown in the dataset grid (`view.columns`). */
+  viewColumns?: readonly string[];
 };
+
+const SYSTEM_VIEW_COLUMNS = [
+  { id: "uid", label: "UID" },
+  { id: "added", label: "Added" },
+  { id: "modified", label: "Modified" },
+] as const;
+
+function systemVisibleColumnsHtml(viewColumns: readonly string[] | undefined): string {
+  const on = new Set(viewColumns ?? []);
+  const rows = SYSTEM_VIEW_COLUMNS.map(
+    ({ id, label }) =>
+      `<li class="editor-dataset-schema-meta-row">
+        <span class="editor-dataset-schema-meta-id">${escapeHtml(id)}</span>
+        <span class="editor-dataset-schema-meta-label">${escapeHtml(label)}</span>
+        <label class="editor-dataset-schema-visible-cell"><input type="checkbox" data-view-col="${escapeHtml(id)}"${on.has(id) ? " checked" : ""} /><span>Visible</span></label>
+      </li>`,
+  ).join("");
+  return `<ul class="editor-dataset-schema-meta-visible" aria-label="Record metadata columns">${rows}</ul>`;
+}
 
 export function schemaDraftFromFields(fields: DatasetField[]): SchemaDraft {
   return { fields: structuredClone(fields) };
@@ -28,6 +50,7 @@ export function renderSchemaForm(draft: SchemaDraft, options: SchemaFormOptions 
   const kinds = DATASET_FIELD_KINDS.map((k) => `<option value="${k}">${k}</option>`).join("");
   const list = rows || `<li class="w3-text-grey">No fields yet.</li>`;
   return `<div class="editor-dataset-schema">
+    ${systemVisibleColumnsHtml(options.viewColumns)}
     <ul class="editor-type-fields editor-dataset-schema-custom-fields">${list}</ul>
     <p><button type="button" class="w3-button w3-small w3-theme" data-schema-action="add">Add field</button></p>
     <template id="schema-kind-options">${kinds}</template>
@@ -49,6 +72,7 @@ function fieldRow(field: DatasetField, index: number, options: SchemaFormOptions
   const kindOptions = DATASET_FIELD_KINDS.map(
     (k) => `<option value="${k}"${field.kind === k ? " selected" : ""}>${k}</option>`,
   ).join("");
+  const visible = options.viewColumns?.includes(field.id) ?? false;
   return `<li class="editor-type-item" data-schema-index="${index}" data-schema-depth="0">
     <input type="hidden" data-schema-key="${index}" data-depth="0" value="${escapeHtml(field.key)}" />
     <div class="editor-type-line">
@@ -56,6 +80,7 @@ function fieldRow(field: DatasetField, index: number, options: SchemaFormOptions
       <input class="w3-input" placeholder="Label" data-schema-label="${index}" data-depth="0" value="${escapeHtml(field.label)}" />
       <select class="w3-select" data-schema-kind="${index}" data-depth="0">${kindOptions}</select>
       <label><input type="checkbox" data-schema-required="${index}" data-depth="0"${field.required ? " checked" : ""} /> Required</label>
+      <label class="editor-dataset-schema-visible-cell"><input type="checkbox" data-schema-visible="${index}" data-depth="0"${visible ? " checked" : ""} /><span>Visible</span></label>
       ${many}
       ${actions(index)}
     </div>
@@ -98,6 +123,26 @@ function schemaIcon(action: "up" | "down" | "remove", index: number): string {
     icon: icons[action],
     extraAttributes: ` data-schema-depth="0"`,
   });
+}
+
+export function readViewColumnsFromSchemaForm(root: HTMLElement, draft: SchemaDraft): string[] {
+  const available = availableViewColumns(draft.fields);
+  const chosen = new Set<string>();
+  for (const { id } of SYSTEM_VIEW_COLUMNS) {
+    const input = root.querySelector<HTMLInputElement>(`[data-view-col="${id}"]`);
+    if (input?.checked) chosen.add(id);
+  }
+  const list = root.querySelector(".editor-dataset-schema-custom-fields");
+  const rows = [...(list?.querySelectorAll<HTMLElement>(":scope > li[data-schema-index]") ?? [])];
+  for (const row of rows) {
+    const index = Number(row.dataset.schemaIndex);
+    const idEl = row.querySelector<HTMLInputElement>(`[data-schema-id="${index}"][data-depth="0"]`);
+    const id = idEl?.value.trim() || draft.fields[index]?.id || "";
+    if (!id) continue;
+    const vis = row.querySelector<HTMLInputElement>(`[data-schema-visible="${index}"][data-depth="0"]`);
+    if (vis?.checked) chosen.add(id);
+  }
+  return available.filter((id) => chosen.has(id));
 }
 
 export function readSchemaForm(root: HTMLElement, draft: SchemaDraft): SchemaDraft {

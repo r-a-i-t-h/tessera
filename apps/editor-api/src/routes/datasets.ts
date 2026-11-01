@@ -70,6 +70,24 @@ datasetRoutes.get("/datasets/:id", async (c) => {
   }
 });
 
+datasetRoutes.post("/datasets/:id/duplicate", async (c) => {
+  const denied = assertFullAdmin(c);
+  if (denied) return denied;
+  const sourceId = c.req.param("id");
+  if (!isRecordId(sourceId)) return apiError(c, 400, "Dataset id is invalid.");
+  const body: unknown = await c.req.json().catch(() => ({}));
+  const nextId =
+    body && typeof body === "object" && "id" in body ? String((body as { id: unknown }).id ?? "").trim() : "";
+  if (!nextId) return apiError(c, 400, "Body must include id.");
+  try {
+    const file = await store(c).duplicate(sourceId, nextId);
+    await rebuildPreview(c);
+    return c.json({ ok: true, file });
+  } catch (err) {
+    return apiError(c, 400, err instanceof Error ? err.message : "Could not duplicate dataset.");
+  }
+});
+
 datasetRoutes.put("/datasets/:id", async (c) => {
   const id = c.req.param("id");
   if (!isRecordId(id)) return apiError(c, 400, "Dataset id is invalid.");
@@ -183,6 +201,18 @@ datasetRoutes.patch("/datasets/:id/records", async (c) => {
   } catch (err) {
     if (err instanceof ValidationError) return c.json({ ok: false, error: err.message, issues: err.issues }, 400);
     return apiError(c, 400, err instanceof Error ? err.message : "Could not patch records.");
+  }
+});
+
+datasetRoutes.delete("/datasets/:id/records", async (c) => {
+  const id = c.req.param("id");
+  if (!isRecordId(id)) return apiError(c, 400, "Dataset id is invalid.");
+  try {
+    const file = await store(c).clearAllRecords(id);
+    await rebuildPreview(c);
+    return c.json({ ok: true, file });
+  } catch (err) {
+    return apiError(c, 400, err instanceof Error ? err.message : "Could not delete records.");
   }
 });
 

@@ -2583,7 +2583,41 @@ button.editor-library-row:hover,
 }
 
 .editor-dataset-schema .editor-type-line {
-  grid-template-columns: minmax(6rem, 1fr) minmax(6rem, 1fr) minmax(5.5rem, 7rem) auto auto auto;
+  grid-template-columns: minmax(6rem, 1fr) minmax(6rem, 1fr) minmax(5.5rem, 7rem) auto auto auto auto;
+}
+
+.editor-dataset-schema-visible-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+  white-space: nowrap;
+  font-size: 0.85rem;
+}
+
+.editor-dataset-schema-meta-visible {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  max-width: 52rem;
+}
+
+.editor-dataset-schema-meta-row {
+  display: grid;
+  grid-template-columns: minmax(6rem, 1fr) minmax(6rem, 1fr) minmax(5.5rem, 7rem) auto auto auto auto;
+  gap: 0.35rem 0.5rem;
+  align-items: center;
+  margin: 0 0 0.35rem;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.editor-dataset-schema-meta-id {
+  font-family: ui-monospace, monospace;
+}
+
+.editor-dataset-setup .editor-dataset-settings-body {
+  max-width: 48rem;
 }
 
 .editor-dataset-schema .editor-type-line > label {

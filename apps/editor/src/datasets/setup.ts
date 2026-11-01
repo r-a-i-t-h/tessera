@@ -1,8 +1,9 @@
-import type { DatasetField } from "@r-a-i-t-h/tessera-model";
-import { fieldById, summarizeSchemaAdaptation } from "@r-a-i-t-h/tessera-model";
+import type { DatasetField, DatasetFile } from "@r-a-i-t-h/tessera-model";
+import { summarizeSchemaAdaptation } from "@r-a-i-t-h/tessera-model";
 import {
   createDataset,
   deleteDataset,
+  duplicateDataset,
   getDataset,
   listDatasets,
   updateDatasetSchema,
@@ -11,16 +12,19 @@ import {
   type DatasetSummary,
   type PublicUser,
 } from "../api.js";
+import { pageIdError, suggestDuplicateId } from "../forms/page.js";
 import { editorChrome } from "../chrome.js";
 import { mergeEditorNav } from "../sidebar-nav.js";
+import { buildDatasetEntityItems } from "../entity-opener-items.js";
+import { bindEntityOpener, entityOpenerHtml } from "../entity-opener.js";
 import { escapeHtml, errorPanel, formErrorPanel, showFormError } from "../dom.js";
-import { availableViewColumns } from "./grid.js";
 import {
   adaptationSummaryHtml,
   applySchemaAction,
   applySchemaActionForRow,
   focusSchemaFieldId,
   readSchemaForm,
+  readViewColumnsFromSchemaForm,
   renderSchemaForm,
   schemaDraftFromFields,
   validateSchemaDraft,
@@ -28,6 +32,32 @@ import {
 } from "./schema-form.js";
 
 type BindChrome = (root: HTMLElement) => void;
+
+type DatasetSetupTab = "dataset" | "schema" | "raw";
+
+function datasetSetupTab(tab: DatasetSetupTab, label: string, active: DatasetSetupTab): string {
+  const on = active === tab;
+  return `<button type="button" class="editor-tab${on ? " is-active" : ""}" role="tab" data-dataset-tab="${tab}" aria-selected="${on}" tabindex="${on ? "0" : "-1"}">${escapeHtml(label)}</button>`;
+}
+
+function datasetRawJson(file: DatasetFile): string {
+  return JSON.stringify(file, null, 2);
+}
+
+function datasetDuplicateToolsHtml(suggestedId: string): string {
+  return `<form id="dataset-tools" class="w3-card w3-white w3-padding editor-card">
+    <p class="editor-rename-row">
+      <label for="dataset-duplicate-id">Duplicate as</label>
+      <input id="dataset-duplicate-id" name="duplicate-id" class="w3-input w3-border" value="${escapeHtml(suggestedId)}" autocomplete="off" spellcheck="false" />
+      <button type="button" class="w3-button w3-white" data-action="duplicate-dataset">Duplicate</button>
+    </p>
+    ${formErrorPanel()}
+  </form>`;
+}
+
+function datasetDuplicateIdError(id: string, existingIds: readonly string[]): string | undefined {
+  return pageIdError(id, existingIds)?.replace("A page with id", "A dataset with id");
+}
 
 function summarizePreview(nextFields: DatasetField[], prevFields: DatasetField[]) {
   return summarizeSchemaAdaptation({ fields: prevFields }, { fields: nextFields });
@@ -101,81 +131,99 @@ export async function mountDatasetSetup(
 ): Promise<void> {
   const [{ file }, { datasets: allDatasets }] = await Promise.all([getDataset(datasetId), listDatasets()]);
   let fileState = file;
-  let columnsPanelOpen = false;
-  let settingsPanelOpen = false;
+  let activeTab: DatasetSetupTab = "dataset";
   let draft: SchemaDraft = schemaDraftFromFields(fileState.schema.fields);
-  let schemaError = "";
+  let panelError = "";
+  let panelNotice = "";
 
   const schemaFormOptions = () => ({
     datasetOptions: allDatasets.map((d) => ({ id: d.id, title: d.title })),
     excludeDatasetId: datasetId,
+    viewColumns: fileState.view.columns,
   });
 
   const paint = () => {
-    const colOptions = availableViewColumns(fileState.schema.fields)
-      .map((id) => {
-        const on = fileState.view.columns.includes(id);
-        const field = fieldById(fileState.schema.fields, id);
-        const caption = field
-          ? field.label.trim() || field.id
-          : id === "uid"
-            ? "UID"
-            : id === "added"
-              ? "Added"
-              : id === "modified"
-                ? "Modified"
-                : id;
-        return `<label class="editor-dataset-column-choice"><input type="checkbox" data-view-col="${escapeHtml(id)}"${on ? " checked" : ""} /><span>${escapeHtml(caption)}</span><span class="editor-dataset-column-id">${escapeHtml(id)}</span></label>`;
-      })
-      .join("");
-
-    root.innerHTML = editorChrome(
-      user,
-      `<div class="editor-dataset-setup" data-dataset-id="${escapeHtml(datasetId)}">
-        <p><a href="#/records/datasets">Datasets</a> / <strong>${escapeHtml(fileState.title.trim() || datasetId)}</strong></p>
-        <p class="editor-toolbar-row">
-          <a class="w3-button w3-theme" href="#/data/${encodeURIComponent(datasetId)}">Edit data</a>
-        </p>
-        <details class="editor-dataset-settings"${settingsPanelOpen ? " open" : ""}>
-          <summary>Settings</summary>
-          <div class="editor-dataset-settings-body">
+    const title = fileState.title.trim() || datasetId;
+    const entityItems = buildDatasetEntityItems(allDatasets, datasetId, "setup");
+    const schemaTabBody =
+      activeTab === "schema"
+        ? `<div id="schema-root">${renderSchemaForm(draft, schemaFormOptions())}</div>`
+        : "";
+    const panelStatus =
+      panelNotice || panelError
+        ? activeTab === "schema" || activeTab === "dataset"
+          ? `${panelNotice ? `<p class="w3-text-green w3-small">${escapeHtml(panelNotice)}</p>` : ""}${panelError ? errorPanel(panelError) : ""}`
+          : ""
+        : "";
+    const datasetTabBody =
+      activeTab === "dataset"
+        ? `<div class="editor-dataset-settings-body">
             <p class="editor-dataset-settings-row">
               <label>Dataset id</label>
               <span class="editor-dataset-settings-static">${escapeHtml(datasetId)}</span>
             </p>
             <p class="editor-dataset-settings-row editor-dataset-settings-title-row">
               <label for="dataset-title">Title</label>
-              <span class="editor-dataset-settings-title-control">
-                <input id="dataset-title" class="w3-input w3-border" type="text" data-dataset-title value="${escapeHtml(fileState.title)}" spellcheck="false" />
-                <button type="button" class="w3-button w3-small w3-white" data-dataset-rename>Rename</button>
-              </span>
+              <input id="dataset-title" class="w3-input w3-border" type="text" data-dataset-title value="${escapeHtml(fileState.title)}" spellcheck="false" />
             </p>
             <p class="editor-dataset-settings-row">
               <label for="dataset-display-name">Display name</label>
               <input id="dataset-display-name" class="w3-input w3-border" type="text" data-dataset-display-name placeholder="{make} {model} {year}" value="${escapeHtml(fileState.view.displayName ?? "")}" spellcheck="false" />
             </p>
-            <p class="editor-dataset-settings-actions">
+            <p class="w3-text-grey w3-small">Template for record labels in pickers and lists. Use field ids in braces.</p>
+          </div>`
+        : "";
+    const rawTabBody =
+      activeTab === "raw"
+        ? `<p class="w3-text-grey editor-record-note"><code>datasets/${escapeHtml(datasetId)}.json</code></p>
+          <textarea class="w3-input w3-border editor-html" rows="24" readonly spellcheck="false">${escapeHtml(datasetRawJson(fileState))}</textarea>
+          <p class="w3-text-grey w3-small">Datasets are stored as JSON on disk. Edit schema and records through the other tabs or the data grid.</p>`
+        : "";
+    const tabBody = `${panelStatus}${datasetTabBody || schemaTabBody || rawTabBody}`;
+    const saveDisabled = activeTab === "raw" ? " disabled" : "";
+    const saveTitle =
+      activeTab === "schema"
+        ? "Save schema (Ctrl+S)"
+        : activeTab === "dataset"
+          ? "Save (Ctrl+S)"
+          : "Nothing to save on this tab";
+
+    const duplicateSuggested = suggestDuplicateId(datasetId, allDatasets.map((d) => d.id));
+
+    root.innerHTML = editorChrome(
+      user,
+      `<div class="editor-dataset-setup" data-dataset-id="${escapeHtml(datasetId)}">
+        <div class="editor-toolbar">
+          <div class="editor-toolbar-row">
+            <a class="w3-button w3-white editor-back" href="#/records/datasets" aria-label="Back" title="Back (Escape)">←</a>
+            ${entityOpenerHtml(title, datasetId, entityItems)}
+            <p class="editor-actions">
+              <a class="w3-button w3-white" href="#/data/${encodeURIComponent(datasetId)}">Edit data</a>
+              <button type="button" class="w3-button w3-theme" data-dataset-save${saveDisabled} title="${escapeHtml(saveTitle)}">Save</button>
               <button type="button" class="w3-button w3-white w3-border w3-border-red" data-dataset-delete-ds>Delete dataset</button>
             </p>
           </div>
-        </details>
-        <details class="editor-dataset-columns"${columnsPanelOpen ? " open" : ""}>
-          <summary>Visible columns</summary>
-          <p class="w3-text-grey w3-small">Columns shown in the dataset grid and published views.</p>
-          <div class="editor-dataset-columns-grid">${colOptions}</div>
-        </details>
-        <section class="editor-dataset-schema-panel" aria-labelledby="dataset-schema-heading">
-          <h2 id="dataset-schema-heading" class="w3-large">Schema</h2>
-          <div id="schema-root">${renderSchemaForm(draft, schemaFormOptions())}</div>
-          ${schemaError ? errorPanel(schemaError) : ""}
-          <p><button type="button" class="w3-button w3-theme" data-schema-save>Save schema</button></p>
-        </section>
+        </div>
+        <div class="editor-tab-panel">
+          <div class="editor-tab-strip">
+            <div class="editor-tabs" role="tablist" aria-label="Dataset editor">
+              ${datasetSetupTab("dataset", "Dataset", activeTab)}
+              ${datasetSetupTab("schema", "Schema", activeTab)}
+              ${datasetSetupTab("raw", "Raw file", activeTab)}
+            </div>
+          </div>
+          <div class="editor-tab-body">
+            <div class="w3-card w3-white w3-padding-large editor-card">${tabBody}</div>
+          </div>
+        </div>
+        ${datasetDuplicateToolsHtml(duplicateSuggested)}
       </div>`,
       true,
       "records",
       mergeEditorNav({ recordsKind: "datasets" }),
     );
     bindChrome(root);
+    bindEntityOpener(root);
     bindSetupEvents(root);
   };
 
@@ -192,14 +240,18 @@ export async function mountDatasetSetup(
   };
 
   const bindSetupEvents = (host: HTMLElement): void => {
-    host.querySelector("details.editor-dataset-columns")?.addEventListener("toggle", (event) => {
-      const details = event.target;
-      if (details instanceof HTMLDetailsElement) columnsPanelOpen = details.open;
-    });
-    host.querySelector("details.editor-dataset-settings")?.addEventListener("toggle", (event) => {
-      const details = event.target;
-      if (details instanceof HTMLDetailsElement) settingsPanelOpen = details.open;
-    });
+    for (const button of host.querySelectorAll<HTMLButtonElement>("[data-dataset-tab]")) {
+      button.addEventListener("click", () => {
+        const next = button.dataset.datasetTab;
+        if (next !== "dataset" && next !== "schema" && next !== "raw") return;
+        if (next === activeTab) return;
+        if (activeTab === "schema") syncDraftFromDom();
+        panelError = "";
+        panelNotice = "";
+        activeTab = next;
+        paint();
+      });
+    }
     const persistView = (patch: { columns?: string[]; displayName?: string }) => {
       const columns = patch.columns ?? fileState.view.columns;
       const displayName = patch.displayName !== undefined ? patch.displayName : (fileState.view.displayName ?? "");
@@ -212,38 +264,58 @@ export async function mountDatasetSetup(
           paint();
         })
         .catch((err) => {
-          schemaError = err instanceof Error ? err.message : "Could not save view settings.";
+          panelError = err instanceof Error ? err.message : "Could not save view settings.";
+          panelNotice = "";
           paint();
         });
     };
-    host.querySelector("[data-dataset-display-name]")?.addEventListener("change", (event) => {
-      const input = event.target;
-      if (!(input instanceof HTMLInputElement)) return;
-      persistView({ displayName: input.value });
-    });
-    const renameDataset = () => {
-      const input = host.querySelector<HTMLInputElement>("[data-dataset-title]");
-      if (!input) return;
-      const title = input.value.trim();
-      if (!title) return;
-      void updateDatasetTitle(datasetId, title)
-        .then((res) => {
-          fileState = res.file;
-          schemaError = "";
+    const saveDatasetSettings = () => {
+      const titleInput = host.querySelector<HTMLInputElement>("[data-dataset-title]");
+      const displayInput = host.querySelector<HTMLInputElement>("[data-dataset-display-name]");
+      const nextTitle = titleInput?.value.trim() ?? "";
+      const nextDisplayName = displayInput?.value ?? "";
+      if (!nextTitle) {
+        panelError = "Title is required.";
+        panelNotice = "";
+        paint();
+        return;
+      }
+      panelError = "";
+      panelNotice = "";
+      const titleChanged = nextTitle !== fileState.title.trim();
+      const displayChanged = nextDisplayName !== (fileState.view.displayName ?? "");
+      if (!titleChanged && !displayChanged) {
+        panelNotice = "Nothing to save.";
+        paint();
+        return;
+      }
+      const run = async () => {
+        let nextFile = fileState;
+        if (titleChanged) {
+          const res = await updateDatasetTitle(datasetId, nextTitle);
+          nextFile = res.file;
+        }
+        if (displayChanged) {
+          const res = await updateDatasetView(datasetId, {
+            columns: nextFile.view.columns,
+            displayName: nextDisplayName,
+          });
+          nextFile = res.file;
+        }
+        return nextFile;
+      };
+      void run()
+        .then((nextFile) => {
+          fileState = nextFile;
+          draft = schemaDraftFromFields(fileState.schema.fields);
+          panelNotice = "Saved.";
           paint();
         })
         .catch((err) => {
-          schemaError = err instanceof Error ? err.message : "Could not rename dataset.";
+          panelError = err instanceof Error ? err.message : "Could not save dataset settings.";
           paint();
         });
     };
-    host.querySelector("[data-dataset-rename]")?.addEventListener("click", renameDataset);
-    host.querySelector<HTMLInputElement>("[data-dataset-title]")?.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        renameDataset();
-      }
-    });
     host.querySelector("[data-dataset-delete-ds]")?.addEventListener("click", () => {
       if (!window.confirm(`Delete dataset ${datasetId}?`)) return;
       void deleteDataset(datasetId)
@@ -251,44 +323,73 @@ export async function mountDatasetSetup(
           window.location.hash = "#/records/datasets";
         })
         .catch((err) => {
-          schemaError = err instanceof Error ? err.message : "Could not delete dataset.";
+          panelError = err instanceof Error ? err.message : "Could not delete dataset.";
           paint();
         });
     });
-    host.querySelectorAll("[data-view-col]").forEach((el) => {
-      el.addEventListener("change", () => {
-        const cols = [...host.querySelectorAll<HTMLInputElement>("[data-view-col]:checked")].map(
-          (input) => input.dataset.viewCol!,
-        );
-        persistView({ columns: cols });
-      });
-    });
 
     const saveSchema = () => {
+      if (activeTab !== "schema") return;
       const rootEl = schemaRoot();
       if (!(rootEl instanceof HTMLElement)) return;
       draft = readSchemaForm(rootEl, draft);
       const validationError = validateSchemaDraft(draft.fields);
       if (validationError) {
-        schemaError = validationError;
+        panelError = validationError;
+        panelNotice = "";
         paint();
         return;
       }
       const preview = summarizePreview(draft.fields, fileState.schema.fields);
       const summary = adaptationSummaryHtml(preview);
       if (!window.confirm(`Apply schema changes?\n${summary.replace(/<[^>]+>/g, " ")}`)) return;
-      schemaError = "";
+      panelError = "";
+      panelNotice = "";
       void updateDatasetSchema(datasetId, { fields: draft.fields })
         .then((res) => {
           fileState = res.file;
           draft = schemaDraftFromFields(fileState.schema.fields);
+          panelNotice = "Schema saved.";
           paint();
         })
         .catch((err) => {
-          schemaError = err instanceof Error ? err.message : "Could not save schema.";
+          panelError = err instanceof Error ? err.message : "Could not save schema.";
           paint();
         });
     };
+
+    const saveCurrent = () => {
+      if (activeTab === "raw") return;
+      if (activeTab === "schema") saveSchema();
+      else saveDatasetSettings();
+    };
+
+    host.querySelector("[data-dataset-save]")?.addEventListener("click", saveCurrent);
+
+    host.querySelector<HTMLButtonElement>("[data-action=duplicate-dataset]")?.addEventListener("click", () => {
+      const form = host.querySelector<HTMLFormElement>("#dataset-tools");
+      const input = host.querySelector<HTMLInputElement>('[name="duplicate-id"]');
+      const nextId = input?.value.trim() ?? "";
+      const existingIds = allDatasets.map((d) => d.id);
+      const problem = datasetDuplicateIdError(nextId, existingIds);
+      if (problem) {
+        if (form) showFormError(form, problem);
+        return;
+      }
+      if (nextId === datasetId) {
+        if (form) showFormError(form, "Choose a different id.");
+        return;
+      }
+      if (!window.confirm(`Duplicate ${datasetId} as ${nextId}?`)) return;
+      if (form) showFormError(form, "");
+      void duplicateDataset(datasetId, nextId)
+        .then(() => {
+          window.location.hash = `#/records/datasets/${encodeURIComponent(nextId)}`;
+        })
+        .catch((err) => {
+          if (form) showFormError(form, err instanceof Error ? err.message : "Could not duplicate that dataset.");
+        });
+    });
 
     const addRootField = () => {
       syncDraftFromDom();
@@ -307,7 +408,7 @@ export async function mountDatasetSetup(
         }
         if (event.code === "KeyS" && !event.altKey && !event.shiftKey) {
           event.preventDefault();
-          saveSchema();
+          saveCurrent();
         }
       }
     });
@@ -315,6 +416,7 @@ export async function mountDatasetSetup(
     host.addEventListener("click", (event) => {
       const button = (event.target instanceof Element ? event.target : null)?.closest("button");
       if (!(button instanceof HTMLButtonElement) || !host.contains(button)) return;
+      if (button.dataset.datasetTab) return;
       const rootEl = schemaRoot();
       if (!(rootEl instanceof HTMLElement)) return;
       if (button.dataset.schemaAction === "add") {
@@ -332,12 +434,17 @@ export async function mountDatasetSetup(
       paintSchemaFields();
     });
 
-    host.querySelector("[data-schema-save]")?.addEventListener("click", saveSchema);
-
     host.addEventListener("change", (event) => {
       const target = event.target;
+      if (!(target instanceof Element) || !host.contains(target)) return;
+      if (target instanceof HTMLInputElement && target.matches("[data-view-col], [data-schema-visible]")) {
+        const rootEl = schemaRoot();
+        if (!(rootEl instanceof HTMLElement)) return;
+        syncDraftFromDom();
+        persistView({ columns: readViewColumnsFromSchemaForm(rootEl, draft) });
+        return;
+      }
       if (!(target instanceof HTMLSelectElement) || !target.matches("[data-schema-kind]")) return;
-      if (!host.contains(target)) return;
       syncDraftFromDom();
       paintSchemaFields();
       const depth = Number(target.dataset.depth ?? "0");
