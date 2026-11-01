@@ -63,7 +63,7 @@ export function editorChrome(
     const current = section === key;
     const aria = current && !childOn ? ' aria-current="page"' : "";
     const brand = extraClass.includes("editor-nav-brand");
-    const classes = `w3-bar-item w3-button${extraClass ? ` ${extraClass}` : ""}${current && !brand ? " w3-white" : ""}`;
+    const classes = `w3-bar-item w3-button${extraClass ? ` ${extraClass}` : ""}${current && !brand && !childOn ? " editor-nav-current" : ""}`;
     return `<a class="${classes}" href="${href}"${aria}>${label}</a>`;
   };
 
@@ -137,7 +137,7 @@ export function editorChrome(
           ${sectionLink("#/guide", "Guide", "guide")}
         </nav>
         <div class="editor-nav-account w3-bar-block">
-          <a class="w3-bar-item w3-button${section === "account" ? " w3-white" : ""}" href="#/account" title="Account"${section === "account" ? ' aria-current="page"' : ""}>${escapeHtml(user.username)}</a>
+          <a class="w3-bar-item w3-button${section === "account" ? " editor-nav-current" : ""}" href="#/account" title="Account"${section === "account" ? ' aria-current="page"' : ""}>${escapeHtml(user.username)}</a>
         </div>
         <div class="editor-sidebar-version">${editorVersionLabel()}</div>
       </aside>

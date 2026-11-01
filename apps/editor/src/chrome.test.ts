@@ -108,7 +108,8 @@ describe("editor chrome", () => {
     expect(html).toContain('href="#/articles/news"');
     expect(html).toContain("editor-nav-child-current");
     expect(html).not.toContain('href="#/articles" aria-current="page"');
-    expect(html).toContain('class="w3-bar-item w3-button w3-white" href="#/articles"');
+    expect(html).toContain('class="w3-bar-item w3-button" href="#/articles"');
+    expect(html).not.toContain('class="w3-bar-item w3-button editor-nav-current" href="#/articles"');
   });
 
   it("expands datasets under Data and marks the active one", () => {
@@ -129,7 +130,8 @@ describe("editor chrome", () => {
     expect(html).toContain('href="#/data/products" aria-current="page"');
     expect(html).toContain('href="#/data/events"');
     expect(html).not.toContain('href="#/data" aria-current="page"');
-    expect(html).toContain('class="w3-bar-item w3-button w3-white" href="#/data"');
+    expect(html).toContain('class="w3-bar-item w3-button" href="#/data"');
+    expect(html).not.toContain('class="w3-bar-item w3-button editor-nav-current" href="#/data"');
   });
 
   it("lists Datasets under Setup", () => {
