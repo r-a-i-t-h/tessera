@@ -10,6 +10,8 @@ import { availableViewColumns } from "./grid.js";
 
 export type SchemaDraft = {
   fields: DatasetField[];
+  /** Data-grid column ids; persisted with schema Save as `view.columns`. */
+  viewColumns: string[];
 };
 
 export type DatasetRefOption = { id: string; title: string };
@@ -41,18 +43,20 @@ function systemVisibleColumnsHtml(viewColumns: readonly string[] | undefined): s
   return `<ul class="editor-dataset-schema-meta-visible" aria-label="Record metadata columns">${rows}</ul>`;
 }
 
-export function schemaDraftFromFields(fields: DatasetField[]): SchemaDraft {
-  return { fields: structuredClone(fields) };
+export function schemaDraftFromFields(fields: DatasetField[], viewColumns: readonly string[] = []): SchemaDraft {
+  return { fields: structuredClone(fields), viewColumns: [...viewColumns] };
 }
 
 export function renderSchemaForm(draft: SchemaDraft, options: SchemaFormOptions = {}): string {
-  const rows = draft.fields.map((field, index) => fieldRow(field, index, options)).join("");
+  const viewColumns = options.viewColumns ?? draft.viewColumns;
+  const rowOptions = { ...options, viewColumns };
+  const rows = draft.fields.map((field, index) => fieldRow(field, index, rowOptions)).join("");
   const kinds = DATASET_FIELD_KINDS.map((k) => `<option value="${k}">${k}</option>`).join("");
   const list = rows || `<li class="w3-text-grey">No fields yet.</li>`;
   return `<div class="editor-dataset-schema">
-    ${systemVisibleColumnsHtml(options.viewColumns)}
+    ${systemVisibleColumnsHtml(viewColumns)}
     <ul class="editor-type-fields editor-dataset-schema-custom-fields">${list}</ul>
-    <p><button type="button" class="w3-button w3-small w3-theme" data-schema-action="add">Add field</button></p>
+    <p><button type="button" class="w3-button w3-small w3-theme" data-action="new-field" data-schema-action="add">New field</button></p>
     <template id="schema-kind-options">${kinds}</template>
   </div>`;
 }
@@ -198,7 +202,8 @@ export function readSchemaForm(root: HTMLElement, draft: SchemaDraft): SchemaDra
     }
     fields.push(field);
   }
-  return { fields };
+  const viewColumns = readViewColumnsFromSchemaForm(root, { fields, viewColumns: draft.viewColumns });
+  return { fields, viewColumns };
 }
 
 export function schemaRowPath(row: HTMLElement): number[] {
@@ -234,7 +239,13 @@ export function focusSchemaFieldId(root: HTMLElement, _depth: number, index: num
 }
 
 export function applySchemaAction(draft: SchemaDraft, action: string, index: number): SchemaDraft {
-  return { fields: mutateFieldList(draft.fields, action, index) };
+  const fields = mutateFieldList(draft.fields, action, index);
+  if (action === "remove") {
+    const removedId = draft.fields[index]?.id.trim();
+    const viewColumns = removedId ? draft.viewColumns.filter((id) => id !== removedId) : draft.viewColumns;
+    return { fields, viewColumns };
+  }
+  return { fields, viewColumns: draft.viewColumns };
 }
 
 export function applySchemaActionForRow(draft: SchemaDraft, row: HTMLElement, action: string): SchemaDraft {

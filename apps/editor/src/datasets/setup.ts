@@ -18,13 +18,13 @@ import { mergeEditorNav } from "../sidebar-nav.js";
 import { buildDatasetEntityItems } from "../entity-opener-items.js";
 import { bindEntityOpener, entityOpenerHtml } from "../entity-opener.js";
 import { escapeHtml, errorPanel, formErrorPanel, showFormError } from "../dom.js";
+import { parseRoute } from "../router.js";
 import {
   adaptationSummaryHtml,
   applySchemaAction,
   applySchemaActionForRow,
   focusSchemaFieldId,
   readSchemaForm,
-  readViewColumnsFromSchemaForm,
   renderSchemaForm,
   schemaDraftFromFields,
   validateSchemaDraft,
@@ -34,6 +34,15 @@ import {
 type BindChrome = (root: HTMLElement) => void;
 
 type DatasetSetupTab = "dataset" | "schema" | "raw";
+
+/** Bumped on each mount so late API responses cannot repaint another route or dataset. */
+let datasetSetupMountSeq = 0;
+
+function isActiveDatasetSetupMount(mountId: number, datasetId: string): boolean {
+  if (mountId !== datasetSetupMountSeq) return false;
+  const route = parseRoute(window.location.hash);
+  return route.page === "records" && route.setupDataset === datasetId;
+}
 
 function datasetSetupTab(tab: DatasetSetupTab, label: string, active: DatasetSetupTab): string {
   const on = active === tab;
@@ -129,20 +138,22 @@ export async function mountDatasetSetup(
   datasetId: string,
   bindChrome: BindChrome,
 ): Promise<void> {
+  const mountId = ++datasetSetupMountSeq;
   const [{ file }, { datasets: allDatasets }] = await Promise.all([getDataset(datasetId), listDatasets()]);
+  if (!isActiveDatasetSetupMount(mountId, datasetId)) return;
   let fileState = file;
   let activeTab: DatasetSetupTab = "dataset";
-  let draft: SchemaDraft = schemaDraftFromFields(fileState.schema.fields);
+  let draft: SchemaDraft = schemaDraftFromFields(fileState.schema.fields, fileState.view.columns);
   let panelError = "";
   let panelNotice = "";
 
   const schemaFormOptions = () => ({
     datasetOptions: allDatasets.map((d) => ({ id: d.id, title: d.title })),
     excludeDatasetId: datasetId,
-    viewColumns: fileState.view.columns,
   });
 
   const paint = () => {
+    if (!isActiveDatasetSetupMount(mountId, datasetId)) return;
     const title = fileState.title.trim() || datasetId;
     const entityItems = buildDatasetEntityItems(allDatasets, datasetId, "setup");
     const schemaTabBody =
@@ -183,7 +194,7 @@ export async function mountDatasetSetup(
     const saveDisabled = activeTab === "raw" ? " disabled" : "";
     const saveTitle =
       activeTab === "schema"
-        ? "Save schema (Ctrl+S)"
+        ? "Save schema and column visibility (Ctrl+S)"
         : activeTab === "dataset"
           ? "Save (Ctrl+S)"
           : "Nothing to save on this tab";
@@ -252,23 +263,6 @@ export async function mountDatasetSetup(
         paint();
       });
     }
-    const persistView = (patch: { columns?: string[]; displayName?: string }) => {
-      const columns = patch.columns ?? fileState.view.columns;
-      const displayName = patch.displayName !== undefined ? patch.displayName : (fileState.view.displayName ?? "");
-      fileState = { ...fileState, view: { columns, displayName } };
-      paint();
-      void updateDatasetView(datasetId, { columns, displayName })
-        .then((res) => {
-          fileState = res.file;
-          draft = schemaDraftFromFields(fileState.schema.fields);
-          paint();
-        })
-        .catch((err) => {
-          panelError = err instanceof Error ? err.message : "Could not save view settings.";
-          panelNotice = "";
-          paint();
-        });
-    };
     const saveDatasetSettings = () => {
       const titleInput = host.querySelector<HTMLInputElement>("[data-dataset-title]");
       const displayInput = host.querySelector<HTMLInputElement>("[data-dataset-display-name]");
@@ -306,12 +300,13 @@ export async function mountDatasetSetup(
       };
       void run()
         .then((nextFile) => {
+          if (!isActiveDatasetSetupMount(mountId, datasetId)) return;
           fileState = nextFile;
-          draft = schemaDraftFromFields(fileState.schema.fields);
           panelNotice = "Saved.";
           paint();
         })
         .catch((err) => {
+          if (!isActiveDatasetSetupMount(mountId, datasetId)) return;
           panelError = err instanceof Error ? err.message : "Could not save dataset settings.";
           paint();
         });
@@ -320,9 +315,11 @@ export async function mountDatasetSetup(
       if (!window.confirm(`Delete dataset ${datasetId}?`)) return;
       void deleteDataset(datasetId)
         .then(() => {
+          if (!isActiveDatasetSetupMount(mountId, datasetId)) return;
           window.location.hash = "#/records/datasets";
         })
         .catch((err) => {
+          if (!isActiveDatasetSetupMount(mountId, datasetId)) return;
           panelError = err instanceof Error ? err.message : "Could not delete dataset.";
           paint();
         });
@@ -345,14 +342,27 @@ export async function mountDatasetSetup(
       if (!window.confirm(`Apply schema changes?\n${summary.replace(/<[^>]+>/g, " ")}`)) return;
       panelError = "";
       panelNotice = "";
-      void updateDatasetSchema(datasetId, { fields: draft.fields })
-        .then((res) => {
-          fileState = res.file;
-          draft = schemaDraftFromFields(fileState.schema.fields);
+      const columns = draft.viewColumns;
+      const run = async () => {
+        const schemaRes = await updateDatasetSchema(datasetId, { fields: draft.fields });
+        if (!isActiveDatasetSetupMount(mountId, datasetId)) return schemaRes.file;
+        return (
+          await updateDatasetView(datasetId, {
+            columns,
+            displayName: schemaRes.file.view.displayName ?? "",
+          })
+        ).file;
+      };
+      void run()
+        .then((nextFile) => {
+          if (!isActiveDatasetSetupMount(mountId, datasetId)) return;
+          fileState = nextFile;
+          draft = schemaDraftFromFields(fileState.schema.fields, fileState.view.columns);
           panelNotice = "Schema saved.";
           paint();
         })
         .catch((err) => {
+          if (!isActiveDatasetSetupMount(mountId, datasetId)) return;
           panelError = err instanceof Error ? err.message : "Could not save schema.";
           paint();
         });
@@ -401,11 +411,6 @@ export async function mountDatasetSetup(
 
     host.addEventListener("keydown", (event) => {
       if (event.metaKey || event.ctrlKey) {
-        if (!event.altKey && !event.shiftKey && event.code === "KeyA") {
-          event.preventDefault();
-          addRootField();
-          return;
-        }
         if (event.code === "KeyS" && !event.altKey && !event.shiftKey) {
           event.preventDefault();
           saveCurrent();
@@ -438,10 +443,7 @@ export async function mountDatasetSetup(
       const target = event.target;
       if (!(target instanceof Element) || !host.contains(target)) return;
       if (target instanceof HTMLInputElement && target.matches("[data-view-col], [data-schema-visible]")) {
-        const rootEl = schemaRoot();
-        if (!(rootEl instanceof HTMLElement)) return;
         syncDraftFromDom();
-        persistView({ columns: readViewColumnsFromSchemaForm(rootEl, draft) });
         return;
       }
       if (!(target instanceof HTMLSelectElement) || !target.matches("[data-schema-kind]")) return;

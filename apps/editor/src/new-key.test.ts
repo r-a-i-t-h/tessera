@@ -32,4 +32,14 @@ describe("triggerNewAction", () => {
     expect(triggerNewAction(root)).toBe(true);
     expect(onAdd).toHaveBeenCalledTimes(1);
   });
+
+  it("triggers New field on the dataset schema tab", () => {
+    const root = document.createElement("div");
+    root.innerHTML = `<button type="button" data-action="new-field" data-schema-action="add">New field</button>`;
+    const onAdd = vi.fn();
+    root.querySelector("[data-action=new-field]")?.addEventListener("click", onAdd);
+
+    expect(triggerNewAction(root)).toBe(true);
+    expect(onAdd).toHaveBeenCalledTimes(1);
+  });
 });

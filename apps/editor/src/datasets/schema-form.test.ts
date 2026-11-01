@@ -98,9 +98,19 @@ describe("schema form", () => {
       { key: "b", id: "count", label: "Count", kind: "number" },
     ];
     const host = document.createElement("div");
-    host.innerHTML = renderSchemaForm(schemaDraftFromFields(fields), { viewColumns: ["uid", "title"] });
+    host.innerHTML = renderSchemaForm(schemaDraftFromFields(fields, ["uid", "title"]));
     const draft = schemaDraftFromFields(fields);
     expect(readViewColumnsFromSchemaForm(host, draft)).toEqual(["uid", "title"]);
+  });
+
+  it("stores view columns on the schema draft when reading the form", () => {
+    const fields: DatasetField[] = [{ key: "a", id: "title", label: "Title", kind: "string" }];
+    const host = document.createElement("div");
+    host.innerHTML = renderSchemaForm(schemaDraftFromFields(fields, []));
+    host.querySelector<HTMLInputElement>('[data-schema-visible="0"]')!.checked = true;
+    host.querySelector<HTMLInputElement>('[data-view-col="uid"]')!.checked = true;
+    const draft = readSchemaForm(host, schemaDraftFromFields(fields));
+    expect(draft.viewColumns).toEqual(["uid", "title"]);
   });
 
   it("renders visible checkboxes on schema rows", () => {
