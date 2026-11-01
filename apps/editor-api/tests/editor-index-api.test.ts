@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { contentZones } from "./fixtures/content-zones.js";
 import { createApp } from "../src/app.js";
+import type { EditorIndexItem } from "../src/site/editor-index.js";
 import { hashPassword } from "../src/auth/password.js";
 import { SessionStore } from "../src/auth/sessions.js";
 import { SiteStore } from "../src/site/store.js";
@@ -46,7 +47,7 @@ describe("GET /api/editor-index", () => {
     const app = createApp({ users, sessions, site, siteRoot: siteDir });
     const res = await app.request("/api/editor-index", { headers: auth() });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { version: string; items: { label: string; hash?: string }[] };
+    const body = (await res.json()) as { version: string; items: EditorIndexItem[] };
     expect(body.version).toMatch(/^\d+:\d+$/);
     expect(body.items.some((i) => i.label === "Home" && i.hash === "#/content/home")).toBe(true);
     expect(body.items.some((i) => i.action === "render")).toBe(true);

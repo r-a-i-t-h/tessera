@@ -326,7 +326,12 @@ export class SiteStore {
   ): Promise<SaveResult> {
     this.assertId(id);
     const path = this.recordFile(kind, id);
-    const previous = await readText(path);
+    let previous: string | undefined;
+    try {
+      previous = await readText(path);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+    }
     const staged: { original: string; aside: string }[] = [];
     try {
       for (const original of sidecars) {
@@ -338,7 +343,10 @@ export class SiteStore {
           if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
         }
       }
-      await unlink(path);
+      await unlink(path).catch((err) => {
+        if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+      });
+      this.bumpListingCache();
       let snapshot: SnapshotRef | undefined;
       if (options.rebuild !== false) snapshot = (await this.rebuild()).snapshot;
       await Promise.all(staged.map(({ aside }) => unlink(aside).catch(() => undefined)));
@@ -348,7 +356,7 @@ export class SiteStore {
         ...(snapshot ? { snapshot } : {}),
       };
     } catch (err) {
-      await writeTextAtomic(path, previous).catch(() => undefined);
+      if (previous !== undefined) await writeTextAtomic(path, previous).catch(() => undefined);
       for (const { original, aside } of staged.reverse()) {
         await rename(aside, original).catch(() => undefined);
       }

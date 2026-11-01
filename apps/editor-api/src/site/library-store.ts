@@ -537,6 +537,32 @@ export class AssetLibrary {
       } else missing.push(asset);
     }
 
+    const removals: { id: string; name: string; record: Record<string, unknown> }[] = [];
+    for (const asset of missing) {
+      let record: Record<string, unknown>;
+      try {
+        record = await this.site.read("media", asset.id);
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+        record = {
+          id: asset.id,
+          name: asset.name,
+          kind: asset.kind,
+          ext: asset.ext,
+          ...(asset.folderId ? { folderId: asset.folderId } : {}),
+          ...(asset.title !== undefined ? { title: asset.title } : {}),
+          ...(asset.alt !== undefined ? { alt: asset.alt } : {}),
+          ...(asset.caption !== undefined ? { caption: asset.caption } : {}),
+          ...(asset.sort !== undefined ? { sort: asset.sort } : {}),
+          ...(asset.width !== undefined ? { width: asset.width } : {}),
+          ...(asset.height !== undefined ? { height: asset.height } : {}),
+          ...(asset.bytes !== undefined ? { bytes: asset.bytes } : {}),
+          ...(asset.addedAt !== undefined ? { addedAt: asset.addedAt } : {}),
+        };
+      }
+      removals.push({ id: asset.id, name: asset.name, record });
+    }
+
     const imports: string[] = [];
     const skipped: RescanResult["skipped"] = [];
     const orphanThumbs: string[] = [];
@@ -564,11 +590,6 @@ export class AssetLibrary {
     if (!missing.length && !imports.length) {
       await Promise.all(orphanThumbs.map((name) => unlink(join(this.filesDir, name)).catch(() => undefined)));
       return { removed: [], added: [], skipped };
-    }
-
-    const removals: { id: string; name: string; record: Record<string, unknown> }[] = [];
-    for (const asset of missing) {
-      removals.push({ id: asset.id, name: asset.name, record: await this.site.read("media", asset.id) });
     }
 
     const removed: RescanResult["removed"] = [];

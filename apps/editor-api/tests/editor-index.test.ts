@@ -46,7 +46,10 @@ describe("buildEditorIndex", () => {
     }
     expect(items[0]?.category).toBe("Editor");
     const firstAction = items.findIndex((i) => i.category === "Action");
-    const lastEditor = items.findLastIndex((i) => i.category === "Editor");
+    let lastEditor = -1;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i]!.category === "Editor") lastEditor = i;
+    }
     expect(firstAction).toBeGreaterThan(lastEditor);
     const aaa = items.findIndex((i) => i.label === "AAA First page");
     expect(aaa).toBeGreaterThanOrEqual(firstNonPinned);
