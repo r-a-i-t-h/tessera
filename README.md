@@ -68,6 +68,62 @@ sudo /opt/tessera/<name>/current/deploy/grant-publish.sh /var/www/<site>
 
 The script creates the final directory when its parent already exists, gives the tree to the unit's user, and leaves it readable by nginx. The folder should contain only the published site. Nginx can serve the copy with the editor stopped. The editor process does not serve it, and the SPA preview does not write into it. `npm run build -w @r-a-i-t-h/tessera-site` builds `tessera.js` and `tessera-pages.js` and stamps `tessera.js`, plus skin CSS, into each reference site’s `publish/` tree. Adding a **catalogue** component is a Tessera release (then every site may name it from bindings). **Runtime modules** are site files, not catalogue releases. A checkout builds the stamped runtimes before a pages or snapshot dist can be written. The packed release already includes them.
 
+### Nginx cache headers
+
+Nginx serves static files with `ETag` by default but does not add `Cache-Control`. Without explicit revalidation, browsers (or upstream caches) may keep old **HTML**, **`search-index.json`**, **`rev.json`**, and other stable filenames long after **Publish**, so visitors see stale pages or search results even though the files on disk were replaced. Tessera does not cache-bust those URLs; the host must ask before reuse.
+
+Use **must-revalidate** on the catch-all location that serves the published tree. Use **long immutable cache** only for content-hashed paths (`/assets/` and `data/site.<hash>.json`).
+
+Dedicated vhost (`root` = your `publish/` copy):
+
+```nginx
+server {
+    server_name willow.example.com;
+    root /var/www/willow/publish;
+    index index.html;
+
+    location ^~ /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        try_files $uri =404;
+    }
+
+    location ~* /data/site\.[a-f0-9]+\.json$ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    location / {
+        add_header Cache-Control "public, max-age=0, must-revalidate";
+        try_files $uri $uri/ =404;
+    }
+}
+```
+
+Site in a folder on a shared host (same rules with `alias` under a prefix):
+
+```nginx
+location = /willow {
+    return 301 /willow/;
+}
+
+location ^~ /willow/assets/ {
+    alias /var/www/willow/publish/assets/;
+    add_header Cache-Control "public, max-age=31536000, immutable";
+}
+
+location ~* ^/willow/data/(site\.[a-f0-9]+\.json)$ {
+    alias /var/www/willow/publish/data/$1;
+    add_header Cache-Control "public, max-age=31536000, immutable";
+}
+
+location /willow/ {
+    alias /var/www/willow/publish/;
+    index index.html;
+    add_header Cache-Control "public, max-age=0, must-revalidate";
+}
+```
+
+More detail (`.mjs` MIME, preview vs publish) lives in [ARCHITECTURE.md](./ARCHITECTURE.md) § Static host.
+
 The editor’s Backups page writes a dated `tar.gz` of `data/` into the sibling `backup/` folder (`TESSERA_BACKUP` overrides it). A file of the form `2026-09-28T191500Z.tar.gz` dropped there over SFTP can be downloaded or restored. Restore writes a safety archive first. Dated backups are left as they are. The Backups page can also **re-seed** the open site onto the bundled starter theme (`tessera-w3-starter`: safety archive first, editors kept). Initialise writes the same starter when the directory has no records yet.
 
 ## Release
@@ -81,4 +137,4 @@ Before making a production editor reachable:
 - restrict editor access to trusted authors; authored HTML is trusted and every signed-in user currently has full editor access;
 - keep `$TESSERA_DATA` and the sibling backup directory writable only by `tessera` (the process user), and test restore separately from the live directory;
 - keep the API and reverse-proxy upload limits aligned; the API rejects over-limit requests but buffers allowed multipart bodies;
-- use the HTML and immutable-asset cache rules in `ARCHITECTURE.md` for the published site.
+- apply the [nginx cache header blocks](#nginx-cache-headers) on the host that serves `publish/` (see also [ARCHITECTURE.md](./ARCHITECTURE.md) § Static host).
