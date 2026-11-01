@@ -99,10 +99,13 @@ function recordItems(records: RecordSummary[]): EditorIndexItem[] {
 }
 
 function datasetItems(datasets: DatasetSummary[]): EditorIndexItem[] {
-  return datasets.map((d) => {
+  const out: EditorIndexItem[] = [];
+  for (const d of datasets) {
     const label = d.title.trim() || d.id;
-    return item("Dataset", label, { hash: encodeHash(`data/${d.id}`) }, d.id);
-  });
+    out.push(item("Data", label, { hash: encodeHash(`data/${d.id}`) }, d.id));
+    out.push(item("Dataset", label, { hash: encodeHash(`records/datasets/${d.id}`) }, d.id));
+  }
+  return out;
 }
 
 function staticDestinations(admin: boolean): EditorIndexItem[] {
@@ -143,6 +146,24 @@ function userItems(usernames: string[]): EditorIndexItem[] {
   );
 }
 
+/** Palette sections pinned above alphabetical content categories. */
+const PALETTE_CATEGORY_RANK: Record<string, number> = {
+  Editor: 0,
+  Action: 1,
+};
+
+function paletteCategoryRank(category: string): number {
+  return PALETTE_CATEGORY_RANK[category] ?? 2;
+}
+
+function comparePaletteItems(a: EditorIndexItem, b: EditorIndexItem): number {
+  const byRank = paletteCategoryRank(a.category) - paletteCategoryRank(b.category);
+  if (byRank !== 0) return byRank;
+  const byCategory = a.category.localeCompare(b.category, undefined, { sensitivity: "base" });
+  if (byCategory !== 0) return byCategory;
+  return a.label.localeCompare(b.label, undefined, { sensitivity: "base" });
+}
+
 /** Build the editor command palette index (titles and ids only). */
 export function buildEditorIndex(input: BuildEditorIndexInput): EditorIndexPayload {
   const items = [
@@ -151,11 +172,7 @@ export function buildEditorIndex(input: BuildEditorIndexInput): EditorIndexPaylo
     ...(input.admin ? datasetItems(input.datasets) : []),
     ...(input.admin ? userItems(input.users) : []),
   ];
-  items.sort((a, b) => {
-    const byCategory = a.category.localeCompare(b.category, undefined, { sensitivity: "base" });
-    if (byCategory !== 0) return byCategory;
-    return a.label.localeCompare(b.label, undefined, { sensitivity: "base" });
-  });
+  items.sort(comparePaletteItems);
   return {
     ok: true,
     version: `${input.siteListingVersion}:${input.datasetListingVersion}`,

@@ -26,6 +26,48 @@ describe("buildEditorIndex", () => {
     expect(items.find((i) => i.label === "master")?.category).toBe("Layouts");
   });
 
+  it("lists Editor and Action destinations before content categories", () => {
+    const records: RecordSummary[] = [
+      { kind: "content", id: "aaa-first-page", title: "AAA First page" },
+      { kind: "content", id: "home", title: "Home" },
+    ];
+    const { items } = buildEditorIndex({
+      records,
+      datasets: [],
+      users: [],
+      admin: true,
+      siteListingVersion: "1",
+      datasetListingVersion: "0",
+    });
+    const firstNonPinned = items.findIndex((i) => i.category !== "Editor" && i.category !== "Action");
+    expect(firstNonPinned).toBeGreaterThan(0);
+    for (let i = 0; i < firstNonPinned; i++) {
+      expect(["Editor", "Action"]).toContain(items[i]!.category);
+    }
+    expect(items[0]?.category).toBe("Editor");
+    const firstAction = items.findIndex((i) => i.category === "Action");
+    const lastEditor = items.findLastIndex((i) => i.category === "Editor");
+    expect(firstAction).toBeGreaterThan(lastEditor);
+    const aaa = items.findIndex((i) => i.label === "AAA First page");
+    expect(aaa).toBeGreaterThanOrEqual(firstNonPinned);
+    expect(items[aaa]?.category).toBe("Page");
+  });
+
+  it("lists data grid and dataset setup for each dataset", () => {
+    const { items } = buildEditorIndex({
+      records: [],
+      datasets: [{ id: "cars", title: "Cars", recordCount: 1, invalidCount: 0 }],
+      users: [],
+      admin: true,
+      siteListingVersion: "1",
+      datasetListingVersion: "1",
+    });
+    expect(items.filter((i) => i.label === "Cars")).toEqual([
+      expect.objectContaining({ category: "Data", hash: "#/data/cars" }),
+      expect.objectContaining({ category: "Dataset", hash: "#/records/datasets/cars" }),
+    ]);
+  });
+
   it("omits admin-only datasets and users for limited editors", () => {
     const { items } = buildEditorIndex({
       records: [{ kind: "content", id: "home", title: "Home" }],
