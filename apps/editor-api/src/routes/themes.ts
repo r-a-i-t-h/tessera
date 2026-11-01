@@ -1,8 +1,10 @@
 import { Hono } from "hono";
+import { Buffer } from "node:buffer";
 import { assertFullAdmin } from "../access/level.js";
 import { apiError } from "../http.js";
 import { authenticatedEditor, authenticatedSiteRoot } from "../middleware/editor-site.js";
 import { applyThemeKit, listThemeKits, resetThemeDemo } from "../site/theme-kit.js";
+import { exportThemeKit } from "../site/theme-export.js";
 
 export const themeRoutes = new Hono();
 themeRoutes.use("/themes/:id/*", authenticatedSiteRoot);
@@ -12,6 +14,39 @@ themeRoutes.get("/themes", authenticatedEditor, async (c) => {
   if (!seedDir) return apiError(c, 404, "No theme seed directory configured.");
   const kits = await listThemeKits(seedDir);
   return c.json({ ok: true, kits });
+});
+
+themeRoutes.post("/themes/export", authenticatedSiteRoot, async (c) => {
+  const denied = assertFullAdmin(c);
+  if (denied) return denied;
+  const siteRoot = c.get("requiredSiteRoot");
+  if (!siteRoot) return apiError(c, 404, "No site data directory configured.");
+
+  let body: { id?: string; name?: string; stack?: string; version?: number };
+  try {
+    body = (await c.req.json()) as typeof body;
+  } catch {
+    return apiError(c, 400, "Request body must be JSON.");
+  }
+
+  const id = typeof body.id === "string" ? body.id : "";
+  const name = typeof body.name === "string" ? body.name : "";
+  const stack = body.stack === "custom" ? "custom" : body.stack === "w3" ? "w3" : undefined;
+  const version = typeof body.version === "number" ? body.version : undefined;
+
+  try {
+    const bytes = await exportThemeKit(siteRoot, { id, name, stack, version });
+    return new Response(Buffer.from(bytes), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/gzip",
+        "Content-Length": String(bytes.length),
+        "Content-Disposition": `attachment; filename="${id}.tar.gz"`,
+      },
+    });
+  } catch (err) {
+    return apiError(c, 400, err instanceof Error ? err.message : "Could not export this theme.");
+  }
 });
 
 themeRoutes.post("/themes/:id/apply", async (c) => {

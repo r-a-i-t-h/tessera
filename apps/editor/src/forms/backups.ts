@@ -94,6 +94,14 @@ export function renderBackupsPage(
     `<div class="w3-padding">
       <p class="w3-small w3-text-grey">Apply a design without changing your page content. A safety backup is written first.</p>
       ${themeRows}
+      <hr class="w3-margin-top w3-margin-bottom" />
+      <p class="w3-small w3-text-grey">Create a theme kit from this site’s design (layouts, shell, shared items). Page content and the media library are not included. Install a kit by unpacking it into the server’s <code>seed/themes/</code> folder, then reload Backups.</p>
+      <form id="theme-export-form" data-theme-export class="w3-margin-top">
+        <p><label class="w3-small">Kit id<br /><input name="id" type="text" class="w3-input w3-border" required pattern="[a-z][a-z0-9-]*" title="Lowercase letters, digits, and hyphens" placeholder="my-theme" /></label></p>
+        <p><label class="w3-small">Display name<br /><input name="name" type="text" class="w3-input w3-border" required placeholder="My theme" /></label></p>
+        <p><label class="w3-small">Stack<br /><select name="stack" class="w3-select w3-border"><option value="w3" selected>W3</option><option value="custom">Custom</option></select></label></p>
+        <p><button type="submit" class="w3-button w3-white">Create theme</button></p>
+      </form>
     </div>`,
   );
 
@@ -126,6 +134,23 @@ function setBackupUploadStatus(form: HTMLFormElement, message: string): void {
   if (!status) return;
   status.hidden = !message;
   status.textContent = message;
+}
+
+export function bindThemeExport(
+  root: ParentNode,
+  onExport: (options: { id: string; name: string; stack: "w3" | "custom" }) => void | Promise<void>,
+): void {
+  const form = root.querySelector<HTMLFormElement>("[data-theme-export]");
+  if (!form) return;
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const data = new FormData(form);
+    const id = String(data.get("id") ?? "").trim();
+    const name = String(data.get("name") ?? "").trim();
+    const stackRaw = String(data.get("stack") ?? "w3");
+    const stack = stackRaw === "custom" ? "custom" : "w3";
+    void onExport({ id, name, stack });
+  });
 }
 
 export function bindBackupUpload(

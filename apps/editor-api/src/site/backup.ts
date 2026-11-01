@@ -407,7 +407,7 @@ async function extractTar(archive: string, destDir: string): Promise<void> {
   await runTar(["-xzf", archive, "-C", destDir]);
 }
 
-function runTar(args: string[]): Promise<void> {
+export function runTar(args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn("tar", args, { stdio: ["ignore", "ignore", "pipe"] });
     let stderr = "";

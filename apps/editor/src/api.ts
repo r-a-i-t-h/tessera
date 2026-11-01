@@ -460,6 +460,35 @@ export function resetThemeDemo(id: string): Promise<RestoreResult> {
   return request(`/api/themes/${encodeURIComponent(id)}/reset-demo`, { method: "POST" });
 }
 
+export async function exportThemeKitDownload(options: {
+  id: string;
+  name: string;
+  stack?: "w3" | "custom";
+  version?: number;
+}): Promise<{ filename: string; blob: Blob }> {
+  let res: Response;
+  try {
+    res = await fetch("/api/themes/export", {
+      credentials: "same-origin",
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(options),
+    });
+  } catch {
+    throw new ApiError(0, "Cannot reach the editor API. Is it running?");
+  }
+  if (!res.ok) {
+    const data: unknown = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, errorMessage(data, res.statusText));
+  }
+  invalidateEditorIndex();
+  const blob = await res.blob();
+  const disposition = res.headers.get("Content-Disposition") ?? "";
+  const match = /filename="([^"]+)"/.exec(disposition);
+  const filename = match?.[1] ?? `${options.id.trim() || "theme"}.tar.gz`;
+  return { filename, blob };
+}
+
 export type LibraryFolder = { id: string; parentId: string | null; sort?: number; system?: boolean };
 export type LibraryAsset = {
   id: string;

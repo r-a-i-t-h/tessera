@@ -25,6 +25,8 @@ describe("backups page", () => {
     expect(html).toContain("editor-drop");
     expect(html).toContain("<summary>Upload archive</summary>");
     expect(html).toContain("<summary>Themes</summary>");
+    expect(html).toContain("data-theme-export");
+    expect(html).toContain("Create theme");
     expect(html).toContain("<summary>Initialise</summary>");
     expect(html).toContain('data-action="reseed"');
     expect(html).toContain("No example archives are in the backup folder yet.");

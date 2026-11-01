@@ -45,6 +45,7 @@ describe("requireEditor gate", () => {
     ["POST", "/api/site/reseed"],
     ["POST", "/api/themes/tessera-w3-starter/apply"],
     ["POST", "/api/themes/tessera-w3-starter/reset-demo"],
+    ["POST", "/api/themes/export"],
     ["GET", "/api/themes"],
     ["PUT", "/api/records/content/home"],
     ["POST", "/api/library/folders"],

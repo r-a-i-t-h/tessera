@@ -43,6 +43,7 @@ import {
   reseedSite,
   listThemeKits,
   applyThemeKit,
+  exportThemeKitDownload,
   resetThemeDemo,
   type ThemeKitInfo,
   saveRawRecord,
@@ -152,7 +153,7 @@ import {
   withTypeChoices,
   type AspectChoice,
 } from "./forms/schema.js";
-import { bindBackupUpload, renderBackupsPage } from "./forms/backups.js";
+import { bindBackupUpload, bindThemeExport, renderBackupsPage } from "./forms/backups.js";
 import { readDataTransfer } from "./forms/drop.js";
 import {
   assetDetail,
@@ -1839,6 +1840,25 @@ async function bindBackups(root: HTMLElement, user: PublicUser, notice = "", err
         bindBackups(root, user, "", err instanceof Error ? err.message : "Upload failed."),
       ),
   );
+  bindThemeExport(root, async ({ id, name, stack }) => {
+    const form = root.querySelector<HTMLFormElement>("[data-theme-export]");
+    const button = form?.querySelector<HTMLButtonElement>('button[type="submit"]');
+    if (button) button.disabled = true;
+    try {
+      const { filename, blob } = await exportThemeKitDownload({ id, name, stack });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+      await bindBackups(root, user, `Downloaded theme kit ${filename}.`);
+    } catch (err) {
+      await bindBackups(root, user, "", err instanceof Error ? err.message : "Theme export failed.");
+    } finally {
+      if (button) button.disabled = false;
+    }
+  });
   root.querySelector("[data-action=backup]")?.addEventListener("click", async () => {
     const button = root.querySelector<HTMLButtonElement>("[data-action=backup]");
     if (button) button.disabled = true;

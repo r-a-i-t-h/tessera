@@ -50,6 +50,18 @@ The editor lists every valid kit folder when you open Backups. Invalid kits (mis
 
 A kit is not a site package and does not contain component source. Components come from Tessera itself. The kit only ships site data and shell assets that the apply step can copy.
 
+### Export from the editor
+
+On **Backups → Themes**, **Create theme** downloads a `.tar.gz` of the open site’s design: layouts, shell (`index.html`, `site.css`, `shell/img/`), layout **includes** items, and mergeable keys from `site.yaml`. It does **not** export page content, the media library, `local.css`, or `shell/local/`.
+
+To install the kit on a server (or in dev), unpack the archive so the kit folder sits at:
+
+```text
+<TESSERA_SEED>/themes/<kit-id>/manifest.yaml
+```
+
+Reload Backups; the kit appears in the theme list. There is no upload UI yet — copy the folder over SFTP or into `apps/editor-api/seed/themes/` locally.
+
 ---
 
 ## Kit folder layout

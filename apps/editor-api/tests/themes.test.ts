@@ -1,17 +1,32 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parse as parseYaml } from "yaml";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
 import { hashPassword } from "../src/auth/password.js";
 import { SessionStore } from "../src/auth/sessions.js";
+import { runTar } from "../src/site/backup.js";
 import { writeSeedFiles } from "../src/site/blank.js";
-import { applyThemeKit } from "../src/site/theme-kit.js";
+import { applyThemeKit, loadThemeManifest } from "../src/site/theme-kit.js";
+import { exportThemeKit } from "../src/site/theme-export.js";
 import { SiteStore } from "../src/site/store.js";
 import { UserStore } from "../src/store/users.js";
 
 const seedDir = join(dirname(fileURLToPath(import.meta.url)), "..", "seed");
+
+async function extractThemeArchive(bytes: Uint8Array, destDir: string): Promise<void> {
+  const stage = await mkdtemp(join(tmpdir(), "tessera-theme-tar-"));
+  const archive = join(stage, "kit.tar.gz");
+  try {
+    await writeFile(archive, bytes);
+    await mkdir(destDir, { recursive: true });
+    await runTar(["-xzf", archive, "-C", destDir]);
+  } finally {
+    await rm(stage, { recursive: true, force: true });
+  }
+}
 
 describe("theme kits", () => {
   let root: string;
@@ -227,5 +242,93 @@ patch:
 `,
     );
     await expect(applyThemeKit(root, backupDir, fixtureSeed, "tone-kit")).rejects.toThrow(/panelTones/);
+  });
+
+  it("export builds a kit archive without content", async () => {
+    const marker = "/* export-theme-marker */\n";
+    await writeFile(join(root, "shell", "site.css"), marker);
+
+    const bytes = await exportThemeKit(root, {
+      id: "exported-kit",
+      name: "Exported kit",
+      stack: "w3",
+    });
+    expect(bytes.length).toBeGreaterThan(100);
+
+    const extractRoot = await mkdtemp(join(tmpdir(), "tessera-theme-extract-"));
+    try {
+      await extractThemeArchive(bytes, extractRoot);
+      const kitDir = join(extractRoot, "exported-kit");
+      const manifest = parseYaml(await readFile(join(kitDir, "manifest.yaml"), "utf8")) as {
+        id: string;
+        patch: { layoutIds?: string[]; itemIds?: string[] };
+      };
+      expect(manifest.id).toBe("exported-kit");
+      expect(manifest.patch.layoutIds).toContain("master");
+      expect(manifest.patch.layoutIds).toContain("standard");
+      expect(manifest.patch.itemIds).toContain("common-footer");
+      expect(await readFile(join(kitDir, "shell", "site.css"), "utf8")).toBe(marker);
+      await expect(readFile(join(kitDir, "records", "content", "home.yaml"), "utf8")).rejects.toMatchObject({
+        code: "ENOENT",
+      });
+    } finally {
+      await rm(extractRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("export then apply round-trips design without touching content", async () => {
+    const marker = "/* round-trip-marker */\n";
+    await writeFile(join(root, "shell", "site.css"), marker);
+    const homeEdited = `id: home
+title: Hello world
+type: standard
+zones:
+  title:
+    html: Hello world
+  main:
+    html: '<p>Round trip body.</p>'
+`;
+    await writeFile(join(root, "records", "content", "home.yaml"), homeEdited);
+
+    const bytes = await exportThemeKit(root, {
+      id: "round-trip-kit",
+      name: "Round trip",
+    });
+
+    const exportSeed = await mkdtemp(join(tmpdir(), "tessera-export-seed-"));
+    const target = await mkdtemp(join(tmpdir(), "tessera-round-trip-target-"));
+    const targetBackup = join(target, "backup");
+    try {
+      await mkdir(targetBackup, { recursive: true });
+      await extractThemeArchive(bytes, exportSeed);
+      await mkdir(join(exportSeed, "themes"), { recursive: true });
+      await cp(join(exportSeed, "round-trip-kit"), join(exportSeed, "themes", "round-trip-kit"), {
+        recursive: true,
+      });
+      await loadThemeManifest(exportSeed, "round-trip-kit");
+
+      await writeSeedFiles(target);
+      await writeFile(join(target, "records", "content", "home.yaml"), homeEdited);
+
+      await applyThemeKit(target, targetBackup, exportSeed, "round-trip-kit");
+      expect(await readFile(join(target, "records", "content", "home.yaml"), "utf8")).toBe(homeEdited);
+      expect(await readFile(join(target, "shell", "site.css"), "utf8")).toBe(marker);
+    } finally {
+      await rm(exportSeed, { recursive: true, force: true });
+      await rm(target, { recursive: true, force: true });
+    }
+  });
+
+  it("POST /api/themes/export returns a gzip attachment", async () => {
+    const res = await app().request("/api/themes/export", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ id: "api-export-kit", name: "API export" }),
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("application/gzip");
+    expect(res.headers.get("Content-Disposition")).toContain("api-export-kit.tar.gz");
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    expect(bytes.length).toBeGreaterThan(100);
   });
 });
