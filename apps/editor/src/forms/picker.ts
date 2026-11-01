@@ -97,13 +97,14 @@ export function renderPicker(
       : "";
   const assetList = pickerAssetList(assets);
   const tabs = (["image", "document", "folder"] as const)
-    .map(
-      (item) =>
-        `<button type="button" class="w3-button ${item === mode ? "w3-theme" : "w3-white"}" data-picker-mode="${item}">${item === "image" ? "Images" : item === "document" ? "Documents" : "Folders"}</button>`,
-    )
+    .map((item) => {
+      const on = item === mode;
+      const label = item === "image" ? "Images" : item === "document" ? "Documents" : "Folders";
+      return `<button type="button" class="editor-tab${on ? " is-active" : ""}" role="tab" data-picker-mode="${item}" aria-selected="${on}" tabindex="${on ? "0" : "-1"}">${escapeHtml(label)}</button>`;
+    })
     .join("");
   return `<div class="editor-picker" data-picker-open="${openId ?? ""}">
-    <p class="editor-tabs">${tabs}</p>
+    <div class="editor-tab-strip editor-tab-strip--inline"><div class="editor-tabs" role="tablist" aria-label="Library">${tabs}</div></div>
     ${libraryAssetListOrderSelect(assetOrder, "library-picker-asset-list-order")}
     ${folderList}
     ${assetList}

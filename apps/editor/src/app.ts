@@ -436,6 +436,11 @@ const previewUrl = "/preview/";
 
 type EditMode = "arrange" | "build" | "compose" | "frame" | "fields" | "raw";
 
+function editModeTab(mode: EditMode, label: string, active: EditMode): string {
+  const on = active === mode;
+  return `<button type="button" class="editor-tab${on ? " is-active" : ""}" role="tab" data-mode="${mode}" aria-selected="${on}" tabindex="${on ? "0" : "-1"}">${escapeHtml(label)}</button>`;
+}
+
 /** Set just before opening a newly created page, so that page starts on Compose. */
 let pendingEdit: { mode: EditMode; notice: string } | undefined;
 
@@ -3197,35 +3202,29 @@ async function bindEdit(
   const saveStatus = `<p id="save-status" class="w3-text-grey" hidden></p>`;
   const editor = `${lifecycleHtml(payload)}
      ${noticePanel(notice)}
-     <div class="editor-tabs" role="toolbar" aria-label="Editing mode">
-       ${
-         kind === "layouts"
-           ? `<button type="button" class="w3-button ${editMode === "arrange" ? "w3-theme" : "w3-white"}" data-mode="arrange" aria-pressed="${editMode === "arrange"}">Arrange</button>`
-           : ""
-       }
-       ${
-         kind === "nav"
-           ? `<button type="button" class="w3-button ${editMode === "build" ? "w3-theme" : "w3-white"}" data-mode="build" aria-pressed="${editMode === "build"}">Build</button>`
-           : ""
-       }
-       <button type="button" class="w3-button ${editMode === "fields" ? "w3-theme" : "w3-white"}" data-mode="fields" aria-pressed="${editMode === "fields"}">${fieldsTabLabel}</button>
+     <div class="editor-tab-panel">
+     <div class="editor-tab-strip">
+     <div class="editor-tabs" role="tablist" aria-label="Editing mode">
+       ${kind === "layouts" ? editModeTab("arrange", "Arrange", editMode) : ""}
+       ${kind === "nav" ? editModeTab("build", "Build", editMode) : ""}
+       ${editModeTab("fields", fieldsTabLabel, editMode)}
        ${
          editsBody(kind) && record?.type !== "blog-index"
-           ? `<button type="button" class="w3-button ${editMode === "compose" ? "w3-theme" : "w3-white"}" data-mode="compose" aria-pressed="${editMode === "compose"}">Compose</button>`
+           ? editModeTab("compose", "Compose", editMode)
            : ""
        }
-       ${
-         showFrameTab
-           ? `<button type="button" class="w3-button ${editMode === "frame" ? "w3-theme" : "w3-white"}" data-mode="frame" aria-pressed="${editMode === "frame"}">Frame zones</button>`
-           : ""
-       }
-       <button type="button" class="w3-button ${editMode === "raw" ? "w3-theme" : "w3-white"}" data-mode="raw" aria-pressed="${editMode === "raw"}">Raw file</button>
+       ${showFrameTab ? editModeTab("frame", "Frame zones", editMode) : ""}
+       ${editModeTab("raw", "Raw file", editMode)}
      </div>
+     </div>
+     <div class="editor-tab-body">
      <p class="w3-text-grey editor-record-note"><code>${escapeHtml(payload.file)}</code></p>
      <form id="record-form" class="w3-card w3-white w3-padding-large editor-card">
        ${rawHtmlPageChoicesHidden}${formInner}
        ${pageHost ? "" : `${saveStatus}${actionRow}`}
      </form>
+     </div>
+     </div>
      ${kind === "items" ? itemToolsHtml(id, showDuplicateTools ? duplicateSuggested : undefined) : ""}
      ${showContentRename ? contentToolsHtml(id, showDuplicateTools ? duplicateSuggested : undefined) : ""}
      ${showDuplicateTools && kind !== "items" && kind !== "content" ? recordDuplicateToolsHtml(duplicateSuggested) : ""}

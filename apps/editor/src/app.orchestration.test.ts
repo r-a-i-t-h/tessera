@@ -102,10 +102,10 @@ describe("editor route orchestration", () => {
 
     await mount(root);
     await vi.waitFor(() => {
-      expect(root.querySelector("[data-mode=fields]")?.classList.contains("w3-theme")).toBe(true);
-      expect(root.querySelector("[data-mode=fields]")?.getAttribute("aria-pressed")).toBe("true");
+      expect(root.querySelector("[data-mode=fields]")?.classList.contains("is-active")).toBe(true);
+      expect(root.querySelector("[data-mode=fields]")?.getAttribute("aria-selected")).toBe("true");
       expect(root.querySelector("[data-mode=fields]")?.textContent).toBe("Page");
-      expect(root.querySelector('[role="toolbar"][aria-label="Editing mode"]')).toBeTruthy();
+      expect(root.querySelector('[role="tablist"][aria-label="Editing mode"]')).toBeTruthy();
       expect(root.querySelector("#content-tools")).toBeTruthy();
     });
     expect(root.querySelector('a[href="#/pages"]')?.getAttribute("aria-current")).toBe("page");
@@ -134,7 +134,7 @@ describe("editor route orchestration", () => {
 
     root.querySelector<HTMLButtonElement>("[data-mode=compose]")?.click();
     await vi.waitFor(() => {
-      expect(root.querySelector("[data-mode=compose]")?.getAttribute("aria-pressed")).toBe("true");
+      expect(root.querySelector("[data-mode=compose]")?.getAttribute("aria-selected")).toBe("true");
       expect(root.querySelector("#f-title")).toBeNull();
       expect(root.querySelector("#content-tools")).toBeNull();
     });
@@ -146,7 +146,7 @@ describe("editor route orchestration", () => {
     });
     navigate("#/content/home");
     await vi.waitFor(() => {
-      expect(root.querySelector("[data-mode=fields]")?.classList.contains("w3-theme")).toBe(true);
+      expect(root.querySelector("[data-mode=fields]")?.classList.contains("is-active")).toBe(true);
       expect(root.querySelector<HTMLInputElement>("#f-title")?.value).toBe("Home");
     });
 
