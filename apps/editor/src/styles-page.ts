@@ -74,6 +74,37 @@ export function bindStylePanels(root: ParentNode): void {
   }
 }
 
+/** Static sidebar samples for each designed-nav menu component (navFlat, navTree, navCollapse). */
+export function styleSpecimenNavSamplesHtml(): string {
+  return `<div class="style-specimen-nav-sample" aria-label="Top-level menu sample">
+            <p class="style-specimen-nav-label">Top-level</p>
+            <a class="w3-bar-item w3-button is-active" href="#" tabindex="-1">Home</a>
+            <h4 class="w3-text-theme">Section</h4>
+            <a class="w3-bar-item w3-button" href="#" tabindex="-1">Events</a>
+            <a class="w3-bar-item w3-button" href="#" tabindex="-1">News</a>
+          </div>
+          <div class="style-specimen-nav-sample" aria-label="Sub-level menu sample">
+            <p class="style-specimen-nav-label">Sub-level</p>
+            <ul class="w3-ul tessera-nav-tree">
+              <li><a class="w3-bar-item w3-button is-active" href="#" tabindex="-1">Home</a></li>
+              <li class="tessera-nav-branch"><span class="w3-text-theme">Section</span>
+                <ul class="w3-ul tessera-nav-tree">
+                  <li><a class="w3-bar-item w3-button" href="#" tabindex="-1">Events</a></li>
+                  <li><a class="w3-bar-item w3-button" href="#" tabindex="-1">News</a></li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+          <div class="style-specimen-nav-sample" aria-label="Current group menu sample">
+            <p class="style-specimen-nav-label">Current group</p>
+            <div class="tessera-nav-collapse-root">
+              <a class="w3-bar-item w3-button" href="#" tabindex="-1">Home</a>
+              <a class="w3-bar-item w3-button" href="#" tabindex="-1">About</a>
+              <ul class="w3-ul tessera-nav-tree tessera-nav-sublinks"><li><a class="w3-bar-item w3-button is-active" href="#" tabindex="-1">Origins</a></li></ul>
+            </div>
+          </div>`;
+}
+
 /** Live chrome preview for the Styles page (token overrides scoped on #style-specimen). */
 export function styleSpecimenHtml(style: Required<SiteStyle>): string {
   const side = style.navSide === "left" ? "left" : "right";
@@ -88,8 +119,7 @@ export function styleSpecimenHtml(style: Required<SiteStyle>): string {
         </div>
         <div class="style-specimen-body">
           <aside class="style-specimen-side tessera-sidebar">
-            <a class="w3-bar-item w3-button is-active" href="#/styles">Home</a>
-            <a class="w3-bar-item w3-button" href="#/styles">About</a>
+            ${styleSpecimenNavSamplesHtml()}
           </aside>
           <div class="style-specimen-main">
             <div class="tessera-content">

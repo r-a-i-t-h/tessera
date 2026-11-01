@@ -82,6 +82,17 @@ describe("site style page", () => {
     expect(html).toContain("tessera-dataset-table__head");
     expect(html).toContain("tessera-dataset-card");
   });
+
+  it("shows each sidebar nav menu style in the specimen", () => {
+    const html = styleSpecimenHtml(resolveSiteStyle({}));
+    expect(html).toContain("Top-level");
+    expect(html).toContain("Sub-level");
+    expect(html).toContain("Current group");
+    expect(html).toContain("tessera-nav-tree");
+    expect(html).toContain("tessera-nav-branch");
+    expect(html).toContain("tessera-nav-collapse-root");
+    expect(html).toContain("tessera-nav-sublinks");
+  });
 });
 
 describe("style panel persistence", () => {

@@ -2288,6 +2288,24 @@ img[data-hero-preview] {
   color: var(--tessera-sidebar-text, #111);
 }
 
+.style-specimen-nav-sample:not(:first-child) {
+  border-top: 1px solid color-mix(in srgb, var(--tessera-sidebar-text, #111) 18%, transparent);
+}
+
+.style-specimen-nav-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  padding: 0.5rem 16px 0.25rem;
+  margin: 0;
+}
+
+.style-specimen-nav-sample .tessera-nav-tree {
+  margin: 0;
+}
+
 .style-specimen-main {
   flex: 1;
   min-width: 0;
