@@ -3262,7 +3262,7 @@ async function bindEdit(
     bindChrome(root);
     bindEntityOpener(root);
   }
-  if (editMode === "compose" || editMode === "frame" || editMode === "arrange" || editMode === "build") {
+  if (editMode === "compose" || editMode === "frame" || editMode === "arrange") {
     root.querySelector(".editor-main")?.classList.add("editor-compose");
   }
   const form = scope.querySelector<HTMLFormElement>("#record-form");

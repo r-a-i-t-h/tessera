@@ -3052,6 +3052,36 @@ button.editor-picker-asset:hover {
   flex-direction: column;
 }
 
+.editor-scroll:has(.editor-nav-build) #record-editor > .editor-tab-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+}
+
+.editor-scroll:has(.editor-nav-build) .editor-tab-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-scroll:has(.editor-nav-build) .editor-tab-body > .editor-record-note {
+  flex: none;
+}
+
+.editor-scroll:has(.editor-nav-build) .editor-tab-body > .editor-card {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-scroll:has(.editor-nav-build) #record-editor > :not(.editor-tab-panel) {
+  flex: none;
+}
+
 .editor-nav-build {
   --nav-build-page-min-height: 1.5rem;
   --nav-build-page-pad-y: 0.25rem;
@@ -3076,7 +3106,10 @@ button.editor-picker-asset:hover {
   gap: 0.65rem;
   align-items: stretch;
   flex: 1 1 auto;
-  min-height: 18rem;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .editor-nav-build-scroll {
