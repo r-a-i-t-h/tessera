@@ -327,9 +327,11 @@ body {
   top: 0;
   z-index: 11;
   margin-bottom: 1rem;
-  padding: 0.5rem 0;
+  padding: 0.5rem 0.65rem;
   background: #fff;
-  border-bottom: 1px solid #ddd;
+  border: 1px solid #e4e4e4;
+  border-radius: var(--editor-toolbar-radius);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .editor-toolbar-row {
@@ -381,6 +383,7 @@ body {
   margin: 0;
   padding: 0.1rem 0.45rem;
   border: none;
+  border-radius: var(--editor-control-radius);
   background: transparent;
   color: #666;
   cursor: pointer;
@@ -430,6 +433,7 @@ body {
   margin: 0;
   padding: 0.4rem 0.6rem;
   border: none;
+  border-radius: var(--editor-control-radius);
   background: transparent;
   text-align: left;
   cursor: pointer;
@@ -608,7 +612,12 @@ textarea.w3-input.editor-html {
 
 .editor-raw-html-tools {
   display: inline-flex;
+  gap: 0.12rem;
   margin: 0 0 0.2rem;
+  padding: 0.12rem;
+  background: #f4f4f4;
+  border: 1px solid #e8e8e8;
+  border-radius: var(--editor-toolbar-radius);
 }
 
 .editor-raw-html textarea.w3-input.editor-html {
@@ -1018,6 +1027,7 @@ textarea.w3-input[data-kind="json"]::-webkit-scrollbar-track,
   margin: 0;
   padding: 0;
   border: 0;
+  border-radius: var(--editor-control-radius);
   background: transparent;
   color: #444;
   cursor: pointer;
@@ -1648,11 +1658,10 @@ img[data-hero-preview] {
   width: 100%;
   margin: 0;
   text-align: left;
-  border-radius: 0;
 }
 
 .editor-palette .w3-button + .w3-button {
-  margin-top: -1px;
+  margin-top: 0.35rem;
 }
 
 .editor-canvas {
@@ -1726,7 +1735,7 @@ img[data-hero-preview] {
 .editor-handle {
   cursor: grab;
   border: 1px solid #ccc;
-  border-radius: 4px;
+  border-radius: var(--editor-control-radius);
   padding: 0.1rem 0.4rem;
   background: #f7f7f7;
 }
@@ -1796,7 +1805,7 @@ img[data-hero-preview] {
   margin: 0;
   padding: 0 0.22rem;
   border: 0;
-  border-radius: 3px;
+  border-radius: var(--editor-control-radius);
   background: transparent;
   color: #333;
   cursor: pointer;
@@ -1842,6 +1851,13 @@ img[data-hero-preview] {
 
 :root {
   --tessera-drop-slot-pad: 0.45rem;
+  --editor-control-radius: 0.35rem;
+  --editor-toolbar-radius: 0.4rem;
+}
+
+/* Soft corners on main-pane controls; cards and tab panes stay square. */
+.editor-scroll :is(button, .w3-button, .w3-btn, a.w3-button):not(.editor-tab) {
+  border-radius: var(--editor-control-radius);
 }
 
 .editor-drop-line {
