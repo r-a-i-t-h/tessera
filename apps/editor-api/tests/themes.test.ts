@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -328,7 +329,10 @@ zones:
       name: "Imported via API",
     });
     const body = new FormData();
-    body.append("file", new File([bytes], "imported-via-api.tar.gz", { type: "application/gzip" }));
+    body.append(
+      "file",
+      new File([Buffer.from(bytes)], "imported-via-api.tar.gz", { type: "application/gzip" }),
+    );
 
     const res = await createApp({
       users,

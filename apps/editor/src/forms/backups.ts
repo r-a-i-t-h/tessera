@@ -143,6 +143,13 @@ function setBackupUploadStatus(form: HTMLFormElement, message: string): void {
   status.textContent = message;
 }
 
+function setThemeImportStatus(form: HTMLFormElement, message: string): void {
+  const status = form.querySelector<HTMLElement>("#theme-import-status");
+  if (!status) return;
+  status.hidden = !message;
+  status.textContent = message;
+}
+
 export function bindThemeImport(
   root: ParentNode,
   upload: (file: File) => void | Promise<void>,
@@ -150,21 +157,17 @@ export function bindThemeImport(
   const form = root.querySelector<HTMLFormElement>("[data-theme-import]");
   if (!form) return;
 
-  function setStatus(message: string): void {
-    const status = form.querySelector<HTMLElement>("#theme-import-status");
-    if (!status) return;
-    status.hidden = !message;
-    status.textContent = message;
-  }
-
   form.addEventListener("change", () => {
     const input = form.querySelector<HTMLInputElement>('input[name="file"]');
     const file = input?.files?.[0];
     if (!file) {
-      setStatus("");
+      setThemeImportStatus(form, "");
       return;
     }
-    setStatus(isBackupArchive(file) ? `${file.name} selected.` : "Choose a .tar.gz theme kit archive.");
+    setThemeImportStatus(
+      form,
+      isBackupArchive(file) ? `${file.name} selected.` : "Choose a .tar.gz theme kit archive.",
+    );
   });
 
   form.addEventListener("submit", (event) => {
@@ -172,19 +175,19 @@ export function bindThemeImport(
     const input = form.querySelector<HTMLInputElement>('input[name="file"]');
     const file = input?.files?.[0];
     if (!file || !isBackupArchive(file)) {
-      setStatus("Choose a .tar.gz theme kit archive.");
+      setThemeImportStatus(form, "Choose a .tar.gz theme kit archive.");
       return;
     }
     const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
     if (button) button.disabled = true;
-    setStatus("");
+    setThemeImportStatus(form, "");
     void (async () => {
       try {
         await upload(file);
       } finally {
         if (button) button.disabled = false;
         if (input) input.value = "";
-        setStatus("");
+        setThemeImportStatus(form, "");
       }
     })();
   });
