@@ -193,6 +193,34 @@ recordRoutes.delete("/records/items/:id", async (c) => {
   }
 });
 
+recordRoutes.delete("/records/layouts/:id", async (c) => {
+  const denied = assertFullAdmin(c);
+  if (denied) return denied;
+  const site = c.get("requiredSite");
+  const id = c.req.param("id");
+  if (!isRecordId(id)) return apiError(c, 400, "Invalid layout id.");
+  try {
+    await site.deleteLayout(id);
+    return c.json({ ok: true, id });
+  } catch (err) {
+    return apiError(c, 400, err instanceof Error ? err.message : "Could not delete that layout.");
+  }
+});
+
+recordRoutes.delete("/records/types/:id", async (c) => {
+  const denied = assertFullAdmin(c);
+  if (denied) return denied;
+  const site = c.get("requiredSite");
+  const id = c.req.param("id");
+  if (!isRecordId(id)) return apiError(c, 400, "Invalid type id.");
+  try {
+    await site.deleteType(id);
+    return c.json({ ok: true, id });
+  } catch (err) {
+    return apiError(c, 400, err instanceof Error ? err.message : "Could not delete that type.");
+  }
+});
+
 const DUPLICATABLE_KINDS = new Set<RecordKind>([
   "layouts",
   "types",

@@ -961,6 +961,26 @@ export class SiteStore {
     await this.rebuild();
   }
 
+  /** Refused while a type, site default, frame, or resolved page layout still names the layout. */
+  async deleteLayout(id: string): Promise<void> {
+    this.assertId(id);
+    await this.read("layouts", id);
+    const users = await this.layoutUsers(id);
+    if (users.length) throw new Error(`Layout ${id} is still used by ${users.join(", ")}.`);
+    await this.removeRecord("layouts", id);
+    await this.rebuild();
+  }
+
+  /** Refused while a page or binding still selects the type. */
+  async deleteType(id: string): Promise<void> {
+    this.assertId(id);
+    await this.read("types", id);
+    const users = await this.typeUsers(id);
+    if (users.length) throw new Error(`Type ${id} is still used by ${users.join(", ")}.`);
+    await this.removeRecord("types", id);
+    await this.rebuild();
+  }
+
   /** Rename an item file and every include or binding that names it. */
   async renameItem(id: string, nextId: string): Promise<void> {
     this.assertId(id);
@@ -973,6 +993,41 @@ export class SiteStore {
     await this.rewriteItemId(id, nextId);
     await this.removeRecord("items", id);
     await this.rebuild();
+  }
+
+  private async layoutUsers(id: string): Promise<string[]> {
+    const users: string[] = [];
+    const site = await this.readSite();
+    if (site.defaultLayoutId === id) users.push("site default layout");
+    if (site.masterLayoutId === id) users.push("site master frame");
+    for (const typeId of await this.listIds("types")) {
+      const row = await this.read("types", typeId);
+      if (row.layoutId === id) users.push(`type ${typeId}`);
+    }
+    const doc = await this.tryDocument();
+    if (!doc) return users;
+    for (const page of doc.pages) {
+      if (page.masterLayoutId === id) users.push(page.id);
+      if (resolvePageProfile(doc, page).layoutId === id) users.push(page.id);
+      const master = resolveMasterLayout(doc, page).layoutId;
+      if (master === id) users.push(page.id);
+    }
+    return [...new Set(users)];
+  }
+
+  private async typeUsers(id: string): Promise<string[]> {
+    const users: string[] = [];
+    for (const page of await this.contentRecords()) {
+      if (page.type === id) users.push(page.id);
+    }
+    for (const bindingId of await this.listIds("bindings")) {
+      const binding = await this.read("bindings", bindingId);
+      const props = binding.props;
+      if (!props || typeof props !== "object" || Array.isArray(props)) continue;
+      const types = (props as Record<string, unknown>).types;
+      if (Array.isArray(types) && types.includes(id)) users.push(bindingId);
+    }
+    return users;
   }
 
   private async itemUsers(id: string): Promise<string[]> {

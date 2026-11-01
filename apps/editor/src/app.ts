@@ -7,6 +7,8 @@ import {
   deleteBinding,
   deleteContent,
   deleteItem,
+  deleteLayout,
+  deleteType,
   deleteBlog,
   duplicateRecord,
   deleteLibraryAsset,
@@ -3221,11 +3223,17 @@ async function bindEdit(
       ? `<button type="button" class="w3-button w3-white" data-action="undo" title="Undo (Ctrl+Z)" disabled>Undo</button><button type="button" class="w3-button w3-white" data-action="redo" title="Redo (Ctrl+Shift+Z)" disabled>Redo</button><button type="button" class="w3-button w3-white" data-action="revert">Revert</button>`
       : "";
   const deleteAction =
-    kind === "content" && id !== homeId
-      ? `<button type="button" class="w3-button w3-white" data-action="delete-content">Delete</button>`
-      : kind === "bindings"
-        ? `<button type="button" class="w3-button w3-white" data-action="delete-binding">Delete</button>`
-        : "";
+    kind === "items"
+      ? toolbarDeleteButton("delete-item")
+      : kind === "content" && id !== homeId
+        ? toolbarDeleteButton("delete-content")
+        : kind === "bindings"
+          ? toolbarDeleteButton("delete-binding")
+          : kind === "layouts"
+            ? toolbarDeleteButton("delete-layout")
+            : kind === "types"
+              ? toolbarDeleteButton("delete-type")
+              : "";
   const actionRow = `<p class="editor-actions"><button type="submit" id="record-save"${pageHost ? ' form="record-form"' : ""} class="w3-button w3-theme">Save</button>${sessionActions}${deleteAction}</p>`;
   const saveStatus = `<p id="save-status" class="w3-text-grey" hidden></p>`;
   const editor = `${lifecycleHtml(payload)}
@@ -3491,6 +3499,31 @@ async function bindEdit(
       })
       .catch((err: unknown) => {
         showSaveError(root, err instanceof Error ? err.message : "Could not delete that binding.");
+      });
+  });
+  scope.querySelector<HTMLButtonElement>("[data-action=delete-layout]")?.addEventListener("click", () => {
+    if (!window.confirm(`Delete layout ${id}? This cannot be undone.`)) return;
+    void deleteLayout(id)
+      .then(() => {
+        layoutSession = undefined;
+        const next = place.back;
+        if (window.location.hash === next) void render(root);
+        else window.location.hash = next;
+      })
+      .catch((err: unknown) => {
+        showSaveError(root, err instanceof Error ? err.message : "Could not delete that layout.");
+      });
+  });
+  scope.querySelector<HTMLButtonElement>("[data-action=delete-type]")?.addEventListener("click", () => {
+    if (!window.confirm(`Delete type ${id}? This cannot be undone.`)) return;
+    void deleteType(id)
+      .then(() => {
+        const next = place.back;
+        if (window.location.hash === next) void render(root);
+        else window.location.hash = next;
+      })
+      .catch((err: unknown) => {
+        showSaveError(root, err instanceof Error ? err.message : "Could not delete that type.");
       });
   });
   bindDuplicateRecord(scope, root, kind, id, existingIdsForKind);
@@ -3784,13 +3817,16 @@ function bindDuplicateRecord(
   });
 }
 
+function toolbarDeleteButton(action: string): string {
+  return `<button type="button" class="w3-button w3-white w3-border w3-border-red" data-action="${action}">Delete</button>`;
+}
+
 function itemToolsHtml(id: string, duplicateSuggested?: string): string {
   const duplicate = duplicateSuggested ? duplicateToolsRow(duplicateSuggested) : "";
   return `<form id="item-tools" class="w3-card w3-white w3-padding editor-card">
     <p><label for="item-rename-id">New id <input id="item-rename-id" name="item-rename-id" class="w3-input w3-border" value="${escapeHtml(id)}" autocomplete="off" spellcheck="false" /></label></p>
     <p class="editor-actions">
       <button type="submit" class="w3-button w3-white">Rename</button>
-      <button type="button" class="w3-button w3-white" data-action="delete-item">Delete</button>
     </p>
     ${duplicate}
   </form>`;

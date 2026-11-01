@@ -542,6 +542,23 @@ zones:
     expect(await site.read("content", "about-copy-2")).toMatchObject({ title: "About (copy)" });
   });
 
+  it("deletes layouts and types when unused and refuses while referenced", async () => {
+    await site.write("types", "event", { layoutId: "standard", fields: [{ id: "date" }] });
+    await site.write("layouts", "spare", { root: { type: "zone", id: "main" } });
+    await expect(site.deleteLayout("standard")).rejects.toThrow(/still used/);
+    await site.deleteLayout("spare");
+    await expect(site.read("layouts", "spare")).rejects.toThrow();
+    await site.write("content", "fair", {
+      title: "Fair",
+      type: "event",
+      zones: contentZones("<p>Fair</p>"),
+    });
+    await expect(site.deleteType("event")).rejects.toThrow(/still used/);
+    await site.deleteContent("fair");
+    await site.deleteType("event");
+    await expect(site.read("types", "event")).rejects.toThrow();
+  });
+
   it("deletes bindings when unused and refuses when inserted on a page", async () => {
     await site.write("bindings", "orphan", { component: "datasetTable", props: { dataset: "demo" } });
     await site.deleteBinding("orphan");

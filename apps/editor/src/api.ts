@@ -323,6 +323,14 @@ export function deleteItem(id: string): Promise<{ ok: true }> {
   return request(`/api/records/items/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
 
+export function deleteLayout(id: string): Promise<{ ok: true }> {
+  return request(`/api/records/layouts/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export function deleteType(id: string): Promise<{ ok: true }> {
+  return request(`/api/records/types/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
 export function deleteBinding(id: string): Promise<{ ok: true }> {
   return request(`/api/records/bindings/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
