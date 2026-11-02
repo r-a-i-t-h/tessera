@@ -92,10 +92,10 @@ export const blogArticle: ComponentFn = (ctx) => {
   return `<article data-tessera-blog="article" data-hero="${style}">
     <script type="application/json" class="tessera-blog-data">${embed(payload)}</script>
     <div class="tessera-blog-live">
-      ${heroHtml}
       <h1>${title}</h1>
       ${byline ? `<p class="tessera-blog-byline">${ctx.escapeHtml(byline)}</p>` : ""}
       ${tags ? `<p class="tessera-blog-tags">${tags}</p>` : ""}
+      ${heroHtml}
       <div class="tessera-blog-body">${body}</div>
       <nav class="tessera-blog-neighbors" aria-label="Article"></nav>
     </div>
