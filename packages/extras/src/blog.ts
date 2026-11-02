@@ -89,14 +89,18 @@ export const blogArticle: ComponentFn = (ctx) => {
   const title = ctx.escapeHtml(page.title);
   const body = ctx.renderBlocks(ctx.zones.get("main") ?? []);
   const style = blogHeroStyle(blog?.fields);
+  const bodyHtml = `<div class="tessera-blog-body">${body}</div>`;
+  const content =
+    style === "side" && heroHtml
+      ? `<div class="tessera-blog-content">${bodyHtml}${heroHtml}</div>`
+      : `<div class="tessera-blog-content">${heroHtml}${bodyHtml}</div>`;
   return `<article data-tessera-blog="article" data-hero="${style}">
     <script type="application/json" class="tessera-blog-data">${embed(payload)}</script>
     <div class="tessera-blog-live">
       <h1>${title}</h1>
       ${byline ? `<p class="tessera-blog-byline">${ctx.escapeHtml(byline)}</p>` : ""}
       ${tags ? `<p class="tessera-blog-tags">${tags}</p>` : ""}
-      ${heroHtml}
-      <div class="tessera-blog-body">${body}</div>
+      ${content}
       <nav class="tessera-blog-neighbors" aria-label="Article"></nav>
     </div>
     <p class="tessera-blog-pending" hidden>This article is not yet available.</p>

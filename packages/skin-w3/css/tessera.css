@@ -916,36 +916,29 @@ a.tessera-page-missing,
   object-fit: contain;
 }
 
-[data-tessera-blog="article"][data-hero="side"]:has(.tessera-blog-hero) .tessera-blog-live {
+[data-tessera-blog="article"][data-hero="side"]:has(.tessera-blog-hero) .tessera-blog-content {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   column-gap: 1.5rem;
-  row-gap: 0.35rem;
   align-items: start;
 }
 
-[data-tessera-blog="article"][data-hero="side"]:has(.tessera-blog-hero) .tessera-blog-live > :is(h1, .tessera-blog-byline, .tessera-blog-tags) {
-  grid-column: 1 / -1;
+[data-tessera-blog="article"][data-hero="side"] .tessera-blog-content .tessera-blog-body {
+  grid-column: 1;
+  grid-row: 1;
 }
 
-[data-tessera-blog="article"][data-hero="side"] .tessera-blog-hero {
+[data-tessera-blog="article"][data-hero="side"] .tessera-blog-content .tessera-blog-hero {
   grid-column: 2;
+  grid-row: 1;
   max-width: none;
-  margin: 0 0 1.25rem;
+  margin: 0;
   align-self: start;
 }
 
-[data-tessera-blog="article"][data-hero="side"] .tessera-blog-hero img {
+[data-tessera-blog="article"][data-hero="side"] .tessera-blog-content .tessera-blog-hero img {
   aspect-ratio: 1 / 1;
   max-height: none;
-}
-
-[data-tessera-blog="article"][data-hero="side"]:has(.tessera-blog-hero) .tessera-blog-body {
-  grid-column: 1;
-}
-
-[data-tessera-blog="article"][data-hero="side"]:has(.tessera-blog-hero) .tessera-blog-neighbors {
-  grid-column: 1 / -1;
 }
 
 @media (max-width: 700px) {
@@ -961,15 +954,19 @@ a.tessera-page-missing,
     margin: 0 0 0.75rem;
   }
 
-  [data-tessera-blog="article"][data-hero="side"]:has(.tessera-blog-hero) .tessera-blog-live {
+  [data-tessera-blog="article"][data-hero="side"]:has(.tessera-blog-hero) .tessera-blog-content {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  [data-tessera-blog="article"][data-hero="side"] .tessera-blog-hero {
+  [data-tessera-blog="article"][data-hero="side"] .tessera-blog-content .tessera-blog-hero {
     grid-column: 1;
-    grid-row: auto;
+    grid-row: 1;
     max-width: 16rem;
     margin: 0 0 0.75rem;
+  }
+
+  [data-tessera-blog="article"][data-hero="side"] .tessera-blog-content .tessera-blog-body {
+    grid-row: 2;
   }
 }
 
