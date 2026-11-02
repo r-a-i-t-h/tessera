@@ -182,7 +182,6 @@ import {
 } from "./forms/runtime-modules.js";
 import {
   bindingIdError,
-  bindingIdsIn,
   bindingKind,
   bindingSentence,
   blankNewBinding,
@@ -1136,9 +1135,9 @@ async function bindList(
     return;
   }
   const layoutNotes = active === "layouts" ? await loadLayoutListNotes(listing) : new Map<string, string>();
-  const bindingInfo = active === "bindings" ? await loadBindingListInfo(listing) : undefined;
+  const bindingNotes = active === "bindings" ? await loadBindingListNotes(listing) : new Map<string, string>();
   const itemZones = active === "items" ? await loadItemZones(listing) : [];
-  const listNotes = bindingInfo?.notes ?? layoutNotes;
+  const listNotes = active === "bindings" ? bindingNotes : layoutNotes;
   const datasetSummaries =
     active === "datasets"
       ? (await listDatasets().catch(() => ({ ok: true as const, datasets: [] }))).datasets
@@ -1222,7 +1221,7 @@ async function bindList(
     event.preventDefault();
     void createItem(root, listing);
   });
-  if (bindingInfo) bindNewBinding(root, listing, bindingInfo.choices);
+  if (active === "bindings") bindNewBinding(root, listing);
 }
 
 async function createPage(root: HTMLElement, listing: RecordList): Promise<void> {
@@ -1378,27 +1377,54 @@ async function navigateToCreatedRecord(root: HTMLElement, destination: CreateRec
   else window.location.hash = destination.hash;
 }
 
-function bindNewBinding(root: HTMLElement, listing: RecordList, choices: BindingChoices): void {
+function bindNewBinding(root: HTMLElement, listing: RecordList): void {
   const form = root.querySelector<HTMLFormElement>("#new-binding-form");
   const open = root.querySelector<HTMLButtonElement>("[data-action=new-binding]");
   if (!form || !open) return;
-  bindPickers(form);
-  bindDatasetColumnChecklist(form);
   const existing = listing.records.filter((row) => row.kind === "bindings").map((row) => row.id);
   let state = blankNewBinding();
+  let choices: BindingChoices | undefined;
+  let choicesLoad: Promise<BindingChoices> | undefined;
+  let openGeneration = 0;
 
   const paint = (error = "") => {
+    if (!choices) return;
     form.hidden = false;
     form.innerHTML = renderNewBinding(state, choices);
     if (error) showFormError(form, error);
+    bindPickers(form);
+    bindDatasetColumnChecklist(form);
     form.querySelector<HTMLElement>("[data-binding-focus]")?.focus();
     syncDatasetPresentation(form);
     bindDatasetFilters(form, choices);
   };
 
+  const ensureChoices = async (): Promise<BindingChoices | undefined> => {
+    if (choices) return choices;
+    if (!choicesLoad) choicesLoad = loadBindingChoices();
+    try {
+      choices = await choicesLoad;
+      return choices;
+    } catch {
+      choicesLoad = undefined;
+      return undefined;
+    }
+  };
+
   open.addEventListener("click", () => {
     state = blankNewBinding();
-    paint();
+    const generation = ++openGeneration;
+    form.hidden = false;
+    form.innerHTML = `<p class="w3-text-grey">Loading…</p>`;
+    void (async () => {
+      const loaded = await ensureChoices();
+      if (generation !== openGeneration || !form.isConnected) return;
+      if (!loaded) {
+        form.innerHTML = `<p class="w3-text-grey">Could not load binding options.</p>`;
+        return;
+      }
+      paint();
+    })();
   });
   form.addEventListener("input", (event) => {
     const target = event.target;
@@ -1409,6 +1435,7 @@ function bindNewBinding(root: HTMLElement, listing: RecordList, choices: Binding
   form.addEventListener("change", (event) => {
     const target = event.target;
     if (!(target instanceof HTMLSelectElement)) return;
+    if (!choices) return;
     if (target.name === "binding-kind") {
       state = readNewBinding(bindingControls(form), folderSelection(form), choices, form);
       state.step = 1;
@@ -1419,6 +1446,7 @@ function bindNewBinding(root: HTMLElement, listing: RecordList, choices: Binding
     if (target.name === "dataset-presentation") syncDatasetPresentation(form);
     if (target.name === "dataset-dataset") {
       void enrichBindingChoices(choices, target.value).then((next) => {
+        if (!choices) return;
         Object.assign(choices, next);
         state = readNewBinding(bindingControls(form), folderSelection(form), choices, form);
         paint();
@@ -1430,17 +1458,20 @@ function bindNewBinding(root: HTMLElement, listing: RecordList, choices: Binding
     if (!(button instanceof HTMLButtonElement)) return;
     if (button.hasAttribute("data-binding-cancel")) {
       event.preventDefault();
+      openGeneration += 1;
       cancelNewBindingForm(form);
       return;
     }
     if (button.dataset.bindingStep !== "back") return;
     event.preventDefault();
+    if (!choices) return;
     state = readNewBinding(bindingControls(form), folderSelection(form), choices, form);
     state.step = state.step === 3 ? 2 : 1;
     paint();
   });
   form.addEventListener("submit", (event) => {
     event.preventDefault();
+    if (!choices) return;
     state = readNewBinding(bindingControls(form), folderSelection(form), choices, form);
     if (state.kind === "gallery" && state.step < 3) {
       const problem = state.step === 1 ? bindingIdError(state.id, existing) : undefined;
@@ -1508,46 +1539,19 @@ function folderSelection(form: HTMLFormElement): string[] | undefined {
   );
 }
 
-async function loadBindingListInfo(listing: RecordList): Promise<{ notes: Map<string, string>; choices: BindingChoices }> {
+async function loadBindingListNotes(listing: RecordList): Promise<Map<string, string>> {
+  const notes = new Map<string, string>();
   const bindings = listing.records.filter((row) => row.kind === "bindings");
-  const content = listing.records.filter((row) => row.kind === "content");
-  const types = listing.records.filter((row) => row.kind === "types").map((row) => row.id);
-  const empty = {
-    notes: new Map<string, string>(),
-    choices: { folders: [], types, headings: [], datasets: [], datasetFields: {}, runtimeModules: [] },
-  };
+  if (!bindings.length) return notes;
   try {
-    const [bindingPayloads, contentPayloads, library, nav, datasetList, runtimeMods] = await Promise.all([
-      Promise.all(bindings.map((row) => getRecord("bindings", row.id))),
-      Promise.all(content.map((row) => getRecord("content", row.id))),
-      getLibrary().catch(() => ({ folders: [], assets: [] })),
-      getRecord("nav", "nav").catch(() => undefined),
-      listDatasets().catch(() => ({ ok: true as const, datasets: [] })),
-      getRuntimeModules().catch(() => ({ ok: true as const, modules: [] })),
-    ]);
-    const notes = new Map<string, string>();
+    const payloads = await Promise.all(bindings.map((row) => getRecord("bindings", row.id)));
     bindings.forEach((row, index) => {
-      const used = content.flatMap((page, pageIndex) =>
-        bindingIdsIn(contentPayloads[pageIndex]?.data).includes(row.id) ? [{ id: page.id, title: page.title }] : [],
-      );
-      notes.set(row.id, bindingSentence(bindingPayloads[index]?.data, used));
+      notes.set(row.id, bindingSentence(payloads[index]?.data));
     });
-    const siteData = await loadSiteData(listing);
-    return {
-      notes,
-      choices: bindingChoicesPayload(
-        listing,
-        library.folders,
-        types,
-        nav?.data,
-        siteData,
-        datasetList.datasets,
-        runtimeMods.modules,
-      ),
-    };
   } catch {
-    return empty;
+    return notes;
   }
+  return notes;
 }
 
 async function enrichBindingChoices(choices: BindingChoices, datasetId: string): Promise<BindingChoices> {

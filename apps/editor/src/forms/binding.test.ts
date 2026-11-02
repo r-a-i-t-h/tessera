@@ -36,14 +36,12 @@ const slides = {
 };
 
 describe("binding sentences", () => {
-  it("describes a gallery with the pages that use it", () => {
-    expect(bindingSentence(hall, [{ id: "gallery", title: "Gallery" }])).toBe(
-      "Grid of the hall-gallery folder. On Gallery.",
-    );
+  it("describes a gallery binding", () => {
+    expect(bindingSentence(hall)).toBe("Grid of the hall-gallery folder.");
     expect(bindingSentence(slides)).toBe("Slides of the hall-gallery folder.");
   });
 
-  it("names several folders and pages", () => {
+  it("names several folders", () => {
     expect(
       bindingSentence({
         component: "gallery",
@@ -51,19 +49,6 @@ describe("binding sentences", () => {
       }),
     ).toBe("Slides of the hall-gallery and lambs folders.");
     expect(bindingSentence({ component: "gallery", props: { mode: "grid" } })).toBe("A gallery with no folders yet.");
-    expect(
-      bindingSentence(hall, [
-        { id: "home", title: "Home" },
-        { id: "gallery", title: "Gallery" },
-      ]),
-    ).toBe("Grid of the hall-gallery folder. On Home and Gallery.");
-    expect(
-      bindingSentence(hall, [
-        { id: "home", title: "Home" },
-        { id: "gallery", title: "Gallery" },
-        { id: "events", title: "Events" },
-      ]),
-    ).toBe("Grid of the hall-gallery folder. On Home, Gallery, and Events.");
   });
 
   it("leaves unknown components on the raw file", () => {
@@ -110,12 +95,9 @@ describe("binding sentences", () => {
         props: { dataset: "members", sort: { field: "name", dir: "desc" }, limit: 10, interactiveSort: true },
       }),
     ).toBe("Dataset table for members, sorted by name desc, limit 10, visitor can re-sort.");
-    expect(
-      bindingSentence(
-        { component: "datasetCards", props: { dataset: "members" } },
-        [],
-      ),
-    ).toBe("Dataset cards for members.");
+    expect(bindingSentence({ component: "datasetCards", props: { dataset: "members" } })).toBe(
+      "Dataset cards for members.",
+    );
   });
 });
 

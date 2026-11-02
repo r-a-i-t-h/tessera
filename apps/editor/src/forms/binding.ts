@@ -70,8 +70,6 @@ export type RuntimeModuleBindingDraft = {
   recordExtra: Record<string, unknown>;
 };
 
-export type PageUse = { id: string; title?: string };
-
 export type BindingChoices = DatasetBindingChoices & {
   folders: readonly { id: string }[];
   types: readonly string[];
@@ -349,21 +347,14 @@ export function bindingIdError(id: string, existingIds: readonly string[]): stri
   return pageIdError(id, existingIds)?.replace("A page with id", "A binding with id");
 }
 
-export function bindingSentence(data: unknown, pages: readonly PageUse[] = []): string {
+export function bindingSentence(data: unknown): string {
   const kind = bindingKind(data);
-  const detail =
-    kind === "gallery"
-      ? galleryPhrase(galleryDraft(data))
-      : kind === "imageReveal"
-              ? imageRevealPhrase(imageRevealDraft(data))
-              : kind === "embed"
-                ? embedPhrase(embedDraft(data))
-                : kind === "dataset"
-                  ? datasetPhrase(datasetDraft(data))
-                  : kind === "runtimeModule"
-                    ? runtimeModulePhrase(runtimeModuleBindingDraft(data))
-                    : otherPhrase(data);
-  return `${detail}${usagePhrase(pages)}`;
+  if (kind === "gallery") return galleryPhrase(galleryDraft(data));
+  if (kind === "imageReveal") return imageRevealPhrase(imageRevealDraft(data));
+  if (kind === "embed") return embedPhrase(embedDraft(data));
+  if (kind === "dataset") return datasetPhrase(datasetDraft(data));
+  if (kind === "runtimeModule") return runtimeModulePhrase(runtimeModuleBindingDraft(data));
+  return otherPhrase(data);
 }
 
 /** Binding ids written as `{{id}}` anywhere in a record. */
@@ -862,14 +853,6 @@ function otherPhrase(data: unknown): string {
   const component = isRecord(data) && typeof data.component === "string" ? data.component.trim() : "";
   if (!component) return "Edit the raw file.";
   return `${component}. Edit the raw file.`;
-}
-
-function usagePhrase(pages: readonly PageUse[]): string {
-  const names = pages.map((page) => page.title?.trim() || page.id).filter(Boolean);
-  if (!names.length) return "";
-  if (names.length === 1) return ` On ${names[0]}.`;
-  if (names.length === 2) return ` On ${names[0]} and ${names[1]}.`;
-  return ` On ${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}.`;
 }
 
 function joinNames(names: readonly string[]): string {
