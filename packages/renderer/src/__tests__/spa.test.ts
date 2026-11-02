@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ComponentRegistry, SiteRenderer, documentCacheKey, writeDocumentCache } from "../index.js";
+import { ComponentRegistry, SiteRenderer, documentCacheKey, writeDocumentCache, sectionFromHash } from "../index.js";
 import { makeFixtureDoc } from "./fixtures.js";
 
 function buildRegistry() {
@@ -34,6 +34,7 @@ describe("SiteRenderer navigation", () => {
     mount = document.getElementById("app")!;
     window.location.hash = "";
     vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+    vi.spyOn(HTMLElement.prototype, "scrollIntoView").mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -72,6 +73,32 @@ describe("SiteRenderer navigation", () => {
     window.location.hash = "#about/tenant/hall";
     window.dispatchEvent(new Event("hashchange"));
     expect(mount.innerHTML).toContain("About body");
+    renderer.stop();
+  });
+
+  it("scrolls to a section from hash query after render", async () => {
+    const doc = makeFixtureDoc();
+    const about = doc.pages.find((p) => p.id === "about");
+    about!.zones.main = [
+      {
+        type: "text",
+        html: '<h2 class="tessera-block" id="team">Team</h2><p>About body</p>',
+      },
+    ];
+    const scrollSpy = vi.spyOn(HTMLElement.prototype, "scrollIntoView");
+    scrollSpy.mockClear();
+
+    window.location.hash = "#about?section=team";
+    const renderer = await SiteRenderer.create({
+      document: doc,
+      registry: buildRegistry(),
+      mount: "#app",
+    });
+    renderer.start();
+
+    expect(mount.innerHTML).toContain("About body");
+    expect(sectionFromHash("#about?section=team")).toBe("team");
+    expect(scrollSpy).toHaveBeenCalled();
     renderer.stop();
   });
 

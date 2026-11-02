@@ -34,7 +34,7 @@ const renderer = await SiteRenderer.create({
     const page = doc.pages.find((p) => p.id === pageId);
     applyAspectClass(page ? resolveAspect(doc, page).aspectId : undefined);
     document.title = page ? `${page.title} · ${doc.site.title}` : doc.site.title;
-    insertHeadingsMenu(document.getElementById("app") ?? document);
+    insertHeadingsMenu(document.getElementById("app") ?? document, "headings_menu", "h2", pageId);
     syncSiteBackToTop(doc.site.backToTop === true);
     bootBlog(document);
     bootDatasetViews(document);

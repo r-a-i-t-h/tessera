@@ -18,6 +18,9 @@ export {
   type SiteRendererOptions,
   type DocumentStatus,
   type DocumentSource,
+  pageIdFromHash,
+  sectionFromHash,
+  scrollToHashSection,
 } from "./spa.js";
 export {
   DEFAULT_CONTENT_TTL_MS,
@@ -93,6 +96,7 @@ export {
 } from "./page-diagnostics.js";
 export { normalizeSiteAssetUrl, isRootAbsoluteUrl } from "./assets.js";
 export { hrefForPage } from "./page-href.js";
+export { expandToc, tocSectionHref, type ExpandTocOptions } from "./toc.js";
 export { resolvePageRefs, rewritePageRefIds } from "./page-refs.js";
 export {
   buildPageLinkGraph,

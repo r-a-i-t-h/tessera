@@ -6,7 +6,7 @@ import {
   siteStyleOverrideCss,
   type SiteStyle,
 } from "@r-a-i-t-h/tessera-model";
-import { escapeHtml } from "@r-a-i-t-h/tessera-renderer";
+import { escapeHtml, tocSectionHref } from "@r-a-i-t-h/tessera-renderer";
 
 const FONT_STORAGE_KEY = "tessera-font";
 
@@ -151,6 +151,7 @@ export function insertHeadingsMenu(
   root: ParentNode = document,
   targetId = "headings_menu",
   headingLevel = "h2",
+  pageId?: string,
 ): void {
   const menu = document.getElementById(targetId);
   if (!menu) return;
@@ -159,11 +160,13 @@ export function insertHeadingsMenu(
     menu.innerHTML = "";
     return;
   }
+  const snapshotPageId = pageId?.trim() || undefined;
   menu.innerHTML = headings
     .map((h, i) => {
       const id = h.id || `heading-${i}`;
       h.id = id;
-      return `<a class="w3-bar-item w3-button w3-small" href="#${id}">${escapeHtml(h.textContent || "")}</a>`;
+      const href = escapeHtml(tocSectionHref(snapshotPageId, id));
+      return `<a class="w3-bar-item w3-button w3-small" href="${href}">${escapeHtml(h.textContent || "")}</a>`;
     })
     .join("");
 }

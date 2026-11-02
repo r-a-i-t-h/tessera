@@ -255,10 +255,32 @@ describe("authored zone HTML", () => {
       registry: registryWithDefaults(),
     });
     expect(html).toContain('class="tessera-toc-list"');
-    expect(html).toContain('href="#first"');
-    expect(html).toContain('href="#nested"');
+    expect(html).toContain('href="#home?section=first"');
+    expect(html).toContain('href="#home?section=nested"');
     expect(html).toContain('id="first"');
     expect(html).not.toContain('data-tessera="toc"');
+  });
+
+  it("keeps fragment TOC links in a pages dist", () => {
+    const doc = makeFixtureDoc();
+    const home = doc.pages.find((page) => page.id === "home");
+    home!.zones.main = [
+      {
+        type: "text",
+        html: [
+          '<nav class="tessera-block tessera-toc" data-tessera="toc"></nav>',
+          '<h2 class="tessera-block">First</h2>',
+        ].join("\n"),
+      },
+    ];
+    const html = renderPage({
+      document: doc,
+      pageId: "home",
+      registry: registryWithDefaults(),
+      pageHref: (id) => (id === "home" ? "./index.html" : `./${id}/index.html`),
+    });
+    expect(html).toContain('href="#first"');
+    expect(html).not.toContain("?section=");
   });
 
   it("expands a subpages marker into a W3CSS list of child pages", () => {

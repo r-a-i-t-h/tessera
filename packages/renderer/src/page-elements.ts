@@ -7,7 +7,7 @@ const MARKER = /<(nav|div)\b[^>]*\bdata-tessera="(subpages|gallery)"[^>]*>(?:\s*
 
 /** Replace subpages and gallery markers left in authored HTML. */
 export function expandPageElements(html: string, ctx: RenderContext): string {
-  const withToc = expandToc(html);
+  const withToc = expandToc(html, ctx.pageHref ? undefined : { pageId: ctx.page.id });
   return withToc.replace(MARKER, (full, _tag: string, kind: string) => {
     if (kind === "subpages") {
       const title = attr(full, "data-title");

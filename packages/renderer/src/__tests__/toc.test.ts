@@ -24,6 +24,16 @@ describe("expandToc", () => {
     expect(out).not.toContain('data-tessera="toc"');
   });
 
+  it("uses hash query section links when pageId is set (snapshot)", () => {
+    const html = [
+      '<nav class="tessera-block tessera-toc" data-tessera="toc"></nav>',
+      '<h2 class="tessera-block">Real section</h2>',
+    ].join("\n");
+
+    const out = expandToc(html, { pageId: "guide" });
+    expect(out).toContain('href="#guide?section=real-section"');
+  });
+
   it("ignores card titles and empty headings", () => {
     const html = [
       '<nav class="tessera-block tessera-toc" data-tessera="toc"></nav>',

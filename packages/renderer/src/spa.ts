@@ -208,13 +208,35 @@ export class SiteRenderer {
     this.mount.innerHTML = html;
     window.scrollTo(0, 0);
     this.onAfterRender?.(id, this._document);
+    scrollToHashSection(location.hash);
     return html;
   }
 }
 
 /** `#news/tag/fair` is page `news`. A plain `#about` stays `about`. */
-function pageIdFromHash(hash: string): string {
+export function pageIdFromHash(hash: string): string {
   const raw = hash.replace(/^#/, "");
   const cut = raw.search(/[/?]/);
-  return cut === -1 ? raw : raw.slice(0, cut);
+  const segment = cut === -1 ? raw : raw.slice(0, cut);
+  if (!segment) return segment;
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
+}
+
+/** Heading id from `#pageId?section=…` (snapshot in-page links). */
+export function sectionFromHash(hash: string): string | undefined {
+  const raw = hash.replace(/^#/, "");
+  const qIdx = raw.indexOf("?");
+  if (qIdx < 0) return undefined;
+  const section = new URLSearchParams(raw.slice(qIdx + 1)).get("section")?.trim();
+  return section || undefined;
+}
+
+export function scrollToHashSection(hash: string): void {
+  const section = sectionFromHash(hash);
+  if (!section) return;
+  document.getElementById(section)?.scrollIntoView({ block: "start" });
 }

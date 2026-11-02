@@ -12,8 +12,14 @@ const HEADING_RE = /<h([1-4])\b([^>]*)>([\s\S]*?)<\/h\1>/gi;
 
 type Patch = { start: number; end: number; text: string };
 
+export type ExpandTocOptions = {
+  /** Snapshot SPA: prefix hash with page id and `section` query. Pages dist omits this. */
+  pageId?: string;
+};
+
 /** Expand table-of-contents markers and assign ids to linked headings. */
-export function expandToc(html: string): string {
+export function expandToc(html: string, options?: ExpandTocOptions): string {
+  const pageId = options?.pageId?.trim() || undefined;
   const markers: { start: number; end: number }[] = [];
   for (const match of html.matchAll(TOC_MARKER)) {
     const start = match.index ?? 0;
@@ -36,7 +42,7 @@ export function expandToc(html: string): string {
 
   for (const marker of markers) {
     const entries = headings.filter((item) => item.index >= marker.end);
-    patches.push({ start: marker.start, end: marker.end, text: paintTocNav(entries) });
+    patches.push({ start: marker.start, end: marker.end, text: paintTocNav(entries, pageId) });
   }
 
   patches.sort((a, b) => b.start - a.start);
@@ -93,7 +99,15 @@ function ensureIdAttr(attrs: string, id: string): string {
   return `${attrs} id="${escapeHtml(id)}"`;
 }
 
-function paintTocNav(headings: TocHeading[]): string {
+/** In-page section target for snapshot (`#page?section=id`) or pages (`#id`). */
+export function tocSectionHref(pageId: string | undefined, headingId: string): string {
+  if (pageId) {
+    return `#${encodeURIComponent(pageId)}?section=${encodeURIComponent(headingId)}`;
+  }
+  return `#${headingId}`;
+}
+
+function paintTocNav(headings: TocHeading[], pageId?: string): string {
   if (!headings.length) {
     return `<nav class="tessera-block tessera-toc" aria-label="Contents"></nav>`;
   }
@@ -102,7 +116,8 @@ function paintTocNav(headings: TocHeading[]): string {
     .map((item) => {
       const depth = item.level - minLevel;
       const cls = depth > 0 ? ` class="tessera-toc-indent-${depth}"` : "";
-      return `<li${cls}><a href="#${escapeHtml(item.id)}">${escapeHtml(item.text)}</a></li>`;
+      const href = escapeHtml(tocSectionHref(pageId, item.id));
+      return `<li${cls}><a href="${href}">${escapeHtml(item.text)}</a></li>`;
     })
     .join("");
   return `<nav class="tessera-block tessera-toc" aria-label="Contents"><p class="tessera-toc-title">Contents</p><ul class="tessera-toc-list">${items}</ul></nav>`;
