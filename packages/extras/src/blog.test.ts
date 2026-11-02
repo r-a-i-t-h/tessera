@@ -1,11 +1,13 @@
-import type { SiteDocument } from "@r-a-i-t-h/tessera-model";
+import { parseSiteDocument } from "@r-a-i-t-h/tessera-model";
+import { ComponentRegistry, escapeHtml, type RenderContext } from "@r-a-i-t-h/tessera-renderer";
 import { describe, expect, it } from "vitest";
 import { blogArticle } from "./blog.js";
-import type { RenderContext } from "@r-a-i-t-h/tessera-renderer";
 
 function minimalCtx(overrides: Partial<RenderContext> = {}): RenderContext {
-  const document: SiteDocument = {
-    site: { homePageId: "home", title: "Test" },
+  const document = parseSiteDocument({
+    version: 2,
+    site: { id: "test", title: "Test", homePageId: "home" },
+    layouts: [{ id: "l", root: { type: "region", children: [{ type: "page" }] } }],
     pages: [
       { id: "news", title: "News", type: "blog", fields: { heroStyle: "side" }, zones: {} },
       {
@@ -17,21 +19,19 @@ function minimalCtx(overrides: Partial<RenderContext> = {}): RenderContext {
         zones: { main: [{ type: "text", html: "<p>Body copy</p>" }] },
       },
     ],
-    layouts: [],
-    items: [],
-    nav: { entries: [] },
-  };
+  });
   const page = document.pages[1]!;
+  const registry = new ComponentRegistry();
   return {
     document,
     page,
     profile: { layoutId: "tessera-article", layoutSource: "type", typeId: "article" },
     zones: new Map(Object.entries(page.zones ?? {})),
-    registry: { render: () => "" } as RenderContext["registry"],
+    registry,
     renderBlocks: (blocks) =>
       blocks.map((b) => (b.type === "text" ? b.html : "")).join(""),
     mediaHtml: () => '<img src="./media/pic.jpg" alt="" />',
-    escapeHtml: (s) => s,
+    escapeHtml,
     assetUrl: (url) => url,
     ...overrides,
   };
