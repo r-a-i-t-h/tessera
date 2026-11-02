@@ -1,12 +1,15 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
 import { hashPassword } from "../src/auth/password.js";
 import { SessionStore } from "../src/auth/sessions.js";
 import { SiteStore } from "../src/site/store.js";
 import { UserStore } from "../src/store/users.js";
+
+const seedDir = join(dirname(fileURLToPath(import.meta.url)), "..", "seed");
 
 describe("blank site", () => {
   let root: string;
@@ -33,7 +36,7 @@ describe("blank site", () => {
   });
 
   function app() {
-    return createApp({ users, sessions, site, siteRoot: root });
+    return createApp({ users, sessions, site, siteRoot: root, seedDir });
   }
 
   it("writes a shell, a master, and a home page", async () => {
@@ -81,6 +84,8 @@ describe("blank site", () => {
     expect(home).not.toContain("common-footer");
     const type = await readFile(join(root, "records", "types", "standard.yaml"), "utf8");
     expect(type).toContain("layoutId: standard");
+    const demoModule = await readFile(join(root, "runtime-modules", "demo-plain-list.mjs"), "utf8");
+    expect(demoModule).toContain("tessera-dataset-list");
   });
 
   it("refuses to replace records that already exist", async () => {
@@ -117,6 +122,7 @@ describe("blank site", () => {
       site,
       siteRoot: root,
       backupDir: backup,
+      seedDir,
     }).request("/api/site/reseed", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },

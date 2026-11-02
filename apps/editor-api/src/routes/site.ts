@@ -14,9 +14,11 @@ siteRoutes.post("/site/init", async (c) => {
   if (denied) return denied;
   const site = c.get("requiredSite");
   const siteRoot = c.get("requiredSiteRoot");
+  const seedDir = c.get("seedDir");
+  if (!seedDir) return apiError(c, 404, "No seed directory configured.");
 
   try {
-    await writeBlankSite(siteRoot);
+    await writeBlankSite(siteRoot, seedDir);
     const doc = await site.flatten();
     if (!doc) return apiError(c, 400, "The new site did not flatten.");
     const snapshot = await site.publishedSnapshot();
@@ -40,9 +42,11 @@ siteRoutes.post("/site/reseed", async (c) => {
   const siteRoot = c.get("requiredSiteRoot");
   const backupDir = c.get("backupDir");
   if (!backupDir) return apiError(c, 404, "No site data directory configured.");
+  const seedDir = c.get("seedDir");
+  if (!seedDir) return apiError(c, 404, "No seed directory configured.");
 
   try {
-    const result = await reseedSite(siteRoot, backupDir);
+    const result = await reseedSite(siteRoot, backupDir, seedDir);
     const doc = await site.flatten();
     if (!doc) return apiError(c, 400, "The new site did not flatten.");
     const snapshot = await site.publishedSnapshot();

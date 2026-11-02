@@ -1,12 +1,15 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
 import { hashPassword } from "../src/auth/password.js";
 import { SessionStore } from "../src/auth/sessions.js";
 import { SiteStore } from "../src/site/store.js";
 import { UserStore } from "../src/store/users.js";
+
+const seedDir = join(dirname(fileURLToPath(import.meta.url)), "..", "seed");
 
 describe("maintenance", () => {
   let root: string;
@@ -31,7 +34,7 @@ describe("maintenance", () => {
   });
 
   function app() {
-    return createApp({ users, sessions, site, siteRoot: root });
+    return createApp({ users, sessions, site, siteRoot: root, seedDir });
   }
 
   it("requires auth", async () => {

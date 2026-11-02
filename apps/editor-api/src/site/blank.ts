@@ -1,12 +1,8 @@
 import { copyFile, mkdir } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { readText, writeTextAtomic } from "../store/fs.js";
 
-const DEMO_RUNTIME_MODULE_SRC = join(
-  dirname(fileURLToPath(import.meta.url)),
-  "../../../../examples/runtime-module/plain-list/demo-plain-list.mjs",
-);
+const SEED_DEMO_RUNTIME_MODULE = join("runtime-modules", "demo-plain-list.mjs");
 
 const SHELL_HTML = `<!DOCTYPE html>
 <html lang="en-GB">
@@ -275,7 +271,7 @@ const ITEM_ORDER = `- common-footer
  * layout, Hello world home page, and a blog with one article.
  * Overwrites those files when they already exist.
  */
-export async function writeSeedFiles(siteRoot: string): Promise<void> {
+export async function writeSeedFiles(siteRoot: string, seedDir: string): Promise<void> {
   const records = join(siteRoot, "records");
   await writeTextAtomic(join(siteRoot, "shell", "index.html"), SHELL_HTML);
   await writeTextAtomic(join(siteRoot, "shell", "site.css"), SITE_CSS);
@@ -303,20 +299,20 @@ export async function writeSeedFiles(siteRoot: string): Promise<void> {
   await writeTextAtomic(join(records, "runtime-modules", "demo-plain-list.yaml"), DEMO_RUNTIME_MODULE_YAML);
   const runtimeDir = join(siteRoot, "runtime-modules");
   await mkdir(runtimeDir, { recursive: true });
-  await copyFile(DEMO_RUNTIME_MODULE_SRC, join(runtimeDir, "demo-plain-list.mjs"));
+  await copyFile(join(seedDir, SEED_DEMO_RUNTIME_MODULE), join(runtimeDir, "demo-plain-list.mjs"));
   const datasetsDir = join(siteRoot, "datasets");
   await mkdir(datasetsDir, { recursive: true });
   await writeTextAtomic(join(datasetsDir, "demo-items.json"), DEMO_ITEMS_DATASET_JSON);
 }
 
 /** Write the starter site. Refuses when site.yaml exists. */
-export async function writeBlankSite(siteRoot: string): Promise<void> {
+export async function writeBlankSite(siteRoot: string, seedDir: string): Promise<void> {
   const siteFile = join(siteRoot, "records", "site.yaml");
   try {
     await readText(siteFile);
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === "ENOENT") {
-      await writeSeedFiles(siteRoot);
+      await writeSeedFiles(siteRoot, seedDir);
       return;
     }
     throw err;

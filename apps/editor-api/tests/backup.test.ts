@@ -1,6 +1,7 @@
 import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../src/app.js";
 import { hashPassword } from "../src/auth/password.js";
@@ -14,6 +15,8 @@ import {
   restoreDataBackup,
 } from "../src/site/backup.js";
 import { UserStore } from "../src/store/users.js";
+
+const seedDir = join(dirname(fileURLToPath(import.meta.url)), "..", "seed");
 
 describe("site backups", () => {
   const dirs: string[] = [];
@@ -84,7 +87,7 @@ describe("site backups", () => {
     await writeFile(join(site, "publish", "old.txt"), "published\n");
     await writeFile(join(site, ".sessions.json"), '{"keep":true}\n');
 
-    const result = await reseedSite(site, backup);
+    const result = await reseedSite(site, backup, seedDir);
     expect(result.restored).toBe("seed");
     expect(await readFile(join(site, "records", "content", "home.yaml"), "utf8")).toContain("Hello world");
     expect(await readFile(join(site, "records", "items", "common-footer.yaml"), "utf8")).toContain("footer");
@@ -95,7 +98,7 @@ describe("site backups", () => {
 
     const again = await siteWith("Before");
     const spy = vi.spyOn(blank, "writeSeedFiles").mockRejectedValueOnce(new Error("disk full"));
-    await expect(reseedSite(again.site, again.backup)).rejects.toThrow(/disk full/);
+    await expect(reseedSite(again.site, again.backup, seedDir)).rejects.toThrow(/disk full/);
     expect(await readFile(join(again.site, "records", "site.yaml"), "utf8")).toContain("Before");
     expect(await readFile(join(again.site, "users", "admin.json"), "utf8")).toContain("admin");
     spy.mockRestore();

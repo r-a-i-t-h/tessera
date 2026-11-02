@@ -50,7 +50,7 @@ describe("theme kits", () => {
     sessions = new SessionStore();
     token = sessions.create("alice").token;
     site = new SiteStore(join(root, "records"), join(root, "publish", "data", "site.json"));
-    await writeSeedFiles(root);
+    await writeSeedFiles(root, seedDir);
   });
 
   afterEach(async () => {
@@ -308,7 +308,7 @@ zones:
       });
       await loadThemeManifest(exportSeed, "round-trip-kit");
 
-      await writeSeedFiles(target);
+      await writeSeedFiles(target, seedDir);
       await writeFile(join(target, "records", "content", "home.yaml"), homeEdited);
 
       await applyThemeKit(target, targetBackup, exportSeed, "round-trip-kit");

@@ -275,11 +275,11 @@ const RESEED_KEEP = new Set(["users", "meta.json", SESSION_HANDOFF_FILE]);
  * Replace pages, shell, library files, history, and the published tree
  * with the starter site. Editors stay. A safety archive is written first.
  */
-export async function reseedSite(dataDir: string, backupDir: string): Promise<RestoreResult> {
+export async function reseedSite(dataDir: string, backupDir: string, seedDir: string): Promise<RestoreResult> {
   const safetyBackup = await createDataBackup(dataDir, backupDir);
   try {
     await clearExcept(dataDir, RESEED_KEEP);
-    await writeSeedFiles(dataDir);
+    await writeSeedFiles(dataDir, seedDir);
   } catch (err) {
     await rollback(dataDir, backupDir, safetyBackup.name);
     throw err;
