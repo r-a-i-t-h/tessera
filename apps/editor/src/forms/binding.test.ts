@@ -61,17 +61,17 @@ describe("binding sentences", () => {
     expect(bindingSentence({ component: "eventList" })).toBe("eventList. Edit the raw file.");
   });
 
-  it("describes an embed binding", () => {
-    expect(bindingSentence({ component: "htmlEmbed", props: { html: "" } })).toBe("An embed with no HTML yet.");
+  it("describes a raw HTML binding", () => {
+    expect(bindingSentence({ component: "htmlEmbed", props: { html: "" } })).toBe("Raw HTML with no content yet.");
     expect(bindingSentence({ component: "htmlEmbed", props: { html: "<iframe></iframe>" } })).toBe(
-      "Embed (one line of HTML).",
+      "Raw HTML (one line).",
     );
     expect(
       bindingSentence({
         component: "htmlEmbed",
         props: { html: "<div></div>\n<script></script>" },
       }),
-    ).toBe("Embed (2 lines of HTML).");
+    ).toBe("Raw HTML (2 lines).");
   });
 
   it("describes a reveal banner binding", () => {
@@ -359,6 +359,8 @@ describe("binding forms", () => {
       { folders: [], types: [], headings: [], datasets: [], datasetFields: {} },
     );
     expect(html).toContain('name="embed-html"');
+    expect(html).toContain("editor-raw-html-tools");
+    expect(html).toContain('data-raw-html-target="embed-html"');
     expect(html).toContain("&lt;iframe&gt;&lt;/iframe&gt;");
   });
 

@@ -123,7 +123,7 @@ export function guideHtml(): string {
       <li><strong>Gallery</strong> — Library folders as grid or slides.</li>
       <li><strong>Reveal banner</strong> — Cropped panels, hover grow, click-to-reveal, then link (Miller’s Ark homepage hero). Panel image: site-relative path; panel link: page id or external URL (Choose page in the binding editor). Insert only.</li>
       <li><strong>Dataset list</strong> — Rows from a <a href="${guideSectionHref("datasets")}">dataset</a>: table, cards, or plain list; or the same data passed to a <strong>runtime module</strong> for a custom view. Sort, limit, column pick, and filters are binding props.</li>
-      <li><strong>Embed</strong> — Raw HTML from a ticket vendor, payment provider, or similar (scripts and iframes kept on publish). Paste in the binding editor; insert with Compose → Insert. Not a layout Component.</li>
+      <li><strong>Raw HTML</strong> — Markup from a ticket vendor, payment provider, or similar (scripts and iframes kept on publish). Edit in the binding editor with Image, Document, and Page link inserts; insert on a page with Compose → Insert. Not a layout Component.</li>
       <li><strong>Runtime module</strong> — Client JavaScript from the catalog with binding props only (no dataset). See <a href="${guideSectionHref("runtime-modules")}">Runtime modules</a>.</li>
     </ul>
     <p>Menus, breadcrumbs, and <code>linkCluster</code> belong on a layout (see <a href="${guideSectionHref("menu-components")}">Menu components</a>). <strong>Subpages</strong> is a Compose section. Structured rows belong in a <a href="${guideSectionHref("datasets")}">dataset</a>, not in a zone. Unsupported components use the raw binding file.</p>

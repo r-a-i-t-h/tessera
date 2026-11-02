@@ -1,4 +1,5 @@
 import { escapeHtml, formErrorPanel } from "../dom.js";
+import { rawHtmlField } from "../raw-html-field.js";
 import type { PageTargetChoices } from "./page-target.js";
 import { pageTargetChoicesHidden } from "./page-target.js";
 import { pageIdError } from "./page.js";
@@ -240,10 +241,10 @@ export function bindingControls(form: HTMLFormElement): ControlValue[] {
   return controls;
 }
 
-export function renderEmbedForm(id: string, draft: EmbedDraft): string {
-  return `${insertLine(id)}${hiddenExtra("embed", draft.propsExtra, draft.recordExtra)}
+export function renderEmbedForm(id: string, draft: EmbedDraft, choices?: BindingChoices): string {
+  return `${pageTargetChoicesField(choices?.pageTargets)}${insertLine(id)}${hiddenExtra("embed", draft.propsExtra, draft.recordExtra)}
     <p class="w3-small w3-text-grey">Third-party markup (tickets, payments, maps, etc.). Put it on a page with Compose → Insert. Scripts and iframes are kept on the published site.</p>
-    <p><label>HTML <textarea class="w3-input w3-border editor-html" name="embed-html" rows="14" spellcheck="false">${escapeHtml(draft.html)}</textarea></label></p>`;
+    ${rawHtmlField("embed-html", "HTML", draft.html, 14)}`;
 }
 
 export function imageRevealDraft(data: unknown): ImageRevealDraft {
@@ -405,7 +406,7 @@ export function renderBindingForm(id: string, data: unknown, choices: BindingCho
   const kind = bindingKind(data);
   if (kind === "gallery") return renderGalleryForm(id, galleryDraft(data), choices.folders);
   if (kind === "imageReveal") return renderImageRevealForm(id, imageRevealDraft(data), choices);
-  if (kind === "embed") return renderEmbedForm(id, embedDraft(data));
+  if (kind === "embed") return renderEmbedForm(id, embedDraft(data), choices);
   if (kind === "dataset") return renderDatasetForm(id, datasetDraft(data), choices);
   if (kind === "runtimeModule") return renderRuntimeModuleBindingForm(id, runtimeModuleBindingDraft(data), choices);
   return "";
@@ -579,7 +580,7 @@ function kindField(state: NewBinding): string {
   const kinds: { value: BindingKind; label: string }[] = [
     { value: "gallery", label: "Gallery" },
     { value: "imageReveal", label: "Reveal banner" },
-    { value: "embed", label: "Embed" },
+    { value: "embed", label: "Raw HTML" },
     { value: "dataset", label: "Dataset list" },
     { value: "runtimeModule", label: "Runtime module" },
     { value: "other", label: "Something else" },
@@ -606,8 +607,8 @@ function kindBody(state: NewBinding, choices: BindingChoices): string {
     return `<p class="w3-small w3-text-grey">Cropped image panels with hover and click-to-reveal. Configure panels on the next step, then insert with Compose → Insert.</p>`;
   }
   if (state.kind === "embed") {
-    return `<p class="w3-small w3-text-grey">Paste embed code from a ticket vendor, payment provider, or similar. Insert with Compose → Insert after saving.</p>
-    <p><label>HTML <textarea class="w3-input w3-border editor-html" name="embed-html" rows="14" spellcheck="false">${escapeHtml(state.embed.html)}</textarea></label></p>`;
+    return `${pageTargetChoicesField(choices.pageTargets)}<p class="w3-small w3-text-grey">Paste ticket-vendor, payment-provider, or similar markup. Insert with Compose → Insert after saving.</p>
+    ${rawHtmlField("embed-html", "HTML", state.embed.html, 14)}`;
   }
   if (state.kind === "dataset") {
     return datasetFields(state.dataset, choices);
@@ -840,9 +841,9 @@ function runtimeModulePhrase(draft: RuntimeModuleBindingDraft): string {
 
 function embedPhrase(draft: EmbedDraft): string {
   const trimmed = draft.html.trim();
-  if (!trimmed) return "An embed with no HTML yet.";
+  if (!trimmed) return "Raw HTML with no content yet.";
   const lines = trimmed.split(/\r?\n/).length;
-  return lines > 1 ? `Embed (${lines} lines of HTML).` : "Embed (one line of HTML).";
+  return lines > 1 ? `Raw HTML (${lines} lines).` : "Raw HTML (one line).";
 }
 
 function blankEmbed(): EmbedDraft {
