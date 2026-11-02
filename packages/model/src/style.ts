@@ -138,10 +138,22 @@ const CSS_TOKENS: readonly { key: keyof SiteStyle; prop: string; kind: TokenKind
   { key: "frameBg", prop: "--tessera-frame-bg", kind: "frameColor" },
 ];
 
-/** Every resolved token. The Styles specimen uses this because it does not load `tessera.css`. */
+/** TOC tokens on `:root` reference `--tessera-accent` there; re-declare on scoped selectors so the Styles specimen tracks token edits. */
+const STYLE_DERIVED_TOC_VARS: readonly { prop: string; value: string }[] = [
+  { prop: "--tessera-toc-accent-bar", value: "var(--tessera-accent)" },
+  { prop: "--tessera-toc-bullet-color", value: "var(--tessera-accent)" },
+  { prop: "--tessera-toc-link-color", value: "var(--tessera-link)" },
+  { prop: "--tessera-toc-link-hover-color", value: "var(--tessera-accent)" },
+  { prop: "--tessera-toc-title-color", value: "var(--tessera-muted)" },
+];
+
+/** Every resolved token. The Styles specimen scopes these on `.style-specimen` for live preview. */
 export function siteStyleCss(style: SiteStyle | undefined, selector = ":root"): string {
   const resolved = resolveSiteStyle(style);
   const lines = CSS_TOKENS.map((token) => `${token.prop}: ${formatToken(token.kind, tokenText(resolved, token.key))};`);
+  for (const derived of STYLE_DERIVED_TOC_VARS) {
+    lines.push(`${derived.prop}: ${derived.value};`);
+  }
   return cssBlock(selector, lines);
 }
 

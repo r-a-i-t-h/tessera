@@ -2307,6 +2307,24 @@ img[data-hero-preview] {
   margin: 0;
 }
 
+/* Match /preview/: undo editor list/button tweaks; keep Tessera nav-tree resets. */
+.style-specimen .w3-ul > li {
+  padding: 8px 16px;
+  border-bottom: 1px solid #ddd;
+}
+
+.style-specimen .tessera-sidebar .tessera-nav-tree.w3-ul li,
+.style-specimen .tessera-sidebar .tessera-nav-collapse-root .tessera-nav-sublinks.w3-ul li {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+}
+
+.style-specimen .tessera-sidebar a.w3-bar-item.w3-button {
+  border-radius: 0;
+}
+
 .style-specimen-main {
   flex: 1;
   min-width: 0;
@@ -2316,7 +2334,7 @@ img[data-hero-preview] {
 
 .style-specimen-main .tessera-content {
   flex: 1;
-  padding: 0.65rem 0.75rem 0.5rem;
+  padding: 1rem 1rem 2rem;
   max-width: var(--tessera-content-max, 1100px);
 }
 
@@ -2328,12 +2346,6 @@ img[data-hero-preview] {
 
 .style-specimen-main .tessera-content > p {
   margin: 0 0 0.65rem;
-}
-
-.style-specimen-main .tessera-breadcrumbs,
-.style-specimen-main .tessera-toc,
-.style-specimen-main .tessera-links {
-  margin-bottom: 0.65rem;
 }
 
 .editor-library-split {

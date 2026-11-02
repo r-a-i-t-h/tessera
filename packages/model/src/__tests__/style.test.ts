@@ -43,6 +43,9 @@ describe("site style", () => {
     expect(siteStyleCss(doc.site.style)).toContain("--tessera-sidebar-width: 240px;");
     expect(siteStyleCss(doc.site.style)).toContain("--tessera-bar-height: 42px;");
     expect(siteStyleCss(doc.site.style)).toContain("--tessera-frame-bg: rgba(255, 255, 255, 0.75);");
+    expect(siteStyleCss(doc.site.style, ".style-specimen")).toContain(
+      "--tessera-toc-accent-bar: var(--tessera-accent);",
+    );
     expect(siteStyleOverrideCss(doc.site.style)).toContain("--tessera-sidebar-width: 240px;");
     expect(siteStyleOverrideCss(doc.site.style)).toContain("--tessera-bar: #112233;");
     expect(siteStyleOverrideCss(doc.site.style)).not.toContain("--tessera-bar-height");

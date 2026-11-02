@@ -78,7 +78,7 @@ export function bindStylePanels(root: ParentNode): void {
 export function styleSpecimenNavSamplesHtml(): string {
   return `<div class="style-specimen-nav-sample" aria-label="Top-level menu sample">
             <p class="style-specimen-nav-label">Top-level</p>
-            <a class="w3-bar-item w3-button is-active" href="#" tabindex="-1">Home</a>
+            <a class="w3-bar-item w3-button is-active w3-theme-l3" href="#" tabindex="-1">Home</a>
             <h4 class="w3-text-theme">Section</h4>
             <a class="w3-bar-item w3-button" href="#" tabindex="-1">Events</a>
             <a class="w3-bar-item w3-button" href="#" tabindex="-1">News</a>
@@ -86,7 +86,7 @@ export function styleSpecimenNavSamplesHtml(): string {
           <div class="style-specimen-nav-sample" aria-label="Sub-level menu sample">
             <p class="style-specimen-nav-label">Sub-level</p>
             <ul class="w3-ul tessera-nav-tree">
-              <li><a class="w3-bar-item w3-button is-active" href="#" tabindex="-1">Home</a></li>
+              <li><a class="w3-bar-item w3-button is-active w3-theme-l3" href="#" tabindex="-1">Home</a></li>
               <li class="tessera-nav-branch"><span class="w3-text-theme">Section</span>
                 <ul class="w3-ul tessera-nav-tree">
                   <li><a class="w3-bar-item w3-button" href="#" tabindex="-1">Events</a></li>
@@ -100,7 +100,7 @@ export function styleSpecimenNavSamplesHtml(): string {
             <div class="tessera-nav-collapse-root">
               <a class="w3-bar-item w3-button" href="#" tabindex="-1">Home</a>
               <a class="w3-bar-item w3-button" href="#" tabindex="-1">About</a>
-              <ul class="w3-ul tessera-nav-tree tessera-nav-sublinks"><li><a class="w3-bar-item w3-button is-active" href="#" tabindex="-1">Origins</a></li></ul>
+              <ul class="w3-ul tessera-nav-tree tessera-nav-sublinks"><li><a class="w3-bar-item w3-button is-active w3-theme-l3" href="#" tabindex="-1">Origins</a></li></ul>
             </div>
           </div>`;
 }
@@ -118,7 +118,7 @@ export function styleSpecimenHtml(style: Required<SiteStyle>): string {
           </span>
         </div>
         <div class="style-specimen-body">
-          <aside class="style-specimen-side tessera-sidebar">
+          <aside class="style-specimen-side w3-bar-block tessera-sidebar">
             ${styleSpecimenNavSamplesHtml()}
           </aside>
           <div class="style-specimen-main">

@@ -92,6 +92,7 @@ describe("site style page", () => {
     expect(html).toContain("tessera-nav-branch");
     expect(html).toContain("tessera-nav-collapse-root");
     expect(html).toContain("tessera-nav-sublinks");
+    expect(html).toContain("w3-bar-block tessera-sidebar");
   });
 });
 
