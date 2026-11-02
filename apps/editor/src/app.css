@@ -48,7 +48,8 @@ body {
   width: 15rem;
   display: flex;
   flex-direction: column;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   overscroll-behavior: none;
   z-index: 13;
 }
@@ -105,7 +106,7 @@ body {
   background: var(--editor-nav-pane) !important;
   color: #111 !important;
   box-sizing: border-box;
-  width: calc(100% - var(--editor-nav-sliver));
+  width: auto;
   margin-left: var(--editor-nav-sliver);
   margin-right: 0;
   border-radius: var(--editor-nav-tab-radius) 0 0 var(--editor-nav-tab-radius);
