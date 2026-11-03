@@ -1,0 +1,56 @@
+id: raith
+name: Raith
+version: 1
+stack: w3
+patch:
+  layouts: replace-listed
+  layoutIds:
+    - master
+    - search
+    - standard
+    - _order
+  shell: replace
+  site: merge-keys
+  types: skip
+  items: merge-listed
+  itemIds:
+    - common-footer
+    - common-header
+  nav: skip
+zonesDeclared:
+  master:
+    - footer
+    - header
+  search:
+    - title
+  standard:
+    - main
+    - title
+demo:
+  optional: false
+  paths: []
+masterLayoutId: master
+defaultLayoutId: standard
+site:
+  style:
+    sidebarWidth: 300px
+    barHeight: 110px
+    contentMaxWidth: 1100px
+    baseFontSize: 16px
+    fontA: Lekton
+    fontB: Roboto
+    fontC: Orbitron
+    fontD: Thasadith
+    fontsHref: https://fonts.googleapis.com/css?family=Lekton|Roboto|Orbitron|Thasadith
+    navSide: left
+    footerStyle: fixed
+    bar: "#000000"
+    barText: "#ffffff"
+    sidebar: "#016d8f"
+    sidebarText: "#94e3fe"
+    page: "#00364a"
+    text: "#caf0fe"
+    muted: "#94e3fe"
+    accent: "#669c35"
+    link: "#77bb41"
+    frameBg: rgba(255,255,255,0.8)

@@ -1,8 +1,20 @@
-import { copyFile, mkdir } from "node:fs/promises";
+import { copyFile, cp, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { readText, writeTextAtomic } from "../store/fs.js";
 
 const SEED_DEMO_RUNTIME_MODULE = join("runtime-modules", "demo-plain-list.mjs");
+const SEED_LIBRARY_FILES = "files";
+const SEED_LIBRARY_MEDIA = join("records", "media");
+
+async function copySeedDirIfPresent(seedDir: string, relative: string, dest: string): Promise<void> {
+  const src = join(seedDir, relative);
+  try {
+    await cp(src, dest, { recursive: true });
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return;
+    throw err;
+  }
+}
 
 const SHELL_HTML = `<!DOCTYPE html>
 <html lang="en-GB">
@@ -303,6 +315,8 @@ export async function writeSeedFiles(siteRoot: string, seedDir: string): Promise
   const datasetsDir = join(siteRoot, "datasets");
   await mkdir(datasetsDir, { recursive: true });
   await writeTextAtomic(join(datasetsDir, "demo-items.json"), DEMO_ITEMS_DATASET_JSON);
+  await copySeedDirIfPresent(seedDir, SEED_LIBRARY_FILES, join(siteRoot, "files"));
+  await copySeedDirIfPresent(seedDir, SEED_LIBRARY_MEDIA, join(records, "media"));
 }
 
 /** Write the starter site. Refuses when site.yaml exists. */

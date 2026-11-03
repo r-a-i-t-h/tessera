@@ -1,0 +1,4 @@
+id: common-footer
+zones:
+  footer:
+    html: <p>&copy; raith 2017-present</p>

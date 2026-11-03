@@ -1,0 +1,11 @@
+id: standard
+root:
+  type: region
+  children:
+    - type: region
+      tag: h1
+      children:
+        - type: zone
+          id: title
+    - type: zone
+      id: main

@@ -75,7 +75,7 @@ describe("theme kits", () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as { kits: { id: string }[] };
     const ids = body.kits.map((k) => k.id).sort();
-    expect(ids).toEqual(["millers-ark", "tessera-w3-alt", "tessera-w3-starter"]);
+    expect(ids).toEqual(["millers-ark", "raith", "tessera-w3-alt", "tessera-w3-starter"]);
   });
 
   it("apply leaves content unchanged and updates shell css", async () => {

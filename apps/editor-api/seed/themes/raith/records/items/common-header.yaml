@@ -1,0 +1,4 @@
+id: common-header
+zones:
+  header:
+    html: <a class="w3-bar-item w3-button w3-right tessera-menu-btn w3-hide-large" href="javascript:void(0)" onclick="w3_open()" aria-label="Open menu">Menu</a><div class="w3-bar-item tessera-brand"><a data-tessera-page="home" href="#">{{logo}}</a> Raith's website</div><span class="tessera-fonts" role="group" aria-label="Font"><button type="button" class="tessera-font-btn" onclick="body_switch.switch(&quot;font&quot;, 0)">A</button><button type="button" class="tessera-font-btn" onclick="body_switch.switch(&quot;font&quot;, 1)">B</button><button type="button" class="tessera-font-btn" onclick="body_switch.switch(&quot;font&quot;, 2)">C</button><button type="button" class="tessera-font-btn" onclick="body_switch.switch(&quot;font&quot;, 3)">D</button></span>

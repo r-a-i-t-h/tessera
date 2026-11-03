@@ -1,0 +1,47 @@
+id: master
+includes:
+  - common-footer
+  - common-header
+root:
+  type: region
+  children:
+    - type: region
+      children:
+        - type: region
+          children:
+            - type: zone
+              id: header
+          tag: header
+          className: w3-bar tessera-bar
+      className: w3-top tessera-top
+    - type: region
+      children:
+        - type: static
+          html: <a href="javascript:void(0)" onclick="w3_close()" class="w3-button w3-right w3-hide-large" aria-label="Close menu">Close</a>
+        - type: component
+          name: navCollapse
+          props:
+            scope: sidebar
+        - type: component
+          name: searchBox
+      tag: nav
+      id: mySidebar
+      className: w3-sidebar w3-bar-block w3-collapse tessera-sidebar
+    - type: static
+      html: <div class="w3-overlay w3-hide-large" onclick="w3_close()" id="myOverlay"></div>
+    - type: region
+      children:
+        - type: region
+          children:
+            - type: component
+              name: breadcrumbs
+            - type: page
+          className: tessera-content
+        - type: region
+          children:
+            - type: zone
+              id: footer
+          tag: footer
+          className: tessera-footer
+      tag: main
+      className: w3-main tessera-main
