@@ -4,7 +4,7 @@ Runtime modules are **client-only** JavaScript served from `./runtime-modules/` 
 
 ## Authoring
 
-1. Build an ES module with a default `mount` export (see `apps/editor-api/seed/runtime-modules/demo-plain-list.mjs`).
+1. Build an ES module with a default `mount` export (see `apps/editor-api/seed/runtime-modules/demo-plain-list.js`).
 2. Upload via **Runtime modules** in the editor (or copy into `data/runtime-modules/`).
 3. Create a **binding** — **Runtime module** (props only) or **Dataset list** with presentation **Runtime module**.
 4. Insert the binding in Compose, render preview, publish.
@@ -22,4 +22,4 @@ export default async function mount(root, ctx) {
 }
 ```
 
-Modules must be served from `./runtime-modules/<id>.js` or `.mjs` on the same origin as the page.
+Modules must be served from `./runtime-modules/<id>.js` or `.mjs` on the same origin as the page. Prefer **`.js`** on strict static hosts (for example GitHub Pages), which often serve `.mjs` as `application/octet-stream` and break `import()`. Hosts that map `.mjs` to JavaScript (current nginx defaults, Tessera preview) can use either extension; see [ARCHITECTURE.md](../ARCHITECTURE.md) § Static host.

@@ -84,8 +84,10 @@ describe("blank site", () => {
     expect(home).not.toContain("common-footer");
     const type = await readFile(join(root, "records", "types", "standard.yaml"), "utf8");
     expect(type).toContain("layoutId: standard");
-    const demoModule = await readFile(join(root, "runtime-modules", "demo-plain-list.mjs"), "utf8");
+    const demoModule = await readFile(join(root, "runtime-modules", "demo-plain-list.js"), "utf8");
     expect(demoModule).toContain("tessera-dataset-list");
+    const demoCatalog = await readFile(join(root, "records", "runtime-modules", "demo-plain-list.yaml"), "utf8");
+    expect(demoCatalog).toContain("ext: js");
   });
 
   it("refuses to replace records that already exist", async () => {

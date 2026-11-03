@@ -2,7 +2,7 @@ import { copyFile, cp, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { readText, writeTextAtomic } from "../store/fs.js";
 
-const SEED_DEMO_RUNTIME_MODULE = join("runtime-modules", "demo-plain-list.mjs");
+const SEED_DEMO_RUNTIME_MODULE = join("runtime-modules", "demo-plain-list.js");
 const SEED_LIBRARY_FILES = "files";
 const SEED_LIBRARY_MEDIA = join("records", "media");
 
@@ -167,7 +167,7 @@ props:
 `;
 
 const DEMO_RUNTIME_MODULE_YAML = `id: demo-plain-list
-ext: mjs
+ext: js
 title: Demo plain list
 `;
 
@@ -311,7 +311,7 @@ export async function writeSeedFiles(siteRoot: string, seedDir: string): Promise
   await writeTextAtomic(join(records, "runtime-modules", "demo-plain-list.yaml"), DEMO_RUNTIME_MODULE_YAML);
   const runtimeDir = join(siteRoot, "runtime-modules");
   await mkdir(runtimeDir, { recursive: true });
-  await copyFile(join(seedDir, SEED_DEMO_RUNTIME_MODULE), join(runtimeDir, "demo-plain-list.mjs"));
+  await copyFile(join(seedDir, SEED_DEMO_RUNTIME_MODULE), join(runtimeDir, "demo-plain-list.js"));
   const datasetsDir = join(siteRoot, "datasets");
   await mkdir(datasetsDir, { recursive: true });
   await writeTextAtomic(join(datasetsDir, "demo-items.json"), DEMO_ITEMS_DATASET_JSON);

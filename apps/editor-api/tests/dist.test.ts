@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { parseSiteDocument } from "@r-a-i-t-h/tessera-model";
+import { embedDatasetsInDocument } from "../src/site/dataset-embed.js";
 import { emitDist } from "../src/site/dist.js";
 import { SiteStore } from "../src/site/store.js";
 
@@ -227,6 +228,63 @@ body { margin: 0; }
     expect(html).not.toContain("dataset view: missing dataset");
     expect(html).toContain("tessera-dataset-cards");
     expect(html).toContain("Published row");
+  });
+
+  it("copies starter demo runtime module as .js into pages publish", async () => {
+    const fixture = await target("pages");
+    const doc = parseSiteDocument({
+      ...fixture.document,
+      pages: [
+        {
+          id: "home",
+          title: "Home",
+          zones: { main: [{ type: "text", html: "{{demo-list}}" }] },
+        },
+      ],
+      bindings: [
+        {
+          id: "demo-list",
+          component: "runtimeModule",
+          props: { dataset: "demo-items", module: "demo-plain-list" },
+        },
+      ],
+      runtimeModules: [
+        { id: "demo-plain-list", url: "./runtime-modules/demo-plain-list.js", title: "Demo plain list" },
+      ],
+    });
+    await mkdir(join(fixture.root, "runtime-modules"), { recursive: true });
+    await writeFile(
+      join(fixture.root, "runtime-modules", "demo-plain-list.js"),
+      "export default function mount() {}\n",
+    );
+    await mkdir(join(fixture.root, "datasets"), { recursive: true });
+    await writeFile(
+      join(fixture.root, "datasets", "demo-items.json"),
+      JSON.stringify({
+        id: "demo-items",
+        title: "Demo items",
+        view: { columns: [] },
+        schema: { fields: [{ key: "f1", id: "name", label: "Name", kind: "string" }] },
+        nextUid: 2,
+        records: [
+          {
+            uid: 1,
+            added: "2026-01-01T00:00:00.000Z",
+            modified: "2026-01-01T00:00:00.000Z",
+            name: "Row one",
+          },
+        ],
+      }),
+      "utf8",
+    );
+    const withDatasets = await embedDatasetsInDocument(fixture.root, doc);
+    await emitDist(withDatasets, fixture.target);
+    const html = await readFile(join(fixture.root, "publish", "index.html"), "utf8");
+    expect(html).toContain("./runtime-modules/demo-plain-list.js");
+    expect(html).not.toContain("demo-plain-list.mjs");
+    expect(await readFile(join(fixture.root, "publish", "runtime-modules", "demo-plain-list.js"), "utf8")).toContain(
+      "export default function mount",
+    );
   });
 
   it("installs publishTo outside the site and rejects a second publish", async () => {
