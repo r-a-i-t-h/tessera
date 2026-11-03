@@ -454,14 +454,19 @@ export function listThemeKits(): Promise<{ ok: true; kits: ThemeKitInfo[] }> {
   return request("/api/themes");
 }
 
-export function applyThemeKit(
+export async function applyThemeKit(
   id: string,
   options?: { importDemo?: boolean },
 ): Promise<RestoreResult & { kitId: string; importDemo: boolean; pages?: number }> {
-  return request(`/api/themes/${encodeURIComponent(id)}/apply`, {
-    method: "POST",
-    body: JSON.stringify(options ?? {}),
-  });
+  const result = await request<RestoreResult & { kitId: string; importDemo: boolean; pages?: number }>(
+    `/api/themes/${encodeURIComponent(id)}/apply`,
+    {
+      method: "POST",
+      body: JSON.stringify(options ?? {}),
+    },
+  );
+  invalidateEditorIndex();
+  return result;
 }
 
 export function resetThemeDemo(id: string): Promise<RestoreResult> {

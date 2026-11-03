@@ -101,6 +101,7 @@ backupRoutes.post("/backups/:name/restore", async (c) => {
   if (!backupPath(dirs.backupDir, name)) return apiError(c, 400, "Invalid backup name");
   try {
     const result = await restoreDataBackup(dirs.siteRoot, dirs.backupDir, name);
+    c.get("site")?.invalidateListing();
     await dirs.users.load(dirs.seedDir);
     return c.json({ ok: true, ...result });
   } catch (err) {
@@ -113,6 +114,7 @@ backupRoutes.post("/examples/:name/restore", async (c) => {
   if (isResponse(dirs)) return dirs;
   try {
     const result = await restoreExample(dirs.siteRoot, dirs.backupDir, c.req.param("name"));
+    c.get("site")?.invalidateListing();
     await dirs.users.load(dirs.seedDir);
     return c.json({ ok: true, ...result });
   } catch (err) {

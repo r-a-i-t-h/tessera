@@ -134,6 +134,11 @@ export class SiteStore {
     return String(this.listingGeneration);
   }
 
+  /** Drop cached `/api/records` listings after writes that bypass commitText (theme apply, restore, …). */
+  invalidateListing(): void {
+    this.bumpListingCache();
+  }
+
   private bumpListingCache(): void {
     this.listCache = null;
     this.listingGeneration += 1;

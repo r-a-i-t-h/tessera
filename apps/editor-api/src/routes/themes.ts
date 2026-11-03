@@ -96,6 +96,7 @@ themeRoutes.post("/themes/:id/apply", async (c) => {
 
   try {
     const result = await applyThemeKit(siteRoot, backupDir, seedDir, kitId, { importDemo });
+    site.invalidateListing();
     const doc = await site.flatten();
     if (!doc) return apiError(c, 400, "The site did not flatten after applying the theme.");
     const snapshot = await site.publishedSnapshot();
@@ -123,6 +124,7 @@ themeRoutes.post("/themes/:id/reset-demo", async (c) => {
 
   try {
     const result = await resetThemeDemo(siteRoot, backupDir, seedDir, kitId);
+    site.invalidateListing();
     const doc = await site.flatten();
     if (!doc) return apiError(c, 400, "The site did not flatten after removing demo content.");
     const snapshot = await site.publishedSnapshot();

@@ -1,5 +1,5 @@
 import { Buffer } from "node:buffer";
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, rm, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -127,6 +127,35 @@ zones:
     expect(await readFile(join(root, "records", "content", "home.yaml"), "utf8")).toBe(homeBefore);
     const demo = await readFile(join(root, "records", "content", "demo-home.yaml"), "utf8");
     expect(demo).toContain("Theme demo page");
+  });
+
+  it("apply refreshes the record listing cache when kit items are merged", async () => {
+    const footerPath = join(root, "records", "items", "common-footer.yaml");
+    await unlink(footerPath);
+    site.invalidateListing();
+    await site.list();
+
+    const prime = await app().request("/api/records", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(prime.status).toBe(200);
+    const before = (await prime.json()) as { records: { kind: string; id: string }[] };
+    expect(before.records.some((row) => row.kind === "items" && row.id === "common-footer")).toBe(false);
+
+    const apply = await app().request("/api/themes/tessera-w3-starter/apply", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    expect(apply.status).toBe(200);
+    expect(await readFile(footerPath, "utf8")).toContain("id: common-footer");
+
+    const listed = await app().request("/api/records", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(listed.status).toBe(200);
+    const after = (await listed.json()) as { records: { kind: string; id: string }[] };
+    expect(after.records.some((row) => row.kind === "items" && row.id === "common-footer")).toBe(true);
   });
 
   it("reset-demo removes kit demo paths only", async () => {
