@@ -527,6 +527,24 @@ describe("asset library", () => {
     await expect(readFile(join(root, "records", "folders", "scanned.yaml"))).rejects.toThrow();
   });
 
+  it("builds missing thumbnails when rescan finds no record or blob drift", async () => {
+    const { library } = await setup();
+    const png = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+      "base64",
+    );
+    const uploaded = await library.upload({
+      files: [{ filename: "porch.png", relativePath: "porch.png", bytes: png }],
+    });
+    const porch = uploaded.created[0]!;
+    await unlink(join(root, "files", `${porch.id}.thumb.webp`));
+
+    const result = await library.rescan();
+
+    expect(result).toMatchObject({ removed: [], added: [], skipped: [] });
+    expect(await readFile(join(root, "files", `${porch.id}.thumb.webp`))).toBeTruthy();
+  });
+
   it("reparents a folder and rejects cycles", async () => {
     const { library } = await setup();
     await library.createFolder("alpha", undefined, false);

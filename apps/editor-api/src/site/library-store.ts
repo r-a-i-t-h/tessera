@@ -101,6 +101,41 @@ export async function writeThumbnail(bytes: Uint8Array, dest: string): Promise<b
   }
 }
 
+/** Build `.thumb.webp` for image blobs on disk that do not have one yet (e.g. after seed copy). */
+export async function ensureMissingThumbnailsForFilesDir(filesDir: string): Promise<number> {
+  let built = 0;
+  let names: string[];
+  try {
+    const entries = await readdir(filesDir, { withFileTypes: true });
+    names = entries.filter((entry) => entry.isFile()).map((entry) => entry.name);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return 0;
+    throw err;
+  }
+  for (const name of names) {
+    if (name.endsWith(THUMB_SUFFIX)) continue;
+    const ext = normalizeExt(name);
+    if (kindForExt(ext) !== "image") continue;
+    const dot = name.lastIndexOf(".");
+    if (dot <= 0) continue;
+    const id = name.slice(0, dot);
+    const thumbPath = join(filesDir, `${id}${THUMB_SUFFIX}`);
+    try {
+      await stat(thumbPath);
+      continue;
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== "ENOENT") continue;
+    }
+    try {
+      const bytes = await readFile(join(filesDir, name));
+      if (await writeThumbnail(bytes, thumbPath)) built += 1;
+    } catch {
+      // unreadable blob
+    }
+  }
+  return built;
+}
+
 export class AssetLibrary {
   constructor(
     private readonly site: SiteStore,
@@ -588,6 +623,7 @@ export class AssetLibrary {
     }
 
     if (!missing.length && !imports.length) {
+      await this.ensureMissingThumbnails();
       await Promise.all(orphanThumbs.map((name) => unlink(join(this.filesDir, name)).catch(() => undefined)));
       return { removed: [], added: [], skipped };
     }
@@ -758,6 +794,29 @@ export class AssetLibrary {
     } catch {
       return undefined;
     }
+  }
+
+  /** Create missing thumbnails for library image assets whose blobs are on disk. */
+  async ensureMissingThumbnails(): Promise<number> {
+    const listing = await this.list();
+    let built = 0;
+    for (const asset of listing.assets) {
+      if (asset.kind !== "image") continue;
+      const thumbPath = join(this.filesDir, `${asset.id}${THUMB_SUFFIX}`);
+      try {
+        await stat(thumbPath);
+        continue;
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code !== "ENOENT") continue;
+      }
+      try {
+        const bytes = await readFile(join(this.filesDir, `${asset.id}.${asset.ext}`));
+        if (await writeThumbnail(bytes, thumbPath)) built += 1;
+      } catch {
+        // missing or unreadable blob
+      }
+    }
+    return built;
   }
 
   private async ensureScanned(): Promise<{ id: string; created: boolean }> {

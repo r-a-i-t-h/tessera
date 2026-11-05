@@ -88,6 +88,7 @@ describe("blank site", () => {
     expect(demoModule).toContain("tessera-dataset-list");
     const demoCatalog = await readFile(join(root, "records", "runtime-modules", "demo-plain-list.yaml"), "utf8");
     expect(demoCatalog).toContain("ext: js");
+    await expect(readFile(join(root, "files", "twig-logo-red.thumb.webp"))).resolves.toBeTruthy();
   });
 
   it("refuses to replace records that already exist", async () => {

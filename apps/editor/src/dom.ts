@@ -104,3 +104,13 @@ export function showFormError(form: HTMLFormElement, message: string): void {
   error.hidden = false;
   error.textContent = message;
 }
+
+/** When a library thumb is missing, load the original blob once (see `data-fallback` on `.editor-thumb`). */
+export function wireEditorThumbFallbacks(root: ParentNode): void {
+  for (const image of root.querySelectorAll<HTMLImageElement>(".editor-thumb[data-fallback]")) {
+    image.addEventListener("error", () => {
+      const fallback = image.dataset.fallback;
+      if (fallback && image.src !== new URL(fallback, window.location.origin).href) image.src = fallback;
+    });
+  }
+}

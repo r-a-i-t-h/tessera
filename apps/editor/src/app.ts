@@ -230,7 +230,7 @@ import { bindBackToTop } from "./back-to-top.js";
 import { guideHtml, scrollGuideSection } from "./guide.js";
 import { maintenanceHtml } from "./maintenance.js";
 import { bindCodeWrap, codeWrapClass, codeWrapToggle, isCodeWrapToggle } from "./code-wrap.js";
-import { escapeHtml, fieldId, formErrorPanel, noticePanel, showEditorToast, statusPanels } from "./dom.js";
+import { escapeHtml, fieldId, formErrorPanel, noticePanel, showEditorToast, statusPanels, wireEditorThumbFallbacks } from "./dom.js";
 import { pushStatusMessage } from "./status-stack.js";
 import { buildContentCreationRank } from "./creation-rank.js";
 import {
@@ -4562,12 +4562,7 @@ async function bindLibrary(root: HTMLElement, user: PublicUser, routeOpenId: str
       });
     });
   }
-  for (const image of root.querySelectorAll<HTMLImageElement>(".editor-thumb[data-fallback]")) {
-    image.addEventListener("error", () => {
-      const fallback = image.dataset.fallback;
-      if (fallback && image.src !== new URL(fallback, window.location.origin).href) image.src = fallback;
-    });
-  }
+  wireEditorThumbFallbacks(root);
 }
 
 function openAssetPreview(root: HTMLElement, id: string, name: string): void {

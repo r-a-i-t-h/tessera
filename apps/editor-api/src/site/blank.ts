@@ -1,6 +1,7 @@
 import { copyFile, cp, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { readText, writeTextAtomic } from "../store/fs.js";
+import { ensureMissingThumbnailsForFilesDir } from "./library-store.js";
 
 const SEED_DEMO_RUNTIME_MODULE = join("runtime-modules", "demo-plain-list.js");
 const SEED_LIBRARY_FILES = "files";
@@ -317,6 +318,7 @@ export async function writeSeedFiles(siteRoot: string, seedDir: string): Promise
   await writeTextAtomic(join(datasetsDir, "demo-items.json"), DEMO_ITEMS_DATASET_JSON);
   await copySeedDirIfPresent(seedDir, SEED_LIBRARY_FILES, join(siteRoot, "files"));
   await copySeedDirIfPresent(seedDir, SEED_LIBRARY_MEDIA, join(records, "media"));
+  await ensureMissingThumbnailsForFilesDir(join(siteRoot, "files"));
 }
 
 /** Write the starter site. Refuses when site.yaml exists. */

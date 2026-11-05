@@ -1,5 +1,6 @@
 import { uploadLibrary, getLibrary } from "./api.js";
 import { activateDialog, type DialogController } from "./dialog.js";
+import { wireEditorThumbFallbacks } from "./dom.js";
 import {
   readLibraryAssetListOrder,
   writeLibraryAssetListOrder,
@@ -36,6 +37,7 @@ export function openLibraryPicker(initial: PickerMode): Promise<PickedAsset | { 
               ${pickerUpload(notice)}
             </div>
           </div></div>`;
+          wireEditorThumbFallbacks(host);
         };
         const fail = (message: string) => {
           if (done) return;

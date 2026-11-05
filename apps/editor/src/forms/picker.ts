@@ -32,7 +32,7 @@ const PICKER_ACCEPT = ".jpg,.jpeg,.png,.gif,.webp,.svg,.pdf";
 
 function pickerAssetThumb(asset: AssetRow): string {
   if (asset.kind === "image") {
-    return `<img class="editor-thumb" src="/api/library/assets/${encodeURIComponent(asset.id)}/thumb" alt="" />`;
+    return `<img class="editor-thumb" src="/api/library/assets/${encodeURIComponent(asset.id)}/thumb" alt="" data-fallback="/api/library/assets/${encodeURIComponent(asset.id)}/file" />`;
   }
   return `<span class="editor-thumb editor-thumb-file">PDF</span>`;
 }
