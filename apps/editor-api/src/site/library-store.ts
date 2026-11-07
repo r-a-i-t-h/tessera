@@ -789,8 +789,16 @@ export class AssetLibrary {
     const listing = await this.list();
     const asset = listing.assets.find((item) => item.id === id);
     if (!asset || asset.kind !== "image") return undefined;
+    const thumbPath = join(this.filesDir, `${id}${THUMB_SUFFIX}`);
     try {
-      return await readFile(join(this.filesDir, `${id}${THUMB_SUFFIX}`));
+      return await readFile(thumbPath);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== "ENOENT") return undefined;
+    }
+    try {
+      const bytes = await readFile(join(this.filesDir, `${asset.id}.${asset.ext}`));
+      if (!(await writeThumbnail(bytes, thumbPath))) return undefined;
+      return await readFile(thumbPath);
     } catch {
       return undefined;
     }

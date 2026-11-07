@@ -8,6 +8,7 @@ import {
   libraryBrowseIdAfterDelete,
   libraryFolderHash,
   libraryNormalizeBrowseId,
+  libraryParentBrowseId,
   libraryRouteHash,
   parentFolderOptions,
   placement,
@@ -63,10 +64,17 @@ describe("library browser", () => {
     expect(html).toContain("Add files");
     expect(html).toContain('value="choose" checked');
     expect(html).toContain('value="hall" selected');
-    expect(html).toContain("New folder");
+    expect(html).toContain("editor-toolbar");
+    expect(html).toContain("editor-actions");
+    expect(html).toContain('data-action="new-folder"');
+    expect(html).toContain(">New folder<");
+    expect(html).not.toContain("New folder here");
     expect(html).toContain('data-action="rescan"');
     expect(html).toContain(">Rescan<");
+    expect(html).toContain(">Up<");
+    expect(html).toContain(`href="${libraryRouteHash("uploads")}"`);
     expect(html).toContain("/api/library/assets/porch/thumb");
+    expect(html).toContain('loading="lazy"');
     expect(html).toContain("porch.svg");
     expect(html).toContain('data-edit-asset="porch"');
     expect(html).not.toContain("data-delete-asset");
@@ -115,6 +123,13 @@ describe("library browser", () => {
     expect(sizedList).toContain("Image · 1.5 KB");
     const sizedBytesDetail = assetDetail({ ...listing.assets[0]!, bytes: 512 }, listing.folders);
     expect(sizedBytesDetail).toContain("<strong>Size</strong> 512 B");
+  });
+
+  it("hides Up at library root and maps parent browse ids", () => {
+    const rootHtml = renderLibrary(listing, null);
+    expect(rootHtml).not.toContain(">Up<");
+    expect(libraryParentBrowseId(listing.folders, "uploads/hall")).toBe("uploads");
+    expect(libraryParentBrowseId(listing.folders, "uploads")).toBe(null);
   });
 
   it("maps browse ids and hash routes", () => {

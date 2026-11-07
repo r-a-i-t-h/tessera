@@ -4,7 +4,7 @@ import {
   sortLibraryAssets,
   type LibraryAssetListOrder,
 } from "../library-list-order.js";
-import type { AssetRow, FolderRow, LibraryListing } from "./library.js";
+import { libraryAssetThumb, type AssetRow, type FolderRow, type LibraryListing } from "./library.js";
 
 export type PickerMode = "image" | "document" | "folder";
 
@@ -30,20 +30,13 @@ export function documentLink(asset: PickedAsset): string {
 
 const PICKER_ACCEPT = ".jpg,.jpeg,.png,.gif,.webp,.svg,.pdf";
 
-function pickerAssetThumb(asset: AssetRow): string {
-  if (asset.kind === "image") {
-    return `<img class="editor-thumb" src="/api/library/assets/${encodeURIComponent(asset.id)}/thumb" alt="" data-fallback="/api/library/assets/${encodeURIComponent(asset.id)}/file" />`;
-  }
-  return `<span class="editor-thumb editor-thumb-file">PDF</span>`;
-}
-
 function pickerAssetList(assets: AssetRow[]): string {
   if (!assets.length) return "";
   const rows = assets
     .map(
       (asset) => `<li class="editor-picker-file-row">
         <button type="button" class="editor-picker-asset" data-pick-asset="${escapeHtml(asset.id)}">
-          ${pickerAssetThumb(asset)}
+          ${libraryAssetThumb(asset)}
           <span class="editor-picker-asset-name">${escapeHtml(asset.name)}</span>
         </button>
       </li>`,

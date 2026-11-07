@@ -149,6 +149,22 @@ export function descendantFolderIds(folders: FolderRow[], rootId: string): Set<s
   return out;
 }
 
+/** Parent browse path when `openId` points at a folder; `null` at library root or unknown id. */
+export function libraryParentBrowseId(folders: FolderRow[], openId: LibraryBrowseId): LibraryBrowseId {
+  const folderId = libraryOpenFolderId(openId);
+  if (!folderId) return null;
+  const folder = folders.find((item) => item.id === folderId);
+  if (!folder?.parentId) return null;
+  return libraryBrowseId(folders, folder.parentId);
+}
+
+export function libraryAssetThumb(asset: AssetRow): string {
+  if (asset.kind === "image") {
+    return `<img class="editor-thumb" src="/api/library/assets/${encodeURIComponent(asset.id)}/thumb" alt="" loading="lazy" decoding="async" data-fallback="/api/library/assets/${encodeURIComponent(asset.id)}/file" />`;
+  }
+  return `<span class="editor-thumb editor-thumb-file">PDF</span>`;
+}
+
 export function parentFolderLabel(folders: FolderRow[], folderId: string | null): string {
   if (!folderId) return "Library root";
   return breadcrumb(folders, folderId)
@@ -193,8 +209,16 @@ export function renderLibrary(
   ].join(" / ");
   const folders = childFolders(listing.folders, openFolderId);
   const assets = childAssets(listing.assets, openFolderId, assetOrder);
-  const empty = !folders.length && !assets.length;
+  const parentBrowseId = libraryParentBrowseId(listing.folders, openId);
+  const upRow =
+    openFolderId !== null
+      ? `<li class="editor-library-row">
+        <a class="w3-button w3-white" href="${libraryRouteHash(parentBrowseId)}">Up</a>
+      </li>`
+      : "";
+  const empty = !upRow && !folders.length && !assets.length;
   const rows = [
+    upRow,
     ...folders.map(
       (folder) => `<li class="editor-library-row">
         <a class="editor-library-name" href="${libraryFolderHash(listing.folders, folder.id)}">${escapeHtml(folder.id)}</a>
@@ -202,13 +226,9 @@ export function renderLibrary(
       </li>`,
     ),
     ...assets.map((asset) => {
-      const thumb =
-        asset.kind === "image"
-          ? `<img class="editor-thumb" src="/api/library/assets/${encodeURIComponent(asset.id)}/thumb" alt="" data-fallback="/api/library/assets/${encodeURIComponent(asset.id)}/file" />`
-          : `<span class="editor-thumb editor-thumb-file">PDF</span>`;
       return `<li class="editor-library-file-row">
         <button type="button" class="editor-library-row" data-edit-asset="${escapeHtml(asset.id)}">
-          ${thumb}
+          ${libraryAssetThumb(asset)}
           <span class="editor-library-name">${escapeHtml(assetLabel(asset))}</span>
           <span class="w3-text-grey w3-small">${assetKindLabel(asset)}</span>
         </button>
@@ -219,16 +239,18 @@ export function renderLibrary(
   const browse = empty
     ? `<p class="w3-text-grey">This folder is empty.</p>`
     : `<ul class="w3-ul editor-library">${rows}</ul>`;
-  return `<h1 class="w3-large">Library</h1>
+  return `<div class="editor-toolbar">
+      <div class="editor-toolbar-row">
+        <h1 class="w3-large editor-entity-opener">Library</h1>
+        <p class="editor-actions">
+          <button type="button" class="w3-button w3-white" data-action="new-folder">New folder</button>
+          <button type="button" class="w3-button w3-white" data-action="rescan">Rescan</button>
+        </p>
+        ${libraryAssetListOrderSelect(assetOrder)}
+      </div>
+    </div>
     ${noticePanel(notice)}
     <p class="editor-crumbs">${crumbs}</p>
-    <div class="editor-library-toolbar">
-      <p>
-        <button type="button" class="w3-button w3-white" data-action="new-folder">New folder here</button>
-        <button type="button" class="w3-button w3-white" data-action="rescan">Rescan</button>
-      </p>
-      ${libraryAssetListOrderSelect(assetOrder)}
-    </div>
     <div class="editor-library-split">
       <section class="editor-library-browse" aria-label="Folders and files">
         ${browse}
