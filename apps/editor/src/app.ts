@@ -231,6 +231,7 @@ import { bindBackToTop } from "./back-to-top.js";
 import { guideHtml, scrollGuideSection } from "./guide.js";
 import { maintenanceHtml } from "./maintenance.js";
 import { bindCodeWrap, codeWrapClass, codeWrapToggle, isCodeWrapToggle } from "./code-wrap.js";
+import { bindDarkMode, darkModeAppearanceBlock } from "./editor-color-mode.js";
 import { escapeHtml, fieldId, formErrorPanel, noticePanel, showEditorToast, statusPanels, wireEditorThumbFallbacks } from "./dom.js";
 import { pushStatusMessage } from "./status-stack.js";
 import { buildContentCreationRank } from "./creation-rank.js";
@@ -457,6 +458,7 @@ let historyRestore = false;
 let undoKeys: AbortController | undefined;
 
 function bindChrome(root: HTMLElement): void {
+  bindDarkMode(root);
   bindBackToTop(root);
   root.querySelector("[data-action=logout]")?.addEventListener("click", async () => {
     await logout().catch(() => undefined);
@@ -690,6 +692,7 @@ function accountHtml(user: PublicUser, notice: string, error: string): string {
       <button type="button" class="w3-button w3-light-grey" data-action="logout">Sign out</button>
     </div>
     ${statusPanels(notice, error)}
+    ${darkModeAppearanceBlock()}
     <form id="username-form" class="w3-card w3-white w3-padding-large editor-card">
       <h2 class="w3-medium">Change username</h2>
       <p>
@@ -1003,6 +1006,7 @@ function passwordChangeError(currentPassword: string, newPassword: string, confi
 function bindLogin(root: HTMLElement, error?: string, username = ""): void {
   lastAnnouncedHash = "";
   root.innerHTML = loginView(error, username);
+  bindDarkMode(root);
   bindBackToTop(root);
   const form = root.querySelector<HTMLFormElement>("#login-form");
   form?.addEventListener("submit", async (event) => {

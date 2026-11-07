@@ -4,6 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Tessera editor</title>
+    <script>
+      (function () {
+        try {
+          if (localStorage.getItem("tessera.editor.darkMode") === "1") {
+            document.documentElement.classList.add("editor-dark");
+            document.documentElement.style.colorScheme = "dark";
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body class="w3-light-grey">
     <div id="app"></div>

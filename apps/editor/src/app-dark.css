@@ -1,0 +1,403 @@
+/* Editor shell dark mode — chrome only; compose canvas and style specimen stay light. */
+
+html.editor-dark {
+  --editor-nav-pane: #dce8e6;
+  --editor-tab-track: #35383c;
+  --editor-tab-pane: #2b2d30;
+  --editor-surface: #2b2d30;
+  --editor-surface-raised: #32353a;
+  --editor-border: #45484e;
+  --editor-border-subtle: #3a3d42;
+  --editor-text: #e8eaed;
+  --editor-text-muted: #9aa0a6;
+  --editor-code-bg: #1e1f22;
+  --editor-code-border: #45484e;
+}
+
+html.editor-dark body.editor-body-dark {
+  background-color: #1e1f22 !important;
+  color: var(--editor-text);
+}
+
+html.editor-dark .w3-white,
+html.editor-dark .w3-card.w3-white {
+  background-color: var(--editor-surface) !important;
+  color: var(--editor-text);
+}
+
+html.editor-dark .w3-light-grey {
+  background-color: #3c4043 !important;
+  color: var(--editor-text) !important;
+}
+
+html.editor-dark .w3-text-grey {
+  color: var(--editor-text-muted) !important;
+}
+
+html.editor-dark .w3-input,
+html.editor-dark .w3-select,
+html.editor-dark textarea.w3-input {
+  background-color: var(--editor-code-bg);
+  color: var(--editor-text);
+  border-color: var(--editor-border);
+}
+
+html.editor-dark .w3-border,
+html.editor-dark .w3-input.w3-border {
+  border-color: var(--editor-border) !important;
+}
+
+html.editor-dark .w3-ul > li {
+  border-bottom-color: var(--editor-border-subtle);
+}
+
+html.editor-dark .w3-button.w3-white {
+  background-color: var(--editor-surface-raised) !important;
+  color: var(--editor-text) !important;
+  border-color: var(--editor-border);
+}
+
+html.editor-dark .w3-button.w3-white:hover {
+  background-color: #3f4348 !important;
+}
+
+html.editor-dark .w3-pale-red {
+  background-color: #3d2a2a !important;
+  color: #f5c4c4 !important;
+}
+
+html.editor-dark .editor-sidebar .editor-nav-current,
+html.editor-dark .editor-sidebar .editor-nav-child-current,
+html.editor-dark .editor-sidebar .editor-nav-current:hover,
+html.editor-dark .editor-sidebar .editor-nav-child-current:hover {
+  color: #1a1a1a !important;
+}
+
+html.editor-dark .editor-toolbar {
+  background: var(--editor-surface);
+  border-color: var(--editor-border);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+html.editor-dark .editor-entity-opener {
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
+html.editor-dark .editor-entity-opener--open,
+html.editor-dark .editor-entity-opener:focus-within {
+  border-bottom-color: rgba(255, 255, 255, 0.28);
+}
+
+html.editor-dark .editor-entity-opener-toggle {
+  color: var(--editor-text-muted);
+}
+
+html.editor-dark .editor-entity-opener-panel,
+html.editor-dark .editor-command-palette {
+  background: var(--editor-surface);
+  border-color: var(--editor-border);
+  color: var(--editor-text);
+}
+
+html.editor-dark .editor-picker-category {
+  color: var(--editor-text-muted);
+}
+
+html.editor-dark .editor-back-to-top {
+  background: var(--editor-surface);
+  border-color: var(--editor-border);
+  color: var(--editor-text);
+}
+
+html.editor-dark .editor-back-to-top:hover {
+  background: var(--editor-surface-raised);
+}
+
+html.editor-dark .editor-login-version {
+  color: var(--editor-text-muted);
+}
+
+html.editor-dark textarea.w3-input.editor-yaml,
+html.editor-dark textarea.w3-input.editor-raw,
+html.editor-dark textarea.w3-input[data-kind="yaml"],
+html.editor-dark textarea.w3-input[data-kind="json"],
+html.editor-dark textarea.w3-input.editor-html {
+  background: var(--editor-code-bg);
+  border-color: var(--editor-code-border);
+  color: var(--editor-text);
+}
+
+html.editor-dark .maximized-code-editor {
+  background: var(--editor-code-bg);
+  border-color: var(--editor-code-border);
+}
+
+html.editor-dark .editor-raw-html-tools {
+  background: var(--editor-surface-raised);
+  border-color: var(--editor-border-subtle);
+}
+
+html.editor-dark .style-sheet-overlay-host,
+html.editor-dark .runtime-module-overlay-host {
+  background: #1e1f22;
+  color: var(--editor-text);
+}
+
+html.editor-dark .editor-form-scope,
+html.editor-dark .editor-new-page {
+  background: var(--editor-surface);
+  border-color: var(--editor-border);
+}
+
+html.editor-dark .editor-fieldset,
+html.editor-dark .style-group {
+  border-color: var(--editor-border);
+}
+
+html.editor-dark .editor-off-layout,
+html.editor-dark .editor-add-frame-zone {
+  border-top-color: var(--editor-border);
+}
+
+html.editor-dark .editor-nav-head {
+  color: var(--editor-text-muted);
+  border-bottom-color: var(--editor-border);
+}
+
+html.editor-dark .editor-nav-item,
+html.editor-dark .editor-type-item {
+  border-bottom-color: var(--editor-border-subtle);
+}
+
+html.editor-dark .editor-nav-icon,
+html.editor-dark .editor-section-icon,
+html.editor-dark .editor-type-icon {
+  color: #c4c7cc;
+}
+
+html.editor-dark .editor-nav-icon:hover,
+html.editor-dark .editor-section-icon:hover,
+html.editor-dark .editor-type-icon:hover {
+  color: var(--editor-text);
+  background: #3f4348;
+}
+
+html.editor-dark .editor-handle {
+  background: var(--editor-surface-raised);
+  border-color: var(--editor-border);
+  color: var(--editor-text);
+}
+
+html.editor-dark .editor-mark {
+  color: var(--editor-text);
+}
+
+html.editor-dark .editor-mark:hover {
+  background: #3f4348;
+  color: #fff;
+}
+
+html.editor-dark .editor-tab {
+  color: #bdc1c6;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+html.editor-dark .editor-tab:hover:not(.is-active) {
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--editor-text);
+}
+
+html.editor-dark .editor-tab.is-active {
+  color: #80cbc4;
+}
+
+html.editor-dark .editor-tab-body {
+  border-color: var(--editor-border);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+html.editor-dark .editor-guide-toc,
+html.editor-dark .editor-guide pre {
+  background: var(--editor-code-bg);
+  border-color: var(--editor-code-border);
+  color: var(--editor-text);
+}
+
+html.editor-dark .editor-maintenance-nav {
+  border-right-color: var(--editor-border);
+}
+
+html.editor-dark .editor-maintenance-nav-link:hover {
+  background: #3f4348;
+}
+
+html.editor-dark .editor-maintenance-nav-current {
+  background: #454a50;
+}
+
+html.editor-dark button.editor-library-row:hover,
+html.editor-dark .editor-library-row-active,
+html.editor-dark button.editor-picker-asset:hover {
+  background: rgba(0, 150, 136, 0.18);
+}
+
+html.editor-dark .editor-dialog-close:hover {
+  background: #3f4348;
+}
+
+html.editor-dark .editor-pick-cell {
+  background: var(--editor-surface);
+  border-color: var(--editor-border);
+}
+
+html.editor-dark .editor-thumb {
+  background: #3f4348;
+}
+
+html.editor-dark .arrange-node {
+  background: var(--editor-surface);
+  border-color: var(--editor-border);
+}
+
+html.editor-dark .arrange-bar {
+  background: var(--editor-surface-raised);
+}
+
+html.editor-dark .arrange-body {
+  color: var(--editor-text-muted);
+}
+
+html.editor-dark .arrange-node[data-kind="page"] .arrange-body {
+  background: repeating-linear-gradient(-45deg, #32353a, #32353a 6px, #2b2d30 6px, #2b2d30 12px);
+}
+
+html.editor-dark .arrange-well {
+  color: var(--editor-text-muted);
+}
+
+html.editor-dark .editor-nav-build-scroll {
+  background: var(--editor-surface);
+  border-color: var(--editor-border);
+}
+
+html.editor-dark .editor-nav-build-palette .nav-build-palette-item {
+  background: #3f4348 !important;
+}
+
+html.editor-dark .editor-nav-build-palette .nav-build-palette-item:hover {
+  background: #4a4f55 !important;
+}
+
+html.editor-dark .nav-build-bar {
+  background: #3f4348;
+}
+
+html.editor-dark .nav-build-well {
+  background: #35383c;
+  color: var(--editor-text-muted);
+}
+
+html.editor-dark .nav-build-heading-input:focus,
+html.editor-dark .nav-build-heading-input:hover {
+  background: var(--editor-surface);
+  border-color: var(--editor-border);
+}
+
+html.editor-dark .editor-page-zone-preview {
+  background: var(--editor-code-bg);
+  border-color: var(--editor-border);
+}
+
+html.editor-dark .editor-dataset-columns,
+html.editor-dark .editor-dataset-settings {
+  background: var(--editor-surface-raised);
+  border-color: var(--editor-border);
+}
+
+html.editor-dark .editor-dataset-settings-actions {
+  border-top-color: var(--editor-border-subtle);
+}
+
+html.editor-dark .editor-dataset-column-choice {
+  background: var(--editor-surface);
+  border-color: var(--editor-border-subtle);
+}
+
+html.editor-dark .editor-dataset-column-choice:has(input:checked) {
+  background: rgba(0, 150, 136, 0.15);
+  border-color: #4a7c76;
+}
+
+html.editor-dark .editor-library-add[open] > summary {
+  border-bottom-color: var(--editor-border-subtle);
+}
+
+html.editor-dark .editor-cell,
+html.editor-dark .editor-html-preview {
+  outline-color: var(--editor-border);
+}
+
+html.editor-dark .editor-section-list-preview {
+  color: var(--editor-text-muted);
+  outline-color: var(--editor-border);
+}
+
+html.editor-dark .editor-section-bar {
+  color: var(--editor-text-muted);
+}
+
+html.editor-dark .editor-irg-panel {
+  border-bottom-color: var(--editor-border-subtle);
+}
+
+html.editor-dark .editor-page-target-external {
+  border-bottom-color: var(--editor-border-subtle);
+}
+
+html.editor-dark .editor-prop .editor-inline + .editor-inline {
+  border-left-color: var(--editor-border);
+}
+
+html.editor-dark textarea.w3-input.editor-yaml::-webkit-scrollbar-thumb,
+html.editor-dark textarea.w3-input.editor-raw::-webkit-scrollbar-thumb,
+html.editor-dark textarea.w3-input[data-kind="yaml"]::-webkit-scrollbar-thumb,
+html.editor-dark textarea.w3-input[data-kind="json"]::-webkit-scrollbar-thumb,
+html.editor-dark .editor-scroll::-webkit-scrollbar-thumb {
+  background: #5f6368;
+  border-color: var(--editor-code-bg);
+}
+
+html.editor-dark textarea.w3-input.editor-yaml::-webkit-scrollbar-track,
+html.editor-dark textarea.w3-input.editor-raw::-webkit-scrollbar-track,
+html.editor-dark textarea.w3-input[data-kind="yaml"]::-webkit-scrollbar-track,
+html.editor-dark textarea.w3-input[data-kind="json"]::-webkit-scrollbar-track,
+html.editor-dark .editor-scroll::-webkit-scrollbar-track {
+  background: #2b2d30;
+}
+
+/* WYSIWYG enclaves: site-like previews stay light */
+html.editor-dark .editor-canvas,
+html.editor-dark .editor-canvas .editor-section,
+html.editor-dark .editor-compose .editor-canvas,
+html.editor-dark .editor-compose .editor-section {
+  color-scheme: light;
+  background: #fff;
+  color: #111;
+}
+
+html.editor-dark .editor-drag-ghost {
+  color-scheme: light;
+  background: #fff;
+  color: #333;
+  border-color: #ccc;
+}
+
+html.editor-dark .style-specimen {
+  color-scheme: light;
+  background: var(--tessera-page, #fff);
+  color: var(--tessera-text, #111);
+}
+
+html.editor-dark .style-specimen .w3-ul > li {
+  border-bottom-color: #ddd;
+}

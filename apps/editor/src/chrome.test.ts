@@ -243,4 +243,9 @@ describe("editor chrome", () => {
     expect(loginView("<Nope>", "a&b")).toContain("&lt;Nope&gt;");
     expect(loginView("<Nope>", "a&b")).toContain('value="a&amp;b"');
   });
+
+  it("offers dark mode on the login screen", () => {
+    expect(loginView()).toContain("data-editor-dark-mode");
+    expect(loginView()).toContain("Appearance");
+  });
 });

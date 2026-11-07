@@ -3,7 +3,11 @@ import "@r-a-i-t-h/tessera-skin-w3/w3-theme-teal.css";
 import "@r-a-i-t-h/tessera-skin-w3/tessera.css";
 import "@r-a-i-t-h/tessera-skin-w3/microapps.css";
 import "./app.css";
+import "./app-dark.css";
+import { applyDarkMode } from "./editor-color-mode.js";
 import { mount } from "./app";
+
+applyDarkMode();
 
 const root = document.getElementById("app");
 if (!root) throw new Error("Missing #app");

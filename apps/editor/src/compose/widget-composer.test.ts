@@ -463,7 +463,7 @@ describe("section actions", () => {
     const groups = [...form.querySelectorAll(".editor-section-actions")];
     expect(groups).toHaveLength(2);
     const labels = [...groups[0]!.querySelectorAll("button")].map((button) => button.getAttribute("aria-label"));
-    expect(labels).toEqual(["Up", "Down", "Remove"]);
+    expect(labels).toEqual(["Up", "Down", "Hide", "Remove"]);
     expect(groups[0]!.querySelector<HTMLButtonElement>("[data-move=up]")?.disabled).toBe(true);
     expect(groups[1]!.querySelector<HTMLButtonElement>("[data-move=down]")?.disabled).toBe(true);
     const bar = groups[0]!.parentElement;

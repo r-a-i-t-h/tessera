@@ -9,6 +9,7 @@ import {
   syntaxHighlighting,
 } from "@codemirror/language";
 import { EditorState } from "@codemirror/state";
+import { oneDark } from "@codemirror/theme-one-dark";
 import {
   EditorView,
   highlightActiveLine,
@@ -17,6 +18,7 @@ import {
   lineNumbers,
 } from "@codemirror/view";
 import { readCodeWrap } from "./code-wrap.js";
+import { readDarkMode } from "./editor-color-mode.js";
 
 export type MaximizedCodeLanguage = "css" | "javascript";
 
@@ -55,6 +57,11 @@ export function mountMaximizedCodeEditor(
       ? [css(), autocompletion({ override: [cssCompletionSource], activateOnTyping: true })]
       : [javascript(), autocompletion({ activateOnTyping: true })];
 
+  const dark = readDarkMode();
+  const chromeTheme = dark
+    ? [oneDark]
+    : [syntaxHighlighting(defaultHighlightStyle, { fallback: true })];
+
   const state = EditorState.create({
     doc: textarea.value,
     extensions: [
@@ -63,7 +70,7 @@ export function mountMaximizedCodeEditor(
       highlightActiveLine(),
       bracketMatching(),
       indentOnInput(),
-      syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+      ...chromeTheme,
       keymap.of([...defaultKeymap, indentWithTab]),
       ...(readCodeWrap() ? [EditorView.lineWrapping] : []),
       EditorView.updateListener.of((update) => {
