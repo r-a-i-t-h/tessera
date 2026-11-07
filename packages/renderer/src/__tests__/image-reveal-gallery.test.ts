@@ -47,6 +47,14 @@ describe("gridPanelRects", () => {
     expect(rects[0]?.width).toBe(350);
     expect(rects[5]?.top).toBe(200);
   });
+
+  it("stacks one panel per row when ppr=1", () => {
+    const rects = gridPanelRects(3, 700, 300, 1);
+    expect(rects).toHaveLength(3);
+    expect(rects[0]).toEqual({ left: 0, top: 0, width: 700, height: 100 });
+    expect(rects[1]).toEqual({ left: 0, top: 100, width: 700, height: 100 });
+    expect(rects[2]).toEqual({ left: 0, top: 200, width: 700, height: 100 });
+  });
 });
 
 describe("resolveItemRects", () => {

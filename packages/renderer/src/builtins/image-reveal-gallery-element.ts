@@ -30,10 +30,10 @@ export function splitSpan(total: number, parts: number): number[] {
 
 export function clampPanelsPerRow(value: number, fallback = 3): number {
   if (!Number.isFinite(value)) return fallback;
-  return Math.max(2, Math.min(6, Math.round(value)));
+  return Math.max(1, Math.min(6, Math.round(value)));
 }
 
-/** Grid slots for `count` panels; `panelsPerRow` sets columns per row (2–6). */
+/** Grid slots for `count` panels; `panelsPerRow` sets columns per row (1–6). */
 export function gridPanelRects(
   count: number,
   stageW: number,
@@ -201,6 +201,8 @@ export class TesseraImageRevealGallery extends WCBase {
   #resizeObserver: ResizeObserver | null = null;
   #hoverCapable = fineHover();
   #moves = new WeakMap<HTMLElement, PanelMove>();
+  #navTimers: number[] = [];
+  #boundPageShow: ((e: PageTransitionEvent) => void) | null = null;
 
   static a = {
     items(this: TesseraImageRevealGallery, v: string | null) {
@@ -258,13 +260,32 @@ export class TesseraImageRevealGallery extends WCBase {
       this.#resizeObserver.observe(this.wrapEl);
     }
     this.#syncScale();
+    this.#boundPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) this.#rebuild();
+    };
+    window.addEventListener("pageshow", this.#boundPageShow);
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
+    if (this.#boundPageShow) {
+      window.removeEventListener("pageshow", this.#boundPageShow);
+      this.#boundPageShow = null;
+    }
     this.#resizeObserver?.disconnect();
     this.#resizeObserver = null;
     for (const panel of this.#panels) this.#stopMove(panel.el);
+    this.#clearPendingNavigation();
+  }
+
+  #clearPendingNavigation(): void {
+    for (const id of this.#navTimers) window.clearTimeout(id);
+    this.#navTimers = [];
+    this.#navigating = false;
+  }
+
+  #scheduleNavigate(fn: () => void, ms: number): void {
+    this.#navTimers.push(window.setTimeout(fn, ms));
   }
 
   #readAttrs(): void {
@@ -281,7 +302,7 @@ export class TesseraImageRevealGallery extends WCBase {
   }
 
   #rebuild(): void {
-    this.#navigating = false;
+    this.#clearPendingNavigation();
     this.#activeIndex = -1;
     this.stageEl.replaceChildren();
     this.#panels = [];
@@ -446,7 +467,6 @@ export class TesseraImageRevealGallery extends WCBase {
     for (let i = 0; i < this.#panels.length; i += 1) {
       const panel = this.#panels[i]!;
       panel.el.classList.toggle("is-hovered", i === index);
-      panel.el.style.zIndex = i === index ? "999" : "991";
       if (i === index) {
         void this.#applyRect(panel.el, this.#expandedRect(panel.orig), true);
       } else {
@@ -459,9 +479,9 @@ export class TesseraImageRevealGallery extends WCBase {
     if (!this.#hoverCapable || this.#navigating) return;
     if (this.#activeIndex !== index) return;
     this.#activeIndex = -1;
+    for (const row of this.#panels) row.el.classList.remove("is-hovered");
     const panel = this.#panels[index];
     if (!panel) return;
-    panel.el.classList.remove("is-hovered");
     void this.#applyRect(panel.el, panel.orig, true);
   }
 
@@ -482,7 +502,6 @@ export class TesseraImageRevealGallery extends WCBase {
       panel.el.onmouseleave = null;
       if (i === index) {
         panel.el.classList.add("is-revealed");
-        panel.el.style.zIndex = "999";
         motion = this.#applyRect(panel.el, { left: 0, top: 0, width: this.#designW, height: this.#designH }, true);
       } else {
         panel.el.style.opacity = "0";
@@ -497,15 +516,17 @@ export class TesseraImageRevealGallery extends WCBase {
     };
 
     if (prefersReducedMotion()) {
-      window.setTimeout(navigate, delay);
+      this.#scheduleNavigate(navigate, delay);
       return;
     }
 
     const fallback = window.setTimeout(navigate, delay + PANEL_MOVE_MS + 800);
+    this.#navTimers.push(fallback);
     void motion.then(() => {
       if (!this.#navigating) return;
       window.clearTimeout(fallback);
-      window.setTimeout(navigate, delay);
+      this.#navTimers = this.#navTimers.filter((id) => id !== fallback);
+      this.#scheduleNavigate(navigate, delay);
     });
   }
 }

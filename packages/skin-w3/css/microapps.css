@@ -323,10 +323,12 @@ tessera-image-reveal-gallery .tessera-irg-stage {
   top: 0;
   left: 0;
   overflow: visible;
+  isolation: isolate;
 }
 
 tessera-image-reveal-gallery .tessera-irg-panel {
   position: absolute;
+  z-index: 1;
   display: block;
   box-sizing: border-box;
   overflow: hidden;
@@ -365,6 +367,11 @@ tessera-image-reveal-gallery .tessera-irg-panel-title[data-lines="2"] {
 tessera-image-reveal-gallery .tessera-irg-panel-title[data-lines="3"],
 tessera-image-reveal-gallery .tessera-irg-panel-title[data-lines="4"] {
   line-height: 1.15;
+}
+
+tessera-image-reveal-gallery .tessera-irg-panel.is-hovered,
+tessera-image-reveal-gallery .tessera-irg-panel.is-revealed {
+  z-index: 2;
 }
 
 tessera-image-reveal-gallery .tessera-irg-panel:focus-visible {

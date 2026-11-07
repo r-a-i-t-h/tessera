@@ -679,7 +679,7 @@ function galleryPhrase(draft: GalleryDraft): string {
 
 function imageRevealStageFields(draft: ImageRevealDraft, focus = false): string {
   const ppr = clampPanelsPerRowText(draft.panelsPerRow);
-  const pprOptions = [2, 3, 4, 5, 6]
+  const pprOptions = [1, 2, 3, 4, 5, 6]
     .map(
       (n) =>
         `<option value="${n}"${n === ppr ? " selected" : ""}>${n}</option>`,
@@ -774,7 +774,7 @@ function pageTargetChoicesField(choices: PageTargetChoices | undefined): string 
 function clampPanelsPerRowText(value: string): number {
   const n = Number(value.trim());
   if (!Number.isFinite(n)) return 3;
-  return Math.max(2, Math.min(6, Math.round(n)));
+  return Math.max(1, Math.min(6, Math.round(n)));
 }
 
 const TITLE_SIZE_CHOICES = ["1", "1.2", "1.4", "1.6", "1.8", "2"] as const;

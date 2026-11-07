@@ -44,7 +44,7 @@ function itemsFromProps(props: Record<string, unknown>): ImageRevealItem[] {
  * Panels crop with background-position (Miller's Ark live model); the stage
  * scales with CSS transform. Titles use a light backdrop (not stroked shadows).
  *
- * Props: `items[]` ({ url, href, title? }), `width`, `height`, `panelsPerRow` (2–6),
+ * Props: `items[]` ({ url, href, title? }), `width`, `height`, `panelsPerRow` (1–6),
  * `hoverExpand`, `hoverGap` (px left beside a grown panel, default 10), `navigateDelay`, `titleSize` (1–2 em).
  */
 export const imageRevealGallery: ComponentFn = (ctx, props = {}) => {
