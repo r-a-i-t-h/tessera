@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { SiteDocument } from "@r-a-i-t-h/tessera-model";
 import { parseSiteDocument } from "@r-a-i-t-h/tessera-model";
-import { breadcrumbs, linkCluster, navCollapse, navFlat, navTree, subpageList } from "../builtins/nav.js";
+import { breadcrumbs, linkCluster, navCollapse, navFlat, navPane, navTree, subpageList } from "../builtins/nav.js";
 import { escapeHtml } from "../render.js";
 import { ComponentRegistry } from "../registry.js";
 import type { RenderContext } from "../types.js";
@@ -133,6 +133,48 @@ describe("nav places", () => {
     const sidebarTree = navTree(ctx, { scope: "sidebar" });
     expect(sidebarTree).toContain('class="w3-ul tessera-nav-tree"');
     expect(sidebarTree).not.toContain("tessera-nav-footer");
+  });
+});
+
+describe("navPane", () => {
+  const groupPages = [
+    { id: "home", title: "Home", layoutId: "L", zones: {}, tags: ["page"] },
+    { id: "about", title: "About", layoutId: "L", zones: {} },
+    { id: "origins", title: "Origins", layoutId: "L", zones: {} },
+  ];
+  const groupDoc = parseSiteDocument({
+    version: 2,
+    site: { id: "s", title: "Hall", homePageId: "home" },
+    layouts: [{ id: "L", root: { type: "region", children: [{ type: "zone", id: "main" }] } }],
+    pages: groupPages,
+    nav: [
+      { id: "home", title: "Home", sidebar: true },
+      {
+        heading: "About section",
+        sidebar: true,
+        children: [
+          { id: "about", title: "About", sidebar: true },
+          { id: "origins", title: "Origins", sidebar: true },
+        ],
+      },
+    ],
+  });
+
+  it("wraps pane markup and marks the active page", () => {
+    const html = navPane(context(groupDoc, "home"), { scope: "sidebar" });
+    expect(html).toContain('class="tessera-nav-pane-root w3-bar-block"');
+    expect(html).toContain('class="w3-bar-item w3-button tessera-nav-current"');
+    expect(html).toContain('href="#home"');
+  });
+
+  it("uses group labels and child link classes", () => {
+    const html = navPane(context(groupDoc, "origins"), { scope: "sidebar" });
+    expect(html).toContain('class="w3-bar-item tessera-nav-group-label"');
+    expect(html).toContain("About section");
+    expect(html).toContain("tessera-nav-children");
+    expect(html).toContain('class="w3-bar-item w3-button tessera-nav-child tessera-nav-child-current"');
+    expect(html).toContain('href="#origins"');
+    expect(html).not.toContain("is-active");
   });
 });
 

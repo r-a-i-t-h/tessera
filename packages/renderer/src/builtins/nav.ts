@@ -35,6 +35,66 @@ function linkHtml(ctx: Parameters<ComponentFn>[0], node: ResolvedNavNode): strin
   return `<a class="w3-bar-item w3-button${active}" href="${href}">${label}</a>`;
 }
 
+function paneLinkHtml(
+  ctx: Parameters<ComponentFn>[0],
+  node: ResolvedNavNode,
+  child: boolean,
+): string {
+  const id = node.id ?? "";
+  const base = hrefForPage(ctx, id);
+  const href = node.hash ? (base.startsWith("#") ? `${base}/${node.hash}` : `${base}#${node.hash}`) : base;
+  const on = !node.hash && Boolean(id) && ctx.page.id === id;
+  const label = ctx.escapeHtml(node.title ?? id);
+  if (child) {
+    const current = on ? " tessera-nav-child-current" : "";
+    const aria = on ? ' aria-current="page"' : "";
+    return `<a class="w3-bar-item w3-button tessera-nav-child${current}" href="${href}"${aria}>${label}</a>`;
+  }
+  const current = on ? " tessera-nav-current" : "";
+  const aria = on ? ' aria-current="page"' : "";
+  return `<a class="w3-bar-item w3-button${current}" href="${href}"${aria}>${label}</a>`;
+}
+
+function renderPaneNav(
+  ctx: Parameters<ComponentFn>[0],
+  nodes: ResolvedNavNode[],
+  depth = 0,
+): string {
+  if (!nodes.length) return "";
+  const parts: string[] = [];
+  const child = depth > 0;
+  for (const n of nodes) {
+    const heading = n.heading?.trim();
+    if (heading) {
+      parts.push(
+        `<p class="w3-bar-item tessera-nav-group-label" role="presentation">${ctx.escapeHtml(heading)}</p>`,
+      );
+      const kids = renderPaneNav(ctx, n.children, depth + 1);
+      if (kids) {
+        parts.push(`<div class="tessera-nav-children" role="group">${kids}</div>`);
+      }
+      continue;
+    }
+    if (isNavGroup(n)) {
+      parts.push(renderPaneNav(ctx, n.children, depth));
+      continue;
+    }
+    if (n.id) {
+      parts.push(paneLinkHtml(ctx, n, child));
+      if (n.children.length) {
+        parts.push(
+          `<div class="tessera-nav-children" role="group">${renderPaneNav(ctx, n.children, depth + 1)}</div>`,
+        );
+      }
+      continue;
+    }
+    if (n.children.length) {
+      parts.push(renderPaneNav(ctx, n.children, depth));
+    }
+  }
+  return parts.join("");
+}
+
 /** Nested list markup for link nodes (Sub-level child style). */
 function renderTreeLinks(ctx: Parameters<ComponentFn>[0], nodes: ResolvedNavNode[]): string {
   if (!nodes.length) return "";
@@ -120,6 +180,14 @@ function renderCurrentGroupNode(ctx: Parameters<ComponentFn>[0], n: ResolvedNavN
   if (n.id) return linkHtml(ctx, n);
   return n.children.map((c) => renderCurrentGroupNode(ctx, c)).join("");
 }
+
+/** Sub-level structure with pane active tabs (sliver onto the page). */
+export const navPane: ComponentFn = (ctx, props = {}) => {
+  const scope = typeof props.scope === "string" ? props.scope : undefined;
+  const tree = filterScope(resolveNavTree(ctx.document), scope);
+  if (!tree.length) return `<p class="w3-text-grey"><em>No nav.</em></p>`;
+  return `<nav class="tessera-nav-pane-root w3-bar-block" aria-label="Site">${renderPaneNav(ctx, tree)}</nav>`;
+};
 
 /** Full designed nav tree (with content-implied `source` children resolved). */
 export const navTree: ComponentFn = (ctx, props = {}) => {
@@ -308,6 +376,7 @@ export const subpageList: ComponentFn = (ctx, props = {}) => {
 export function registerNavComponents(define: (name: string, fn: ComponentFn) => unknown): void {
   define("navTree", navTree);
   define("navCollapse", navCollapse);
+  define("navPane", navPane);
   define("navTags", navTags);
   define("navFlat", navFlat);
   define("breadcrumbs", breadcrumbs);

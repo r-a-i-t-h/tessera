@@ -6,6 +6,7 @@ export const MENU_SHAPES = [
   { name: "navFlat", label: "Top-level" },
   { name: "navTree", label: "Sub-level" },
   { name: "navCollapse", label: "Current group" },
+  { name: "navPane", label: "Pane" },
   { name: "navTags", label: "By tag" },
   { name: "pageNav", label: "Pages with no type" },
 ] as const;
@@ -26,7 +27,7 @@ export function isUnsetComponent(name: string): boolean {
   return !name.trim() || name === COMPONENT_UNSET;
 }
 
-const SCOPED_MENUS = new Set(["navFlat", "navTree", "navCollapse"]);
+const SCOPED_MENUS = new Set(["navFlat", "navTree", "navCollapse", "navPane"]);
 const KNOWN_PROPS = [
   "scope",
   "tag",

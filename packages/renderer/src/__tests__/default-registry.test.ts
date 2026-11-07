@@ -10,6 +10,7 @@ describe("default component registry", () => {
     for (const name of [
       "navTree",
       "navCollapse",
+      "navPane",
       "navTags",
       "navFlat",
       "breadcrumbs",

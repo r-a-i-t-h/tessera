@@ -64,7 +64,7 @@ describe("editor chrome", () => {
     expect(html).toContain("w3-hide-medium w3-hide-large");
     expect(html).toContain('data-action="close-editor-sidebar"');
     expect(html).toContain('class="editor-mobile-bar');
-    expect(html).toContain("editor-nav-brand w3-theme-d3");
+    expect(html).toContain("tessera-nav-brand w3-theme-d3");
     expect(html).toContain('class="editor-shell"');
     expect(html).toContain('class="editor-scroll"');
     expect(html).toContain('class="editor-sidebar-version"');
@@ -111,10 +111,10 @@ describe("editor chrome", () => {
     expect(html).toContain('aria-label="Blogs"');
     expect(html).toContain('href="#/articles/hall" aria-current="page"');
     expect(html).toContain('href="#/articles/news"');
-    expect(html).toContain("editor-nav-child-current");
+    expect(html).toContain("tessera-nav-child-current");
     expect(html).not.toContain('href="#/articles" aria-current="page"');
     expect(html).toContain('class="w3-bar-item w3-button" href="#/articles"');
-    expect(html).not.toContain('class="w3-bar-item w3-button editor-nav-current" href="#/articles"');
+    expect(html).not.toContain('class="w3-bar-item w3-button tessera-nav-current" href="#/articles"');
   });
 
   it("expands datasets under Data and marks the active one", () => {
@@ -136,7 +136,7 @@ describe("editor chrome", () => {
     expect(html).toContain('href="#/data/events"');
     expect(html).not.toContain('href="#/data" aria-current="page"');
     expect(html).toContain('class="w3-bar-item w3-button" href="#/data"');
-    expect(html).not.toContain('class="w3-bar-item w3-button editor-nav-current" href="#/data"');
+    expect(html).not.toContain('class="w3-bar-item w3-button tessera-nav-current" href="#/data"');
   });
 
   it("lists Datasets under Setup", () => {
@@ -171,7 +171,7 @@ describe("editor chrome", () => {
       { recordsKind: "layouts" },
     );
     expect(html).toContain('href="#/records/layouts" aria-current="page"');
-    expect(html).toContain("editor-nav-child-current");
+    expect(html).toContain("tessera-nav-child-current");
     expect(html).not.toContain('href="#/records" aria-current="page"');
   });
 

@@ -184,7 +184,11 @@ function componentFields(node: Extract<LayoutNode, { type: "component" }>, used:
       .join("");
   const props = node.props ?? {};
   const scope = typeof props.scope === "string" ? props.scope : "sidebar";
-  const scoped = node.name === "navFlat" || node.name === "navTree" || node.name === "navCollapse";
+  const scoped =
+    node.name === "navFlat" ||
+    node.name === "navTree" ||
+    node.name === "navCollapse" ||
+    node.name === "navPane";
   const place =
     !unset && scoped
       ? `<p><label>Place <select class="w3-select w3-border" data-field="prop:scope">

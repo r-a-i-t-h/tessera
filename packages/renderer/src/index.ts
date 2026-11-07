@@ -47,6 +47,7 @@ export {
   registerNavComponents,
   navTree,
   navCollapse,
+  navPane,
   navTags,
   navFlat,
   breadcrumbs,

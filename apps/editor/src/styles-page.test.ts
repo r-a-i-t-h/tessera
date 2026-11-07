@@ -88,6 +88,8 @@ describe("site style page", () => {
     expect(html).toContain("Top-level");
     expect(html).toContain("Sub-level");
     expect(html).toContain("Current group");
+    expect(html).toContain("Pane");
+    expect(html).toContain("tessera-nav-current");
     expect(html).toContain("tessera-nav-tree");
     expect(html).toContain("tessera-nav-branch");
     expect(html).toContain("tessera-nav-collapse-root");

@@ -218,7 +218,7 @@ Nav is first-class document content, not merely demo chrome — and it is **dist
 - **Designed nav** (`document.nav`) is authored structure: hand-chosen pages, headings, nested children, and optional `source` nodes.
 - **Pages flavour:** each HTML file is built at publish with the same frame and nav components as the snapshot renderer. Nav markup is **baked into the file** from `document.nav` (including `source` resolution where the chosen nav component supports it). It is not rebuilt in the browser on navigation, and a micro-app does not extend it.
 - **Snapshot flavour:** nav components read `document.nav` at runtime (including `source` on a nav node — `pageType`, `itemsTag`, `children`, and similar — so matching pages become link data). That does not create pages.
-- **Presentation is a component choice**, not a system mandate. Shipped options include tag grouping (`navTags`), top-level list (`navFlat`), sub-level nested list (`navTree`), and current-group expansion (`navCollapse`). Nav heading text is optional; blank headings still group links. Further presentations are added to the shared catalogue. A component might render the same resolved tree in different styles.
+- **Presentation is a component choice**, not a system mandate. Shipped options include tag grouping (`navTags`), top-level list (`navFlat`), sub-level nested list (`navTree`), current-group expansion (`navCollapse`), and pane tabs (`navPane`). Nav heading text is optional; blank headings still group links. Further presentations are added to the shared catalogue. A component might render the same resolved tree in different styles.
 - Physical shell chrome (drawer markup, overlay) remains a thin site/skin concern that *consumes* nav components or resolved nav data.
 
 ---

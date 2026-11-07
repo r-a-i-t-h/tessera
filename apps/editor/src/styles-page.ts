@@ -74,7 +74,7 @@ export function bindStylePanels(root: ParentNode): void {
   }
 }
 
-/** Static sidebar samples for each designed-nav menu component (navFlat, navTree, navCollapse). */
+/** Static sidebar samples for each designed-nav menu component (navFlat, navTree, navCollapse, navPane). */
 export function styleSpecimenNavSamplesHtml(): string {
   return `<div class="style-specimen-nav-sample" aria-label="Top-level menu sample">
             <p class="style-specimen-nav-label">Top-level</p>
@@ -101,6 +101,15 @@ export function styleSpecimenNavSamplesHtml(): string {
               <a class="w3-bar-item w3-button" href="#" tabindex="-1">Home</a>
               <a class="w3-bar-item w3-button" href="#" tabindex="-1">About</a>
               <ul class="w3-ul tessera-nav-tree tessera-nav-sublinks"><li><a class="w3-bar-item w3-button is-active w3-theme-l3" href="#" tabindex="-1">Origins</a></li></ul>
+            </div>
+          </div>
+          <div class="style-specimen-nav-sample tessera-nav-pane-root w3-bar-block" aria-label="Pane menu sample">
+            <p class="style-specimen-nav-label">Pane</p>
+            <a class="w3-bar-item w3-button tessera-nav-current" href="#" tabindex="-1">Home</a>
+            <p class="w3-bar-item tessera-nav-group-label" role="presentation">Section</p>
+            <div class="tessera-nav-children" role="group">
+              <a class="w3-bar-item w3-button tessera-nav-child" href="#" tabindex="-1">Events</a>
+              <a class="w3-bar-item w3-button tessera-nav-child" href="#" tabindex="-1">News</a>
             </div>
           </div>`;
 }

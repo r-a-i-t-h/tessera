@@ -214,7 +214,7 @@ Content inserts the populated view with mustache or a component block:
 **What requires a Tessera release:** adding a new **catalogue** component implementation (then available to every site). **Runtime modules** are site-owner ESM copied at publish; they are not catalogue releases.  
 **What does not:** changing text, JSON, layout trees, bindings, dataset rows, runtime module source, or which binding ids a page references.
 
-Nav presentations (`navFlat`, `navTree`, `navCollapse`, `navTags`, …) are registered components; designed `document.nav` plus optional `source` supply data. Heading rows may omit heading text and still group links. `navCollapse` shows the first link in each group as the section entry and reveals siblings in sub-level markup when the current page is in that group. Page existence does not imply a nav entry.
+Nav presentations (`navFlat`, `navTree`, `navCollapse`, `navPane`, `navTags`, …) are registered components; designed `document.nav` plus optional `source` supply data. Heading rows may omit heading text and still group links. `navCollapse` shows the first link in each group as the section entry and reveals siblings in sub-level markup when the current page is in that group. Page existence does not imply a nav entry.
 
 Web components follow the same idea: implement with `WCBase`, `customElements.define`, then either emit the tag from a small registry function or `registry.defineElement(name, tagName)`.
 

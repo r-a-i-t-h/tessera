@@ -37,6 +37,9 @@
   --tessera-toc-bullet-color: var(--tessera-accent);
   --tessera-toc-link-color: var(--tessera-link);
   --tessera-toc-link-hover-color: var(--tessera-accent);
+  --tessera-nav-pane: var(--tessera-page);
+  --tessera-nav-sliver: 0.42rem;
+  --tessera-nav-tab-radius: 0.45rem;
 }
 
 /* Keep the vertical bar present so short and tall pages share one width. */
@@ -222,6 +225,123 @@ body.fontD h6 {
 
 .tessera-sidebar .tessera-nav-sublinks .w3-bar-item {
   font-size: 0.92em;
+}
+
+/* Pane menu (navPane + editor sidebar): active tab continues onto the page. */
+.tessera-sidebar .tessera-nav-pane-root .w3-bar-item.w3-button {
+  display: block;
+  width: 100%;
+  float: none;
+  text-align: left;
+}
+
+.tessera-sidebar .tessera-nav-pane-root .tessera-nav-children {
+  display: flex;
+  flex-direction: column;
+  margin: 0.15rem 0 0.45rem 1rem;
+  padding: 0.2rem 0;
+}
+
+.tessera-sidebar .tessera-nav-pane-root .tessera-nav-child {
+  padding: 0.35rem 0.65rem 0.35rem 0.75rem !important;
+  font-size: 0.82rem;
+  line-height: 1.3;
+  opacity: 0.92;
+}
+
+.tessera-sidebar .tessera-nav-pane-root .tessera-nav-group-label {
+  margin: 0.65rem 1rem 0.15rem;
+  padding: 0 !important;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.72;
+  cursor: default;
+}
+
+.tessera-sidebar .tessera-nav-pane-root .tessera-nav-current,
+.tessera-sidebar .tessera-nav-pane-root .tessera-nav-child-current {
+  opacity: 1;
+  font-weight: 600;
+  background: var(--tessera-nav-pane) !important;
+  color: var(--tessera-text) !important;
+  box-sizing: border-box;
+  width: auto;
+  margin-left: var(--tessera-nav-sliver);
+  margin-right: 0;
+  border-radius: var(--tessera-nav-tab-radius) 0 0 var(--tessera-nav-tab-radius);
+}
+
+.tessera-sidebar .tessera-nav-pane-root .tessera-nav-current:hover,
+.tessera-sidebar .tessera-nav-pane-root .tessera-nav-child-current:hover {
+  background: var(--tessera-nav-pane) !important;
+  color: var(--tessera-text) !important;
+}
+
+/* Editor shell uses the same pane link classes on a w3-theme sidebar. */
+.editor-sidebar .tessera-nav-children {
+  display: flex;
+  flex-direction: column;
+  margin: 0.15rem 0 0.45rem 1rem;
+  padding: 0.2rem 0;
+}
+
+.editor-sidebar .tessera-nav-child {
+  padding: 0.35rem 0.65rem 0.35rem 0.75rem !important;
+  font-size: 0.82rem;
+  line-height: 1.3;
+  opacity: 0.92;
+}
+
+.editor-sidebar .w3-bar-item.w3-button:not(.tessera-nav-current):not(.tessera-nav-child-current):hover {
+  color: #fff !important;
+  background-color: transparent !important;
+}
+
+.editor-sidebar .tessera-nav-brand.w3-theme-d3:hover {
+  color: #fff !important;
+  background-color: #00685d !important;
+}
+
+.editor-sidebar .tessera-nav-current:hover,
+.editor-sidebar .tessera-nav-child-current:hover {
+  background: var(--tessera-nav-pane) !important;
+  color: #111 !important;
+}
+
+.editor-sidebar .tessera-nav-current,
+.editor-sidebar .tessera-nav-child-current {
+  opacity: 1;
+  font-weight: 600;
+  background: var(--tessera-nav-pane) !important;
+  color: #111 !important;
+  box-sizing: border-box;
+  width: auto;
+  margin-left: var(--tessera-nav-sliver);
+  margin-right: 0;
+  border-radius: var(--tessera-nav-tab-radius) 0 0 var(--tessera-nav-tab-radius);
+}
+
+.editor-sidebar .tessera-nav-group-label {
+  margin: 0.65rem 1rem 0.15rem;
+  padding: 0 !important;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.72;
+  cursor: default;
+}
+
+.editor-sidebar .tessera-nav-admin,
+.editor-sidebar .tessera-nav-setup {
+  margin-top: 0;
+}
+
+.editor-sidebar .tessera-nav-children-nested {
+  margin-left: 0.5rem;
+  margin-right: 0;
 }
 
 .tessera-main {

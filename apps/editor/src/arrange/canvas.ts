@@ -229,7 +229,8 @@ function addPalette(form: HTMLFormElement, state: State, id: PaletteId, parent: 
   const place = scopeForParent(parent.length === 0 ? state.root : getNode(state.root, parent));
   const nodes = made.nodes.map((node) => {
     if (!place || node.type !== "component") return node;
-    if (node.name !== "navFlat" && node.name !== "navTree" && node.name !== "navCollapse") return node;
+    if (node.name !== "navFlat" && node.name !== "navTree" && node.name !== "navCollapse" && node.name !== "navPane")
+      return node;
     return applyField(node, "prop:scope", place);
   });
   state.root = insertNodes(state.root, parent, index, nodes);

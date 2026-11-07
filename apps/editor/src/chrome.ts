@@ -63,20 +63,20 @@ export function editorChrome(
   ) => {
     const current = section === key;
     const aria = current && !childOn ? ' aria-current="page"' : "";
-    const brand = extraClass.includes("editor-nav-brand");
-    const classes = `w3-bar-item w3-button${extraClass ? ` ${extraClass}` : ""}${current && !brand && !childOn ? " editor-nav-current" : ""}`;
+    const brand = extraClass.includes("tessera-nav-brand");
+    const classes = `w3-bar-item w3-button${extraClass ? ` ${extraClass}` : ""}${current && !brand && !childOn ? " tessera-nav-current" : ""}`;
     return `<a class="${classes}" href="${href}"${aria}>${label}</a>`;
   };
 
   const childLink = (href: string, label: string, on: boolean) =>
-    `<a class="w3-bar-item w3-button editor-nav-child${on ? " editor-nav-child-current" : ""}" href="${href}"${on ? ' aria-current="page"' : ""}>${escapeHtml(label)}</a>`;
+    `<a class="w3-bar-item w3-button tessera-nav-child${on ? " tessera-nav-child-current" : ""}" href="${href}"${on ? ' aria-current="page"' : ""}>${escapeHtml(label)}</a>`;
 
   const navGroupLabel = (label: string) =>
-    `<p class="w3-bar-item editor-nav-group-label" role="presentation">${label}</p>`;
+    `<p class="w3-bar-item tessera-nav-group-label" role="presentation">${label}</p>`;
 
   const articlesChildren =
     articlesOpen && blogs && blogs.length
-      ? `<div class="editor-nav-children" role="group" aria-label="Blogs">${blogs
+      ? `<div class="tessera-nav-children" role="group" aria-label="Blogs">${blogs
           .map((blog) =>
             childLink(
               `#/articles/${encodeURIComponent(blog.id)}`,
@@ -89,7 +89,7 @@ export function editorChrome(
 
   const setupNav = admin
     ? `${navGroupLabel(SETUP_MENU.groupLabel)}
-      <div class="editor-nav-children editor-nav-setup" role="group" aria-label="${SETUP_MENU.ariaLabel}">
+      <div class="tessera-nav-children tessera-nav-setup" role="group" aria-label="${SETUP_MENU.ariaLabel}">
         ${SETUP_MENU.items
           .map((item) => childLink(item.href, item.label, isSidebarLinkCurrent(item.whenActive, section, nav)))
           .join("")}
@@ -98,7 +98,7 @@ export function editorChrome(
 
   const adminNav = admin
     ? `${navGroupLabel(ADMIN_MENU.groupLabel)}
-      <div class="editor-nav-children editor-nav-admin" role="group" aria-label="${ADMIN_MENU.ariaLabel}">
+      <div class="tessera-nav-children tessera-nav-admin" role="group" aria-label="${ADMIN_MENU.ariaLabel}">
         ${ADMIN_MENU.items
           .map((item) => {
             const on = isSidebarLinkCurrent(item.whenActive, section, nav);
@@ -110,7 +110,7 @@ export function editorChrome(
 
   const datasetsChildren =
     datasetsOpen && datasetNav && datasetNav.length
-      ? `<div class="editor-nav-children" role="group" aria-label="Datasets">${datasetNav
+      ? `<div class="tessera-nav-children" role="group" aria-label="Datasets">${datasetNav
           .map((dataset) =>
             childLink(
               `#/data/${encodeURIComponent(dataset.id)}`,
@@ -124,7 +124,7 @@ export function editorChrome(
   return `<div class="editor-shell">
       <aside id="editor-sidebar" class="editor-sidebar w3-theme">
         <nav class="w3-bar-block editor-nav-block" aria-label="Editor">
-          ${sectionLink("#/", "Tessera editor", "home", false, "editor-nav-brand w3-theme-d3")}
+          ${sectionLink("#/", "Tessera editor", "home", false, "tessera-nav-brand w3-theme-d3")}
           ${sectionLink("#/navigation", "Navigation", "navigation")}
           ${sectionLink("#/pages", "Pages", "pages")}
           ${showArticlesNav ? `${sectionLink("#/articles", "Articles", "articles", articlesBlogOn)}${articlesChildren}` : ""}
@@ -138,7 +138,7 @@ export function editorChrome(
           ${sectionLink("#/guide", "Guide", "guide")}
         </nav>
         <div class="editor-nav-account w3-bar-block">
-          <a class="w3-bar-item w3-button${section === "account" ? " editor-nav-current" : ""}" href="#/account" title="Account"${section === "account" ? ' aria-current="page"' : ""}>${escapeHtml(user.username)}</a>
+          <a class="w3-bar-item w3-button${section === "account" ? " tessera-nav-current" : ""}" href="#/account" title="Account"${section === "account" ? ' aria-current="page"' : ""}>${escapeHtml(user.username)}</a>
         </div>
         <div class="editor-sidebar-version">${editorVersionLabel()}</div>
       </aside>
