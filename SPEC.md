@@ -161,14 +161,14 @@ Folder-relative URLs (`./…`) and Vite `base: "./"` keep a published site porta
 
 ### Seeing a new homepage
 
-The homepage address stays the site root. CSS, JS, and the snapshot JSON use filenames that include a content hash, and the host may cache those names for a long time. The new HTML is what points at the new names, so HTML itself is checked on every load.
+The homepage address stays the site root. In the **snapshot** flavour, site data uses a content-hashed file `data/site.<hash>.json`; the shell names it in `<meta name="tessera-site">`. That file may be cached immutably because the URL changes when the bytes change. Runtime JS, skin CSS, and library media use **stable** paths under `publish/` (no hash in the filename); they stay fresh when the host revalidates. The new HTML is what points at the new hashed JSON name after publish, so HTML itself is checked on every load.
 
 Nginx (or the static host) sends two separate headers for HTML, including `/`, which does not end in `.html`:
 
 - `ETag` — nginx sends this for static files by default.
 - `Cache-Control: public, max-age=0, must-revalidate` — added in the site config. The browser may keep a copy and must ask before showing it. Unchanged is a small 304. After the file on disk is replaced, the next load receives the new HTML.
 
-Hashed files under `/assets/`, and `site.<hash>.json`, use `Cache-Control: public, max-age=31536000, immutable`.
+`data/site.<hash>.json` uses `Cache-Control: public, max-age=31536000, immutable`. The editor SPA’s Vite bundles under `/assets/` are hashed and may use the same rule when the editor is served from nginx; a `publish/` tree does not include that folder.
 
 The open-tab poll is separate: every five minutes the snapshot client fetches `rev.json` with revalidation (`cache: "no-cache"`). When the hash matches, it does not download the document. A tab that is already open keeps its HTML until reload. The pages flavour has no poll; the next request for the HTML file is the update.
 

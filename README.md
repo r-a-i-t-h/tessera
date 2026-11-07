@@ -70,9 +70,9 @@ The script creates the final directory when its parent already exists, gives the
 
 ### Nginx cache headers
 
-Nginx serves static files with `ETag` by default but does not add `Cache-Control`. Without explicit revalidation, browsers (or upstream caches) may keep old **HTML**, **`search-index.json`**, **`rev.json`**, and other stable filenames long after **Publish**, so visitors see stale pages or search results even though the files on disk were replaced. Tessera does not cache-bust those URLs; the host must ask before reuse.
+Nginx serves static files with `ETag` by default but does not add `Cache-Control`. Without explicit revalidation, browsers (or upstream caches) may keep old **HTML**, **`search-index.json`**, **`rev.json`**, **`tessera.js`**, **CSS**, **media**, and other **stable filenames** long after **Publish**, so visitors see stale pages or search results even though the files on disk were replaced. Tessera does not cache-bust those URLs (no `?v=` queries); the host must ask before reuse.
 
-Use **must-revalidate** on the catch-all location that serves the published tree. Use **long immutable cache** only for content-hashed paths (`/assets/` and `data/site.<hash>.json`).
+Only **`data/site.<hash>.json`** (snapshot flavour) uses a content hash in the URL. Runtime, skin CSS, and library media keep stable paths under `publish/`. Use **must-revalidate** on the catch-all location that serves the published tree. Use **long immutable cache** only for that hashed JSON pattern. The editor SPA’s Vite **`/assets/`** chunks are a separate tree—see [ARCHITECTURE.md](./ARCHITECTURE.md) § Cache busting vs revalidation.
 
 Dedicated vhost (`root` = your `publish/` copy):
 
@@ -81,11 +81,6 @@ server {
     server_name willow.example.com;
     root /var/www/willow/publish;
     index index.html;
-
-    location ^~ /assets/ {
-        add_header Cache-Control "public, max-age=31536000, immutable";
-        try_files $uri =404;
-    }
 
     location ~* /data/site\.[a-f0-9]+\.json$ {
         add_header Cache-Control "public, max-age=31536000, immutable";
@@ -105,11 +100,6 @@ location = /willow {
     return 301 /willow/;
 }
 
-location ^~ /willow/assets/ {
-    alias /var/www/willow/publish/assets/;
-    add_header Cache-Control "public, max-age=31536000, immutable";
-}
-
 location ~* ^/willow/data/(site\.[a-f0-9]+\.json)$ {
     alias /var/www/willow/publish/data/$1;
     add_header Cache-Control "public, max-age=31536000, immutable";
@@ -122,7 +112,7 @@ location /willow/ {
 }
 ```
 
-More detail (`.mjs` MIME, preview vs publish) lives in [ARCHITECTURE.md](./ARCHITECTURE.md) § Static host.
+More detail (what is hashed, `.mjs` MIME, preview vs publish) lives in [ARCHITECTURE.md](./ARCHITECTURE.md) § Cache busting vs revalidation and § Static host.
 
 The editor’s Backups page writes a dated `tar.gz` of `data/` into the sibling `backup/` folder (`TESSERA_BACKUP` overrides it). A file of the form `2026-09-28T191500Z.tar.gz` dropped there over SFTP can be downloaded or restored. Restore writes a safety archive first. Dated backups are left as they are. The Backups page can also **re-seed** the open site onto the bundled starter theme (`tessera-w3-starter`: safety archive first, editors kept). Initialise writes the same starter when the directory has no records yet.
 

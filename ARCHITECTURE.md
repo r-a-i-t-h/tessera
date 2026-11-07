@@ -240,22 +240,39 @@ Default skin is **W3.CSS 5.01** (`packages/skin-w3/css/w3.css`). Layout regions 
 - Nav menus are built from `document.nav` (sidebar, top bar, footer flags per entry), not from the page tree. Links are relative to the file so a site can live in a folder.
 - Text and media are rendered into `<main>`. A binding or component becomes `<div data-tessera-microapp="…">` and an entry in `<script type="application/json" id="tessera-microapps">`.
 
+## Cache busting vs revalidation
+
+Published content does not use timestamp query params (`?v=…`). Page URLs stay stable. Where cache busting exists, it is **content-addressed filenames**: new bytes get a new name.
+
+| URL | Cache busting? | Notes |
+|-----|----------------|-------|
+| `data/site.<hash>.json` | Yes | Snapshot flavour only; SHA-256 of JSON (see `hashSnapshotBody`). Shell points via `<meta name="tessera-site">`. |
+| Editor SPA `/assets/*` | Yes | Vite build of `apps/editor`; hashed chunk filenames. Not part of `publish/`. |
+| HTML, `rev.json`, `search-index.json` | No | Must revalidate on each use (`must-revalidate` + `ETag`). |
+| `tessera.js`, `tessera-pages.js`, `chunk-*.js` | No | Stable names from the site build (`apps/site` Vite output); copied by **Publish**. |
+| `skin/`, `site.css`, `local.css` | No | Stable paths; same revalidation rules as runtime. |
+| `./media/<id>.<ext>` | No | Stable by design (library URL does not change when a file moves). |
+| `runtime-modules/*.mjs` | No | Stable filenames for owner modules. |
+
+**Snapshot:** bulk site data is hashed; HTML only needs to revalidate so the meta tag can name the new file. **Pages** flavour embeds content in stable `index.html` paths—updates appear when HTML revalidates.
+
+Tessera does not set `Cache-Control` on static publish output. Correct behaviour depends on the host. See [Static host](#static-host) below.
+
 ## Static host
 
 A published site is a folder. Nginx answers the browser. Node does not set cache headers and does not serve the folder.
 
 `ETag` is nginx’s default for static files. `Cache-Control` is not. `/` does not match a `*.html` location, so the “ask every time” header goes on the location that serves pages.
 
+A **`publish/`** tree has no `assets/` directory (runtime lives as `tessera.js` at the dist root). Long **immutable** cache is appropriate only for **`data/site.<hash>.json`** in snapshot dists. Everything else—including `tessera.js`, CSS, `search-index.json`, `rev.json`, HTML, and `media/`—should use **`public, max-age=0, must-revalidate`** on the catch-all location so browsers re-check after **Publish**.
+
+Dedicated vhost (`root` = your `publish/` copy):
+
 ```nginx
 server {
     server_name willow.example.com;
     root /var/www/willow/publish;
     index index.html;
-
-    location ^~ /assets/ {
-        add_header Cache-Control "public, max-age=31536000, immutable";
-        try_files $uri =404;
-    }
 
     location ~* /data/site\.[a-f0-9]+\.json$ {
         add_header Cache-Control "public, max-age=31536000, immutable";
@@ -268,16 +285,11 @@ server {
 }
 ```
 
-A site in a folder on a shared host uses the same two rules under a prefix:
+A site in a folder on a shared host uses the same rules under a prefix:
 
 ```nginx
 location = /willow {
     return 301 /willow/;
-}
-
-location ^~ /willow/assets/ {
-    alias /var/www/willow/publish/assets/;
-    add_header Cache-Control "public, max-age=31536000, immutable";
 }
 
 location ~* ^/willow/data/(site\.[a-f0-9]+\.json)$ {
@@ -292,7 +304,16 @@ location /willow/ {
 }
 ```
 
-`site.<hash>.json` can be cached like `/assets/` because the name changes when the bytes change. `rev.json` and HTML stay on the “ask every time” path. Pictures with a stable filename are checked every time unless they later move under a hashed name.
+When the **editor SPA** is served from the same host (Hono `spa/`, not `publish/`), add a separate rule for Vite’s hashed bundles:
+
+```nginx
+location ^~ /assets/ {
+    add_header Cache-Control "public, max-age=31536000, immutable";
+    try_files $uri =404;
+}
+```
+
+`site.<hash>.json` can be cached immutably because the name changes when the bytes change. `rev.json` and HTML stay on the revalidation path. Pictures keep a stable filename and are revalidated every time unless they later move under a hashed name.
 
 Runtime modules under `runtime-modules/` are owner ESM (typically `.mjs`). The site runtime loads them with `import()`, which requires a JavaScript `Content-Type`, not `application/octet-stream`. Current nginx `mime.types` maps `.mjs` to `text/javascript` alongside `.js`. Older nginx builds may omit `.mjs`; add a type next to `include mime.types;` without replacing the file:
 
