@@ -13,12 +13,33 @@ export type AuthoredComposeZone = {
   blocks: Widget[];
 };
 
+function filterHidden(widgets: readonly Widget[]): Widget[] {
+  return widgets
+    .filter((widget) => widget.hidden !== true)
+    .map((widget) => {
+      if (widget.kind === "panel" || widget.kind === "card") {
+        return { ...widget, sections: filterHidden(widget.sections) };
+      }
+      if (widget.kind === "columns") {
+        return {
+          ...widget,
+          cells: widget.cells.map((cell) => ({
+            ...cell,
+            sections: filterHidden(cell.sections),
+          })),
+        };
+      }
+      return widget;
+    });
+}
+
 /**
  * Compile widgets to zone HTML for assemble/publish.
  * Standalone `{ kind: "insert", id }` widgets become `{{id}}` via {@link paintSections}.
+ * Widgets with `hidden: true` are omitted (including nested children when a parent is hidden).
  */
 export function compileWidgetsToHtml(widgets: readonly Widget[], tones?: readonly PanelToneDef[]): string {
-  return paintSections([...widgets], tones);
+  return paintSections(filterHidden(widgets), tones);
 }
 
 /** Migration helper: legacy `zones.<id>.html` → widget list. */

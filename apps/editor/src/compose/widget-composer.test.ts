@@ -1,7 +1,7 @@
 import { parseSections } from "@r-a-i-t-h/tessera-sections";
 import { Window } from "happy-dom";
 import { beforeAll, describe, expect, it } from "vitest";
-import { mountWidgetComposer, readComposeHtml } from "./widget-composer.js";
+import { mountWidgetComposer, readComposeHtml, readComposeWidgets } from "./widget-composer.js";
 
 const dom = new Window();
 
@@ -17,6 +17,39 @@ beforeAll(() => {
     Element: dom.Element,
     KeyboardEvent: dom.KeyboardEvent,
     DOMParser: dom.DOMParser,
+  });
+});
+
+describe("widget hidden flag", () => {
+  it("keeps hidden widgets in yaml output but omits them from compiled html", () => {
+    dom.document.body.innerHTML = `<form><div data-canvas data-zone="main"></div></form>`;
+    const form = dom.document.querySelector("form");
+    if (!(form instanceof dom.HTMLFormElement)) throw new Error("form");
+    mountWidgetComposer(form, {
+      bindings: [],
+      widgetsByZone: {
+        main: [
+          { kind: "text", heading: "", level: 2, html: "<p>Visible</p>" },
+          { kind: "text", heading: "", level: 2, html: "<p>Secret</p>" },
+        ],
+      },
+    });
+
+    const sections = form.querySelectorAll("[data-item-id]");
+    expect(sections).toHaveLength(2);
+    const hide = sections[1]?.querySelector<HTMLElement>('[data-toggle-hidden="hide"]');
+    hide?.dispatchEvent(new dom.MouseEvent("click", { bubbles: true }));
+
+    const widgets = readComposeWidgets(form).main ?? [];
+    expect(widgets[1]).toMatchObject({ hidden: true });
+    const html = readComposeHtml(form).main ?? "";
+    expect(html).toContain("Visible");
+    expect(html).not.toContain("Secret");
+
+    const show = form.querySelectorAll("[data-item-id]")[1]?.querySelector<HTMLElement>('[data-toggle-hidden="show"]');
+    show?.dispatchEvent(new dom.MouseEvent("click", { bubbles: true }));
+    expect(readComposeHtml(form).main ?? "").toContain("Secret");
+    expect(readComposeWidgets(form).main?.[1]?.hidden).toBeUndefined();
   });
 });
 
@@ -264,6 +297,7 @@ describe("compose palette", () => {
     });
 
     expect(form.querySelector("[data-remove]")).toBeNull();
+    expect(form.querySelector('[data-toggle-hidden="hide"]')).toBeTruthy();
     expect(form.querySelector("[data-drag]")).toBeNull();
     expect(form.querySelector("[data-drop]")).toBeNull();
     expect(form.querySelector("[data-field=level]")).toBeNull();

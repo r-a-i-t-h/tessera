@@ -176,22 +176,30 @@ function isHeadingTag(tag: string): tag is `h${HeadingLevel}` {
   return tag === "h1" || tag === "h2" || tag === "h3" || tag === "h4";
 }
 
-export type Section =
-  | { kind: "heading"; level: HeadingLevel; text: string }
-  | { kind: "text"; heading: string; level: HeadingLevel; html: string; loose?: boolean }
-  | { kind: "spacer"; value: number; unit: SpacerUnit }
-  | { kind: "panel"; tone: ToneId; sections: Section[] }
-  | { kind: "quote"; tone: ToneId; text: string; attribution: string }
-  | { kind: "imgbox"; src: string; alt: string; caption: string; plain: boolean; width: BlockWidthId; frameColor?: string }
-  | { kind: "card"; title: string; width: BlockWidthId; plain: boolean; sections: Section[]; frameColor?: string }
-  | { kind: "columns"; layout: ColumnLayoutId; cells: ColumnCell[] }
-  | { kind: "insert"; id: string }
-  | { kind: "subpages"; title: string; tone?: ToneId }
-  | { kind: "toc" }
-  | { kind: "youtube"; videoId: string; /** iframe `title` for accessibility */ title: string }
-  | { kind: "gallery"; folder: string; mode: GalleryMode }
-  | { kind: "pasted"; html: string }
-  | { kind: "html"; html: string };
+/** Authoring-only flags on compose widgets (not painted into zone HTML). */
+export type SectionFlags = {
+  /** When true, omitted from compiled zone HTML at assemble/publish. */
+  hidden?: boolean;
+};
+
+export type Section = SectionFlags &
+  (
+    | { kind: "heading"; level: HeadingLevel; text: string }
+    | { kind: "text"; heading: string; level: HeadingLevel; html: string; loose?: boolean }
+    | { kind: "spacer"; value: number; unit: SpacerUnit }
+    | { kind: "panel"; tone: ToneId; sections: Section[] }
+    | { kind: "quote"; tone: ToneId; text: string; attribution: string }
+    | { kind: "imgbox"; src: string; alt: string; caption: string; plain: boolean; width: BlockWidthId; frameColor?: string }
+    | { kind: "card"; title: string; width: BlockWidthId; plain: boolean; sections: Section[]; frameColor?: string }
+    | { kind: "columns"; layout: ColumnLayoutId; cells: ColumnCell[] }
+    | { kind: "insert"; id: string }
+    | { kind: "subpages"; title: string; tone?: ToneId }
+    | { kind: "toc" }
+    | { kind: "youtube"; videoId: string; /** iframe `title` for accessibility */ title: string }
+    | { kind: "gallery"; folder: string; mode: GalleryMode }
+    | { kind: "pasted"; html: string }
+    | { kind: "html"; html: string }
+  );
 
 export type PaletteKind =
   | "heading"

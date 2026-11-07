@@ -6,12 +6,12 @@ import {
   blankSection,
   cardClass,
   columnWidths,
+  compileWidgetsToHtml,
   frameColorAttr,
   imgboxClass,
   isBlockWidth,
   isColumnLayout,
   htmlToPlainText,
-  paintSections,
   parseHeadingLevel,
   parseSections,
   parseSpacerUnit,
@@ -65,6 +65,7 @@ type EditColumns = {
   uid: string;
   kind: "columns";
   layout: ColumnLayoutId;
+  hidden?: boolean;
   cells: { className: string; items: EditNode[] }[];
 };
 
@@ -75,6 +76,7 @@ type EditCard = {
   width: BlockWidthId;
   plain: boolean;
   frameColor?: string;
+  hidden?: boolean;
   items: EditNode[];
 };
 
@@ -82,6 +84,7 @@ type EditPanel = {
   uid: string;
   kind: "panel";
   tone: ToneId;
+  hidden?: boolean;
   items: EditNode[];
 };
 
@@ -201,7 +204,7 @@ export function readComposeHtml(form: HTMLElement): Record<string, string> {
   syncAll(state);
   const html: Record<string, string> = {};
   for (const zone of state.zones) {
-    html[zone.name] = paintSections(zone.items.map(toSection), state.panelTones);
+    html[zone.name] = compileWidgetsToHtml(zone.items.map(toSection), state.panelTones);
   }
   return html;
 }
@@ -237,12 +240,21 @@ function notifyField(form: HTMLFormElement, target: HTMLElement, fromChange: boo
   mounted.get(form)?.onEdit?.(burst);
 }
 
+function hiddenFromSection(section: Section): { hidden?: true } {
+  return section.hidden === true ? { hidden: true } : {};
+}
+
+function hiddenFromNode(node: EditNode): { hidden?: true } {
+  return node.hidden === true ? { hidden: true } : {};
+}
+
 function toEdit(section: Section): EditNode {
   if (section.kind === "columns") {
     return {
       uid: nextId(),
       kind: "columns",
       layout: section.layout,
+      ...hiddenFromSection(section),
       cells: section.cells.map((cell) => ({
         className: cell.className,
         items: cell.sections.map(toEdit),
@@ -257,6 +269,7 @@ function toEdit(section: Section): EditNode {
       width: section.width,
       plain: section.plain,
       ...(section.frameColor ? { frameColor: section.frameColor } : {}),
+      ...hiddenFromSection(section),
       items: section.sections.map(toEdit),
     };
   }
@@ -265,6 +278,7 @@ function toEdit(section: Section): EditNode {
       uid: nextId(),
       kind: "panel",
       tone: section.tone,
+      ...hiddenFromSection(section),
       items: section.sections.map(toEdit),
     };
   }
@@ -276,6 +290,7 @@ function toSection(node: EditNode): Section {
     return {
       kind: "columns",
       layout: node.layout,
+      ...hiddenFromNode(node),
       cells: node.cells.map((cell) => ({
         className: cell.className,
         sections: cell.items.map(toSection),
@@ -289,18 +304,21 @@ function toSection(node: EditNode): Section {
       width: node.width,
       plain: node.plain,
       ...(node.frameColor ? { frameColor: node.frameColor } : {}),
+      ...hiddenFromNode(node),
       sections: node.items.map(toSection),
     };
   }
   if (node.kind === "panel") {
-    return { kind: "panel", tone: node.tone, sections: node.items.map(toSection) };
+    return { kind: "panel", tone: node.tone, ...hiddenFromNode(node), sections: node.items.map(toSection) };
   }
   const { uid: _uid, ...section } = node;
   if (section.kind === "text") {
-    const { loose, ...rest } = section;
-    return loose ? { ...rest, loose: true } : rest;
+    const { loose, hidden, ...rest } = section;
+    const base = loose ? { ...rest, loose: true as const } : rest;
+    return hidden === true ? { ...base, hidden: true } : base;
   }
-  return section;
+  const { hidden, ...rest } = section;
+  return hidden === true ? ({ ...rest, hidden: true } as Section) : (rest as Section);
 }
 
 function renderZone(form: HTMLElement, zone: ZoneState): void {
@@ -326,10 +344,14 @@ function itemsWithDrops(zone: ZoneState): string {
   return parts.join("");
 }
 
-function sectionActions(index: number, count: number): string {
-  const up = index <= 0 ? " disabled" : "";
-  const down = index >= count - 1 ? " disabled" : "";
-  return `<span class="editor-section-actions">${sectionIcon("Up", REORDER_ICONS.up, `data-move="up"${up}`)}${sectionIcon("Down", REORDER_ICONS.down, `data-move="down"${down}`)}${sectionIcon("Remove", REORDER_ICONS.remove, "data-remove")}</span>`;
+function sectionActions(index: number, count: number, hidden: boolean, locked: boolean): string {
+  const up = index <= 0 || locked ? " disabled" : "";
+  const down = index >= count - 1 || locked ? " disabled" : "";
+  const visibility = hidden
+    ? sectionIcon("Show", REORDER_ICONS.show, 'data-toggle-hidden="show"')
+    : sectionIcon("Hide", REORDER_ICONS.hide, 'data-toggle-hidden="hide"');
+  const remove = locked ? "" : sectionIcon("Remove", REORDER_ICONS.remove, "data-remove");
+  return `<span class="editor-section-actions">${sectionIcon("Up", REORDER_ICONS.up, `data-move="up"${up}`)}${sectionIcon("Down", REORDER_ICONS.down, `data-move="down"${down}`)}${visibility}${remove}</span>`;
 }
 
 function sectionIcon(label: string, icon: string, attributes: string): string {
@@ -348,12 +370,16 @@ function choicesFor(host: HTMLElement): Choices {
 
 function renderItem(node: EditNode, choices: Choices, zone: string, locked: boolean, index = 0, count = 1): string {
   const drag = locked ? "" : `<span class="editor-handle" draggable="true" data-drag title="Drag to move">Drag</span>`;
-  const actions = locked ? "" : sectionActions(index, count);
+  const actions = sectionActions(index, count, node.hidden === true, locked);
+  const hiddenClass = node.hidden === true ? " editor-section-hidden" : "";
+  const hiddenBadge =
+    node.hidden === true ? `<span class="editor-section-hidden-label w3-tag w3-light-grey w3-tiny">Hidden</span>` : "";
   const preview = escapeText(listPreviewText(node, choices));
-  return `<article class="editor-section" data-item-id="${node.uid}" data-zone="${escapeAttr(zone)}">
+  return `<article class="editor-section${hiddenClass}" data-item-id="${node.uid}" data-zone="${escapeAttr(zone)}">
     <div class="editor-section-bar">
       ${drag}
       <span class="editor-section-kind">${escapeText(labelFor(node))}</span>
+      ${hiddenBadge}
       ${propsFor(node, choices, locked)}
       ${actions}
     </div>
@@ -912,6 +938,21 @@ function onClick(form: HTMLFormElement, event: MouseEvent): void {
     event.preventDefault();
     if (state.locked || move.disabled) return;
     moveSection(form, state, move);
+    return;
+  }
+  const toggleHidden = target.closest<HTMLElement>("[data-toggle-hidden]");
+  if (toggleHidden?.dataset.toggleHidden === "hide" || toggleHidden?.dataset.toggleHidden === "show") {
+    event.preventDefault();
+    const article = toggleHidden.closest<HTMLElement>("[data-item-id]");
+    const uid = article?.dataset.itemId;
+    const node = uid ? findNode(allItems(state), uid) : undefined;
+    if (!node) return;
+    mark(form);
+    if (toggleHidden.dataset.toggleHidden === "hide") node.hidden = true;
+    else delete node.hidden;
+    const zone = uid ? zoneOf(state, uid) : undefined;
+    if (zone) renderZone(form, zone);
+    notifyStructure(form);
     return;
   }
   const remove = target.closest<HTMLElement>("[data-remove]");

@@ -23,4 +23,21 @@ describe("widget zone blocks", () => {
     const zones = authoringToZones({ main: { blocks: [] } });
     expect(zones.main).toEqual([]);
   });
+
+  it("omits hidden widgets when compiling blocks", () => {
+    const zones = authoringToZones({
+      main: {
+        blocks: [
+          { kind: "text", heading: "", level: 2, html: "<p>Visible</p>" },
+          { kind: "text", heading: "", level: 2, html: "<p>Hidden</p>", hidden: true },
+        ],
+      },
+    });
+    const main = zones.main;
+    expect(main).toHaveLength(1);
+    if (main![0]?.type === "text") {
+      expect(main[0].html).toContain("Visible");
+      expect(main[0].html).not.toContain("Hidden");
+    }
+  });
 });

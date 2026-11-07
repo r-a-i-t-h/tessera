@@ -31,6 +31,7 @@ export function isWidgetBlocks(value: unknown): value is Widget[] {
 const widgetLeaf = z
   .object({
     kind: z.enum(paletteKinds),
+    hidden: z.boolean().optional(),
   })
   .passthrough();
 
@@ -39,13 +40,18 @@ export const WidgetBlocksSchema: z.ZodType<Widget[], z.ZodTypeDef, unknown> = z.
   z.array(
     z.union([
       widgetLeaf,
-      z.object({ kind: z.literal("panel"), tone: z.string(), sections: WidgetBlocksSchema }).passthrough(),
-      z.object({ kind: z.literal("card"), sections: WidgetBlocksSchema }).passthrough(),
-      z.object({
-        kind: z.literal("columns"),
-        layout: z.string(),
-        cells: z.array(z.object({ className: z.string().optional(), sections: WidgetBlocksSchema }).passthrough()),
-      }).passthrough(),
+      z
+        .object({ kind: z.literal("panel"), tone: z.string(), hidden: z.boolean().optional(), sections: WidgetBlocksSchema })
+        .passthrough(),
+      z.object({ kind: z.literal("card"), hidden: z.boolean().optional(), sections: WidgetBlocksSchema }).passthrough(),
+      z
+        .object({
+          kind: z.literal("columns"),
+          layout: z.string(),
+          hidden: z.boolean().optional(),
+          cells: z.array(z.object({ className: z.string().optional(), sections: WidgetBlocksSchema }).passthrough()),
+        })
+        .passthrough(),
     ]),
   ) as z.ZodType<Widget[]>,
 );

@@ -1696,6 +1696,20 @@ img[data-hero-preview] {
   background: #fff;
 }
 
+.editor-section-hidden {
+  opacity: 0.62;
+}
+
+.editor-section-hidden .editor-section-bar {
+  color: #888;
+}
+
+.editor-section-hidden-label {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
 .editor-section:focus-within {
   outline: 2px solid #009688;
   outline-offset: 2px;
