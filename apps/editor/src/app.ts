@@ -217,6 +217,7 @@ import {
 import { datasetFieldCatalog } from "./dataset-field-catalog.js";
 import { checkedFolderIds } from "./forms/picker.js";
 import { openLibraryPicker } from "./library-picker.js";
+import { bindPickerClicks } from "./picker-bind.js";
 import {
   bindPageTargetPickerPanels,
   buildPageTargetChoices,
@@ -4216,7 +4217,7 @@ function bindPickers(form: HTMLFormElement): void {
       target.dataset.dirty = "true";
     },
   });
-  form.addEventListener("click", (event) => {
+  bindPickerClicks(form, (event) => {
     const button = (event.target as HTMLElement).closest("button");
     if (!button) return;
     if (button.dataset.insert && button.dataset.target) {
