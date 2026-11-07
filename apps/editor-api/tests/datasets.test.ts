@@ -90,6 +90,16 @@ describe("DatasetStore", () => {
     expect(list.map((d) => d.id).sort()).toEqual(["items", "items-copy"]);
   });
 
+  it("keeps original title when copy is renamed after duplicate", async () => {
+    await store.create("items", "Items");
+    await store.duplicate("items", "items-copy");
+    await store.updateTitle("items-copy", "Renamed Copy");
+    const { file: original } = await store.read("items");
+    const { file: copy } = await store.read("items-copy");
+    expect(original.title).toBe("Items");
+    expect(copy.title).toBe("Renamed Copy");
+  });
+
   it("clears all records and resets nextUid", async () => {
     await store.create("items", "Items");
     await store.updateSchema("items", {

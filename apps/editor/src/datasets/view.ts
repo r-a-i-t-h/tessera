@@ -31,11 +31,21 @@ import {
   type GridFilters,
   type GridSort,
 } from "./grid.js";
+import { parseRoute } from "../router.js";
 import { datasetNavItems } from "./nav.js";
 import { openRecordPicker } from "./record-picker.js";
 import { readRecordForm, renderRecordForm } from "./record-form.js";
 
 type BindChrome = (root: HTMLElement) => void;
+
+/** Bumped on each grid mount so late API responses cannot repaint another route or dataset. */
+let datasetGridMountSeq = 0;
+
+function isActiveDatasetGridMount(mountId: number, datasetId: string): boolean {
+  if (mountId !== datasetGridMountSeq) return false;
+  const route = parseRoute(window.location.hash);
+  return route.page === "data" && route.datasetId === datasetId;
+}
 
 export async function mountData(
   root: HTMLElement,
@@ -75,11 +85,13 @@ async function mountDatasetGrid(
   datasetId: string,
   bindChrome: BindChrome,
 ): Promise<void> {
+  const mountId = ++datasetGridMountSeq;
   const [{ file }, library, { datasets: datasetSummaries }] = await Promise.all([
     getDataset(datasetId),
     getLibrary(),
     listDatasets(),
   ]);
+  if (!isActiveDatasetGridMount(mountId, datasetId)) return;
   const navDatasets = datasetNavItems(datasetSummaries);
   const refCache = new Map<string, Map<number, string>>();
   const ctx: DisplayContext = {
@@ -122,8 +134,10 @@ async function mountDatasetGrid(
   for (const field of fileState.schema.fields) {
     if (field.kind === "ref" && field.dataset) await loadRefTitles(field.dataset);
   }
+  if (!isActiveDatasetGridMount(mountId, datasetId)) return;
 
   const paint = () => {
+    if (!isActiveDatasetGridMount(mountId, datasetId)) return;
     const columns = gridColumns(fileState.view.columns, fileState.schema.fields);
     const sorted = sortRecords(fileState.records, columns, sort, ctx);
     const visible = filterRecords(sorted, columns, filters, ctx);
@@ -269,6 +283,7 @@ async function mountDatasetGrid(
       }
       void clearDatasetRecords(datasetId)
         .then((res) => {
+          if (!isActiveDatasetGridMount(mountId, datasetId)) return;
           fileState = res.file;
           filters = {};
           sort = undefined;
@@ -370,6 +385,7 @@ async function mountDatasetGrid(
       items.push({ uid: record.uid, record: next });
     }
     const res = await patchDatasetRecords(datasetId, items);
+    if (!isActiveDatasetGridMount(mountId, datasetId)) return;
     fileState = res.file;
     gridMode = "view";
     paint();
@@ -406,6 +422,10 @@ async function mountDatasetGrid(
         ? saveDatasetRecord(datasetId, record.uid, next)
         : appendDatasetRecord(datasetId, next);
       void save.then((res) => {
+        if (!isActiveDatasetGridMount(mountId, datasetId)) {
+          close();
+          return;
+        }
         fileState = res.file;
         close();
         paint();
@@ -415,6 +435,10 @@ async function mountDatasetGrid(
     host.querySelector("[data-record-delete]")?.addEventListener("click", () => {
       if (!record || !window.confirm("Delete this record?")) return;
       void deleteDatasetRecord(datasetId, record.uid).then((res) => {
+        if (!isActiveDatasetGridMount(mountId, datasetId)) {
+          close();
+          return;
+        }
         fileState = res.file;
         close();
         paint();
