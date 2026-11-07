@@ -122,7 +122,7 @@ export function editorChrome(
       : "";
 
   return `<div class="editor-shell">
-      <aside class="editor-sidebar w3-theme">
+      <aside id="editor-sidebar" class="editor-sidebar w3-theme">
         <nav class="w3-bar-block editor-nav-block" aria-label="Editor">
           ${sectionLink("#/", "Tessera editor", "home", false, "editor-nav-brand w3-theme-d3")}
           ${sectionLink("#/navigation", "Navigation", "navigation")}
@@ -142,7 +142,18 @@ export function editorChrome(
         </div>
         <div class="editor-sidebar-version">${editorVersionLabel()}</div>
       </aside>
+      <div class="editor-sidebar-overlay" data-action="close-editor-sidebar" hidden aria-hidden="true"></div>
       <div class="editor-body">
+        <header class="editor-mobile-bar w3-bar w3-theme">
+          <button
+            type="button"
+            class="w3-bar-item w3-button tessera-menu-btn w3-hide-medium w3-hide-large"
+            data-action="toggle-editor-sidebar"
+            aria-controls="editor-sidebar"
+            aria-expanded="false"
+            aria-label="Open menu"
+          >Menu</button>
+        </header>
         <div id="editor-status-stack" class="editor-status-stack" hidden></div>
         <p id="route-status" class="editor-sr-only" aria-live="polite"></p>
         <div class="editor-scroll">

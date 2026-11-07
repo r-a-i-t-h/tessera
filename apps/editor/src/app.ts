@@ -101,6 +101,7 @@ import {
   type EditorNavContext,
   type EditorSection,
 } from "./chrome.js";
+import { wireEditorSidebarMobile } from "./editor-sidebar-mobile.js";
 import { blogsFromListing, mergeEditorNav, refreshSidebarNav } from "./sidebar-nav.js";
 import { tesseraLogo3x5 } from "./logo-3x5.js";
 import { editPlace, type EditPlace } from "./edit-place.js";
@@ -458,6 +459,7 @@ let historyRestore = false;
 let undoKeys: AbortController | undefined;
 
 function bindChrome(root: HTMLElement): void {
+  wireEditorSidebarMobile(root);
   bindDarkMode(root);
   bindBackToTop(root);
   root.querySelector("[data-action=logout]")?.addEventListener("click", async () => {

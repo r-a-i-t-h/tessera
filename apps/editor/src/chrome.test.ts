@@ -58,7 +58,12 @@ describe("editor chrome", () => {
     expect(html).toContain('aria-label="Setup"');
     expect(html).toContain("&lt;Alice&gt;");
     expect(html).toContain('aria-live="polite"');
+    expect(html).toContain('id="editor-sidebar"');
     expect(html).toContain('class="editor-sidebar w3-theme"');
+    expect(html).toContain('data-action="toggle-editor-sidebar"');
+    expect(html).toContain("w3-hide-medium w3-hide-large");
+    expect(html).toContain('data-action="close-editor-sidebar"');
+    expect(html).toContain('class="editor-mobile-bar');
     expect(html).toContain("editor-nav-brand w3-theme-d3");
     expect(html).toContain('class="editor-shell"');
     expect(html).toContain('class="editor-scroll"');

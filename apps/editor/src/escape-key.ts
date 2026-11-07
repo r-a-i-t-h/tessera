@@ -1,5 +1,6 @@
-import { closeEntityOpener } from "./entity-opener.js";
 import { closeCommandPalette } from "./command-palette.js";
+import { closeEditorSidebar } from "./editor-sidebar-mobile.js";
+import { closeEntityOpener } from "./entity-opener.js";
 
 export const COMPOSE_LIST_EXPANDED_LABEL = "Collapse editors";
 export const COMPOSE_LIST_COLLAPSED_LABEL = "Expand editors";
@@ -17,6 +18,7 @@ export type EscapeHandlers = {
  * Cancel the current inline operation, or navigate back. Returns true when Escape was handled.
  */
 export function handleEscape(root: ParentNode, handlers?: EscapeHandlers): boolean {
+  if (closeEditorSidebar(root)) return true;
   if (cancelCreationForm(root)) return true;
   if (cancelBindingWizard(root)) return true;
   if (cancelLibraryAssetDetail(root)) return true;
