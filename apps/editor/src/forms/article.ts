@@ -85,7 +85,7 @@ function heroWidthSelect(current: string): string {
     .join("");
   return `<p><label for="fields.heroWidth">Hero width</label>
     <select id="fields.heroWidth" name="fields.heroWidth" class="w3-select w3-border w3-margin-top">${items}</select>
-    <span class="w3-text-grey w3-small">Full and banner heroes use this width. Side keeps the column layout with a square image.</span></p>
+    <span class="w3-text-grey w3-small">Full and banner heroes use this width. Side keeps a text and image column; the hero keeps its natural aspect ratio.</span></p>
 `;
 }
 
