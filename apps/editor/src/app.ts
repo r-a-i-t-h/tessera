@@ -273,6 +273,7 @@ import { cancelNewBindingForm, handleEscape, hasOpenModal } from "./escape-key.j
 import { triggerNewAction } from "./new-key.js";
 import { triggerOpenAction, isEntityOpenShortcut } from "./open-key.js";
 import { isCommandPaletteShortcut, triggerPaletteAction } from "./palette-key.js";
+import { triggerEditorSave } from "./save-key.js";
 import { mountCommandPalette } from "./command-palette.js";
 import { bindEntityOpener, entityOpenerHtml } from "./entity-opener.js";
 import { buildEditEntityItems, buildUserEntityItems } from "./entity-opener-items.js";
@@ -301,6 +302,13 @@ export async function mount(root: HTMLElement): Promise<void> {
   });
 
   window.addEventListener("hashchange", () => void render(root));
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      if (triggerEditorSave(root, event)) return;
+    },
+    { capture: true },
+  );
   document.addEventListener("keydown", (event) => {
     if (
       event.key === "Escape" &&
@@ -333,45 +341,8 @@ export async function mount(root: HTMLElement): Promise<void> {
       if (!hasOpenModal()) void triggerPaletteAction();
       return;
     }
-    if (event.code !== "KeyS" || event.altKey || event.shiftKey || !(event.metaKey || event.ctrlKey)) return;
-    if (event.defaultPrevented) return;
-    const datasetSave = document.querySelector<HTMLButtonElement>(
-      ".editor-dataset-setup [data-dataset-save]:not([disabled])",
-    );
-    if (datasetSave?.isConnected) {
-      event.preventDefault();
-      datasetSave.click();
-      return;
-    }
-    const active = document.activeElement;
-    const focused = active instanceof HTMLElement ? active.closest("form") : null;
-    const form =
-      editingForm(focused) ??
-      document.querySelector<HTMLFormElement>("#record-form") ??
-      document.querySelector<HTMLFormElement>("#style-form");
-    event.preventDefault();
-    if (form) {
-      form.requestSubmit();
-      return;
-    }
-    showEditorToast("Nothing was saved.", { tone: "neutral" });
   });
   await render(root);
-}
-
-function editingForm(form: HTMLFormElement | null): HTMLFormElement | null {
-  if (!form) return null;
-  if (
-    form.id === "record-form" ||
-    form.id === "style-form" ||
-    form.id === "asset-detail" ||
-    form.id === "folder-detail" ||
-    form.hasAttribute("data-sheet") ||
-    form.hasAttribute("data-runtime-raw")
-  ) {
-    return form;
-  }
-  return null;
 }
 
 let lastAnnouncedHash = "";

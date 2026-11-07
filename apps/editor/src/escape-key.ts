@@ -101,10 +101,16 @@ function cancelDatasetGridEdit(root: ParentNode): boolean {
   return true;
 }
 
+const DISCARD_UNSAVED_BACK_MESSAGE = "Discard unsaved edits and go back?";
+
 function followBackLink(root: ParentNode): boolean {
   const back = root.querySelector<HTMLAnchorElement>(".editor-back");
   const hash = back?.getAttribute("href");
   if (!hash) return false;
+  const form = root.querySelector<HTMLFormElement>("#record-form");
+  if (form?.dataset.dirty === "true" && !window.confirm(DISCARD_UNSAVED_BACK_MESSAGE)) {
+    return true;
+  }
   navigateHash(hash);
   return true;
 }

@@ -2,7 +2,7 @@
  * @vitest-environment happy-dom
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { handleEscape, libraryParentHash } from "./escape-key.js";
 
 describe("handleEscape", () => {
@@ -56,6 +56,32 @@ describe("handleEscape", () => {
 
     expect(handleEscape(root)).toBe(true);
     expect(window.location.hash).toBe("#/pages");
+  });
+
+  it("confirms before back when the record form is dirty", () => {
+    const confirm = vi.fn(() => false);
+    vi.stubGlobal("confirm", confirm);
+    const root = document.createElement("div");
+    root.innerHTML = `<form id="record-form" data-dirty="true"></form>
+      <a class="editor-back" href="#/pages">Back</a>`;
+    window.location.hash = "#/content/home";
+
+    expect(handleEscape(root)).toBe(true);
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(window.location.hash).toBe("#/content/home");
+    vi.unstubAllGlobals();
+  });
+
+  it("navigates back when dirty confirm is accepted", () => {
+    vi.stubGlobal("confirm", vi.fn(() => true));
+    const root = document.createElement("div");
+    root.innerHTML = `<form id="record-form" data-dirty="true"></form>
+      <a class="editor-back" href="#/pages">Back</a>`;
+    window.location.hash = "#/content/home";
+
+    expect(handleEscape(root)).toBe(true);
+    expect(window.location.hash).toBe("#/pages");
+    vi.unstubAllGlobals();
   });
 
   it("clears library asset details before leaving the folder", () => {

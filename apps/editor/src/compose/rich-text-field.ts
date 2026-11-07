@@ -1,5 +1,6 @@
 import { renderMarkdownLinks } from "@r-a-i-t-h/tessera-sections";
 import { hasOpenModal } from "../escape-key.js";
+import { isEditorSaveShortcut } from "../save-key.js";
 
 export type PageLinkPick =
   | { kind: "page"; id: string; title?: string }
@@ -42,6 +43,11 @@ export function runRichTextCommand(form: HTMLFormElement, command: string, optio
 export function handleRichTextKeydown(form: HTMLFormElement, event: KeyboardEvent, options: RichTextFieldOptions): void {
   const target = event.target;
   if (!(target instanceof HTMLElement)) return;
+  if (isEditorSaveShortcut(event) && !hasOpenModal() && !event.defaultPrevented) {
+    event.preventDefault();
+    form.requestSubmit();
+    return;
+  }
   if (event.key === "Enter") {
     if (target.dataset.field === "heading") {
       event.preventDefault();
