@@ -59,6 +59,7 @@ export {
   resolveNavTree,
   flattenNav,
   collectNavPageOrder,
+  rewriteNavPageTitle,
   type ResolvedNavNode,
 } from "./nav-expand.js";
 export {

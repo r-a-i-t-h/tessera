@@ -10,6 +10,7 @@ import {
   resolveAspect,
   resolveMasterLayout,
   resolvePageProfile,
+  rewriteNavPageTitle,
   SITE_REVISION_FILE,
   type NavEntry,
 } from "@r-a-i-t-h/tessera-model";
@@ -303,8 +304,15 @@ export class SiteStore {
     }
     validateAuthoredRecord(kind, id, record);
     const createdIndex = kind === "content" ? await this.ensureBlogIndex(record) : undefined;
+    const previousTitle =
+      kind === "content" ? await this.readContentTitle(id).catch(() => "") : "";
     try {
-      return await this.commitRecord(kind, id, recordToYaml(kind, record));
+      const saved = await this.commitRecord(kind, id, recordToYaml(kind, record));
+      if (kind === "content") {
+        const nextTitle = typeof record.title === "string" ? record.title : "";
+        await this.syncNavPageTitle(id, previousTitle, nextTitle);
+      }
+      return saved;
     } catch (err) {
       if (createdIndex) await this.removeRecord("content", createdIndex);
       throw err;
@@ -397,8 +405,12 @@ export class SiteStore {
       if (record.published === false) await this.assertRemovable(id, "unpublish");
       validateAuthoredRecord(kind, id, record);
       const createdIndex = await this.ensureBlogIndex(record);
+      const previousTitle = await this.readContentTitle(id).catch(() => "");
       try {
-        return await this.commitRecord(kind, id, recordToYaml(kind, record));
+        const saved = await this.commitRecord(kind, id, recordToYaml(kind, record));
+        const nextTitle = typeof record.title === "string" ? record.title : "";
+        await this.syncNavPageTitle(id, previousTitle, nextTitle);
+        return saved;
       } catch (err) {
         if (createdIndex) await this.removeRecord("content", createdIndex);
         throw err;
@@ -449,6 +461,29 @@ export class SiteStore {
 
   async readNav(): Promise<unknown> {
     return fromYaml(await readText(this.navFile()));
+  }
+
+  private async readContentTitle(id: string): Promise<string> {
+    const record = (await this.read("content", id)) as AuthoredPage;
+    return typeof record.title === "string" ? record.title : "";
+  }
+
+  private async syncNavPageTitle(pageId: string, previousTitle: string, nextTitle: string): Promise<void> {
+    if (previousTitle.trim() === nextTitle.trim()) return;
+    try {
+      const nav = await this.readNav();
+      if (!Array.isArray(nav)) return;
+      const { nav: nextNav, changed } = rewriteNavPageTitle(
+        nav as NavEntry[],
+        pageId,
+        previousTitle,
+        nextTitle,
+      );
+      if (!changed) return;
+      await this.commitText(this.navFile(), toYaml(nextNav), { rebuild: false });
+    } catch {
+      // nav.yaml is optional until the author adds one
+    }
   }
 
   async writeNav(data: unknown): Promise<SaveResult> {

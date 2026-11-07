@@ -58,10 +58,10 @@ export function nodeFromPalette(item: NavPaletteKind): NavBuildNode {
     case "heading":
       return newGroup("");
     case "page":
-      return newLink(item.id, item.title);
+      return newLink(item.id);
     case "blog":
       return {
-        ...newLink(item.id, item.title),
+        ...newLink(item.id),
         source: { blog: true },
       };
     case "type":

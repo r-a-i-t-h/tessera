@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SiteDocument } from "../schema.js";
-import { collectNavPageOrder, flattenNav, resolveNavTree } from "../nav-expand.js";
+import { collectNavPageOrder, flattenNav, resolveNavTree, rewriteNavPageTitle } from "../nav-expand.js";
 import { makeFixtureDoc } from "./nav-fixtures.js";
 
 describe("resolveNavTree", () => {
@@ -143,5 +143,51 @@ describe("collectNavPageOrder", () => {
     ];
     const tree = resolveNavTree(doc);
     expect(collectNavPageOrder(tree, new Set(["home"]))).toEqual([{ id: "home", depth: 0 }]);
+  });
+});
+
+describe("rewriteNavPageTitle", () => {
+  it("updates a nav title that mirrored the previous page title", () => {
+    const nav = [{ id: "about", title: "About", sidebar: true }];
+    const { nav: next, changed } = rewriteNavPageTitle(nav, "about", "About", "About us");
+    expect(changed).toBe(true);
+    expect(next[0]).toMatchObject({ id: "about", title: "About us" });
+  });
+
+  it("leaves a custom nav label when it differs from the page title", () => {
+    const nav = [{ id: "about", title: "Who we are", sidebar: true }];
+    const { nav: next, changed } = rewriteNavPageTitle(nav, "about", "About", "About us");
+    expect(changed).toBe(false);
+    expect(next[0]).toMatchObject({ id: "about", title: "Who we are" });
+  });
+
+  it("leaves omitted nav titles unchanged", () => {
+    const nav = [{ id: "about", sidebar: true }];
+    const { nav: next, changed } = rewriteNavPageTitle(nav, "about", "About", "About us");
+    expect(changed).toBe(false);
+    expect(next[0]).toEqual({ id: "about", sidebar: true });
+  });
+
+  it("updates nested links and titles that matched the page id", () => {
+    const nav = [
+      {
+        heading: "Pages",
+        sidebar: true,
+        children: [{ id: "draft", title: "draft", sidebar: true }],
+      },
+    ];
+    const { nav: next, changed } = rewriteNavPageTitle(nav, "draft", "", "First draft");
+    expect(changed).toBe(true);
+    const group = next[0]!;
+    expect(group.children?.[0]).toMatchObject({ id: "draft", title: "First draft" });
+  });
+
+  it("drops a mirrored title when the new page title is empty or the page id", () => {
+    const nav = [{ id: "about", title: "About", sidebar: true }];
+    const cleared = rewriteNavPageTitle(nav, "about", "About", "");
+    expect(cleared.changed).toBe(true);
+    expect(cleared.nav[0]).toEqual({ id: "about", sidebar: true });
+    const idTitle = rewriteNavPageTitle([{ id: "about", title: "Old", sidebar: true }], "about", "Old", "about");
+    expect(idTitle.nav[0]).toEqual({ id: "about", sidebar: true });
   });
 });

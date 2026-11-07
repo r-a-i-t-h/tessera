@@ -61,7 +61,7 @@ describe("nav-build tree", () => {
     const heading = nodeFromPalette({ kind: "heading" });
     expect(heading.kind).toBe("group");
     const page = nodeFromPalette({ kind: "page", id: "about", title: "About" });
-    expect(page).toMatchObject({ kind: "link", id: "about", title: "About" });
+    expect(page).toMatchObject({ kind: "link", id: "about", title: "" });
     const blog = nodeFromPalette({ kind: "blog", id: "news", title: "News" });
     expect(blog).toMatchObject({ kind: "link", source: { blog: true } });
     const type = nodeFromPalette({ kind: "type", typeId: "meeting" });

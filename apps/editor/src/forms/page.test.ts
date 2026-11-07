@@ -116,7 +116,7 @@ describe("new page", () => {
       ok: true,
       nav: [
         { id: "home", title: "Home", sidebar: true },
-        { id: "about", title: "About", sidebar: true },
+        { id: "about", sidebar: true },
       ],
     });
     expect(nav).toHaveLength(1);

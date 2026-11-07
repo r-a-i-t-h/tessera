@@ -147,6 +147,6 @@ export function withSidebarLink(nav: unknown, id: string, title: string): Sideba
       message: "Navigation is not a list, so this page was not added to the sidebar.",
     };
   }
-  const name = title.trim() || id;
-  return { ok: true, nav: [...nav, { id, title: name, sidebar: true }] };
+  void title;
+  return { ok: true, nav: [...nav, { id, sidebar: true }] };
 }

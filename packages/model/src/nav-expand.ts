@@ -182,3 +182,83 @@ export function collectNavPageOrder(
   walk(nodes, 0);
   return out;
 }
+
+function navTitleShouldMirror(pageId: string, pageTitle: string, navTitle: string): boolean {
+  const nav = navTitle.trim();
+  if (!nav) return false;
+  const prev = pageTitle.trim();
+  if (prev && nav === prev) return true;
+  if (!prev && nav === pageId) return true;
+  if (prev === pageId && nav === pageId) return true;
+  return false;
+}
+
+function nextMirroredNavTitle(pageId: string, pageTitle: string): string | undefined {
+  const next = pageTitle.trim();
+  if (!next || next === pageId) return undefined;
+  return next;
+}
+
+function rewriteNavPageTitleEntry(
+  entry: NavEntry,
+  pageId: string,
+  previousTitle: string,
+  nextTitle: string,
+): { entry: NavEntry; changed: boolean } {
+  let changed = false;
+  let next = entry;
+
+  if (entry.id === pageId && entry.title !== undefined) {
+    const designed = entry.title.trim();
+    if (designed && navTitleShouldMirror(pageId, previousTitle, designed)) {
+      const mirrored = nextMirroredNavTitle(pageId, nextTitle);
+      if (mirrored) {
+        if (entry.title !== mirrored) {
+          next = { ...entry, title: mirrored };
+          changed = true;
+        }
+      } else if (Object.prototype.hasOwnProperty.call(entry, "title")) {
+        const { title: _omit, ...rest } = entry;
+        next = rest;
+        changed = true;
+      }
+    }
+  }
+
+  if (entry.children?.length) {
+    let childrenChanged = false;
+    const children = entry.children.map((child) => {
+      const rewritten = rewriteNavPageTitleEntry(child, pageId, previousTitle, nextTitle);
+      if (rewritten.changed) childrenChanged = true;
+      return rewritten.entry;
+    });
+    if (childrenChanged) {
+      next = next === entry ? { ...entry, children } : { ...next, children };
+      changed = true;
+    }
+  }
+
+  return { entry: next, changed };
+}
+
+/**
+ * When a page title changes, update designed nav link titles that still mirrored
+ * the previous page title (or the page id when the old title was empty).
+ */
+export function rewriteNavPageTitle(
+  entries: NavEntry[],
+  pageId: string,
+  previousTitle: string,
+  nextTitle: string,
+): { nav: NavEntry[]; changed: boolean } {
+  if (previousTitle.trim() === nextTitle.trim()) {
+    return { nav: entries, changed: false };
+  }
+  let changed = false;
+  const nav = entries.map((entry) => {
+    const rewritten = rewriteNavPageTitleEntry(entry, pageId, previousTitle, nextTitle);
+    if (rewritten.changed) changed = true;
+    return rewritten.entry;
+  });
+  return { nav, changed };
+}
