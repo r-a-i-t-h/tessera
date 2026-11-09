@@ -22,7 +22,7 @@ html.editor-dark body.editor-body-dark {
 html.editor-dark .w3-white,
 html.editor-dark .w3-card.w3-white {
   background-color: var(--editor-surface) !important;
-  color: var(--editor-text);
+  color: var(--editor-text) !important;
 }
 
 html.editor-dark .w3-light-grey {
@@ -42,6 +42,11 @@ html.editor-dark textarea.w3-input {
   border-color: var(--editor-border);
 }
 
+html.editor-dark .w3-select option {
+  background-color: var(--editor-surface);
+  color: var(--editor-text);
+}
+
 html.editor-dark .w3-border,
 html.editor-dark .w3-input.w3-border {
   border-color: var(--editor-border) !important;
@@ -59,6 +64,7 @@ html.editor-dark .w3-button.w3-white {
 
 html.editor-dark .w3-button.w3-white:hover {
   background-color: #3f4348 !important;
+  color: var(--editor-text) !important;
 }
 
 html.editor-dark .w3-pale-red {
@@ -129,6 +135,15 @@ html.editor-dark .editor-entity-opener-panel,
 html.editor-dark .editor-command-palette {
   background: var(--editor-surface);
   border-color: var(--editor-border);
+  color: var(--editor-text);
+}
+
+html.editor-dark .editor-entity-opener-list.w3-white,
+html.editor-dark .editor-command-palette-list {
+  color: var(--editor-text) !important;
+}
+
+html.editor-dark .editor-entity-opener-list .editor-entity-opener-option {
   color: var(--editor-text);
 }
 
@@ -267,6 +282,12 @@ html.editor-dark .editor-main h2,
 html.editor-dark .editor-main h3,
 html.editor-dark .editor-card h1,
 html.editor-dark .editor-card h2,
+html.editor-dark .editor-card h3,
+html.editor-dark .editor-card h4,
+html.editor-dark .editor-card strong,
+html.editor-dark .editor-card summary,
+html.editor-dark .style-sheet summary,
+html.editor-dark .editor-history summary,
 html.editor-dark .editor-card label,
 html.editor-dark .editor-new-page label,
 html.editor-dark .editor-form-scope label,
@@ -376,6 +397,15 @@ html.editor-dark .arrange-node {
 
 html.editor-dark .arrange-bar {
   background: var(--editor-surface-raised);
+  color: var(--editor-text);
+}
+
+html.editor-dark .arrange-grip {
+  color: var(--editor-text);
+}
+
+html.editor-dark .editor-arrange-inspector h2 {
+  color: var(--editor-text);
 }
 
 html.editor-dark .arrange-body {
@@ -397,14 +427,22 @@ html.editor-dark .editor-nav-build-scroll {
 
 html.editor-dark .editor-nav-build-palette .nav-build-palette-item {
   background: #3f4348 !important;
+  color: var(--editor-text) !important;
 }
 
 html.editor-dark .editor-nav-build-palette .nav-build-palette-item:hover {
   background: #4a4f55 !important;
+  color: var(--editor-text) !important;
 }
 
 html.editor-dark .nav-build-bar {
   background: #3f4348;
+  color: var(--editor-text);
+}
+
+html.editor-dark .nav-build-grip,
+html.editor-dark .nav-build-heading-input {
+  color: var(--editor-text);
 }
 
 html.editor-dark .nav-build-well {
@@ -441,6 +479,10 @@ html.editor-dark .editor-dataset-column-choice {
 html.editor-dark .editor-dataset-column-choice:has(input:checked) {
   background: rgba(0, 150, 136, 0.15);
   border-color: #4a7c76;
+}
+
+html.editor-dark .editor-library-add > summary {
+  color: var(--editor-text);
 }
 
 html.editor-dark .editor-library-add[open] > summary {
@@ -511,6 +553,35 @@ html.editor-dark .style-specimen {
   color-scheme: light;
   background: var(--tessera-page, #fff);
   color: var(--tessera-text, #111);
+}
+
+/* Undo shell dark rules inside site previews (beats html.editor-dark .w3-white). */
+html.editor-dark :is(.style-specimen, .editor-canvas) .w3-white,
+html.editor-dark :is(.style-specimen, .editor-canvas) .w3-card.w3-white {
+  background-color: #fff !important;
+  color: #000 !important;
+}
+
+html.editor-dark :is(.style-specimen, .editor-canvas) .tessera-card.w3-card,
+html.editor-dark :is(.style-specimen, .editor-canvas) .tessera-imgbox.w3-card {
+  background-color: var(--tessera-frame-bg, rgba(255, 255, 255, 0.75)) !important;
+  color: inherit;
+}
+
+html.editor-dark :is(.style-specimen, .editor-canvas) .w3-text-grey {
+  color: #757575 !important;
+}
+
+html.editor-dark .style-specimen .w3-table th,
+html.editor-dark .style-specimen .w3-table td {
+  color: inherit;
+  background-color: transparent !important;
+}
+
+html.editor-dark .style-specimen .w3-table tr:nth-child(even),
+html.editor-dark .style-specimen .w3-table-all tr:nth-child(even),
+html.editor-dark .style-specimen .w3-table-all tr:nth-child(odd) {
+  background-color: transparent !important;
 }
 
 html.editor-dark .style-specimen .w3-ul > li {
