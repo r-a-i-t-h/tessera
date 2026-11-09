@@ -26,11 +26,56 @@ function filterScope(nodes: ResolvedNavNode[], scope: string | undefined): Resol
   });
 }
 
+function collectNavPageIds(nodes: ResolvedNavNode[]): Set<string> {
+  const ids = new Set<string>();
+  const walk = (list: ResolvedNavNode[]) => {
+    for (const n of list) {
+      if (n.id) ids.add(n.id);
+      walk(n.children);
+    }
+  };
+  walk(nodes);
+  return ids;
+}
+
+/** Nearest ancestors first: only explicit `parentId` links (home is not implied for every page). */
+function pageAncestorIds(pageId: string, pages: Page[]): string[] {
+  const byId = new Map(pages.map((p) => [p.id, p]));
+  const ancestors: string[] = [];
+  let current = byId.get(pageId);
+  while (current?.parentId) {
+    const parent = byId.get(current.parentId);
+    if (!parent) break;
+    ancestors.push(parent.id);
+    current = parent;
+  }
+  return ancestors;
+}
+
+/** Nav link to highlight: current page if it is in nav, else nearest parentId ancestor that is. */
+function navHighlightPageId(ctx: Parameters<ComponentFn>[0]): string | undefined {
+  const navIds = collectNavPageIds(resolveNavTree(ctx.document));
+  if (navIds.has(ctx.page.id)) return ctx.page.id;
+  for (const id of pageAncestorIds(ctx.page.id, ctx.document.pages)) {
+    if (navIds.has(id)) return id;
+  }
+  return undefined;
+}
+
+function navLinkHighlighted(ctx: Parameters<ComponentFn>[0], linkId: string): boolean {
+  const target = navHighlightPageId(ctx);
+  return Boolean(linkId && target && linkId === target);
+}
+
+function navLinkIsCurrentPage(ctx: Parameters<ComponentFn>[0], linkId: string): boolean {
+  return Boolean(linkId && ctx.page.id === linkId);
+}
+
 function linkHtml(ctx: Parameters<ComponentFn>[0], node: ResolvedNavNode): string {
   const id = node.id ?? "";
   const base = hrefForPage(ctx, id);
   const href = node.hash ? (base.startsWith("#") ? `${base}/${node.hash}` : `${base}#${node.hash}`) : base;
-  const active = !node.hash && id && ctx.page.id === id ? " is-active w3-theme-l3" : "";
+  const active = !node.hash && navLinkHighlighted(ctx, id) ? " is-active w3-theme-l3" : "";
   const label = ctx.escapeHtml(node.title ?? id);
   return `<a class="w3-bar-item w3-button${active}" href="${href}">${label}</a>`;
 }
@@ -43,15 +88,16 @@ function paneLinkHtml(
   const id = node.id ?? "";
   const base = hrefForPage(ctx, id);
   const href = node.hash ? (base.startsWith("#") ? `${base}/${node.hash}` : `${base}#${node.hash}`) : base;
-  const on = !node.hash && Boolean(id) && ctx.page.id === id;
+  const on = !node.hash && navLinkHighlighted(ctx, id);
+  const exact = !node.hash && navLinkIsCurrentPage(ctx, id);
   const label = ctx.escapeHtml(node.title ?? id);
   if (child) {
     const current = on ? " tessera-nav-child-current" : "";
-    const aria = on ? ' aria-current="page"' : "";
+    const aria = exact ? ' aria-current="page"' : "";
     return `<a class="w3-bar-item w3-button tessera-nav-child${current}" href="${href}"${aria}>${label}</a>`;
   }
   const current = on ? " tessera-nav-current" : "";
-  const aria = on ? ' aria-current="page"' : "";
+  const aria = exact ? ' aria-current="page"' : "";
   return `<a class="w3-bar-item w3-button${current}" href="${href}"${aria}>${label}</a>`;
 }
 
@@ -157,8 +203,13 @@ function groupLinkMembers(children: ResolvedNavNode[]): ResolvedNavNode[] {
   return children.filter((c) => Boolean(c.id));
 }
 
-function groupContainsPage(members: ResolvedNavNode[], pageId: string): boolean {
-  return members.some((m) => m.id === pageId);
+function groupContainsPage(members: ResolvedNavNode[], pageId: string, pages: Page[]): boolean {
+  if (members.some((m) => m.id === pageId)) return true;
+  const memberIds = new Set(members.map((m) => m.id).filter(Boolean) as string[]);
+  for (const id of pageAncestorIds(pageId, pages)) {
+    if (memberIds.has(id)) return true;
+  }
+  return false;
 }
 
 function renderCurrentGroupNode(ctx: Parameters<ComponentFn>[0], n: ResolvedNavNode): string {
@@ -168,7 +219,7 @@ function renderCurrentGroupNode(ctx: Parameters<ComponentFn>[0], n: ResolvedNavN
     if (links.length) {
       const [parent, ...siblings] = links;
       html = linkHtml(ctx, parent!);
-      if (siblings.length && groupContainsPage(links, ctx.page.id)) {
+      if (siblings.length && groupContainsPage(links, ctx.page.id, ctx.document.pages)) {
         html += renderCurrentGroupSiblings(ctx, siblings);
       }
     }

@@ -110,6 +110,100 @@ describe("nav link labels", () => {
   });
 });
 
+describe("nav ancestor highlight", () => {
+  const ctx = context(document, "fair");
+
+  it("highlights a nav ancestor when the current page is not in the menu", () => {
+    const flat = navFlat(ctx, { scope: "sidebar" });
+    expect(flat).toMatch(
+      /<a class="w3-bar-item w3-button is-active w3-theme-l3" href="#events">Events<\/a>/,
+    );
+    expect(flat).not.toContain('href="#fair"');
+  });
+
+  it("keeps the highlighted ancestor link navigable", () => {
+    for (const html of [
+      navFlat(ctx, { scope: "sidebar" }),
+      navTree(ctx, { scope: "sidebar" }),
+      navCollapse(ctx, { scope: "sidebar" }),
+    ]) {
+      expect(html).toContain('href="#events">Events</a>');
+    }
+  });
+
+  it("applies pane active styling to the ancestor without aria-current", () => {
+    const html = navPane(ctx, { scope: "sidebar" });
+    expect(html).toContain("tessera-nav-child-current");
+    expect(html).toContain('href="#events">Events</a>');
+    expect(html).not.toContain('aria-current="page"');
+  });
+
+  it("expands collapse siblings when the page is a descendant of a group member", () => {
+    const doc = parseSiteDocument({
+      ...document,
+      pages: [
+        ...document.pages,
+        { id: "workshops", title: "Workshops", parentId: "events", layoutId: "L", zones: {} },
+      ],
+      nav: [
+        { id: "home", title: "Home", sidebar: true },
+        {
+          heading: "What's on",
+          sidebar: true,
+          children: [
+            { id: "events", title: "Events", sidebar: true },
+            { id: "workshops", title: "Workshops", sidebar: true },
+          ],
+        },
+      ],
+    });
+    const html = navCollapse(context(doc, "fair"), { scope: "sidebar" });
+    expect(html).toContain("tessera-nav-sublinks");
+    expect(html).toMatch(
+      /<a class="w3-bar-item w3-button is-active w3-theme-l3" href="#events">Events<\/a>/,
+    );
+  });
+
+  it("still marks the exact page on pane links with aria-current", () => {
+    const html = navPane(context(document, "home"), { scope: "sidebar" });
+    expect(html).toContain('aria-current="page"');
+    expect(html).toContain('href="#home"');
+  });
+
+  it("does not treat home as an ancestor without an explicit parentId chain", () => {
+    const html = navFlat(context(document, "orphan"), { scope: "sidebar" });
+    expect(html).toMatch(/<a class="w3-bar-item w3-button" href="#home">Home<\/a>/);
+    expect(html).not.toMatch(/is-active w3-theme-l3/);
+  });
+
+  it("does not highlight home when an off-menu page has no parent chain to it", () => {
+    const doc = parseSiteDocument({
+      version: 2,
+      site: { id: "s", title: "Hall", homePageId: "home" },
+      layouts: [{ id: "L", root: { type: "region", children: [{ type: "zone", id: "main" }] } }],
+      pages: [
+        { id: "home", title: "Home", layoutId: "L", zones: {} },
+        { id: "detached", title: "Detached", layoutId: "L", zones: {} },
+        { id: "leaf", title: "Leaf", parentId: "detached", layoutId: "L", zones: {} },
+      ],
+      nav: [
+        { id: "home", title: "Home", sidebar: true },
+        { id: "detached", title: "Detached", sidebar: true },
+      ],
+    });
+    const flat = navFlat(context(doc, "leaf"), { scope: "sidebar" });
+    expect(flat).toMatch(
+      /<a class="w3-bar-item w3-button is-active w3-theme-l3" href="#detached">Detached<\/a>/,
+    );
+    const offNav = parseSiteDocument({
+      ...doc,
+      nav: [{ id: "home", title: "Home", sidebar: true }],
+    });
+    const lonely = navFlat(context(offNav, "leaf"), { scope: "sidebar" });
+    expect(lonely).not.toContain("is-active");
+  });
+});
+
 describe("nav places", () => {
   it("lets a component keep the links marked for its place", () => {
     const doc = parseSiteDocument({
