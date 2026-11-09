@@ -272,11 +272,94 @@ body {
 /* Tighter list rows than default W3.CSS (8px 16px, #ddd dividers). */
 .w3-ul > li {
   padding: 0.3rem 0.55rem;
-  border-bottom-color: #ececec;
+  border-bottom-color: #dedede;
+}
+
+.w3-ul > li.editor-list-item {
+  padding: 0;
+}
+
+.editor-list-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.65rem;
+  align-items: baseline;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.3rem 0.55rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+a.editor-list-row:hover,
+a.editor-list-row:focus-visible {
+  background: var(--editor-list-row-hover);
+  text-decoration: none;
+}
+
+.editor-list-primary {
+  font-weight: inherit;
+}
+
+/* Non-link row shell (e.g. users, blogs) — same metrics as .editor-list-row. */
+.editor-list-row-inert {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.65rem;
+  align-items: baseline;
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 0.3rem 0.55rem;
+}
+
+.editor-record-table {
+  width: 100%;
+  margin-top: 0.5rem;
+  border-collapse: collapse;
+}
+
+.editor-record-table th {
+  text-align: left;
+  font-weight: 600;
+  font-size: inherit;
+  color: #616161;
+  padding: 0.3rem 0.55rem;
+  border-bottom: 1px solid #cfcfcf;
+}
+
+.editor-record-table td {
+  padding: 0.3rem 0.55rem;
+  border-bottom: 1px solid #dedede;
+  vertical-align: middle;
+}
+
+.editor-record-table tbody tr[data-list-href] {
+  cursor: pointer;
+}
+
+.editor-record-table tbody tr[data-list-href]:hover,
+.editor-record-table tbody tr[data-list-href]:focus-visible {
+  background: var(--editor-list-row-hover);
+  outline: none;
+}
+
+li.editor-list-item[data-list-href] {
+  cursor: pointer;
+}
+
+li.editor-list-item[data-list-href]:hover,
+li.editor-list-item[data-list-href]:focus-visible {
+  background: var(--editor-list-row-hover);
+  outline: none;
 }
 
 .w3-ul > li.editor-library-file-row,
 .w3-ul > li.editor-picker-file-row {
+  padding: 0;
+}
+
+.w3-ul > li.editor-library-row.editor-list-item {
   padding: 0;
 }
 
@@ -934,13 +1017,23 @@ textarea.w3-input[data-kind="json"]::-webkit-scrollbar-track,
   margin-bottom: 1.5rem;
 }
 
-.editor-backup,
-.editor-user,
-.editor-blog {
+.editor-backup {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem 0.75rem;
   align-items: center;
+}
+
+li.editor-list-item.editor-blog {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 0;
+  gap: 0.5rem 0.75rem;
+}
+
+li.editor-list-item.editor-user {
+  padding: 0;
 }
 
 .editor-blog-tools {
@@ -1906,6 +1999,8 @@ img[data-hero-preview] {
   --tessera-drop-slot-pad: 0.45rem;
   --editor-control-radius: 0.35rem;
   --editor-toolbar-radius: 0.4rem;
+  --editor-list-row-hover: rgba(0, 0, 0, 0.055);
+  --editor-list-row-active: rgba(0, 0, 0, 0.09);
 }
 
 /* Soft corners on main-pane controls; cards and tab panes stay square. */
@@ -2484,6 +2579,17 @@ img[data-hero-preview] {
   min-width: 0;
 }
 
+.editor-library-browse > .editor-list-order {
+  width: fit-content;
+  max-width: 100%;
+}
+
+.editor-library-browse > .editor-list-order select {
+  flex: 0 1 auto;
+  width: auto;
+  min-width: 10rem;
+}
+
 .editor-library-panels {
   display: flex;
   flex-direction: column;
@@ -2546,8 +2652,29 @@ button.editor-library-row {
 }
 
 button.editor-library-row:hover,
+a.editor-library-row:hover,
+a.editor-library-row:focus-visible {
+  background: var(--editor-list-row-hover);
+  text-decoration: none;
+}
+
 .editor-library-row-active {
-  background: #f3faf9;
+  background: var(--editor-list-row-active);
+}
+
+a.editor-library-row {
+  flex: 1;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.editor-dataset-grid tbody tr[data-record-row] {
+  cursor: pointer;
+}
+
+.editor-dataset-grid tbody tr[data-record-row]:hover {
+  background: var(--editor-list-row-hover);
 }
 
 .editor-library-name {
@@ -2956,7 +3083,7 @@ button.editor-picker-asset {
 }
 
 button.editor-picker-asset:hover {
-  background: #f3faf9;
+  background: var(--editor-list-row-hover);
 }
 
 .editor-picker-asset-name {

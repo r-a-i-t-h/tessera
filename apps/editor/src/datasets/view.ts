@@ -19,6 +19,7 @@ import { mergeEditorNav } from "../sidebar-nav.js";
 import { confirmDialog } from "../confirm-dialog.js";
 import { activateDialog } from "../dialog.js";
 import { escapeHtml } from "../dom.js";
+import { editorRecordTable } from "../list-row.js";
 import { openLibraryPicker } from "../library-picker.js";
 import type { PickedAsset } from "../forms/picker.js";
 import { assetDisplayHtml } from "./asset-display.js";
@@ -63,16 +64,20 @@ export async function mountData(
 
 async function mountDataList(root: HTMLElement, user: PublicUser, bindChrome: BindChrome): Promise<void> {
   const { datasets } = await listDatasets();
-  const rows = datasets
-    .map(
-      (d) =>
-        `<tr><td>${escapeHtml(d.id)}</td><td><a href="#/data/${encodeURIComponent(d.id)}">${escapeHtml(d.title.trim() || d.id)}</a></td><td>${d.recordCount}</td><td>${d.invalidCount || ""}</td></tr>`,
-    )
-    .join("");
+  const rows = datasets.map((d) => ({
+    href: `#/data/${encodeURIComponent(d.id)}`,
+    cells: [
+      `<td>${escapeHtml(d.id)}</td>`,
+      `<td class="editor-record-table-primary">${escapeHtml(d.title.trim() || d.id)}</td>`,
+      `<td>${d.recordCount}</td>`,
+      `<td>${d.invalidCount || ""}</td>`,
+    ],
+  }));
+  const table = editorRecordTable(rows, ["Id", "Title", "Records", "Invalid"], 4, "No datasets yet.");
   root.innerHTML = editorChrome(
     user,
     `<h1 class="w3-large">Data</h1>
-     <table class="w3-table w3-bordered w3-striped"><thead><tr><th>Id</th><th>Title</th><th>Records</th><th>Invalid</th></tr></thead><tbody>${rows || "<tr><td colspan=\"4\" class=\"w3-text-grey\">No datasets yet.</td></tr>"}</tbody></table>`,
+     ${table}`,
     true,
     "data" as EditorSection,
     mergeEditorNav({ datasets: datasetNavItems(datasets) }),

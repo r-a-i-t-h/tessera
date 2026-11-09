@@ -19,6 +19,7 @@ import { buildDatasetEntityItems } from "../entity-opener-items.js";
 import { bindEntityOpener, entityOpenerHtml } from "../entity-opener.js";
 import { confirmDialog } from "../confirm-dialog.js";
 import { escapeHtml, errorPanel, formErrorPanel, showFormError } from "../dom.js";
+import { editorRecordTable } from "../list-row.js";
 import { parseRoute } from "../router.js";
 import {
   adaptationSummaryHtml,
@@ -74,17 +75,16 @@ function summarizePreview(nextFields: DatasetField[], prevFields: DatasetField[]
 }
 
 export function datasetsSetupSection(datasets: DatasetSummary[]): string {
-  const rows = datasets
-    .map(
-      (d) =>
-        `<tr>
-          <td>${escapeHtml(d.id)}</td>
-          <td><a href="#/records/datasets/${encodeURIComponent(d.id)}"><strong>${escapeHtml(d.title.trim() || d.id)}</strong></a></td>
-          <td>${d.recordCount}</td>
-          <td><a class="w3-button w3-small w3-white" href="#/data/${encodeURIComponent(d.id)}">Edit data</a></td>
-        </tr>`,
-    )
-    .join("");
+  const rows = datasets.map((d) => ({
+    href: `#/records/datasets/${encodeURIComponent(d.id)}`,
+    cells: [
+      `<td>${escapeHtml(d.id)}</td>`,
+      `<td class="editor-record-table-primary">${escapeHtml(d.title.trim() || d.id)}</td>`,
+      `<td>${d.recordCount}</td>`,
+      `<td class="editor-record-table-actions" data-list-ignore><a class="w3-button w3-small w3-white" href="#/data/${encodeURIComponent(d.id)}">Edit data</a></td>`,
+    ],
+  }));
+  const table = editorRecordTable(rows, ["Id", "Title", "Records", ""], 4, "No datasets yet.");
   return `<p><button type="button" class="w3-button w3-theme" data-action="new-dataset">New dataset</button></p>
     <form id="new-dataset-form" class="editor-new-page" hidden>
       <p>
@@ -98,10 +98,7 @@ export function datasetsSetupSection(datasets: DatasetSummary[]): string {
       ${formErrorPanel()}
       <p><button type="submit" class="w3-button w3-theme">Create dataset</button></p>
     </form>
-    <table class="w3-table w3-bordered w3-striped">
-      <thead><tr><th>Id</th><th>Title</th><th>Records</th><th></th></tr></thead>
-      <tbody>${rows || `<tr><td colspan="4" class="w3-text-grey">No datasets yet.</td></tr>`}</tbody>
-    </table>`;
+    ${table}`;
 }
 
 export function bindDatasetsSetup(root: HTMLElement): void {

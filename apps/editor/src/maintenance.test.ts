@@ -59,7 +59,9 @@ describe("maintenance tabs", () => {
     expect(html).toContain('editor-maintenance-nav-current');
     expect(html).toContain('href="#/maintenance/orphans" aria-current="true"');
     expect(html).toContain("Orphan pages");
-    expect(html).toContain('<a href="#/content/lonely">Lonely</a>');
+    expect(html).toContain('href="#/content/lonely"');
+    expect(html).toContain('class="editor-list-row"');
+    expect(html).toContain("Lonely");
     expect(html).toContain("lonely");
     expect(MAINTENANCE_TABS).toHaveLength(7);
     expect(MAINTENANCE_TABS[0]).toEqual({ id: "orphans", label: "Orphan pages" });

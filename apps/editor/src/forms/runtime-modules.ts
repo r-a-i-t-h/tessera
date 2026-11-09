@@ -1,6 +1,7 @@
 import { confirmDialog } from "../confirm-dialog.js";
 import { activateDialog, type DialogController } from "../dialog.js";
 import { escapeHtml, formErrorPanel, showFormError } from "../dom.js";
+import { editorNavListItem } from "../list-row.js";
 import type { RuntimeModuleAsset } from "../api.js";
 import { buildRuntimeModuleEntityItems } from "../entity-opener-items.js";
 import { entityOpenerHtml } from "../entity-opener.js";
@@ -26,7 +27,12 @@ function runtimeModuleListItem(mod: RuntimeModuleAsset): string {
       ? ` <span class="w3-text-grey w3-small">${escapeHtml(mod.id)}</span>`
       : "";
   const extNote = ` <span class="w3-text-grey w3-small">${escapeHtml(mod.ext)}</span>`;
-  return `<li data-runtime-id="${escapeHtml(mod.id)}"><a href="${runtimeModulesRouteHash(mod.id)}">${escapeHtml(label)}</a>${idNote}${extNote}</li>`;
+  return editorNavListItem({
+    href: runtimeModulesRouteHash(mod.id),
+    label,
+    metaHtml: `${idNote}${extNote}`,
+    liAttrs: { "data-runtime-id": mod.id },
+  });
 }
 
 export function blankRuntimeModuleSource(): string {

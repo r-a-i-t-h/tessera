@@ -212,22 +212,24 @@ export function renderLibrary(
   const parentBrowseId = libraryParentBrowseId(listing.folders, openId);
   const upRow =
     openFolderId !== null
-      ? `<li class="editor-library-row">
-        <a class="w3-button w3-white" href="${libraryRouteHash(parentBrowseId)}">Up</a>
+      ? `<li class="editor-list-item editor-library-row">
+        <a class="editor-list-row editor-library-row w3-button w3-white" href="${libraryRouteHash(parentBrowseId)}">Up</a>
       </li>`
       : "";
   const empty = !upRow && !folders.length && !assets.length;
   const rows = [
     upRow,
     ...folders.map(
-      (folder) => `<li class="editor-library-row">
-        <a class="editor-library-name" href="${libraryFolderHash(listing.folders, folder.id)}">${escapeHtml(folder.id)}</a>
-        <span class="w3-text-grey w3-small">${folder.system ? "System folder" : "Folder"}</span>
+      (folder) => `<li class="editor-list-item editor-library-row">
+        <a class="editor-list-row editor-library-row" href="${libraryFolderHash(listing.folders, folder.id)}">
+          <span class="editor-list-primary editor-library-name">${escapeHtml(folder.id)}</span>
+          <span class="w3-text-grey w3-small">${folder.system ? "System folder" : "Folder"}</span>
+        </a>
       </li>`,
     ),
     ...assets.map((asset) => {
-      return `<li class="editor-library-file-row">
-        <button type="button" class="editor-library-row" data-edit-asset="${escapeHtml(asset.id)}">
+      return `<li class="editor-list-item editor-library-file-row">
+        <button type="button" class="editor-list-row editor-library-row" data-edit-asset="${escapeHtml(asset.id)}">
           ${libraryAssetThumb(asset)}
           <span class="editor-library-name">${escapeHtml(assetLabel(asset))}</span>
           <span class="w3-text-grey w3-small">${assetKindLabel(asset)}</span>

@@ -12,6 +12,8 @@ html.editor-dark {
   --editor-text-muted: #9aa0a6;
   --editor-code-bg: #1e1f22;
   --editor-code-border: #45484e;
+  --editor-list-row-hover: rgba(0, 0, 0, 0.22);
+  --editor-list-row-active: rgba(0, 0, 0, 0.32);
 }
 
 html.editor-dark body.editor-body-dark {
@@ -53,7 +55,7 @@ html.editor-dark .w3-input.w3-border {
 }
 
 html.editor-dark .w3-ul > li {
-  border-bottom-color: var(--editor-border-subtle);
+  border-bottom-color: var(--editor-border);
 }
 
 html.editor-dark .w3-button.w3-white {
@@ -369,12 +371,6 @@ html.editor-dark .editor-maintenance-nav-link:hover {
 
 html.editor-dark .editor-maintenance-nav-current {
   background: #454a50;
-}
-
-html.editor-dark button.editor-library-row:hover,
-html.editor-dark .editor-library-row-active,
-html.editor-dark button.editor-picker-asset:hover {
-  background: rgba(0, 150, 136, 0.18);
 }
 
 html.editor-dark .editor-dialog-close:hover {

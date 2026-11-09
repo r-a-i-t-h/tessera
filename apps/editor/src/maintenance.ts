@@ -1,5 +1,6 @@
 import type { MaintenanceFinding, MaintenanceReport } from "./api.js";
 import { escapeHtml, statusPanels } from "./dom.js";
+import { editorNavListItem } from "./list-row.js";
 
 export type MaintenanceTabId =
   | "orphans"
@@ -59,7 +60,11 @@ function findingList(items: MaintenanceFinding[], empty: string): string {
       const detail = item.detail
         ? ` <span class="w3-text-grey w3-small">${escapeHtml(item.detail)}</span>`
         : "";
-      return `<li><a href="${escapeHtml(item.href)}">${escapeHtml(item.label)}</a>${detail}</li>`;
+      return editorNavListItem({
+        href: item.href,
+        label: item.label,
+        metaHtml: detail,
+      });
     })
     .join("");
   return `<ul class="w3-ul">${rows}</ul>`;

@@ -235,6 +235,7 @@ import { maintenanceHtml } from "./maintenance.js";
 import { bindCodeWrap, codeWrapClass, codeWrapToggle, isCodeWrapToggle } from "./code-wrap.js";
 import { bindDarkMode } from "./editor-color-mode.js";
 import { escapeHtml, fieldId, formErrorPanel, noticePanel, showEditorToast, statusPanels, wireEditorThumbFallbacks } from "./dom.js";
+import { bindEditorListRows, editorNavListItem } from "./list-row.js";
 import { pushStatusMessage } from "./status-stack.js";
 import { buildContentCreationRank } from "./creation-rank.js";
 import {
@@ -463,6 +464,7 @@ function bindChrome(root: HTMLElement): void {
   wireEditorSidebarMobile(root);
   bindDarkMode(root);
   bindBackToTop(root);
+  bindEditorListRows(root);
   root.querySelector("[data-action=logout]")?.addEventListener("click", async () => {
     await logout().catch(() => undefined);
     window.location.hash = "";
@@ -904,12 +906,14 @@ function userRow(item: ManagedUser, actor: PublicUser): string {
   const limited =
     item.restrictAccessLevel === "editor" ? `<span class="w3-text-grey w3-small">Limited editor</span>` : "";
   const you = self ? `<span class="w3-text-grey w3-small">Signed in</span>` : "";
-  return `<li class="editor-user">
-      <a href="#/users/${encodeURIComponent(item.username)}">${name}</a>
-      <span class="w3-text-grey w3-small">${since}</span>
-      ${state}
-      ${limited}
-      ${you}
+  return `<li class="editor-list-item editor-user" data-list-href="#/users/${encodeURIComponent(item.username)}" tabindex="0" role="link">
+      <div class="editor-list-row-inert">
+        <span class="editor-list-primary">${name}</span>
+        <span class="w3-text-grey w3-small">${since}</span>
+        ${state}
+        ${limited}
+        ${you}
+      </div>
     </li>`;
 }
 
@@ -2432,7 +2436,15 @@ function renderArticleListItems(articles: RecordSummary[]): string {
   return articles
     .map((row) => {
       const when = row.date ? ` <span class="w3-text-grey w3-small">${escapeHtml(row.date)}</span>` : "";
-      return `<li data-tags="${escapeHtml((row.tags ?? []).join("\u001f"))}" data-title="${escapeHtml(row.title ?? row.id)}"><a href="#/content/${encodeURIComponent(row.id)}">${escapeHtml(row.title ?? row.id)}</a>${when}</li>`;
+      return editorNavListItem({
+        href: `#/content/${encodeURIComponent(row.id)}`,
+        label: row.title ?? row.id,
+        metaHtml: when,
+        liAttrs: {
+          "data-tags": (row.tags ?? []).join("\u001f"),
+          "data-title": row.title ?? row.id,
+        },
+      });
     })
     .join("");
 }
@@ -2538,10 +2550,12 @@ function blogsSection(listing: RecordList): string {
   const blogs = listing.records.filter((row) => row.kind === "content" && row.type === "blog");
   const rows = blogs
     .map((blog) => {
-      return `<li class="editor-blog">
-        <a href="#/content/${encodeURIComponent(blog.id)}"><strong>${escapeHtml(blog.title ?? blog.id)}</strong></a>
-        <span class="w3-text-grey w3-small">${escapeHtml(blog.id)}</span>
-        <span class="editor-blog-tools">
+      return `<li class="editor-list-item editor-blog" data-list-href="#/content/${encodeURIComponent(blog.id)}" tabindex="0" role="link">
+        <div class="editor-list-row-inert">
+          <span class="editor-list-primary">${escapeHtml(blog.title ?? blog.id)}</span>
+          <span class="w3-text-grey w3-small">${escapeHtml(blog.id)}</span>
+        </div>
+        <span class="editor-blog-tools" data-list-ignore>
           <form data-rename-blog="${escapeHtml(blog.id)}" class="editor-blog-rename">
             <input name="next" class="w3-input w3-border" aria-label="New id for ${escapeHtml(blog.id)}" placeholder="New id" />
             <button type="submit" class="w3-button w3-small w3-white">Rename</button>
@@ -3003,9 +3017,19 @@ function entryListItem(
   const typeNote = row.type ? ` <span class="w3-text-grey w3-small">${escapeHtml(row.type)}</span>` : "";
   const extra = noteFor?.(row);
   const extraNote = extra ? ` <span class="w3-text-grey w3-small">${escapeHtml(extra)}</span>` : "";
-  const style = depth > 0 ? ` style="padding-left: calc(0.75rem + ${depth} * 1.25rem)"` : "";
-  const homeClass = homeBoundary ? ` class="editor-entry-home-boundary"` : "";
-  return `<li${homeClass}${style} data-type="${escapeHtml(row.type ?? "")}" data-tags="${escapeHtml((row.tags ?? []).join("\u001f"))}" data-title="${escapeHtml(row.title ?? row.id)}"><a href="#/${encodeURIComponent(row.kind)}/${encodeURIComponent(row.id)}">${escapeHtml(label)}</a>${idNote}${typeNote}${extraNote}</li>`;
+  const style = depth > 0 ? `padding-left: calc(0.75rem + ${depth} * 1.25rem)` : undefined;
+  return editorNavListItem({
+    href: `#/${encodeURIComponent(row.kind)}/${encodeURIComponent(row.id)}`,
+    label,
+    metaHtml: `${idNote}${typeNote}${extraNote}`,
+    liClass: homeBoundary ? "editor-entry-home-boundary" : undefined,
+    liStyle: style,
+    liAttrs: {
+      "data-type": row.type ?? "",
+      "data-tags": (row.tags ?? []).join("\u001f"),
+      "data-title": row.title ?? row.id,
+    },
+  });
 }
 
 function recordList(rows: RecordSummary[], entries = false, noteFor?: (row: RecordSummary) => string): string {
@@ -3027,7 +3051,11 @@ function recordList(rows: RecordSummary[], entries = false, noteFor?: (row: Reco
         const typeNote = row.type ? ` <span class="w3-text-grey w3-small">${escapeHtml(row.type)}</span>` : "";
         const extra = noteFor?.(row);
         const extraNote = extra ? ` <span class="w3-text-grey w3-small">${escapeHtml(extra)}</span>` : "";
-        return `<li><a href="#/${encodeURIComponent(row.kind)}/${encodeURIComponent(row.id)}">${escapeHtml(label)}</a>${idNote}${typeNote}${extraNote}</li>`;
+        return editorNavListItem({
+          href: `#/${encodeURIComponent(row.kind)}/${encodeURIComponent(row.id)}`,
+          label,
+          metaHtml: `${idNote}${typeNote}${extraNote}`,
+        });
       })
       .join("")}
   </ul>`;
