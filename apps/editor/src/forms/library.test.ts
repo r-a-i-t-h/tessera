@@ -65,6 +65,8 @@ describe("library browser", () => {
     expect(html).toContain('value="choose" checked');
     expect(html).toContain('value="hall" selected');
     expect(html).toContain("editor-toolbar");
+    expect(html).toContain('id="library-asset-list-order"');
+    expect(html).toMatch(/editor-library-browse[\s\S]*library-asset-list-order/);
     expect(html).toContain("editor-actions");
     expect(html).toContain('data-action="new-folder"');
     expect(html).toContain(">New folder<");

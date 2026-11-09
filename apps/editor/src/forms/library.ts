@@ -246,13 +246,13 @@ export function renderLibrary(
           <button type="button" class="w3-button w3-white" data-action="new-folder">New folder</button>
           <button type="button" class="w3-button w3-white" data-action="rescan">Rescan</button>
         </p>
-        ${libraryAssetListOrderSelect(assetOrder)}
       </div>
     </div>
     ${noticePanel(notice)}
     <p class="editor-crumbs">${crumbs}</p>
     <div class="editor-library-split">
       <section class="editor-library-browse" aria-label="Folders and files">
+        ${libraryAssetListOrderSelect(assetOrder)}
         ${browse}
       </section>
       <div class="editor-library-panels">
