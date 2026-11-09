@@ -354,6 +354,12 @@ li.editor-list-item[data-list-href]:focus-visible {
   outline: none;
 }
 
+li.editor-list-item.editor-list-item-active,
+tr[data-list-href].editor-list-item-active {
+  background: var(--editor-list-row-active);
+  outline: none;
+}
+
 .w3-ul > li.editor-library-file-row,
 .w3-ul > li.editor-picker-file-row {
   padding: 0;

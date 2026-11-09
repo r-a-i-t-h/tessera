@@ -235,6 +235,7 @@ import { maintenanceHtml } from "./maintenance.js";
 import { bindCodeWrap, codeWrapClass, codeWrapToggle, isCodeWrapToggle } from "./code-wrap.js";
 import { bindDarkMode } from "./editor-color-mode.js";
 import { escapeHtml, fieldId, formErrorPanel, noticePanel, showEditorToast, statusPanels, wireEditorThumbFallbacks } from "./dom.js";
+import { clearListKeyboardSelection, handleListKeyboard } from "./list-keyboard.js";
 import { bindEditorListRows, editorNavListItem } from "./list-row.js";
 import { pushStatusMessage } from "./status-stack.js";
 import { buildContentCreationRank } from "./creation-rank.js";
@@ -365,6 +366,7 @@ export async function mount(root: HTMLElement): Promise<void> {
       if (!hasOpenModal()) void triggerPaletteAction();
       return;
     }
+    if (handleListKeyboard(root, event)) return;
   });
   await render(root);
 }
@@ -2457,6 +2459,7 @@ async function bindArticles(root: HTMLElement, user: PublicUser, blog?: string, 
       if (visible) shown += 1;
     }
     if (empty) empty.hidden = shown !== 0;
+    clearListKeyboardSelection(root);
   };
   bar?.addEventListener("input", applyArticleFilter);
   bar?.querySelector("[data-action=clear-article-filter]")?.addEventListener("click", () => {
@@ -2805,6 +2808,7 @@ function applyEntryFilter(root: HTMLElement): void {
     if (visible) shown += 1;
   }
   if (empty) empty.hidden = shown !== 0;
+  clearListKeyboardSelection(root);
 }
 
 function bindEntryFilter(root: HTMLElement): void {
