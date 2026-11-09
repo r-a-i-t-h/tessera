@@ -16,6 +16,7 @@ import { editorChrome, type EditorSection } from "../chrome.js";
 import { buildDatasetEntityItems } from "../entity-opener-items.js";
 import { bindEntityOpener, entityOpenerHtml } from "../entity-opener.js";
 import { mergeEditorNav } from "../sidebar-nav.js";
+import { confirmDialog } from "../confirm-dialog.js";
 import { activateDialog } from "../dialog.js";
 import { escapeHtml } from "../dom.js";
 import { openLibraryPicker } from "../library-picker.js";
@@ -271,17 +272,18 @@ async function mountDatasetGrid(
     });
     host.querySelector("[data-dataset-save-grid]")?.addEventListener("click", () => void saveGridEdits());
     host.querySelector("[data-dataset-clear-all]")?.addEventListener("click", () => {
-      if (gridMode === "edit" || fileState.records.length === 0) return;
-      const n = fileState.records.length;
-      const label = fileState.title.trim() || datasetId;
-      if (
-        !window.confirm(
-          `Delete all ${n} record${n === 1 ? "" : "s"} from ${label}? This cannot be undone.`,
-        )
-      ) {
-        return;
-      }
-      void clearDatasetRecords(datasetId)
+      void (async () => {
+        if (gridMode === "edit" || fileState.records.length === 0) return;
+        const n = fileState.records.length;
+        const label = fileState.title.trim() || datasetId;
+        if (!(await confirmDialog({
+          message: `Delete all ${n} record${n === 1 ? "" : "s"} from ${label}? This cannot be undone.`,
+          destructive: true,
+          confirmLabel: "Delete",
+        }))) {
+          return;
+        }
+        void clearDatasetRecords(datasetId)
         .then((res) => {
           if (!isActiveDatasetGridMount(mountId, datasetId)) return;
           fileState = res.file;
@@ -293,6 +295,7 @@ async function mountDatasetGrid(
         .catch((err) => {
           window.alert(err instanceof Error ? err.message : "Could not delete records.");
         });
+      })();
     });
     host.querySelectorAll("[data-sort-col]").forEach((el) => {
       el.addEventListener("click", () => {
@@ -433,8 +436,17 @@ async function mountDatasetGrid(
     });
     host.querySelector("[data-record-cancel]")?.addEventListener("click", close);
     host.querySelector("[data-record-delete]")?.addEventListener("click", () => {
-      if (!record || !window.confirm("Delete this record?")) return;
-      void deleteDatasetRecord(datasetId, record.uid).then((res) => {
+      void (async () => {
+        const deleteButton = host.querySelector<HTMLButtonElement>("[data-record-delete]");
+        if (!record || !(await confirmDialog({
+          message: "Delete this record?",
+          returnFocus: deleteButton,
+          destructive: true,
+          confirmLabel: "Delete",
+        }))) {
+          return;
+        }
+        void deleteDatasetRecord(datasetId, record.uid).then((res) => {
         if (!isActiveDatasetGridMount(mountId, datasetId)) {
           close();
           return;
@@ -443,6 +455,7 @@ async function mountDatasetGrid(
         close();
         paint();
       });
+      })();
     });
   }
 

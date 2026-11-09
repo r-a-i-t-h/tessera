@@ -109,6 +109,7 @@ import {
   DEFAULT_RECORD_LIST_KIND_ORDER,
   EDITOR_ONLY_RECORD_KIND_LABELS,
 } from "./records-list-defaults.js";
+import { confirmDialog } from "./confirm-dialog.js";
 import { createRecord, type CreateRecordDestination } from "./create-record.js";
 import { activateDialog, type DialogController } from "./dialog.js";
 import { readFormValues, renderForm } from "./forms/form.js";
@@ -232,7 +233,7 @@ import { bindBackToTop } from "./back-to-top.js";
 import { guideHtml, scrollGuideSection } from "./guide.js";
 import { maintenanceHtml } from "./maintenance.js";
 import { bindCodeWrap, codeWrapClass, codeWrapToggle, isCodeWrapToggle } from "./code-wrap.js";
-import { bindDarkMode, darkModeAppearanceBlock } from "./editor-color-mode.js";
+import { bindDarkMode } from "./editor-color-mode.js";
 import { escapeHtml, fieldId, formErrorPanel, noticePanel, showEditorToast, statusPanels, wireEditorThumbFallbacks } from "./dom.js";
 import { pushStatusMessage } from "./status-stack.js";
 import { buildContentCreationRank } from "./creation-rank.js";
@@ -604,7 +605,7 @@ function publishNoticeText(result: PublishResult): string {
 }
 
 async function runPublish(root: HTMLElement): Promise<void> {
-  if (!window.confirm("Publish this site? This replaces the published files.")) return;
+  if (!(await confirmDialog({ message: "Publish this site? This replaces the published files." }))) return;
   const button = root.querySelector<HTMLButtonElement>("[data-action=publish-site]");
   const render = root.querySelector<HTMLButtonElement>("[data-action=render-site]");
   if (button) button.disabled = true;
@@ -694,7 +695,6 @@ function accountHtml(user: PublicUser, notice: string, error: string): string {
       <button type="button" class="w3-button w3-light-grey" data-action="logout">Sign out</button>
     </div>
     ${statusPanels(notice, error)}
-    ${darkModeAppearanceBlock()}
     <form id="username-form" class="w3-card w3-white w3-padding-large editor-card">
       <h2 class="w3-medium">Change username</h2>
       <p>
@@ -941,9 +941,19 @@ function userDetailToolbar(target: ManagedUser, actor: PublicUser, users: Manage
 function bindUserToolbarActions(root: HTMLElement, user: PublicUser, username: string): void {
   for (const button of root.querySelectorAll<HTMLButtonElement>("[data-user-disable]")) {
     button.addEventListener("click", () => {
-      const target = button.dataset.userDisable ?? "";
-      if (!target || !window.confirm(`Disable ${target}? They will be signed out and cannot sign in.`)) return;
-      void runUserAction(root, user, () => updateUser(target, { disabled: true }), `Disabled ${target}.`, username);
+      void (async () => {
+        const target = button.dataset.userDisable ?? "";
+        if (
+          !target
+          || !(await confirmDialog({
+            message: `Disable ${target}? They will be signed out and cannot sign in.`,
+            returnFocus: button,
+          }))
+        ) {
+          return;
+        }
+        void runUserAction(root, user, () => updateUser(target, { disabled: true }), `Disabled ${target}.`, username);
+      })();
     });
   }
   for (const button of root.querySelectorAll<HTMLButtonElement>("[data-user-enable]")) {
@@ -955,9 +965,21 @@ function bindUserToolbarActions(root: HTMLElement, user: PublicUser, username: s
   }
   for (const button of root.querySelectorAll<HTMLButtonElement>("[data-user-delete]")) {
     button.addEventListener("click", () => {
-      const target = button.dataset.userDelete ?? "";
-      if (!target || !window.confirm(`Delete ${target}? This cannot be undone.`)) return;
-      void runUserAction(root, user, () => deleteUser(target), `Deleted ${target}.`);
+      void (async () => {
+        const target = button.dataset.userDelete ?? "";
+        if (
+          !target
+          || !(await confirmDialog({
+            message: `Delete ${target}? This cannot be undone.`,
+            returnFocus: button,
+            destructive: true,
+            confirmLabel: "Delete",
+          }))
+        ) {
+          return;
+        }
+        void runUserAction(root, user, () => deleteUser(target), `Deleted ${target}.`);
+      })();
     });
   }
 }
@@ -1865,17 +1887,31 @@ async function bindBackups(root: HTMLElement, user: PublicUser, notice = "", err
   });
   for (const button of root.querySelectorAll<HTMLButtonElement>("[data-restore]")) {
     button.addEventListener("click", () => {
-      const name = button.dataset.restore ?? "";
-      if (!name) return;
-      if (!window.confirm(`Replace this site with ${name}? The current site is saved as a new backup first.`)) return;
-      void runRestore(root, user, () => restoreBackup(name), name);
+      void (async () => {
+        const name = button.dataset.restore ?? "";
+        if (!name) return;
+        if (!(await confirmDialog({
+          message: `Replace this site with ${name}? The current site is saved as a new backup first.`,
+          returnFocus: button,
+        }))) {
+          return;
+        }
+        void runRestore(root, user, () => restoreBackup(name), name);
+      })();
     });
   }
   for (const button of root.querySelectorAll<HTMLButtonElement>("[data-delete]")) {
     button.addEventListener("click", () => {
-      const name = button.dataset.delete ?? "";
-      if (!name || !window.confirm(`Delete ${name}?`)) return;
       void (async () => {
+        const name = button.dataset.delete ?? "";
+        if (!name || !(await confirmDialog({
+          message: `Delete ${name}?`,
+          returnFocus: button,
+          destructive: true,
+          confirmLabel: "Delete",
+        }))) {
+          return;
+        }
         try {
           await deleteBackup(name);
           await bindBackups(root, user, `Deleted ${name}.`);
@@ -1887,59 +1923,68 @@ async function bindBackups(root: HTMLElement, user: PublicUser, notice = "", err
   }
   for (const button of root.querySelectorAll<HTMLButtonElement>("[data-example]")) {
     button.addEventListener("click", () => {
-      const name = button.dataset.example ?? "";
-      const title = button.dataset.title ?? name;
-      if (!name) return;
-      if (
-        !window.confirm(
-          `Replace this site's pages, shell, and published files with ${title}? Your editors stay. The current site is saved as a new backup first.`,
-        )
-      ) {
-        return;
-      }
-      void runRestore(root, user, () => restoreExample(name), title);
+      void (async () => {
+        const name = button.dataset.example ?? "";
+        const title = button.dataset.title ?? name;
+        if (!name) return;
+        if (!(await confirmDialog({
+          message: `Replace this site's pages, shell, and published files with ${title}? Your editors stay. The current site is saved as a new backup first.`,
+          returnFocus: button,
+        }))) {
+          return;
+        }
+        void runRestore(root, user, () => restoreExample(name), title);
+      })();
     });
   }
   root.querySelector("[data-action=reseed]")?.addEventListener("click", () => {
-    if (
-      !window.confirm(
-        "Replace this site with a fresh starter? It has a Hello world home page and a blog with one article. Your editors stay. The current site is saved as a new backup first.",
-      )
-    ) {
-      return;
-    }
-    void runRestore(root, user, () => reseedSite(), "this site", "Re-seeded");
+    void (async () => {
+      if (!(await confirmDialog({
+        message: "Replace this site with a fresh starter? It has a Hello world home page and a blog with one article. Your editors stay. The current site is saved as a new backup first.",
+      }))) {
+        return;
+      }
+      void runRestore(root, user, () => reseedSite(), "this site", "Re-seeded");
+    })();
   });
   for (const button of root.querySelectorAll<HTMLButtonElement>("[data-theme-apply]")) {
     button.addEventListener("click", () => {
-      const kitId = button.dataset.themeApply ?? "";
-      const kitName = button.dataset.themeName ?? kitId;
-      const importDemo = button.dataset.themeDemo === "true";
-      if (!kitId) return;
-      const demoNote = importDemo ? " Optional demo pages will be added." : "";
-      if (
-        !window.confirm(
-          `Apply the ${kitName} theme? Your page content stays as it is. Layouts and site styling are replaced.${demoNote} A safety backup is written first.`,
-        )
-      ) {
-        return;
-      }
-      void runRestore(
-        root,
-        user,
-        () => applyThemeKit(kitId, { importDemo }),
-        kitName,
-        "Applied theme",
-      );
+      void (async () => {
+        const kitId = button.dataset.themeApply ?? "";
+        const kitName = button.dataset.themeName ?? kitId;
+        const importDemo = button.dataset.themeDemo === "true";
+        if (!kitId) return;
+        const demoNote = importDemo ? " Optional demo pages will be added." : "";
+        if (!(await confirmDialog({
+          message: `Apply the ${kitName} theme? Your page content stays as it is. Layouts and site styling are replaced.${demoNote} A safety backup is written first.`,
+          returnFocus: button,
+        }))) {
+          return;
+        }
+        void runRestore(
+          root,
+          user,
+          () => applyThemeKit(kitId, { importDemo }),
+          kitName,
+          "Applied theme",
+        );
+      })();
     });
   }
   for (const button of root.querySelectorAll<HTMLButtonElement>("[data-theme-reset-demo]")) {
     button.addEventListener("click", () => {
-      const kitId = button.dataset.themeResetDemo ?? "";
-      const kitName = button.dataset.themeName ?? kitId;
-      if (!kitId) return;
-      if (!window.confirm(`Remove demo pages shipped with ${kitName}? Your other pages stay.`)) return;
-      void runRestore(root, user, () => resetThemeDemo(kitId), `${kitName} demo`, "Removed");
+      void (async () => {
+        const kitId = button.dataset.themeResetDemo ?? "";
+        const kitName = button.dataset.themeName ?? kitId;
+        if (!kitId) return;
+        if (!(await confirmDialog({
+          message: `Remove demo pages shipped with ${kitName}? Your other pages stay.`,
+          returnFocus: button,
+        }))) {
+          return;
+        }
+        void runRestore(root, user, () => resetThemeDemo(kitId), `${kitName} demo`, "Removed");
+      })();
     });
   }
 }
@@ -2552,10 +2597,19 @@ function bindBlogs(root: HTMLElement, user: PublicUser, listing: RecordList): vo
     button.addEventListener("click", () => {
       const id = button.dataset.cascadeBlog ?? "";
       if (!id) return;
-      if (!window.confirm(`Delete blog ${id} and every article that belongs to it?`)) return;
-      void cascadeBlog(id)
-        .then(() => bindList(root, user, "blogs", `Cascade-deleted ${id}.`))
-        .catch((err: unknown) => bindList(root, user, "blogs", "", err instanceof Error ? err.message : "Could not delete that blog."));
+      void (async () => {
+        if (!(await confirmDialog({
+          message: `Delete blog ${id} and every article that belongs to it?`,
+          returnFocus: button,
+          destructive: true,
+          confirmLabel: "Delete",
+        }))) {
+          return;
+        }
+        void cascadeBlog(id)
+          .then(() => bindList(root, user, "blogs", `Cascade-deleted ${id}.`))
+          .catch((err: unknown) => bindList(root, user, "blogs", "", err instanceof Error ? err.message : "Could not delete that blog."));
+      })();
     });
   });
 }
@@ -3415,19 +3469,29 @@ async function bindEdit(
     void restoreHistory(root, user, kind, id, editMode, host, "redo");
   });
   scope.querySelector<HTMLButtonElement>("[data-action=revert]")?.addEventListener("click", () => {
-    if (!window.confirm("Discard unsaved edits and restore the last saved file?")) return;
-    contentSession = undefined;
-    layoutSession = undefined;
-    navSession = undefined;
-    void bindEdit(root, user, kind, id, editMode, "", false, host);
+    void (async () => {
+      const revert = scope.querySelector<HTMLButtonElement>("[data-action=revert]");
+      if (!(await confirmDialog({
+        message: "Discard unsaved edits and restore the last saved file?",
+        returnFocus: revert,
+        confirmLabel: "Discard",
+      }))) {
+        return;
+      }
+      contentSession = undefined;
+      layoutSession = undefined;
+      navSession = undefined;
+      void bindEdit(root, user, kind, id, editMode, "", false, host);
+    })();
   });
   scope.querySelector<HTMLFormElement>("#item-tools")?.addEventListener("submit", (event) => {
     event.preventDefault();
-    const input = (event.currentTarget as HTMLFormElement).querySelector<HTMLInputElement>("[name=item-rename-id]");
-    const nextId = input?.value.trim() ?? "";
-    if (!nextId || nextId === id) return;
-    if (!window.confirm(`Rename ${id} to ${nextId}? References will be updated.`)) return;
-    void renameItem(id, nextId)
+    void (async () => {
+      const input = (event.currentTarget as HTMLFormElement).querySelector<HTMLInputElement>("[name=item-rename-id]");
+      const nextId = input?.value.trim() ?? "";
+      if (!nextId || nextId === id) return;
+      if (!(await confirmDialog({ message: `Rename ${id} to ${nextId}? References will be updated.` }))) return;
+      void renameItem(id, nextId)
       .then(() => {
         const next = `#/items/${encodeURIComponent(nextId)}`;
         if (window.location.hash === next) void render(root);
@@ -3436,14 +3500,16 @@ async function bindEdit(
       .catch((err: unknown) => {
         showSaveError(root, err instanceof Error ? err.message : "Could not rename that item.");
       });
+    })();
   });
   scope.querySelector<HTMLFormElement>("#content-tools")?.addEventListener("submit", (event) => {
     event.preventDefault();
-    const input = (event.currentTarget as HTMLFormElement).querySelector<HTMLInputElement>("[name=content-rename-id]");
-    const nextId = input?.value.trim() ?? "";
-    if (!nextId || nextId === id) return;
-    if (!window.confirm(`Rename ${id} to ${nextId}? References will be updated.`)) return;
-    void renameContent(id, nextId)
+    void (async () => {
+      const input = (event.currentTarget as HTMLFormElement).querySelector<HTMLInputElement>("[name=content-rename-id]");
+      const nextId = input?.value.trim() ?? "";
+      if (!nextId || nextId === id) return;
+      if (!(await confirmDialog({ message: `Rename ${id} to ${nextId}? References will be updated.` }))) return;
+      void renameContent(id, nextId)
       .then(() => {
         contentSession = undefined;
         const next = `#/content/${encodeURIComponent(nextId)}`;
@@ -3453,10 +3519,20 @@ async function bindEdit(
       .catch((err: unknown) => {
         showSaveError(root, err instanceof Error ? err.message : "Could not rename that page.");
       });
+    })();
   });
   scope.querySelector<HTMLButtonElement>("[data-action=delete-item]")?.addEventListener("click", () => {
-    if (!window.confirm(`Delete ${id}? This cannot be undone.`)) return;
-    void deleteItem(id)
+    void (async () => {
+      const button = scope.querySelector<HTMLButtonElement>("[data-action=delete-item]");
+      if (!(await confirmDialog({
+        message: `Delete ${id}? This cannot be undone.`,
+        returnFocus: button,
+        destructive: true,
+        confirmLabel: "Delete",
+      }))) {
+        return;
+      }
+      void deleteItem(id)
       .then(() => {
         const next = "#/records/items";
         if (window.location.hash === next) void render(root);
@@ -3465,12 +3541,22 @@ async function bindEdit(
       .catch((err: unknown) => {
         showSaveError(root, err instanceof Error ? err.message : "Could not delete that item.");
       });
+    })();
   });
   scope.querySelector<HTMLButtonElement>("[data-action=delete-content]")?.addEventListener("click", () => {
-    const title = typeof record?.title === "string" ? record.title.trim() : "";
-    const label = title || id;
-    if (!window.confirm(`Delete ${label}? This cannot be undone.`)) return;
-    void deleteContent(id)
+    void (async () => {
+      const title = typeof record?.title === "string" ? record.title.trim() : "";
+      const label = title || id;
+      const button = scope.querySelector<HTMLButtonElement>("[data-action=delete-content]");
+      if (!(await confirmDialog({
+        message: `Delete ${label}? This cannot be undone.`,
+        returnFocus: button,
+        destructive: true,
+        confirmLabel: "Delete",
+      }))) {
+        return;
+      }
+      void deleteContent(id)
       .then(() => {
         contentSession = undefined;
         const next = place.back;
@@ -3480,10 +3566,20 @@ async function bindEdit(
       .catch((err: unknown) => {
         showSaveError(root, err instanceof Error ? err.message : "Could not delete that page.");
       });
+    })();
   });
   scope.querySelector<HTMLButtonElement>("[data-action=delete-binding]")?.addEventListener("click", () => {
-    if (!window.confirm(`Delete binding ${id}? This cannot be undone.`)) return;
-    void deleteBinding(id)
+    void (async () => {
+      const button = scope.querySelector<HTMLButtonElement>("[data-action=delete-binding]");
+      if (!(await confirmDialog({
+        message: `Delete binding ${id}? This cannot be undone.`,
+        returnFocus: button,
+        destructive: true,
+        confirmLabel: "Delete",
+      }))) {
+        return;
+      }
+      void deleteBinding(id)
       .then(() => {
         const next = place.back;
         if (window.location.hash === next) void render(root);
@@ -3492,10 +3588,20 @@ async function bindEdit(
       .catch((err: unknown) => {
         showSaveError(root, err instanceof Error ? err.message : "Could not delete that binding.");
       });
+    })();
   });
   scope.querySelector<HTMLButtonElement>("[data-action=delete-layout]")?.addEventListener("click", () => {
-    if (!window.confirm(`Delete layout ${id}? This cannot be undone.`)) return;
-    void deleteLayout(id)
+    void (async () => {
+      const button = scope.querySelector<HTMLButtonElement>("[data-action=delete-layout]");
+      if (!(await confirmDialog({
+        message: `Delete layout ${id}? This cannot be undone.`,
+        returnFocus: button,
+        destructive: true,
+        confirmLabel: "Delete",
+      }))) {
+        return;
+      }
+      void deleteLayout(id)
       .then(() => {
         layoutSession = undefined;
         const next = place.back;
@@ -3505,10 +3611,20 @@ async function bindEdit(
       .catch((err: unknown) => {
         showSaveError(root, err instanceof Error ? err.message : "Could not delete that layout.");
       });
+    })();
   });
   scope.querySelector<HTMLButtonElement>("[data-action=delete-type]")?.addEventListener("click", () => {
-    if (!window.confirm(`Delete type ${id}? This cannot be undone.`)) return;
-    void deleteType(id)
+    void (async () => {
+      const button = scope.querySelector<HTMLButtonElement>("[data-action=delete-type]");
+      if (!(await confirmDialog({
+        message: `Delete type ${id}? This cannot be undone.`,
+        returnFocus: button,
+        destructive: true,
+        confirmLabel: "Delete",
+      }))) {
+        return;
+      }
+      void deleteType(id)
       .then(() => {
         const next = place.back;
         if (window.location.hash === next) void render(root);
@@ -3517,6 +3633,7 @@ async function bindEdit(
       .catch((err: unknown) => {
         showSaveError(root, err instanceof Error ? err.message : "Could not delete that type.");
       });
+    })();
   });
   bindDuplicateRecord(scope, root, kind, id, existingIdsForKind);
   form?.addEventListener("submit", async (event) => {
@@ -3782,19 +3899,26 @@ function bindDuplicateRecord(
   existingIds: readonly string[],
 ): void {
   scope.querySelector<HTMLButtonElement>("[data-action=duplicate-record]")?.addEventListener("click", () => {
-    const input = scope.querySelector<HTMLInputElement>("[name=duplicate-id]");
-    const nextId = input?.value.trim() ?? "";
-    const problem = duplicateIdError(kind, nextId, existingIds);
-    if (problem) {
-      showSaveError(root, problem);
-      return;
-    }
-    if (nextId === id) {
-      showSaveError(root, "Choose a different id.");
-      return;
-    }
-    if (!window.confirm(`Duplicate ${id} as ${nextId}?`)) return;
-    void duplicateRecord(kind, id, nextId)
+    void (async () => {
+      const button = scope.querySelector<HTMLButtonElement>("[data-action=duplicate-record]");
+      const input = scope.querySelector<HTMLInputElement>("[name=duplicate-id]");
+      const nextId = input?.value.trim() ?? "";
+      const problem = duplicateIdError(kind, nextId, existingIds);
+      if (problem) {
+        showSaveError(root, problem);
+        return;
+      }
+      if (nextId === id) {
+        showSaveError(root, "Choose a different id.");
+        return;
+      }
+      if (!(await confirmDialog({
+        message: `Duplicate ${id} as ${nextId}?`,
+        returnFocus: button,
+      }))) {
+        return;
+      }
+      void duplicateRecord(kind, id, nextId)
       .then(() => {
         contentSession = undefined;
         layoutSession = undefined;
@@ -3806,6 +3930,7 @@ function bindDuplicateRecord(
       .catch((err: unknown) => {
         showSaveError(root, err instanceof Error ? err.message : "Could not duplicate that record.");
       });
+    })();
   });
 }
 
@@ -4419,10 +4544,13 @@ async function bindLibrary(root: HTMLElement, user: PublicUser, routeOpenId: str
     void read.then((files) => submitLibraryUpload(root, user, form, openId, files));
   });
   root.querySelector("[data-action=rescan]")?.addEventListener("click", () => {
-    if (!window.confirm("Rescan the files on disk? Missing files will be removed from the library. New files will be added to scanned.")) {
-      return;
-    }
-    void rescanLibrary()
+    void (async () => {
+      if (!(await confirmDialog({
+        message: "Rescan the files on disk? Missing files will be removed from the library. New files will be added to scanned.",
+      }))) {
+        return;
+      }
+      void rescanLibrary()
       .then((result) => getLibrary().then((fresh) => ({ result, fresh })))
       .then(({ result, fresh }) => {
         const folderId = result.added[0]?.folderId;
@@ -4430,6 +4558,7 @@ async function bindLibrary(root: HTMLElement, user: PublicUser, routeOpenId: str
         return bindLibrary(root, user, browseId, rescanNotice(result));
       })
       .catch((err) => bindLibrary(root, user, openId, err instanceof Error ? err.message : "Could not rescan the library."));
+    })();
   });
   root.querySelector("[data-action=new-folder]")?.addEventListener("click", () => {
     const id = window.prompt("Folder id");
@@ -4444,8 +4573,15 @@ async function bindLibrary(root: HTMLElement, user: PublicUser, routeOpenId: str
       .catch((err) => bindLibrary(root, user, openId, err instanceof Error ? err.message : "Could not create the folder."));
   });
   const deleteFolder = (id: string) => {
-    if (!window.confirm("Delete this empty folder?")) return;
-    const removed = listing.folders.find((folder) => folder.id === id);
+    void (async () => {
+      if (!(await confirmDialog({
+        message: "Delete this empty folder?",
+        destructive: true,
+        confirmLabel: "Delete",
+      }))) {
+        return;
+      }
+      const removed = listing.folders.find((folder) => folder.id === id);
     const parentId = removed?.parentId ?? null;
     void deleteLibraryFolder(id)
       .then(() => getLibrary())
@@ -4454,6 +4590,7 @@ async function bindLibrary(root: HTMLElement, user: PublicUser, routeOpenId: str
         return bindLibrary(root, user, browseId, "Folder deleted.");
       })
       .catch((err) => bindLibrary(root, user, openId, err instanceof Error ? err.message : "Could not delete the folder."));
+    })();
   };
   const openFolderId = libraryOpenFolderId(openId);
   const openFolder = openFolderId ? listing.folders.find((item) => item.id === openFolderId) : undefined;
@@ -4518,8 +4655,18 @@ async function bindLibrary(root: HTMLElement, user: PublicUser, routeOpenId: str
         }).then(() => bindLibrary(root, user, openId, "Saved."));
       });
       slot.querySelector<HTMLButtonElement>("[data-delete-asset]")?.addEventListener("click", () => {
-        if (!window.confirm("Delete this file?")) return;
-        void deleteLibraryAsset(asset.id).then(() => bindLibrary(root, user, openId, "File deleted."));
+        void (async () => {
+          const deleteButton = slot.querySelector<HTMLButtonElement>("[data-delete-asset]");
+          if (!(await confirmDialog({
+            message: "Delete this file?",
+            returnFocus: deleteButton,
+            destructive: true,
+            confirmLabel: "Delete",
+          }))) {
+            return;
+          }
+          void deleteLibraryAsset(asset.id).then(() => bindLibrary(root, user, openId, "File deleted."));
+        })();
       });
       const replaceInput = slot.querySelector<HTMLInputElement>("[data-replace-input]");
       slot.querySelector<HTMLButtonElement>("[data-replace-asset]")?.addEventListener("click", () => {
@@ -4706,7 +4853,15 @@ async function bindRuntimeModules(root: HTMLElement, user: PublicUser, moduleId:
       }
     });
     root.querySelector<HTMLButtonElement>("[data-runtime-delete]")?.addEventListener("click", async () => {
-      if (!confirm(`Delete runtime module "${mod.id}"?`)) return;
+      const deleteButton = root.querySelector<HTMLButtonElement>("[data-runtime-delete]");
+      if (!(await confirmDialog({
+        message: `Delete runtime module "${mod.id}"?`,
+        returnFocus: deleteButton,
+        destructive: true,
+        confirmLabel: "Delete",
+      }))) {
+        return;
+      }
       try {
         await deleteRuntimeModule(mod.id);
         window.location.hash = runtimeModulesRouteHash();

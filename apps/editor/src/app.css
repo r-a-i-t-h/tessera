@@ -2612,6 +2612,15 @@ button.editor-library-row:hover,
   width: min(68rem, calc(100% - 2rem));
 }
 
+.editor-picker-backdrop .editor-confirm-dialog {
+  position: relative;
+  width: min(28rem, calc(100% - 2rem));
+}
+
+.editor-confirm-message {
+  white-space: pre-wrap;
+}
+
 .editor-dataset-schema .editor-type-line {
   grid-template-columns: minmax(6rem, 1fr) minmax(6rem, 1fr) minmax(5.5rem, 7rem) auto auto auto auto;
 }

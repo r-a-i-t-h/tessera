@@ -17,6 +17,7 @@ import { editorChrome } from "../chrome.js";
 import { mergeEditorNav } from "../sidebar-nav.js";
 import { buildDatasetEntityItems } from "../entity-opener-items.js";
 import { bindEntityOpener, entityOpenerHtml } from "../entity-opener.js";
+import { confirmDialog } from "../confirm-dialog.js";
 import { escapeHtml, errorPanel, formErrorPanel, showFormError } from "../dom.js";
 import { parseRoute } from "../router.js";
 import {
@@ -312,8 +313,17 @@ export async function mountDatasetSetup(
         });
     };
     host.querySelector("[data-dataset-delete-ds]")?.addEventListener("click", () => {
-      if (!window.confirm(`Delete dataset ${datasetId}?`)) return;
-      void deleteDataset(datasetId)
+      void (async () => {
+        const deleteButton = host.querySelector<HTMLButtonElement>("[data-dataset-delete-ds]");
+        if (!(await confirmDialog({
+          message: `Delete dataset ${datasetId}?`,
+          returnFocus: deleteButton,
+          destructive: true,
+          confirmLabel: "Delete",
+        }))) {
+          return;
+        }
+        void deleteDataset(datasetId)
         .then(() => {
           if (!isActiveDatasetSetupMount(mountId, datasetId)) return;
           window.location.hash = "#/records/datasets";
@@ -323,6 +333,7 @@ export async function mountDatasetSetup(
           panelError = err instanceof Error ? err.message : "Could not delete dataset.";
           paint();
         });
+      })();
     });
 
     const saveSchema = () => {
@@ -339,7 +350,12 @@ export async function mountDatasetSetup(
       }
       const preview = summarizePreview(draft.fields, fileState.schema.fields);
       const summary = adaptationSummaryHtml(preview);
-      if (!window.confirm(`Apply schema changes?\n${summary.replace(/<[^>]+>/g, " ")}`)) return;
+      void (async () => {
+        if (!(await confirmDialog({
+          message: `Apply schema changes?\n${summary.replace(/<[^>]+>/g, " ")}`,
+        }))) {
+          return;
+        }
       panelError = "";
       panelNotice = "";
       const columns = draft.viewColumns;
@@ -366,6 +382,7 @@ export async function mountDatasetSetup(
           panelError = err instanceof Error ? err.message : "Could not save schema.";
           paint();
         });
+      })();
     };
 
     const saveCurrent = () => {
@@ -390,7 +407,14 @@ export async function mountDatasetSetup(
         if (form) showFormError(form, "Choose a different id.");
         return;
       }
-      if (!window.confirm(`Duplicate ${datasetId} as ${nextId}?`)) return;
+      void (async () => {
+        const duplicateButton = host.querySelector<HTMLButtonElement>("[data-action=duplicate-dataset]");
+        if (!(await confirmDialog({
+          message: `Duplicate ${datasetId} as ${nextId}?`,
+          returnFocus: duplicateButton,
+        }))) {
+          return;
+        }
       if (form) showFormError(form, "");
       void duplicateDataset(datasetId, nextId)
         .then(() => {
@@ -399,6 +423,7 @@ export async function mountDatasetSetup(
         .catch((err) => {
           if (form) showFormError(form, err instanceof Error ? err.message : "Could not duplicate that dataset.");
         });
+      })();
     });
 
     const addRootField = () => {

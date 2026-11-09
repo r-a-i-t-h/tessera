@@ -1,3 +1,4 @@
+import { confirmDialog } from "./confirm-dialog.js";
 import { closeCommandPalette } from "./command-palette.js";
 import { closeEditorSidebar } from "./editor-sidebar-mobile.js";
 import { closeEntityOpener } from "./entity-opener.js";
@@ -110,7 +111,13 @@ function followBackLink(root: ParentNode): boolean {
   const hash = back?.getAttribute("href");
   if (!hash) return false;
   const form = root.querySelector<HTMLFormElement>("#record-form");
-  if (form?.dataset.dirty === "true" && !window.confirm(DISCARD_UNSAVED_BACK_MESSAGE)) {
+  if (form?.dataset.dirty === "true") {
+    void confirmDialog({
+      message: DISCARD_UNSAVED_BACK_MESSAGE,
+      confirmLabel: "Discard",
+    }).then((ok) => {
+      if (ok) navigateHash(hash);
+    });
     return true;
   }
   navigateHash(hash);

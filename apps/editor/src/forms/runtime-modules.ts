@@ -1,3 +1,4 @@
+import { confirmDialog } from "../confirm-dialog.js";
 import { activateDialog, type DialogController } from "../dialog.js";
 import { escapeHtml, formErrorPanel, showFormError } from "../dom.js";
 import type { RuntimeModuleAsset } from "../api.js";
@@ -201,8 +202,16 @@ export function bindRuntimeModuleDuplicate(
       onError("Choose a different id.");
       return;
     }
-    if (!window.confirm(`Duplicate ${sourceId} as ${nextId}?`)) return;
-    void duplicate(nextId);
+    void (async () => {
+      const duplicateButton = root.querySelector<HTMLButtonElement>("[data-action=duplicate-runtime-module]");
+      if (!(await confirmDialog({
+        message: `Duplicate ${sourceId} as ${nextId}?`,
+        returnFocus: duplicateButton,
+      }))) {
+        return;
+      }
+      void duplicate(nextId);
+    })();
   });
 }
 

@@ -1,5 +1,6 @@
 import { siteStyleCss, type SiteStyle } from "@r-a-i-t-h/tessera-model";
 import { bindCodeWrap, codeWrapClass, codeWrapToggle } from "./code-wrap.js";
+import { confirmDialog } from "./confirm-dialog.js";
 import { activateDialog, type DialogController } from "./dialog.js";
 import { errorPanel, escapeHtml, noticePanel } from "./dom.js";
 import { STYLE_FIELDS, styleDraft, styleFieldValues, styleFromValues, styleGroups } from "./forms/style.js";
@@ -312,12 +313,21 @@ export function bindStyleFormUndo(root: ParentNode, form: HTMLFormElement, saved
     restore("redo");
   });
   scope.querySelector<HTMLButtonElement>("#style-form [data-action=revert]")?.addEventListener("click", () => {
-    if (!window.confirm("Discard unsaved style edits and restore the last saved site style?")) return;
+    void (async () => {
+      const revert = scope.querySelector<HTMLButtonElement>("#style-form [data-action=revert]");
+      if (!(await confirmDialog({
+        message: "Discard unsaved style edits and restore the last saved site style?",
+        returnFocus: revert,
+        confirmLabel: "Discard",
+      }))) {
+        return;
+      }
     history = undoHistory(savedSnapshot);
     applyStyleFormSnapshot(form, history.present);
     bindStyleColorFields(form);
     onPresentChange();
     syncStyleUndoButtons(scope, history);
+    })();
   });
 
   const keys = new AbortController();

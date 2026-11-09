@@ -2,7 +2,7 @@
  * @vitest-environment happy-dom
  */
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { handleEscape, libraryParentHash } from "./escape-key.js";
 
 describe("handleEscape", () => {
@@ -58,30 +58,34 @@ describe("handleEscape", () => {
     expect(window.location.hash).toBe("#/pages");
   });
 
-  it("confirms before back when the record form is dirty", () => {
-    const confirm = vi.fn(() => false);
-    vi.stubGlobal("confirm", confirm);
+  it("opens confirm before back when the record form is dirty", async () => {
     const root = document.createElement("div");
     root.innerHTML = `<form id="record-form" data-dirty="true"></form>
       <a class="editor-back" href="#/pages">Back</a>`;
     window.location.hash = "#/content/home";
 
     expect(handleEscape(root)).toBe(true);
-    expect(confirm).toHaveBeenCalledOnce();
+    await Promise.resolve();
+    expect(document.querySelector('[role="dialog"][aria-modal="true"]')).not.toBeNull();
     expect(window.location.hash).toBe("#/content/home");
-    vi.unstubAllGlobals();
+
+    document.querySelector<HTMLButtonElement>("[data-confirm-cancel]")?.click();
+    await Promise.resolve();
+    expect(document.querySelector(".editor-confirm-host")).toBeNull();
+    expect(window.location.hash).toBe("#/content/home");
   });
 
-  it("navigates back when dirty confirm is accepted", () => {
-    vi.stubGlobal("confirm", vi.fn(() => true));
+  it("navigates back when dirty confirm is accepted", async () => {
     const root = document.createElement("div");
     root.innerHTML = `<form id="record-form" data-dirty="true"></form>
       <a class="editor-back" href="#/pages">Back</a>`;
     window.location.hash = "#/content/home";
 
     expect(handleEscape(root)).toBe(true);
+    await Promise.resolve();
+    document.querySelector<HTMLButtonElement>("[data-confirm-primary]")?.click();
+    await Promise.resolve();
     expect(window.location.hash).toBe("#/pages");
-    vi.unstubAllGlobals();
   });
 
   it("clears library asset details before leaving the folder", () => {
