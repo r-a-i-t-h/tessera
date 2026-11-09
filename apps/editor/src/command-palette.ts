@@ -24,6 +24,10 @@ function paletteHtml(listId: string): string {
 
 function selectItem(item: PickerItem): void {
   closeCommandPalette();
+  if (item.href) {
+    window.open(item.href, "_blank", "noopener,noreferrer");
+    return;
+  }
   if (item.action === "render") {
     void handlers?.onRender();
     return;

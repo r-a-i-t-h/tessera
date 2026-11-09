@@ -44,13 +44,15 @@ describe("buildEditorIndex", () => {
     for (let i = 0; i < firstNonPinned; i++) {
       expect(["Editor", "Action"]).toContain(items[i]!.category);
     }
-    expect(items[0]?.category).toBe("Editor");
-    const firstAction = items.findIndex((i) => i.category === "Action");
+    expect(items[0]?.label).toBe("Open preview");
+    const firstEditor = items.findIndex((i) => i.category === "Editor");
+    expect(firstEditor).toBe(1);
     let lastEditor = -1;
     for (let i = 0; i < items.length; i++) {
       if (items[i]!.category === "Editor") lastEditor = i;
     }
-    expect(firstAction).toBeGreaterThan(lastEditor);
+    const renderIdx = items.findIndex((i) => i.label === "Render preview");
+    expect(renderIdx).toBeGreaterThan(lastEditor);
     const aaa = items.findIndex((i) => i.label === "AAA First page");
     expect(aaa).toBeGreaterThanOrEqual(firstNonPinned);
     expect(items[aaa]?.category).toBe("Page");
@@ -84,5 +86,21 @@ describe("buildEditorIndex", () => {
     expect(items.some((i) => i.category === "User")).toBe(false);
     expect(items.some((i) => i.label === "Styles")).toBe(false);
     expect(items.some((i) => i.action === "render")).toBe(true);
+    expect(items.some((i) => i.label === "Open preview" && i.href === "/preview/")).toBe(true);
+    expect(items.some((i) => i.label === "Open published site")).toBe(false);
+  });
+
+  it("points Open published site at the live origin when set", () => {
+    const { items } = buildEditorIndex({
+      records: [{ kind: "content", id: "home", title: "Home" }],
+      datasets: [],
+      users: [],
+      admin: true,
+      siteListingVersion: "1",
+      datasetListingVersion: "0",
+      siteOrigin: "https://hall.example/",
+    });
+    const open = items.find((i) => i.label === "Open published site");
+    expect(open?.href).toBe("https://hall.example/");
   });
 });

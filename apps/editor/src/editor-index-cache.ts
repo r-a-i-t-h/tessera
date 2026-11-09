@@ -5,6 +5,7 @@ export type EditorIndexItem = {
   label: string;
   filterText: string;
   hash?: string;
+  href?: string;
   action?: "render" | "publish";
 };
 
@@ -31,7 +32,11 @@ export async function loadEditorIndex(): Promise<EditorIndexItem[]> {
   } catch {
     throw new ApiError(0, "Cannot reach the editor API. Is it running?");
   }
-  if (res.status === 304 && cached) return cached.items;
+  if (res.status === 304) {
+    if (cached) return cached.items;
+    invalidateEditorIndex();
+    return loadEditorIndex();
+  }
   const data: unknown = await res.json().catch(() => ({}));
   if (!res.ok) {
     const message =

@@ -31,6 +31,14 @@ editorIndexRoutes.get("/editor-index", async (c) => {
     users = userStore.listUsers().map((u) => u.username);
   }
 
+  let siteOrigin: string | undefined;
+  try {
+    const siteData = await site.readSite();
+    const origin = siteData.origin;
+    if (typeof origin === "string" && origin.trim()) siteOrigin = origin.trim();
+  } catch {
+  }
+
   const payload = buildEditorIndex({
     records,
     datasets,
@@ -38,6 +46,7 @@ editorIndexRoutes.get("/editor-index", async (c) => {
     admin,
     siteListingVersion: site.listingVersion(),
     datasetListingVersion: datasetStore.listingVersion(),
+    siteOrigin,
   });
 
   const etag = `"${payload.version}"`;

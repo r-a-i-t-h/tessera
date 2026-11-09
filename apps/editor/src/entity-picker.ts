@@ -5,6 +5,7 @@ export type PickerItem = {
   filterText: string;
   category?: string;
   hash?: string;
+  href?: string;
   action?: string;
 };
 
@@ -67,6 +68,7 @@ export function wirePickerList(options: {
           : "";
         const dataAttrs = [
           item.hash ? `data-entity-hash="${escapeHtml(item.hash)}"` : "",
+          item.href ? `data-entity-href="${escapeHtml(item.href)}"` : "",
           item.action ? `data-entity-action="${escapeHtml(item.action)}"` : "",
         ]
           .filter(Boolean)
@@ -80,12 +82,18 @@ export function wirePickerList(options: {
   const pickRow = (row: HTMLElement | null | undefined) => {
     if (!row) return;
     const hash = row.dataset.entityHash;
+    const href = row.dataset.entityHref;
     const action = row.dataset.entityAction;
     const q = needle.trim().toLowerCase();
     const items = getItems();
     const filtered = q ? items.filter((item) => item.filterText.includes(q)) : items;
     if (hash) {
       const match = filtered.find((item) => item.hash === hash);
+      if (match) onSelect(match);
+      return;
+    }
+    if (href) {
+      const match = filtered.find((item) => item.href === href);
       if (match) onSelect(match);
       return;
     }
@@ -138,7 +146,7 @@ export function wirePickerList(options: {
   list.addEventListener("click", (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
-    pickRow(target.closest<HTMLElement>("[data-entity-hash], [data-entity-action]"));
+    pickRow(target.closest<HTMLElement>("[data-entity-hash], [data-entity-href], [data-entity-action]"));
   });
 
   return {
@@ -171,6 +179,7 @@ export function pickerItemsFromIndex(
     filterText: item.filterText,
     category: item.category,
     hash: item.hash,
+    href: item.href,
     action: item.action,
   }));
 }

@@ -48,7 +48,7 @@ describe("GET /api/editor-index", () => {
     const res = await app.request("/api/editor-index", { headers: auth() });
     expect(res.status).toBe(200);
     const body = (await res.json()) as { version: string; items: EditorIndexItem[] };
-    expect(body.version).toMatch(/^\d+:\d+$/);
+    expect(body.version).toMatch(/^\d+:\d+:\d+$/);
     expect(body.items.some((i) => i.label === "Home" && i.hash === "#/content/home")).toBe(true);
     expect(body.items.some((i) => i.action === "render")).toBe(true);
     const etag = res.headers.get("ETag");

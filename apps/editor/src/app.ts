@@ -288,6 +288,8 @@ import { isCommandPaletteShortcut, triggerPaletteAction } from "./palette-key.js
 import { handleShortcutsHelpKey } from "./shortcuts-help.js";
 import { triggerEditorSave } from "./save-key.js";
 import { mountCommandPalette } from "./command-palette.js";
+import { invalidateEditorIndex } from "./editor-index-cache.js";
+import { PREVIEW_SITE_HREF, publishedSiteHref } from "./site-hrefs.js";
 import { bindEntityOpener, entityOpenerHtml } from "./entity-opener.js";
 import { buildEditEntityItems, buildUserEntityItems } from "./entity-opener-items.js";
 import { bindDatasetsSetup, datasetsSetupSection, mountDatasetSetup } from "./datasets/setup.js";
@@ -306,6 +308,7 @@ function chrome(
 let libraryAddOpen = true;
 
 export async function mount(root: HTMLElement): Promise<void> {
+  invalidateEditorIndex();
   const paletteRoot = document.createElement("div");
   paletteRoot.id = "editor-command-palette-root";
   document.body.appendChild(paletteRoot);
@@ -435,7 +438,6 @@ async function render(root: HTMLElement): Promise<void> {
   }
 }
 
-const previewUrl = "/preview/";
 
 type EditMode = "arrange" | "build" | "compose" | "frame" | "fields" | "raw";
 
@@ -603,7 +605,7 @@ async function runRender(root: HTMLElement): Promise<void> {
   try {
     const result = await renderSite();
     progress.remove();
-    showEditorToast(renderNoticeText(result), { href: previewUrl });
+    showEditorToast(renderNoticeText(result), { href: PREVIEW_SITE_HREF });
   } catch (err) {
     progress.remove();
     pushStatusMessage(root, "error", err instanceof Error ? err.message : "Render failed.");
@@ -1113,7 +1115,20 @@ function bindInitSite(
 
 async function bindHome(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {
   const listing = await listRecords();
-  root.innerHTML = chrome(user, homeHtml(listing, notice, error, isFullAdmin(user)), false, "home");
+  const siteRow = listing.records.find((row) => row.kind === "site");
+  let publishedHref: string | undefined;
+  if (siteRow) {
+    try {
+      const payload = await getRecord("site", siteRow.id);
+      const origin =
+        payload.data && typeof payload.data === "object" && !Array.isArray(payload.data)
+          ? (payload.data as { origin?: unknown }).origin
+          : undefined;
+      publishedHref = publishedSiteHref(typeof origin === "string" ? origin : undefined);
+    } catch {
+    }
+  }
+  root.innerHTML = chrome(user, homeHtml(listing, notice, error, isFullAdmin(user), publishedHref), false, "home");
   bindChrome(root);
   bindInitSite(
     root,
@@ -2057,11 +2072,22 @@ function formatBytes(size: number): string {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function homeHtml(listing: RecordList, notice = "", error = "", canInitSite = true): string {
+function homeHtml(
+  listing: RecordList,
+  notice = "",
+  error = "",
+  canInitSite = true,
+  publishedHref?: string,
+): string {
   const site = listing.records.find((row) => row.kind === "site");
+  const publishedLink = publishedHref
+    ? `<a class="w3-button w3-theme w3-margin-left" href="${escapeHtml(publishedHref)}" target="_blank" rel="noopener noreferrer">Open published site</a>`
+    : "";
   const body = site
     ? `<p>This site is <strong>${escapeHtml(site.title ?? site.id)}</strong>.</p>
-       <p><a class="w3-button w3-theme" href="${previewUrl}" target="_blank" rel="noopener noreferrer">Open preview</a></p>`
+       <p>
+         <a class="w3-button w3-theme" href="${escapeHtml(PREVIEW_SITE_HREF)}" target="_blank" rel="noopener noreferrer">Open preview</a>${publishedLink}
+       </p>`
     : startSiteHtml(canInitSite);
   return `${tesseraLogo3x5()}
     ${statusPanels(notice, error)}

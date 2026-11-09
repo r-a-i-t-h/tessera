@@ -1,5 +1,6 @@
 import type { DatasetSummary } from "./dataset-store.js";
 import { KIND_LABELS, type RecordKind } from "./kinds.js";
+import { PREVIEW_SITE_HREF, publishedSiteHref } from "./site-hrefs.js";
 import type { RecordSummary } from "./store.js";
 
 export type EditorIndexItem = {
@@ -7,6 +8,7 @@ export type EditorIndexItem = {
   label: string;
   filterText: string;
   hash?: string;
+  href?: string;
   action?: "render" | "publish";
 };
 
@@ -23,6 +25,8 @@ type BuildEditorIndexInput = {
   admin: boolean;
   siteListingVersion: string;
   datasetListingVersion: string;
+  /** Live site origin from `site.yaml`, if any. */
+  siteOrigin?: string;
 };
 
 function encodeHash(path: string): string {
@@ -60,7 +64,7 @@ function filterText(parts: string[]): string {
 function item(
   category: string,
   label: string,
-  extra: { hash?: string; action?: "render" | "publish" },
+  extra: { hash?: string; href?: string; action?: "render" | "publish" },
   ...filterParts: string[]
 ): EditorIndexItem {
   return {
@@ -108,7 +112,8 @@ function datasetItems(datasets: DatasetSummary[]): EditorIndexItem[] {
   return out;
 }
 
-function staticDestinations(admin: boolean): EditorIndexItem[] {
+function staticDestinations(admin: boolean, siteOrigin: string | undefined): EditorIndexItem[] {
+  const publishedHref = publishedSiteHref(siteOrigin);
   const out: EditorIndexItem[] = [
     item("Editor", "Tessera home", { hash: "#/" }, "home"),
     item("Editor", "Pages list", { hash: "#/pages" }, "pages"),
@@ -117,9 +122,13 @@ function staticDestinations(admin: boolean): EditorIndexItem[] {
     item("Editor", "Library", { hash: "#/library" }, "library"),
     item("Editor", "Data", { hash: "#/data" }, "data"),
     item("Editor", "Guide", { hash: "#/guide" }, "guide"),
-    item("Action", "Render preview", { action: "render" }, "preview"),
+    item("Action", "Open preview", { href: PREVIEW_SITE_HREF }, "preview", "open"),
+    item("Action", "Render preview", { action: "render" }, "preview", "render"),
     item("Action", "Publish site", { action: "publish" }, "publish"),
   ];
+  if (publishedHref) {
+    out.push(item("Action", "Open published site", { href: publishedHref }, "published", "live", "open"));
+  }
   if (admin) {
     out.push(
       item("Editor", "Styles", { hash: "#/styles" }, "styles"),
@@ -146,17 +155,30 @@ function userItems(usernames: string[]): EditorIndexItem[] {
   );
 }
 
+/** Bump when static palette destinations or ordering change (invalidates editor index ETags). */
+const EDITOR_INDEX_REVISION = 2;
+
 /** Palette sections pinned above alphabetical content categories. */
 const PALETTE_CATEGORY_RANK: Record<string, number> = {
   Editor: 0,
   Action: 1,
 };
 
+const PINNED_OPEN_LABELS = ["Open preview", "Open published site"] as const;
+
 function paletteCategoryRank(category: string): number {
   return PALETTE_CATEGORY_RANK[category] ?? 2;
 }
 
+function palettePinRank(item: EditorIndexItem): number {
+  const pinned = PINNED_OPEN_LABELS.indexOf(item.label as (typeof PINNED_OPEN_LABELS)[number]);
+  if (pinned >= 0) return pinned;
+  return PINNED_OPEN_LABELS.length + paletteCategoryRank(item.category);
+}
+
 function comparePaletteItems(a: EditorIndexItem, b: EditorIndexItem): number {
+  const byPin = palettePinRank(a) - palettePinRank(b);
+  if (byPin !== 0) return byPin;
   const byRank = paletteCategoryRank(a.category) - paletteCategoryRank(b.category);
   if (byRank !== 0) return byRank;
   const byCategory = a.category.localeCompare(b.category, undefined, { sensitivity: "base" });
@@ -167,7 +189,7 @@ function comparePaletteItems(a: EditorIndexItem, b: EditorIndexItem): number {
 /** Build the editor command palette index (titles and ids only). */
 export function buildEditorIndex(input: BuildEditorIndexInput): EditorIndexPayload {
   const items = [
-    ...staticDestinations(input.admin),
+    ...staticDestinations(input.admin, input.siteOrigin),
     ...recordItems(input.records),
     ...(input.admin ? datasetItems(input.datasets) : []),
     ...(input.admin ? userItems(input.users) : []),
@@ -175,7 +197,7 @@ export function buildEditorIndex(input: BuildEditorIndexInput): EditorIndexPaylo
   items.sort(comparePaletteItems);
   return {
     ok: true,
-    version: `${input.siteListingVersion}:${input.datasetListingVersion}`,
+    version: `${EDITOR_INDEX_REVISION}:${input.siteListingVersion}:${input.datasetListingVersion}`,
     items,
   };
 }
