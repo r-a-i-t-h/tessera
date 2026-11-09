@@ -40,6 +40,13 @@ export function triggerEditorSave(root: ParentNode, event: KeyboardEvent): boole
     return true;
   }
 
+  const gridSave = document.querySelector<HTMLButtonElement>("[data-dataset-save-grid]:not([disabled])");
+  if (gridSave?.isConnected) {
+    event.preventDefault();
+    gridSave.click();
+    return true;
+  }
+
   const active = document.activeElement;
   const focused = active instanceof HTMLElement ? active.closest("form") : null;
   const form =

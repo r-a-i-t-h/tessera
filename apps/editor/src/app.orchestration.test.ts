@@ -200,11 +200,11 @@ describe("editor route orchestration", () => {
 
     await mount(root);
     await vi.waitFor(() => {
-      expect(root.querySelector("[data-action=new-item]")?.textContent).toBe("New item");
+      expect(root.querySelector("[data-action=add-item]")?.textContent).toBe("Add item");
     });
     expect(root.querySelector("#new-item-form")).toBeTruthy();
 
-    root.querySelector<HTMLButtonElement>("[data-action=new-item]")?.click();
+    root.querySelector<HTMLButtonElement>("[data-action=add-item]")?.click();
     const form = root.querySelector<HTMLFormElement>("#new-item-form");
     expect(form?.hidden).toBe(false);
     const zone = form?.querySelector<HTMLSelectElement>("#new-item-zone");

@@ -85,7 +85,7 @@ export function datasetsSetupSection(datasets: DatasetSummary[]): string {
     ],
   }));
   const table = editorRecordTable(rows, ["Id", "Title", "Records", ""], 4, "No datasets yet.");
-  return `<p><button type="button" class="w3-button w3-theme" data-action="new-dataset">New dataset</button></p>
+  return `<p><button type="button" class="w3-button w3-theme" data-action="add-dataset">Add dataset</button></p>
     <form id="new-dataset-form" class="editor-new-page" hidden>
       <p>
         <label for="new-dataset-id">Id</label>
@@ -103,7 +103,7 @@ export function datasetsSetupSection(datasets: DatasetSummary[]): string {
 
 export function bindDatasetsSetup(root: HTMLElement): void {
   const form = root.querySelector<HTMLFormElement>("#new-dataset-form");
-  root.querySelector("[data-action=new-dataset]")?.addEventListener("click", () => {
+  root.querySelector("[data-action=add-dataset]")?.addEventListener("click", () => {
     if (!form) return;
     form.hidden = false;
     form.querySelector<HTMLInputElement>("#new-dataset-id")?.focus();

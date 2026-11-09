@@ -7,17 +7,20 @@ import { isEntityOpenShortcut, triggerOpenAction } from "./open-key.js";
 import { entityOpenerHtml, bindEntityOpener } from "./entity-opener.js";
 
 describe("isEntityOpenShortcut", () => {
-  it("matches Cmd/Ctrl+O and Cmd/Ctrl+Shift+O", () => {
+  it("matches Cmd/Ctrl+Shift+O only", () => {
     expect(
       isEntityOpenShortcut(new KeyboardEvent("keydown", { code: "KeyO", metaKey: true, shiftKey: true })),
     ).toBe(true);
     expect(
-      isEntityOpenShortcut(new KeyboardEvent("keydown", { code: "KeyO", metaKey: true })),
+      isEntityOpenShortcut(new KeyboardEvent("keydown", { code: "KeyO", ctrlKey: true, shiftKey: true })),
     ).toBe(true);
     expect(
+      isEntityOpenShortcut(new KeyboardEvent("keydown", { code: "KeyO", metaKey: true })),
+    ).toBe(false);
+    expect(
       isEntityOpenShortcut(new KeyboardEvent("keydown", { code: "KeyO", ctrlKey: true })),
-    ).toBe(true);
-    expect(isEntityOpenShortcut(new KeyboardEvent("keydown", { code: "KeyN", metaKey: true }))).toBe(false);
+    ).toBe(false);
+    expect(isEntityOpenShortcut(new KeyboardEvent("keydown", { code: "KeyA", metaKey: true }))).toBe(false);
   });
 });
 

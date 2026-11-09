@@ -48,7 +48,7 @@ export function entityOpenerHtml(currentLabel: string, _currentId: string, items
   }
   return `<div class="editor-entity-opener" data-entity-opener data-entity-open>
     <span class="editor-entity-opener-current w3-large">${escapeHtml(currentLabel)}</span>
-    <button type="button" class="editor-entity-opener-toggle" data-entity-opener-toggle aria-label="Open another" aria-expanded="false" aria-haspopup="listbox" title="Open another (⌘O / Ctrl+O; use ⌘⇧O in Safari)">▾</button>
+    <button type="button" class="editor-entity-opener-toggle" data-entity-opener-toggle aria-label="Open another" aria-expanded="false" aria-haspopup="listbox" title="Open another (⌘⇧O / Ctrl+Shift+O)">▾</button>
     <div class="editor-entity-opener-panel" hidden>
       <input type="search" class="editor-entity-opener-search w3-input w3-border" placeholder="Filter…" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" />
       <ul class="editor-entity-opener-list w3-ul w3-card w3-white" role="listbox"></ul>

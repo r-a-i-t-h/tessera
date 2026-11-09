@@ -56,7 +56,7 @@ export function renderSchemaForm(draft: SchemaDraft, options: SchemaFormOptions 
   return `<div class="editor-dataset-schema">
     ${systemVisibleColumnsHtml(viewColumns)}
     <ul class="editor-type-fields editor-dataset-schema-custom-fields">${list}</ul>
-    <p><button type="button" class="w3-button w3-small w3-theme" data-action="new-field" data-schema-action="add">New field</button></p>
+    <p><button type="button" class="w3-button w3-small w3-theme" data-action="add-field" data-schema-action="add">Add field</button></p>
     <template id="schema-kind-options">${kinds}</template>
   </div>`;
 }

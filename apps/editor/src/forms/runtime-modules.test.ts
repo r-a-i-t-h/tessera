@@ -36,7 +36,7 @@ describe("runtime module editor", () => {
     expect(html).toContain("editor-library-split");
     expect(html).toContain("data-runtime-upload");
     expect(html).toContain("multiple");
-    expect(html).toContain('data-action="new-runtime-module"');
+    expect(html).toContain('data-action="add-runtime-module"');
     expect(html).toContain("data-runtime-new");
   });
 
@@ -54,7 +54,7 @@ describe("runtime module editor", () => {
     bindRuntimeModuleNew(document.body, [], async (opts) => {
       created.push({ ...opts, source: blankRuntimeModuleSource() });
     });
-    document.querySelector<HTMLButtonElement>('[data-action="new-runtime-module"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-action="add-runtime-module"]')!.click();
     const form = document.querySelector<HTMLFormElement>("[data-runtime-new]")!;
     expect(form.hidden).toBe(false);
     form.querySelector<HTMLInputElement>("#new-runtime-module-id")!.value = "my-module";
@@ -78,7 +78,8 @@ describe("runtime module editor", () => {
     );
     expect(html).toContain('editor-back" href="#/records/runtimeModules"');
     expect(runtimeModulesRouteHash("demo")).toBe("#/records/runtimeModules/demo");
-    expect(html).toContain('form="runtime-module-form"');
+    expect(html).toContain('id="runtime-module-form"');
+    expect(html).toContain('type="submit"');
     expect(html).toContain("data-runtime-delete");
     expect(html).not.toContain("editor-library-split");
     expect(html).toContain("Duplicate as");

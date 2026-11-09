@@ -205,7 +205,7 @@ async function mountDatasetGrid(
     const gridToolbarActions =
       gridMode === "view"
         ? `<button type="button" class="w3-button w3-white" data-dataset-edit-mode>Edit grid</button>`
-        : `<button type="button" class="w3-button w3-theme" data-dataset-save-grid>Save grid</button><button type="button" class="w3-button w3-white" data-dataset-cancel-grid>Cancel</button>`;
+        : `<button type="button" class="w3-button w3-theme" data-dataset-save-grid title="Save grid (Ctrl+S)">Save grid</button><button type="button" class="w3-button w3-white" data-dataset-cancel-grid>Cancel</button>`;
 
     const recordCount = fileState.records.length;
     const clearAllDisabled = recordCount === 0 || gridMode === "edit" ? " disabled" : "";
@@ -217,7 +217,7 @@ async function mountDatasetGrid(
           <a class="w3-button w3-white editor-back" href="#/data" aria-label="Back" title="Back (Escape)">←</a>
           ${entityOpenerHtml(fileState.title, datasetId, buildDatasetEntityItems(datasetSummaries, datasetId))}
           <p class="editor-actions">
-            <button type="button" class="w3-button w3-theme" data-dataset-add>New record</button>
+            <button type="button" class="w3-button w3-theme" data-dataset-add>Add record</button>
             ${gridToolbarActions}
             <button type="button" class="w3-button w3-white w3-border w3-border-red" data-dataset-clear-all${clearAllDisabled}>Delete all records</button>
           </p>
@@ -406,10 +406,9 @@ async function mountDatasetGrid(
     paintDialog = () => {
       host.innerHTML = `<div class="editor-picker-backdrop" data-dialog-backdrop><div class="w3-card w3-white w3-padding editor-card editor-dataset-record-dialog" role="dialog" aria-modal="true" tabindex="-1">
         <h2 class="w3-large">${record ? "Edit record" : "New record"}</h2>
-        <form id="dataset-record-form">${renderRecordForm(draft, fileState.schema.fields, { isRoot: true, formatAssetDisplay })}</form>
-        <p><button type="submit" form="dataset-record-form" class="w3-button w3-theme">Save</button>
+        <form id="dataset-record-form">${renderRecordForm(draft, fileState.schema.fields, { isRoot: true, formatAssetDisplay })}<p class="editor-actions editor-form-actions"><button type="submit" class="w3-button w3-theme">Save</button>
         ${record ? `<button type="button" class="w3-button w3-white w3-border w3-border-red" data-record-delete>Delete</button>` : ""}
-        <button type="button" class="w3-button w3-white" data-record-cancel>Cancel</button></p>
+        <button type="button" class="w3-button w3-white" data-record-cancel>Cancel</button></p></form>
       </div></div>`;
       bindRecordForm(host, draft, paintDialog);
     };

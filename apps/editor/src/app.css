@@ -1075,6 +1075,24 @@ li.editor-list-item.editor-user {
   margin-top: 0;
 }
 
+.editor-form-actions {
+  margin-top: 1rem;
+  margin-bottom: 0;
+}
+
+#record-form .editor-form-actions {
+  margin-top: 1.25rem;
+}
+
+.editor-check input[type="checkbox"],
+.editor-check input[type="radio"] {
+  flex-shrink: 0;
+}
+
+.editor-check label {
+  cursor: pointer;
+}
+
 .editor-nav {
   overflow-x: auto;
 }
@@ -2769,6 +2787,51 @@ a.editor-library-row {
 
 .editor-confirm-message {
   white-space: pre-wrap;
+}
+
+.editor-shortcuts-help-host {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+}
+
+.editor-picker-backdrop .editor-shortcuts-help-dialog {
+  position: relative;
+  width: min(36rem, calc(100% - 2rem));
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+}
+
+.editor-shortcuts-help-dl {
+  margin: 0.5rem 0 0;
+}
+
+.editor-shortcuts-help-row {
+  display: grid;
+  grid-template-columns: minmax(9rem, 11rem) 1fr;
+  gap: 0.75rem 1rem;
+  margin: 0.35rem 0;
+}
+
+.editor-shortcuts-help-row dt {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.editor-shortcuts-help-row dd {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.editor-shortcuts-help-section + .editor-shortcuts-help-section {
+  margin-top: 1.1rem;
+}
+
+.editor-shortcuts-help-footer {
+  margin-top: 1.25rem;
+  margin-bottom: 0;
 }
 
 .editor-dataset-schema .editor-type-line {

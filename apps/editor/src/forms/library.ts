@@ -245,7 +245,7 @@ export function renderLibrary(
       <div class="editor-toolbar-row">
         <h1 class="w3-large editor-entity-opener">Library</h1>
         <p class="editor-actions">
-          <button type="button" class="w3-button w3-white" data-action="new-folder">New folder</button>
+          <button type="button" class="w3-button w3-white" data-action="add-folder">Add folder</button>
           <button type="button" class="w3-button w3-white" data-action="rescan">Rescan</button>
         </p>
       </div>

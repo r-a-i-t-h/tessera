@@ -56,4 +56,21 @@ describe("triggerEditorSave", () => {
     expect(event.defaultPrevented).toBe(true);
     expect(submit).toHaveBeenCalledOnce();
   });
+
+  it("clicks Save grid when grid edit is active", () => {
+    const root = document.createElement("div");
+    const onSave = vi.fn();
+    root.innerHTML = `<button type="button" data-dataset-save-grid>Save grid</button>`;
+    root.querySelector("[data-dataset-save-grid]")?.addEventListener("click", onSave);
+    document.body.append(root);
+    const event = new KeyboardEvent("keydown", {
+      code: "KeyS",
+      metaKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    expect(triggerEditorSave(root, event)).toBe(true);
+    expect(onSave).toHaveBeenCalledOnce();
+    root.remove();
+  });
 });

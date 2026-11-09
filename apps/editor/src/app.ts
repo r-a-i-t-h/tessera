@@ -275,9 +275,17 @@ import {
 } from "./styles-page.js";
 import { usernameError } from "./username.js";
 import { cancelNewBindingForm, handleEscape, hasOpenModal } from "./escape-key.js";
-import { triggerNewAction } from "./new-key.js";
+import { defocusTypingTarget } from "./typing-target.js";
+import { isAddShortcut, triggerAddAction } from "./add-key.js";
+import { isEditShortcut, triggerEditFocus } from "./edit-key.js";
+import {
+  editTabDirectionFromEvent,
+  isEditTabShortcut,
+  triggerEditTabAdjacent,
+} from "./edit-tab-key.js";
 import { triggerOpenAction, isEntityOpenShortcut } from "./open-key.js";
 import { isCommandPaletteShortcut, triggerPaletteAction } from "./palette-key.js";
+import { handleShortcutsHelpKey } from "./shortcuts-help.js";
 import { triggerEditorSave } from "./save-key.js";
 import { mountCommandPalette } from "./command-palette.js";
 import { bindEntityOpener, entityOpenerHtml } from "./entity-opener.js";
@@ -315,26 +323,34 @@ export async function mount(root: HTMLElement): Promise<void> {
     { capture: true },
   );
   document.addEventListener("keydown", (event) => {
-    if (
-      event.key === "Escape" &&
-      !event.defaultPrevented &&
-      !hasOpenModal() &&
-      handleEscape(root, { onLibraryAddClose: () => { libraryAddOpen = false; } })
-    ) {
+    if (event.key === "Escape" && !event.defaultPrevented && !hasOpenModal()) {
+      if (defocusTypingTarget()) {
+        event.preventDefault();
+        return;
+      }
+      if (handleEscape(root, { onLibraryAddClose: () => { libraryAddOpen = false; } })) {
+        event.preventDefault();
+        return;
+      }
+    }
+    if (handleShortcutsHelpKey(event)) return;
+    if (isAddShortcut(event)) {
       event.preventDefault();
+      if (!hasOpenModal() && triggerAddAction(root)) return;
+      showEditorToast("Nothing added", { tone: "neutral" });
       return;
     }
-    if (
-      event.code === "KeyN" &&
-      !event.altKey &&
-      !event.shiftKey &&
-      (event.metaKey || event.ctrlKey) &&
-      !event.defaultPrevented
-    ) {
+    if (isEditShortcut(event)) {
       event.preventDefault();
-      if (!hasOpenModal() && triggerNewAction(root)) return;
-      showEditorToast("Nothing created", { tone: "neutral" });
+      if (!hasOpenModal() && triggerEditFocus(root)) return;
       return;
+    }
+    if (isEditTabShortcut(event)) {
+      const direction = editTabDirectionFromEvent(event);
+      if (direction && !hasOpenModal() && triggerEditTabAdjacent(root, direction)) {
+        event.preventDefault();
+        return;
+      }
     }
     if (isEntityOpenShortcut(event)) {
       event.preventDefault();
@@ -454,6 +470,22 @@ type NavSession = {
 
 /** Unsaved navigation list. Tab changes read and write this instead of the saved file. */
 let navSession: NavSession | undefined;
+
+/** Reflect in-memory unsaved session state on the record form (e.g. after a tab change rebuilds markup). */
+function syncRecordFormDirty(form: HTMLFormElement, kind: string): void {
+  if (form.dataset.dirty === "true") return;
+  if (editsBody(kind) && contentSession?.fromEditor) {
+    form.dataset.dirty = "true";
+    return;
+  }
+  if (kind === "layouts" && layoutSession?.fromEditor) {
+    form.dataset.dirty = "true";
+    return;
+  }
+  if (kind === "nav" && navSession?.fromEditor) {
+    form.dataset.dirty = "true";
+  }
+}
 
 /** True while undo or redo is redrawing the open record. */
 let historyRestore = false;
@@ -728,7 +760,7 @@ async function bindUsers(root: HTMLElement, user: PublicUser, notice = "", error
   root.innerHTML = chrome(user, usersHtml(listing.users, user, notice, error), true, "users");
   bindChrome(root);
   const form = root.querySelector<HTMLFormElement>("#new-user-form");
-  root.querySelector("[data-action=new-user]")?.addEventListener("click", () => {
+  root.querySelector("[data-action=add-user]")?.addEventListener("click", () => {
     if (!form) return;
     form.hidden = false;
     form.querySelector<HTMLInputElement>("#new-username")?.focus();
@@ -826,6 +858,13 @@ async function bindUser(
   bindEntityOpener(root);
   bindUserToolbarActions(root, user, target.username);
   const form = root.querySelector<HTMLFormElement>("#edit-user-form");
+  const selfEdit = target.username === user.username;
+  form?.querySelector<HTMLInputElement>("#user-disabled")?.addEventListener("click", (event) => {
+    if (!selfEdit) return;
+    const input = event.currentTarget;
+    if (!(input instanceof HTMLInputElement)) return;
+    input.checked = target.disabled;
+  });
   form?.addEventListener("submit", (event) => {
     event.preventDefault();
     const data = new FormData(form);
@@ -844,7 +883,7 @@ async function bindUser(
     if (isFullAdmin(user)) {
       patch.restrictAccessLevel = data.get("limitedEditor") === "on" ? "editor" : null;
     }
-    const button = root.querySelector<HTMLButtonElement>('button[form="edit-user-form"]');
+    const button = form?.querySelector<HTMLButtonElement>('button[type="submit"]');
     if (button) button.disabled = true;
     void (async () => {
       try {
@@ -877,7 +916,7 @@ function usersHtml(users: ManagedUser[], actor: PublicUser, notice: string, erro
     : `<p class="w3-text-grey">No editors yet.</p>`;
   return `<h1 class="w3-large">Users</h1>
     ${statusPanels(notice, error)}
-    <p><button type="button" class="w3-button w3-theme" data-action="new-user">New user</button></p>
+    <p><button type="button" class="w3-button w3-theme" data-action="add-user">Add user</button></p>
     <form id="new-user-form" class="editor-new-page" hidden>
       <p>
         <label for="new-username">Username</label>
@@ -933,11 +972,7 @@ function userDetailToolbar(target: ManagedUser, actor: PublicUser, users: Manage
       <div class="editor-toolbar-row">
         <a class="w3-button w3-white editor-back" href="#/users" aria-label="Back" title="Back (Escape)">←</a>
         ${titleHtml}
-        <p class="editor-actions">
-          <button type="submit" form="edit-user-form" class="w3-button w3-theme">Save</button>
-          ${toggle}
-          ${remove}
-        </p>
+        <p class="editor-actions">${toggle}${remove}</p>
       </div>
     </div>`;
 }
@@ -991,7 +1026,6 @@ function bindUserToolbarActions(root: HTMLElement, user: PublicUser, username: s
 function userEditHtml(target: ManagedUser, actor: PublicUser, notice: string, error: string): string {
   const self = target.username === actor.username;
   const disabled = target.disabled ? " checked" : "";
-  const lock = self ? " disabled" : "";
   const limited = target.restrictAccessLevel === "editor" ? " checked" : "";
   const limitedField = isFullAdmin(actor)
     ? `<p class="editor-check"><label><input id="user-limited" name="limitedEditor" type="checkbox"${limited} /> Limited editor</label></p>`
@@ -1010,8 +1044,9 @@ function userEditHtml(target: ManagedUser, actor: PublicUser, notice: string, er
         <label for="edit-confirm">Confirm new password</label>
         <input id="edit-confirm" name="confirmPassword" type="password" class="w3-input w3-border w3-margin-top" autocomplete="new-password" minlength="6" />
       </p>
-      <p class="editor-check"><label><input id="user-disabled" name="disabled" type="checkbox"${disabled}${lock} /> Disabled</label></p>
+      <p class="editor-check"><label><input id="user-disabled" name="disabled" type="checkbox"${disabled}${self ? ' data-user-self-lock aria-readonly="true"' : ""} /> Disabled</label></p>
       ${limitedField}
+      <p class="editor-actions"><button type="submit" class="w3-button w3-theme">Save</button></p>
     </form>`;
 }
 
@@ -1168,7 +1203,7 @@ async function bindList(
     if (row) await bindEdit(root, user, "site", row.id, initialEditMode("site", undefined), "", false, "tab");
   }
   bindEntryFilter(root);
-  root.querySelector("[data-action=new-page]")?.addEventListener("click", () => {
+  root.querySelector("[data-action=add-page]")?.addEventListener("click", () => {
     const form = root.querySelector<HTMLFormElement>("#new-page-form");
     if (!form) return;
     form.hidden = false;
@@ -1178,7 +1213,7 @@ async function bindList(
     event.preventDefault();
     void createPage(root, listing);
   });
-  root.querySelector("[data-action=new-template]")?.addEventListener("click", () => {
+  root.querySelector("[data-action=add-template]")?.addEventListener("click", () => {
     const form = root.querySelector<HTMLFormElement>("#new-template-form");
     if (!form) return;
     form.hidden = false;
@@ -1188,7 +1223,7 @@ async function bindList(
     event.preventDefault();
     void createTemplate(root, listing);
   });
-  root.querySelector("[data-action=new-layout]")?.addEventListener("click", () => {
+  root.querySelector("[data-action=add-layout]")?.addEventListener("click", () => {
     const form = root.querySelector<HTMLFormElement>("#new-layout-form");
     if (!form) return;
     form.hidden = false;
@@ -1198,7 +1233,7 @@ async function bindList(
     event.preventDefault();
     void createLayout(root, listing);
   });
-  root.querySelector("[data-action=new-type]")?.addEventListener("click", () => {
+  root.querySelector("[data-action=add-type]")?.addEventListener("click", () => {
     const form = root.querySelector<HTMLFormElement>("#new-type-form");
     if (!form) return;
     form.hidden = false;
@@ -1215,7 +1250,7 @@ async function bindList(
   newItem?.querySelector("#new-item-content")?.addEventListener("change", () => {
     if (newItem) syncNewItemContent(newItem);
   });
-  root.querySelector("[data-action=new-item]")?.addEventListener("click", () => {
+  root.querySelector("[data-action=add-item]")?.addEventListener("click", () => {
     if (!newItem) return;
     newItem.hidden = false;
     syncNewItemContent(newItem);
@@ -1383,7 +1418,7 @@ async function navigateToCreatedRecord(root: HTMLElement, destination: CreateRec
 
 function bindNewBinding(root: HTMLElement, listing: RecordList): void {
   const form = root.querySelector<HTMLFormElement>("#new-binding-form");
-  const open = root.querySelector<HTMLButtonElement>("[data-action=new-binding]");
+  const open = root.querySelector<HTMLButtonElement>("[data-action=add-binding]");
   if (!form || !open) return;
   const existing = listing.records.filter((row) => row.kind === "bindings").map((row) => row.id);
   let state = blankNewBinding();
@@ -2159,7 +2194,7 @@ function singletonEditorMount(kind: string, row: RecordSummary | undefined): str
 
 function layoutSection(rows: RecordSummary[], siteReady: boolean, notes: Map<string, string>): string {
   if (!siteReady) return `<p class="w3-text-grey">No records yet.</p>`;
-  return `<p><button type="button" class="w3-button w3-theme" data-action="new-layout">New layout</button></p>
+  return `<p><button type="button" class="w3-button w3-theme" data-action="add-layout">Add layout</button></p>
     <form id="new-layout-form" class="editor-new-page" hidden>
       <p><label for="new-layout-id">Id</label>
         <input id="new-layout-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
@@ -2310,7 +2345,7 @@ async function bindPages(root: HTMLElement, user: PublicUser, notice = "", error
   bindChrome(root);
   bindEntryFilter(root);
   bindPageListOrder(root, listing);
-  root.querySelector("[data-action=new-page]")?.addEventListener("click", () => {
+  root.querySelector("[data-action=add-page]")?.addEventListener("click", () => {
     const form = root.querySelector<HTMLFormElement>("#new-page-form");
     if (!form) return;
     form.hidden = false;
@@ -2413,7 +2448,7 @@ async function bindArticles(root: HTMLElement, user: PublicUser, blog?: string, 
     list.innerHTML = renderArticleListItems(articles);
     applyArticleFilter();
   });
-  root.querySelector("[data-action=new-article]")?.addEventListener("click", () => {
+  root.querySelector("[data-action=add-article]")?.addEventListener("click", () => {
     const form = root.querySelector<HTMLFormElement>("#new-article-form");
     if (!form) return;
     form.hidden = false;
@@ -2496,7 +2531,7 @@ function articlesHtml(
   const items = renderArticleListItems(articles);
   return `<h1 class="w3-large">${escapeHtml(blogRow?.title ?? blog)}</h1>
     ${statusPanels(notice, error)}
-    <p><button type="button" class="w3-button w3-theme" data-action="new-article">New article</button></p>
+    <p><button type="button" class="w3-button w3-theme" data-action="add-article">Add article</button></p>
     <form id="new-article-form" class="editor-new-page" hidden>
       <p><label for="new-article-id">Id</label>
         <input id="new-article-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" /></p>
@@ -2566,7 +2601,7 @@ function blogsSection(listing: RecordList): string {
       </li>`;
     })
     .join("");
-  return `<p><button type="button" class="w3-button w3-theme" data-action="new-blog">New blog</button></p>
+  return `<p><button type="button" class="w3-button w3-theme" data-action="add-blog">Add blog</button></p>
     <form id="new-blog-form" class="editor-new-page" hidden>
       <p><label for="new-blog-id">Id</label>
         <input id="new-blog-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" /></p>
@@ -2579,7 +2614,7 @@ function blogsSection(listing: RecordList): string {
 }
 
 function bindBlogs(root: HTMLElement, user: PublicUser, listing: RecordList): void {
-  root.querySelector("[data-action=new-blog]")?.addEventListener("click", () => {
+  root.querySelector("[data-action=add-blog]")?.addEventListener("click", () => {
     const form = root.querySelector<HTMLFormElement>("#new-blog-form");
     if (!form) return;
     form.hidden = false;
@@ -2683,7 +2718,7 @@ function contentSection(
   const options = templates
     .map((row) => `<option value="${escapeHtml(row.id)}">${escapeHtml(row.title ?? row.id)}</option>`)
     .join("");
-  return `<p><button type="button" class="w3-button w3-theme" data-action="new-page">New page</button></p>
+  return `<p><button type="button" class="w3-button w3-theme" data-action="add-page">Add page</button></p>
     <form id="new-page-form" class="editor-new-page" hidden>
       <p><label for="new-page-id">Id</label>
         <input id="new-page-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
@@ -2761,7 +2796,7 @@ function itemSection(rows: RecordSummary[], siteReady: boolean, zones: readonly 
   const zoneOptions = zones
     .map((id) => `<option value="${escapeHtml(id)}">${escapeHtml(id)}</option>`)
     .join("");
-  return `<p><button type="button" class="w3-button w3-theme" data-action="new-item">New item</button></p>
+  return `<p><button type="button" class="w3-button w3-theme" data-action="add-item">Add item</button></p>
     <form id="new-item-form" class="editor-new-page" hidden>
       <p><label for="new-item-id">Id</label>
         <input id="new-item-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
@@ -2789,7 +2824,7 @@ function itemSection(rows: RecordSummary[], siteReady: boolean, zones: readonly 
 
 function typeSection(rows: RecordSummary[], siteReady: boolean): string {
   if (!siteReady) return `<p class="w3-text-grey">No records yet.</p>`;
-  return `<p><button type="button" class="w3-button w3-theme" data-action="new-type">New type</button></p>
+  return `<p><button type="button" class="w3-button w3-theme" data-action="add-type">Add type</button></p>
     <form id="new-type-form" class="editor-new-page" hidden>
       <p><label for="new-type-id">Id</label>
         <input id="new-type-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
@@ -2802,14 +2837,14 @@ function typeSection(rows: RecordSummary[], siteReady: boolean): string {
 
 function bindingSection(rows: RecordSummary[], siteReady: boolean, notes: Map<string, string>): string {
   if (!siteReady) return `<p class="w3-text-grey">No records yet.</p>`;
-  return `<p><button type="button" class="w3-button w3-theme" data-action="new-binding">New binding</button></p>
+  return `<p><button type="button" class="w3-button w3-theme" data-action="add-binding">Add binding</button></p>
     <form id="new-binding-form" class="editor-new-page" hidden></form>
     ${rows.length ? recordList(rows, false, (row) => notes.get(row.id) ?? "") : `<p class="w3-text-grey">No bindings yet.</p>`}`;
 }
 
 function templateSection(rows: RecordSummary[], siteReady: boolean): string {
   if (!siteReady) return `<p class="w3-text-grey">No records yet.</p>`;
-  return `<p><button type="button" class="w3-button w3-theme" data-action="new-template">New template</button></p>
+  return `<p><button type="button" class="w3-button w3-theme" data-action="add-template">Add template</button></p>
     <form id="new-template-form" class="editor-new-page" hidden>
       <p><label for="new-template-id">Id</label>
         <input id="new-template-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
@@ -3181,6 +3216,7 @@ async function bindEdit(
   notice = "",
   keepDraft = false,
   host: "page" | "tab" = "page",
+  carryDirty = false,
 ): Promise<void> {
   const key = `${kind}/${id}`;
   let payload: RecordPayload;
@@ -3308,7 +3344,7 @@ async function bindEdit(
             : kind === "types"
               ? toolbarDeleteButton("delete-type")
               : "";
-  const actionRow = `<p class="editor-actions"><button type="submit" id="record-save"${pageHost ? ' form="record-form"' : ""} class="w3-button w3-theme">Save</button>${sessionActions}${deleteAction}</p>`;
+  const actionRow = `<p class="editor-actions editor-form-actions"><button type="submit" id="record-save" class="w3-button w3-theme">Save</button>${sessionActions}${deleteAction}</p>`;
   const saveStatus = `<p id="save-status" class="w3-text-grey" hidden></p>`;
   const editor = `${lifecycleHtml(payload)}
      ${noticePanel(notice)}
@@ -3331,7 +3367,7 @@ async function bindEdit(
      <p class="w3-text-grey editor-record-note"><code>${escapeHtml(payload.file)}</code></p>
      <form id="record-form" class="w3-card w3-white w3-padding-large editor-card">
        ${rawHtmlPageChoicesHidden}${formInner}
-       ${pageHost ? "" : `${saveStatus}${actionRow}`}
+       ${saveStatus}${actionRow}
      </form>
      </div>
      </div>
@@ -3352,9 +3388,7 @@ async function bindEdit(
          <div class="editor-toolbar-row">
            <a class="w3-button w3-white editor-back" href="${place.back}" aria-label="Back" title="Back (Escape)">←</a>
            ${titleHtml}
-           ${actionRow}
          </div>
-         ${saveStatus}
        </div>
        ${editor}`,
       true,
@@ -3397,6 +3431,7 @@ async function bindEdit(
       const next = button.dataset.mode;
       if (next !== "arrange" && next !== "build" && next !== "compose" && next !== "frame" && next !== "fields" && next !== "raw") return;
       if (next === editMode) return;
+      const wasDirty = form?.dataset.dirty === "true";
       if (
         editsBody(kind) &&
         contentSession &&
@@ -3412,7 +3447,7 @@ async function bindEdit(
           contentSession.draft = taken.draft;
           contentSession.fromEditor = taken.fromEditor;
         }
-        void bindEdit(root, user, kind, id, next, "", true, host);
+        void bindEdit(root, user, kind, id, next, "", true, host, wasDirty);
         return;
       }
       if (kind === "layouts" && layoutSession && form && (editMode === "arrange" || editMode === "fields" || editMode === "raw")) {
@@ -3425,7 +3460,7 @@ async function bindEdit(
           layoutSession.draft = taken.draft;
           layoutSession.fromEditor = taken.fromEditor;
         }
-        void bindEdit(root, user, kind, id, next, "", true, host);
+        void bindEdit(root, user, kind, id, next, "", true, host, wasDirty);
         return;
       }
       if (kind === "nav" && navSession && form && (editMode === "build" || editMode === "fields" || editMode === "raw")) {
@@ -3438,7 +3473,7 @@ async function bindEdit(
           navSession.draft = taken.draft;
           navSession.fromEditor = taken.fromEditor;
         }
-        void bindEdit(root, user, kind, id, next, "", true, host);
+        void bindEdit(root, user, kind, id, next, "", true, host, wasDirty);
         return;
       }
       void bindEdit(
@@ -3450,6 +3485,7 @@ async function bindEdit(
         "",
         false,
         host,
+        wasDirty,
       );
     });
   }
@@ -3747,6 +3783,10 @@ async function bindEdit(
       if (button) (button as HTMLButtonElement).disabled = false;
     }
   });
+  if (form) {
+    syncRecordFormDirty(form, kind);
+    if (carryDirty) form.dataset.dirty = "true";
+  }
   if (session && form) syncUndoButtons(scope, session.undo);
 }
 
@@ -4588,7 +4628,7 @@ async function bindLibrary(root: HTMLElement, user: PublicUser, routeOpenId: str
       .catch((err) => bindLibrary(root, user, openId, err instanceof Error ? err.message : "Could not rescan the library."));
     })();
   });
-  root.querySelector("[data-action=new-folder]")?.addEventListener("click", () => {
+  root.querySelector("[data-action=add-folder]")?.addEventListener("click", () => {
     const id = window.prompt("Folder id");
     if (!id?.trim()) return;
     const parentFolderId = openId ? libraryOpenFolderId(openId) : null;

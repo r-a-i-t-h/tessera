@@ -1,11 +1,8 @@
 import { openEntityOpener } from "./entity-opener.js";
 
-/**
- * True for Cmd/Ctrl+O and Cmd/Ctrl+Shift+O.
- * Safari does not allow overriding Cmd+O (Open File); the Shift variant is used there.
- */
+/** True for Cmd/Ctrl+Shift+O (open entity opener). */
 export function isEntityOpenShortcut(event: KeyboardEvent): boolean {
-  if (event.code !== "KeyO" || event.altKey || event.defaultPrevented) return false;
+  if (event.code !== "KeyO" || event.altKey || !event.shiftKey || event.defaultPrevented) return false;
   return event.metaKey || event.ctrlKey;
 }
 

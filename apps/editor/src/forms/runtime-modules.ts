@@ -110,7 +110,7 @@ export function renderRuntimeModulesList(modules: RuntimeModuleAsset[]): string 
         ${browse}
       </section>
       <div class="editor-library-panels">
-        <p><button type="button" class="w3-button w3-theme" data-action="new-runtime-module">New runtime module</button></p>
+        <p><button type="button" class="w3-button w3-theme" data-action="add-runtime-module">Add runtime module</button></p>
         <form id="new-runtime-module-form" class="w3-card w3-white w3-padding editor-card editor-new-page" data-runtime-new hidden>
           <p>
             <label for="new-runtime-module-id">Id</label>
@@ -167,10 +167,6 @@ export function renderRuntimeModulePage(
       <div class="editor-toolbar-row">
         <a class="w3-button w3-white editor-back" href="${runtimeModulesRouteHash()}" aria-label="Back" title="Back (Escape)">←</a>
         ${titleHtml}
-        <p class="editor-actions">
-          <button type="submit" form="runtime-module-form" class="w3-button w3-theme">Save</button>
-          <button type="button" data-runtime-delete class="w3-button w3-white w3-border w3-border-red">Delete</button>
-        </p>
       </div>
     </div>
     ${renderRuntimeModuleDetail(mod, raw)}
@@ -227,7 +223,7 @@ export function bindRuntimeModuleNew(
   create: (opts: { id: string; title: string; ext: "js" | "mjs" }) => void | Promise<void>,
 ): void {
   const form = root.querySelector<HTMLFormElement>("[data-runtime-new]");
-  root.querySelector("[data-action=new-runtime-module]")?.addEventListener("click", () => {
+  root.querySelector("[data-action=add-runtime-module]")?.addEventListener("click", () => {
     if (!form) return;
     form.hidden = false;
     form.querySelector<HTMLInputElement>("#new-runtime-module-id")?.focus();
@@ -327,6 +323,10 @@ export function renderRuntimeModuleDetail(mod: RuntimeModuleAsset, raw: string):
       <p class="runtime-module-editor-area"><label for="runtime-module-raw-${escapeHtml(mod.id)}">Raw file</label><textarea id="runtime-module-raw-${escapeHtml(mod.id)}" name="text" class="w3-input w3-border editor-html" rows="24" spellcheck="false">${escapeHtml(raw)}</textarea></p>
       <p class="runtime-module-actions">
         <button type="button" class="w3-button w3-white runtime-module-normalize" data-runtime-normalize>Normalize</button>
+      </p>
+      <p class="editor-actions editor-form-actions">
+        <button type="submit" class="w3-button w3-theme">Save</button>
+        <button type="button" data-runtime-delete class="w3-button w3-white w3-border w3-border-red">Delete</button>
       </p>
     </form>
   </div>`;
