@@ -2797,7 +2797,7 @@ a.editor-library-row {
 
 .editor-picker-backdrop .editor-shortcuts-help-dialog {
   position: relative;
-  width: min(36rem, calc(100% - 2rem));
+  width: min(46rem, calc(100% - 2rem));
   max-height: calc(100vh - 2rem);
   overflow: auto;
 }
