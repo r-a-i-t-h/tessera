@@ -66,6 +66,34 @@ html.editor-dark .w3-pale-red {
   color: #f5c4c4 !important;
 }
 
+/* Sidebar shell */
+html.editor-dark .editor-sidebar.w3-theme,
+html.editor-dark .editor-mobile-bar.w3-theme,
+html.editor-dark .editor-bar.w3-theme {
+  background-color: #0f3d38 !important;
+  color: #e8eaed;
+}
+
+html.editor-dark .editor-sidebar .w3-bar-item.w3-button:not(.tessera-nav-current):not(.tessera-nav-child-current):hover,
+html.editor-dark .editor-sidebar .tessera-nav-brand.w3-theme-d3:hover {
+  color: #fff !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+html.editor-dark .editor-sidebar .tessera-nav-group-label {
+  color: rgba(255, 255, 255, 0.62);
+  opacity: 1;
+}
+
+html.editor-dark .editor-sidebar-version {
+  color: rgba(255, 255, 255, 0.52);
+  opacity: 1;
+}
+
+html.editor-dark .editor-dark-mode-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+}
+
 html.editor-dark .editor-sidebar .tessera-nav-current,
 html.editor-dark .editor-sidebar .tessera-nav-child-current,
 html.editor-dark .editor-sidebar .tessera-nav-current:hover,
@@ -77,6 +105,11 @@ html.editor-dark .editor-toolbar {
   background: var(--editor-surface);
   border-color: var(--editor-border);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  color: var(--editor-text);
+}
+
+html.editor-dark .editor-toolbar h1 {
+  color: var(--editor-text);
 }
 
 html.editor-dark .editor-entity-opener {
@@ -197,6 +230,12 @@ html.editor-dark .editor-mark:hover {
   color: #fff;
 }
 
+html.editor-dark .editor-tab-panel,
+html.editor-dark .editor-tab-strip {
+  --editor-tab-track: #35383c;
+  --editor-tab-pane: #2b2d30;
+}
+
 html.editor-dark .editor-tab {
   color: #bdc1c6;
   background: rgba(255, 255, 255, 0.08);
@@ -209,11 +248,87 @@ html.editor-dark .editor-tab:hover:not(.is-active) {
 
 html.editor-dark .editor-tab.is-active {
   color: #80cbc4;
+  background: var(--editor-tab-pane);
 }
 
 html.editor-dark .editor-tab-body {
+  background: var(--editor-tab-pane);
   border-color: var(--editor-border);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  color: var(--editor-text);
+}
+
+html.editor-dark .editor-zone h2 {
+  color: var(--editor-text);
+}
+
+html.editor-dark .editor-main h1,
+html.editor-dark .editor-main h2,
+html.editor-dark .editor-main h3,
+html.editor-dark .editor-card h1,
+html.editor-dark .editor-card h2,
+html.editor-dark .editor-card label,
+html.editor-dark .editor-new-page label,
+html.editor-dark .editor-form-scope label,
+html.editor-dark .editor-props label,
+html.editor-dark .editor-add-zone-row label,
+html.editor-dark .editor-entry-filter label,
+html.editor-dark .editor-list-order label,
+html.editor-dark .editor-page-target-filter label,
+html.editor-dark .editor-dataset-settings-row label,
+html.editor-dark .editor-dataset-schema .editor-type-line > label,
+html.editor-dark .nav-build-palette-filter label,
+html.editor-dark .editor-raw-html > label,
+html.editor-dark .runtime-module-overlay-host .runtime-module-editor-area label {
+  color: var(--editor-text);
+}
+
+html.editor-dark .editor-add-zone-row .w3-input,
+html.editor-dark .editor-add-zone-row .w3-select {
+  color: var(--editor-text);
+  background-color: var(--editor-code-bg);
+}
+
+html.editor-dark .editor-scroll .w3-striped tbody tr:nth-child(even),
+html.editor-dark .editor-scroll .w3-table-all tr:nth-child(even) {
+  background-color: #32353a !important;
+}
+
+html.editor-dark .editor-scroll .w3-table-all tr:nth-child(odd) {
+  background-color: var(--editor-surface) !important;
+}
+
+html.editor-dark .editor-scroll .w3-bordered tr,
+html.editor-dark .editor-scroll .w3-table tr {
+  border-bottom-color: var(--editor-border);
+}
+
+html.editor-dark .editor-scroll .w3-table th,
+html.editor-dark .editor-scroll .w3-table td,
+html.editor-dark .editor-scroll .w3-table-all th,
+html.editor-dark .editor-scroll .w3-table-all td {
+  color: var(--editor-text);
+}
+
+html.editor-dark .editor-scroll .w3-table a:not(.w3-button) {
+  color: #80cbc4;
+}
+
+html.editor-dark #entry-list li.editor-entry-home-boundary {
+  border-bottom-color: var(--editor-border);
+}
+
+html.editor-dark .editor-fieldset legend {
+  color: var(--editor-text);
+}
+
+html.editor-dark .editor-dataset-settings > summary,
+html.editor-dark .editor-dataset-columns > summary {
+  color: var(--editor-text);
+}
+
+html.editor-dark .editor-dataset-settings-static {
+  color: var(--editor-text-muted);
 }
 
 html.editor-dark .editor-guide-toc,

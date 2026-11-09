@@ -3,6 +3,10 @@ export const STORAGE_KEY = "tessera.editor.darkMode";
 const BODY_LIGHT = "w3-light-grey";
 const BODY_DARK = "editor-body-dark";
 
+const DARK_MODE_ICON_MOON = `<svg class="editor-dark-mode-icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M10.2 2.1a5.5 5.5 0 1 0 3.7 9.6A6 6 0 0 1 8 14a6 6 0 0 1 0-12c.75 0 1.47.14 2.2.1Z"/></svg>`;
+
+const DARK_MODE_ICON_SUN = `<svg class="editor-dark-mode-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3.1" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" d="M8 1.4v2.2M8 12.4v2.2M1.4 8h2.2M12.4 8h2.2M3.2 3.2l1.55 1.55M11.25 11.25l1.55 1.55M3.2 12.8l1.55-1.55M11.25 4.75l1.55-1.55"/></svg>`;
+
 /** Whether the editor shell uses dark mode. */
 export function readDarkMode(): boolean {
   try {
@@ -38,41 +42,53 @@ export function applyDarkMode(on?: boolean): void {
   }
 }
 
-export function darkModeToggle(): string {
-  const checked = readDarkMode() ? " checked" : "";
-  return `<label class="editor-check editor-dark-mode-toggle"><input type="checkbox" data-editor-dark-mode${checked} /> Dark mode</label>`;
+function darkModeControlMarkup(className: string): string {
+  const dark = readDarkMode();
+  const label = dark ? "Switch to light mode" : "Switch to dark mode";
+  const icon = dark ? DARK_MODE_ICON_SUN : DARK_MODE_ICON_MOON;
+  return `<button type="button" class="${className}" data-editor-dark-mode aria-pressed="${dark ? "true" : "false"}" aria-label="${label}" title="${label}">${icon}</button>`;
 }
 
-export function darkModeAppearanceBlock(): string {
-  return `<section class="editor-appearance w3-card w3-white w3-padding-large editor-card" aria-labelledby="editor-appearance-heading">
-      <h2 id="editor-appearance-heading" class="w3-medium">Appearance</h2>
-      <p>${darkModeToggle()}</p>
-    </section>`;
+export function darkModeSidebarToggle(): string {
+  return darkModeControlMarkup("w3-bar-item w3-button editor-dark-mode-toggle");
+}
+
+export function darkModeLoginToggle(): string {
+  return darkModeControlMarkup("w3-bar-item w3-button editor-dark-mode-toggle editor-dark-mode-toggle--login");
 }
 
 export function isDarkModeToggle(target: EventTarget | null): boolean {
-  return target instanceof HTMLInputElement && target.hasAttribute("data-editor-dark-mode");
+  return target instanceof HTMLElement && target.hasAttribute("data-editor-dark-mode");
 }
 
 const darkModeBound = new WeakSet<ParentNode>();
 
-/** Wire dark mode checkboxes under `root`; safe to call on every chrome re-render. */
+/** Wire dark mode toggles under `root`; safe to call on every chrome re-render. */
 export function bindDarkMode(root: ParentNode): void {
-  syncDarkModeCheckboxes(root, readDarkMode());
+  syncDarkModeControls(root, readDarkMode());
   if (darkModeBound.has(root)) return;
   darkModeBound.add(root);
-  root.addEventListener("change", (event) => {
-    if (!isDarkModeToggle(event.target)) return;
-    const on = (event.target as HTMLInputElement).checked;
+  root.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest("[data-editor-dark-mode]");
+    if (!button) return;
+    event.preventDefault();
+    const on = !readDarkMode();
     writeDarkMode(on);
     applyDarkMode(on);
-    syncDarkModeCheckboxes(root, on);
+    syncDarkModeControls(root, on);
     document.dispatchEvent(new CustomEvent("tessera-editor-dark-mode", { detail: { on } }));
   });
 }
 
-function syncDarkModeCheckboxes(root: ParentNode, on: boolean): void {
-  for (const box of root.querySelectorAll<HTMLInputElement>("[data-editor-dark-mode]")) {
-    box.checked = on;
+function syncDarkModeControls(root: ParentNode, on: boolean): void {
+  const label = on ? "Switch to light mode" : "Switch to dark mode";
+  const icon = on ? DARK_MODE_ICON_SUN : DARK_MODE_ICON_MOON;
+  for (const button of root.querySelectorAll<HTMLElement>("[data-editor-dark-mode]")) {
+    button.setAttribute("aria-pressed", on ? "true" : "false");
+    button.setAttribute("aria-label", label);
+    button.setAttribute("title", label);
+    button.innerHTML = icon;
   }
 }

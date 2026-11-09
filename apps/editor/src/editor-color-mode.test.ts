@@ -4,7 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   STORAGE_KEY,
   applyDarkMode,
-  darkModeAppearanceBlock,
+  bindDarkMode,
+  darkModeLoginToggle,
+  darkModeSidebarToggle,
   readDarkMode,
   writeDarkMode,
 } from "./editor-color-mode.js";
@@ -64,8 +66,33 @@ describe("editor color mode", () => {
     expect(document.body.classList.contains("w3-light-grey")).toBe(true);
   });
 
-  it("appearance block contains the dark mode control", () => {
-    expect(darkModeAppearanceBlock()).toContain("data-editor-dark-mode");
-    expect(darkModeAppearanceBlock()).toContain("Appearance");
+  it("sidebar toggle is an icon button with moon when light", () => {
+    expect(darkModeSidebarToggle()).toContain("data-editor-dark-mode");
+    expect(darkModeSidebarToggle()).toContain('aria-pressed="false"');
+    expect(darkModeSidebarToggle()).toContain("Switch to dark mode");
+    expect(darkModeSidebarToggle()).toContain("editor-dark-mode-icon");
+  });
+
+  it("sidebar toggle shows sun when dark", () => {
+    writeDarkMode(true);
+    expect(darkModeSidebarToggle()).toContain('aria-pressed="true"');
+    expect(darkModeSidebarToggle()).toContain("Switch to light mode");
+  });
+
+  it("login toggle uses the login modifier class", () => {
+    expect(darkModeLoginToggle()).toContain("editor-dark-mode-toggle--login");
+    expect(darkModeLoginToggle()).toContain("data-editor-dark-mode");
+  });
+
+  it("bindDarkMode flips preference on click", () => {
+    const host = document.createElement("div");
+    host.innerHTML = darkModeSidebarToggle();
+    document.body.append(host);
+    bindDarkMode(host);
+    host.querySelector<HTMLButtonElement>("[data-editor-dark-mode]")?.click();
+    expect(readDarkMode()).toBe(true);
+    expect(document.documentElement.classList.contains("editor-dark")).toBe(true);
+    host.querySelector<HTMLButtonElement>("[data-editor-dark-mode]")?.click();
+    expect(readDarkMode()).toBe(false);
   });
 });

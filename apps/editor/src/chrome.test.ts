@@ -68,6 +68,8 @@ describe("editor chrome", () => {
     expect(html).toContain('class="editor-shell"');
     expect(html).toContain('class="editor-scroll"');
     expect(html).toContain('class="editor-sidebar-version"');
+    expect(html).toContain("editor-sidebar-footer");
+    expect(html).toContain("data-editor-dark-mode");
     expect(html).not.toContain("editor-footer");
     expect(html).not.toContain('data-action="logout"');
   });
@@ -251,6 +253,7 @@ describe("editor chrome", () => {
 
   it("offers dark mode on the login screen", () => {
     expect(loginView()).toContain("data-editor-dark-mode");
-    expect(loginView()).toContain("Appearance");
+    expect(loginView()).toContain("editor-dark-mode-toggle--login");
+    expect(loginView()).not.toContain("Appearance");
   });
 });
