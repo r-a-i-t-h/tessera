@@ -62,10 +62,10 @@ export function guideHtml(): string {
     <h2 id="menu-components">Menu components</h2>
     <p>Put one of these in the master layout as a component. <code>scope</code> is <code>sidebar</code> (the default for <code>navFlat</code>), <code>topbar</code>, or <code>footer</code>.</p>
     <ul>
-      <li><code>navFlat</code> — <strong>Top-level</strong>: one column of links; optional group titles as large headings. This is what Willow uses.</li>
-      <li><code>navTree</code> — <strong>Sub-level</strong>: optional small group titles; child links in a nested list.</li>
-      <li><code>navCollapse</code> — <strong>Current group</strong>: no group titles; first link under each heading is the section entry; siblings show in Sub-level style when the current page is in that group.</li>
-      <li><code>navPane</code> — <strong>Pane</strong>: Sub-level nesting with the editor-style active tab onto the page. Add <code>w3-theme</code> on the sidebar region for stronger contrast if you like.</li>
+      <li><code>navFlat</code> — <strong>Menu - Top-level</strong>: one column of links; optional group titles as large headings. This is what Willow uses.</li>
+      <li><code>navTree</code> — <strong>Menu - Sub-level</strong>: optional small group titles; child links in a nested list.</li>
+      <li><code>navCollapse</code> — <strong>Menu - Current group</strong>: no group titles; first link under each heading is the section entry; siblings show in Sub-level style when the current page is in that group.</li>
+      <li><code>navPane</code> — <strong>Menu - Tessera</strong>: Sub-level nesting with the editor-style active tab onto the page. Add <code>w3-theme</code> on the sidebar region for stronger contrast if you like.</li>
       <li><code>navTags</code> groups pages by their tags. It ignores the Nav record and article tags. Optional prop <code>tag</code> keeps one tag.</li>
       <li><code>breadcrumbs</code> prints Home, then parent pages, then the current page.</li>
       <li><code>subpageList</code> prints the current page’s children. Optional props <code>title</code> and <code>tone</code>.</li>

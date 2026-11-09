@@ -85,10 +85,10 @@ describe("site style page", () => {
 
   it("shows each sidebar nav menu style in the specimen", () => {
     const html = styleSpecimenHtml(resolveSiteStyle({}));
-    expect(html).toContain("Top-level");
-    expect(html).toContain("Sub-level");
-    expect(html).toContain("Current group");
-    expect(html).toContain("Pane");
+    expect(html).toContain("Menu - Top-level");
+    expect(html).toContain("Menu - Sub-level");
+    expect(html).toContain("Menu - Current group");
+    expect(html).toContain("Menu - Tessera");
     expect(html).toContain("tessera-nav-current");
     expect(html).toContain("tessera-nav-tree");
     expect(html).toContain("tessera-nav-branch");

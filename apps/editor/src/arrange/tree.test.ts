@@ -58,7 +58,7 @@ describe("layout arrange tree", () => {
     expect(names).not.toContain("Overlay");
     expect(names).not.toContain("Close");
     expect(names).not.toContain("Custom HTML");
-    expect(names).toContain("Menu · Top-level · Sidebar");
+    expect(names).toContain("Menu - Top-level · Sidebar");
     expect(names).toContain("Page");
     const html = treeHtml(root, "");
     expect(html).toContain("data-tag=\"header\"");

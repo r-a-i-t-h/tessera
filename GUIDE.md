@@ -67,10 +67,10 @@ Put one of these in the master layout as a component. `scope` is `sidebar` (the 
 
 | Name | What it draws |
 |------|----------------|
-| `navFlat` | **Top-level** — one column of links; optional group titles as large headings (`h4`). This is what Willow uses. |
-| `navTree` | **Sub-level** — same groups; optional small group titles; child links in a nested list. |
-| `navCollapse` | **Current group** — group titles are never shown. The first link under each heading is the section entry; when you are on that link or any sibling in the group, the rest appear in Sub-level list style. |
-| `navPane` | **Pane** — Sub-level nesting with the editor-style active tab (light pane sliver onto the page). Optional `w3-theme` on the sidebar region improves contrast. |
+| `navFlat` | **Menu - Top-level** — one column of links; optional group titles as large headings (`h4`). This is what Willow uses. |
+| `navTree` | **Menu - Sub-level** — same groups; optional small group titles; child links in a nested list. |
+| `navCollapse` | **Menu - Current group** — group titles are never shown. The first link under each heading is the section entry; when you are on that link or any sibling in the group, the rest appear in Sub-level list style. |
+| `navPane` | **Menu - Tessera** — Sub-level nesting with the editor-style active tab (light pane sliver onto the page). Optional `w3-theme` on the sidebar region improves contrast. |
 | `navTags` | Pages grouped by tag. Ignores the Nav record and article tags. Optional prop `tag` keeps one tag. |
 | `breadcrumbs` | Home, then parent pages, then the current page. |
 | `subpageList` | The current page’s children. Optional props `title` and `tone` (panel palette id, for use inside a toned panel). |

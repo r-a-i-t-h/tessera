@@ -3,10 +3,10 @@ import { LayoutNodeSchema, type LayoutComponentNode, type LayoutNode, type Regio
 export const REGION_TAGS = ["div", "header", "nav", "main", "footer", "aside", "section", "article", "h1"] as const;
 
 export const MENU_SHAPES = [
-  { name: "navFlat", label: "Top-level" },
-  { name: "navTree", label: "Sub-level" },
-  { name: "navCollapse", label: "Current group" },
-  { name: "navPane", label: "Pane" },
+  { name: "navFlat", label: "Menu - Top-level" },
+  { name: "navTree", label: "Menu - Sub-level" },
+  { name: "navCollapse", label: "Menu - Current group" },
+  { name: "navPane", label: "Menu - Tessera" },
   { name: "navTags", label: "By tag" },
   { name: "pageNav", label: "Pages with no type" },
 ] as const;
@@ -598,7 +598,9 @@ function componentLabel(node: LayoutComponentNode): string {
   const shape = MENU_SHAPES.find((item) => item.name === node.name);
   const scope = typeof node.props?.scope === "string" ? node.props.scope : "";
   const place = scope === "topbar" ? "Top bar" : scope === "footer" ? "Footer" : scope === "sidebar" ? "Sidebar" : "";
-  if (shape && place) return `Menu · ${shape.label} · ${place}`;
+  if (shape && place) {
+    return SCOPED_MENUS.has(shape.name) ? `${shape.label} · ${place}` : `Menu · ${shape.label} · ${place}`;
+  }
   if (shape) return shape.name === "pageNav" || shape.name === "navTags" ? shape.label : `Menu · ${shape.label}`;
   const choice = COMPONENT_CHOICES.find((item) => item.name === node.name);
   return choice?.label ?? node.name;
