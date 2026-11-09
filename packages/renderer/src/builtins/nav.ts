@@ -122,6 +122,22 @@ function renderPaneNav(
       continue;
     }
     if (isNavGroup(n)) {
+      const links = groupLinkMembers(n.children);
+      if (links.length) {
+        const [first, ...siblings] = links;
+        parts.push(paneLinkHtml(ctx, first!, child));
+        if (siblings.length) {
+          parts.push(
+            `<div class="tessera-nav-children" role="group">${siblings
+              .map((s) => paneLinkHtml(ctx, s, true))
+              .join("")}</div>`,
+          );
+        }
+        for (const c of n.children) {
+          if (isNavGroup(c)) parts.push(renderPaneNav(ctx, [c], depth));
+        }
+        continue;
+      }
       parts.push(renderPaneNav(ctx, n.children, depth));
       continue;
     }

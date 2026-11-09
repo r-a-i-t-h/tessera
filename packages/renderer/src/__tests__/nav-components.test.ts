@@ -270,6 +270,34 @@ describe("navPane", () => {
     expect(html).toContain('href="#origins"');
     expect(html).not.toContain("is-active");
   });
+
+  it("treats a headingless group like grouped: first link top-level, rest sub-level", () => {
+    const doc = parseSiteDocument({
+      version: 2,
+      site: { id: "s", title: "Hall", homePageId: "home" },
+      layouts: [{ id: "L", root: { type: "region", children: [{ type: "zone", id: "main" }] } }],
+      pages: groupPages,
+      nav: [
+        { id: "home", title: "Home", sidebar: true },
+        {
+          sidebar: true,
+          children: [
+            { id: "about", title: "About", sidebar: true },
+            { id: "origins", title: "Origins", sidebar: true },
+          ],
+        },
+      ],
+    });
+    const html = navPane(context(doc, "origins"), { scope: "sidebar" });
+    expect(html).toMatch(
+      /<a class="w3-bar-item w3-button(?: tessera-nav-current)?" href="#about">About<\/a>/,
+    );
+    expect(html).not.toMatch(/tessera-nav-child[^"]*" href="#about"/);
+    expect(html).toContain("tessera-nav-children");
+    expect(html).toContain('class="w3-bar-item w3-button tessera-nav-child tessera-nav-child-current"');
+    expect(html).toContain('href="#origins"');
+    expect(html).not.toContain("tessera-nav-group-label");
+  });
 });
 
 describe("navCollapse", () => {
