@@ -139,11 +139,12 @@ body {
 
 /* Phone drawer: W3 small breakpoint (max-width 600px). */
 .editor-mobile-bar {
+  --editor-mobile-bar-height: 2.75rem;
   display: none;
   flex: none;
   position: relative;
   z-index: 14;
-  min-height: 2.75rem;
+  min-height: var(--editor-mobile-bar-height);
 }
 
 .editor-sidebar-overlay {
@@ -172,7 +173,7 @@ body {
 
   .editor-sidebar {
     position: fixed;
-    top: 0;
+    top: var(--editor-mobile-bar-height, 2.75rem);
     bottom: 0;
     left: 0;
     flex: none;

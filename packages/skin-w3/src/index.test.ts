@@ -1,5 +1,19 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { w3Panel, w3Quote, w3Skin } from "./index.js";
+
+const tesseraCss = readFileSync(
+  join(dirname(fileURLToPath(import.meta.url)), "../css/tessera.css"),
+  "utf8",
+);
+
+describe("tessera.css", () => {
+  it("scrolls in-page hash targets below the fixed top bar", () => {
+    expect(tesseraCss).toContain("scroll-padding-top: var(--tessera-bar-height)");
+  });
+});
 
 describe("W3 skin helpers", () => {
   it("combines semantic region and authored classes", () => {

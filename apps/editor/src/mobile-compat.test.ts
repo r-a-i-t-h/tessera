@@ -53,6 +53,13 @@ describe("desktop regression gates (CSS)", () => {
       /@media \(max-width: 600px\)[\s\S]*\.editor-sidebar-home[\s\S]*display:\s*block/,
     );
   });
+
+  it("offsets the phone drawer below the mobile top bar so Home stays clickable", () => {
+    expect(appCss).toContain("--editor-mobile-bar-height");
+    expect(appCss).toMatch(
+      /@media \(max-width: 600px\)[\s\S]*\.editor-sidebar[\s\S]*top:\s*var\(--editor-mobile-bar-height/,
+    );
+  });
 });
 
 /**

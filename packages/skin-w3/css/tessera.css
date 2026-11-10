@@ -46,6 +46,8 @@
 html {
   overflow-y: scroll;
   overscroll-behavior: none;
+  /* In-page anchors (hash links) clear the fixed top bar. */
+  scroll-padding-top: var(--tessera-bar-height);
 }
 
 body {
