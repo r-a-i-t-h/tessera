@@ -1867,6 +1867,8 @@ img[data-hero-preview] {
 
 .editor-section {
   margin: 0 0 1.1rem;
+  min-width: 0;
+  max-width: 100%;
   background: #fff;
 }
 
@@ -1897,8 +1899,16 @@ img[data-hero-preview] {
   display: contents;
 }
 
+.editor-section-body {
+  min-width: 0;
+}
+
 .editor-section-list-preview {
   display: none;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   margin: 0;
   padding: 0.25rem 0.35rem;
   color: #666;
@@ -2353,6 +2363,11 @@ img[data-hero-preview] {
   .editor-section-bar .editor-prop .editor-inline {
     flex-wrap: wrap;
     row-gap: 0.15rem;
+  }
+
+  /* Collapse editors: keep kind, preview, and ↑↓ only — props/toolbars blow out width. */
+  .editor-compose-list .editor-section-bar :is(.editor-handle, .editor-prop, .editor-section-editing-tools, [data-library]) {
+    display: none !important;
   }
 }
 

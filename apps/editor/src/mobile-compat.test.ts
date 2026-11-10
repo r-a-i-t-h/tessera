@@ -69,6 +69,14 @@ describe("desktop regression gates (CSS)", () => {
       /@media \(max-width: 40rem\)[\s\S]*\.editor-section-bar::after[\s\S]*flex-basis:\s*100%/,
     );
   });
+
+  it("clips collapsed compose list previews instead of growing past the viewport", () => {
+    expect(appCss).toMatch(/\.editor-section-list-preview[\s\S]*min-width:\s*0/);
+    expect(appCss).toMatch(/\.editor-section-list-preview[\s\S]*text-overflow:\s*ellipsis/);
+    expect(appCss).toMatch(
+      /@media \(max-width: 40rem\)[\s\S]*\.editor-compose-list \.editor-section-bar[\s\S]*display:\s*none !important/,
+    );
+  });
 });
 
 /**
