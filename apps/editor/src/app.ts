@@ -235,6 +235,7 @@ import { maintenanceHtml } from "./maintenance.js";
 import { bindCodeWrap, codeWrapClass, codeWrapToggle, isCodeWrapToggle } from "./code-wrap.js";
 import { bindDarkMode } from "./editor-color-mode.js";
 import { escapeHtml, fieldId, formErrorPanel, noticePanel, showEditorToast, statusPanels, wireEditorThumbFallbacks } from "./dom.js";
+import { handleDatasetGridKeyboard } from "./datasets/grid-keyboard.js";
 import { clearListKeyboardSelection, handleListKeyboard } from "./list-keyboard.js";
 import { bindEditorListRows, editorNavListItem } from "./list-row.js";
 import { pushStatusMessage } from "./status-stack.js";
@@ -366,6 +367,7 @@ export async function mount(root: HTMLElement): Promise<void> {
       if (!hasOpenModal()) void triggerPaletteAction();
       return;
     }
+    if (handleDatasetGridKeyboard(root, event)) return;
     if (handleListKeyboard(root, event)) return;
   });
   await render(root);

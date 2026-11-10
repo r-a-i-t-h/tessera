@@ -383,7 +383,8 @@ li.editor-list-item[data-list-href]:focus-visible {
 }
 
 li.editor-list-item.editor-list-item-active,
-tr[data-list-href].editor-list-item-active {
+tr[data-list-href].editor-list-item-active,
+.editor-dataset-grid tbody tr[data-record-row].editor-list-item-active {
   background: var(--editor-list-row-active);
   outline: none;
 }

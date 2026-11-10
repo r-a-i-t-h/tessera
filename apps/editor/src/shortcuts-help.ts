@@ -29,7 +29,11 @@ export const SHORTCUT_SECTIONS: { title: string; rows: ShortcutRow[] }[] = [
   },
   {
     title: "Data grid",
-    rows: [{ keys: "{mod}+S", action: "Save grid (while Edit grid is active)" }],
+    rows: [
+      { keys: "↑ ↓", action: "Move row selection (view mode)" },
+      { keys: "Enter or Space", action: "Edit selected row (view mode)" },
+      { keys: "{mod}+S", action: "Save grid (while Edit grid is active)" },
+    ],
   },
   {
     title: "Compose",
