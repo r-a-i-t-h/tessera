@@ -124,8 +124,8 @@ export function editorChrome(
   return `<div class="editor-shell">
       <aside id="editor-sidebar" class="editor-sidebar w3-theme">
         <nav class="w3-bar-block editor-nav-block" aria-label="Editor">
-          ${sectionLink("#/", "Home", "home", false, "w3-hide-medium w3-hide-large")}
-          ${sectionLink("#/", "Tessera editor", "home", false, "tessera-nav-brand w3-theme-d3 w3-hide-small")}
+          ${sectionLink("#/", "Home", "home", false, "editor-sidebar-home tessera-nav-brand w3-theme-d3")}
+          ${sectionLink("#/", "Tessera editor", "home", false, "tessera-nav-brand w3-theme-d3 editor-sidebar-brand-desktop")}
           ${sectionLink("#/navigation", "Navigation", "navigation")}
           ${sectionLink("#/pages", "Pages", "pages")}
           ${showArticlesNav ? `${sectionLink("#/articles", "Articles", "articles", articlesBlogOn)}${articlesChildren}` : ""}

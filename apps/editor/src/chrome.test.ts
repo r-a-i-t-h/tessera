@@ -61,7 +61,8 @@ describe("editor chrome", () => {
     expect(html).toContain('id="editor-sidebar"');
     expect(html).toContain('class="editor-sidebar w3-theme"');
     expect(html).toContain('data-action="toggle-editor-sidebar"');
-    expect(html).toContain("w3-hide-medium w3-hide-large");
+    expect(html).toContain("editor-sidebar-home");
+    expect(html).toContain("editor-sidebar-brand-desktop");
     expect(html).toContain('data-action="close-editor-sidebar"');
     expect(html).toContain('class="editor-mobile-bar');
     expect(html).toContain("tessera-nav-brand w3-theme-d3");

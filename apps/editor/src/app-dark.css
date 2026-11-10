@@ -163,6 +163,12 @@ html.editor-dark .editor-back-to-top:hover {
   background: var(--editor-surface-raised);
 }
 
+html.editor-dark .editor-compose-layout.editor-compose--touch .editor-compose-touch-chrome {
+  background: var(--editor-surface);
+  border-top-color: var(--editor-border);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.35);
+}
+
 html.editor-dark .editor-login-version {
   color: var(--editor-text-muted);
 }

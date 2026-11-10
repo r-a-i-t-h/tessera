@@ -30,6 +30,29 @@ describe("desktop regression gates (CSS)", () => {
   it("matches compose touch MQ constant", () => {
     expect(COMPOSE_TOUCH_MQ).toBe("(pointer: coarse) and (max-width: 800px)");
   });
+
+  it("keeps editor-shell flex on phone so editor-scroll can scroll", () => {
+    expect(appCss).toMatch(
+      /@media \(max-width: 600px\)[\s\S]*\.editor-shell[\s\S]*flex:\s*1\s+1\s+auto/,
+    );
+    expect(appCss).not.toMatch(
+      /@media \(max-width: 600px\)\s*\{[^}]*\.editor-shell\s*\{\s*display:\s*block/,
+    );
+  });
+
+  it("uses a fixed viewport Add bar in touch compose mode", () => {
+    expect(appCss).toMatch(
+      /@media \(pointer: coarse\) and \(max-width: 800px\)[\s\S]*\.editor-compose-layout\.editor-compose--touch \.editor-compose-touch-chrome[\s\S]*position:\s*fixed/,
+    );
+  });
+
+  it("defines phone drawer Home vs desktop brand sidebar links", () => {
+    expect(appCss).toContain(".editor-sidebar-home");
+    expect(appCss).toContain(".editor-sidebar-brand-desktop");
+    expect(appCss).toMatch(
+      /@media \(max-width: 600px\)[\s\S]*\.editor-sidebar-home[\s\S]*display:\s*block/,
+    );
+  });
 });
 
 /**
