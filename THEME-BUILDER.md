@@ -12,13 +12,12 @@ A Tessera site is a directory of YAML records, a shell (`index.html`, CSS, image
 
 A **theme kit** packages that design so another site can take it on. Applying a kit copies kit-owned files into the open site, merges a few keys into `site.yaml`, and leaves page bodies alone. The author’s `records/content/` and media library stay as they are. That is the contract that makes themes safe to switch.
 
-Three operations look similar on the Backups page and must stay distinct in your head:
+Two operations look similar on the Backups page and must stay distinct in your head:
 
 | Action | What it does to content |
 |--------|-------------------------|
 | **Apply theme** | Leaves pages and media alone. Replaces or merges kit-owned design files. |
 | **Re-seed** | Replaces the site with the blank starter. Destructive to content. |
-| **Restore Willow** | Loads the full example site. Destructive. |
 
 If you ever find yourself wanting the kit to rewrite home pages or gallery folders, stop and use demo import (optional sample records) or tell the author to restore an archive. Themes do not own content.
 

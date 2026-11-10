@@ -120,7 +120,7 @@ function requireOrigin(value: string | undefined): string {
   try {
     url = new URL(raw);
   } catch {
-    throw new DistError("Origin must be an absolute URL, such as https://willow.example.");
+    throw new DistError("Origin must be an absolute URL, such as https://example.com.");
   }
   if (url.protocol !== "http:" && url.protocol !== "https:") {
     throw new DistError("Origin must start with http:// or https://.");

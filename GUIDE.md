@@ -1,6 +1,6 @@
 # Authoring guide
 
-How menus, styles, and YAML fit together. Willow is the worked example. The same notes are on the editor’s Guide page (`#/guide` in the editor; use `#/guide?section=…` to jump to a section).
+How menus, styles, and YAML fit together. The same notes are on the editor’s Guide page (`#/guide` in the editor; use `#/guide?section=…` to jump to a section).
 
 Designers shipping a drop-in look should read [THEME-BUILDER.md](./THEME-BUILDER.md) (kit folders, manifest syntax, apply rules).
 
@@ -43,12 +43,12 @@ Save on the Page tab (Fields on other records) rewrites a file at two spaces. Th
 
 Links live on the Nav record ([Navigation](#/navigation), file `records/nav.yaml`). Each row has three places: **Sidebar**, **Top bar**, and **Footer**. A place shows the row only when the master layout draws a menu component for that place.
 
-Willow’s master layout ([Records → Layouts](#/records/layouts), then [`master`](#/layouts/master)) has two:
+The master layout ([Records → Layouts](#/records/layouts), then [`master`](#/layouts/master)) often has two:
 
 - `navFlat` with `scope: topbar` is the row of links under the logo.
 - `navFlat` with `scope: sidebar` is the drawer. On a wide window the Menu button is hidden and the drawer stays closed. Narrow the window and Menu opens it.
 
-A heading can fill itself. **Type** `meeting` lists every page whose type is `meeting`. The nav **Items** field (tag name) lists pages whose id matches a shared [item](#items) record carrying that tag — not the Records → Items list. Willow’s “This term” heading uses Type `meeting` and Sidebar only, which is why meetings appear in the drawer and stay off the top bar. Events have no such heading, so an event page stays out of both menus until you add one:
+A heading can fill itself. **Type** `meeting` lists every page whose type is `meeting`. The nav **Items** field (tag name) lists pages whose id matches a shared [item](#items) record carrying that tag — not the Records → Items list. Tick Sidebar only and those pages stay in the drawer. Without a heading of that type, those pages stay out of both menus until you add one:
 
 ```yaml
 - heading: What's on
@@ -67,7 +67,7 @@ Put one of these in the master layout as a component. `scope` is `sidebar` (the 
 
 | Name | What it draws |
 |------|----------------|
-| `navFlat` | **Menu - Top-level** — one column of links; optional group titles as large headings (`h4`). This is what Willow uses. |
+| `navFlat` | **Menu - Top-level** — one column of links; optional group titles as large headings (`h4`). |
 | `navTree` | **Menu - Sub-level** — same groups; optional small group titles; child links in a nested list. |
 | `navCollapse` | **Menu - Current group** — group titles are never shown. The first link under each heading is the section entry; when you are on that link or any sibling in the group, the rest appear in Sub-level list style. |
 | `navPane` | **Menu - Tessera** — Sub-level nesting with the editor-style active tab (light pane sliver onto the page). Optional `w3-theme` on the sidebar region improves contrast. |
@@ -107,7 +107,7 @@ An **item** is reusable zone content with no URL of its own — typically shared
 
 **Includes** pull items into a page at render time. On a page, template, or layout, list item ids in **Includes** (comma-separated on the form). Tessera merges zones in order: the page’s own zones first, then the page’s includes, then the page layout’s includes, then the master frame’s includes when that layout differs. Each item id is merged once. Blocks in the same zone id are concatenated — page body, then shared footer.
 
-Willow’s [`common-footer`](#/items/common-footer) fills the layout `footer` zone. Most pages and templates include it:
+A shared footer item such as [`common-footer`](#/items/common-footer) fills the layout `footer` zone. Pages and templates include it:
 
 ```yaml
 includes:
@@ -126,7 +126,7 @@ Maintenance **Unused items** lists item records nothing includes. Themes may shi
 
 Structured tabular data (branch lists, product lines, reusable lookups) lives outside the page tree. **Records → Datasets** (`#/records/datasets`) lists every dataset. Create one, then open its setup to define the **schema**, **visible columns** for the editor grid, and an optional **display name** template such as `{make} {model} {year}` for record labels in pickers and list headings.
 
-Each schema field has an id, label, and **kind**: **string**, **text** (multi-line), **number**, **boolean**, **date**, **enum** (fixed options), **asset** (library image or document; optional **many** for several ids), or **ref** (link to a row in another dataset). Fields are flat — there are no nested object or list columns. Use **text** for longer copy; it is stored and shown as plain text, not rendered as HTML on the site.
+Each schema field has an id, label, and **kind**: **string**, **text** (multi-line), **url** (plain text in the editor; a link icon on the site), **number**, **boolean**, **date**, **enum** (fixed options), **asset** (library image or document; optional **many** for several ids), or **ref** (link to a row in another dataset). **text** is stored and shown as plain text.
 
 **Data** (`#/data`) appears in the sidebar once at least one dataset exists. Choose a dataset to add rows, edit in a dialog, filter columns, or switch to **Edit grid** for bulk changes. In view mode the grid shows asset thumbnails where an asset column is visible; use the record dialog to pick assets.
 

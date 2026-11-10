@@ -78,8 +78,8 @@ Dedicated vhost (`root` = your `publish/` copy):
 
 ```nginx
 server {
-    server_name willow.example.com;
-    root /var/www/willow/publish;
+    server_name example.com;
+    root /var/www/site/publish;
     index index.html;
 
     location ~* /data/site\.[a-f0-9]+\.json$ {
@@ -96,17 +96,17 @@ server {
 Site in a folder on a shared host (same rules with `alias` under a prefix):
 
 ```nginx
-location = /willow {
-    return 301 /willow/;
+location = /site {
+    return 301 /site/;
 }
 
-location ~* ^/willow/data/(site\.[a-f0-9]+\.json)$ {
-    alias /var/www/willow/publish/data/$1;
+location ~* ^/site/data/(site\.[a-f0-9]+\.json)$ {
+    alias /var/www/site/publish/data/$1;
     add_header Cache-Control "public, max-age=31536000, immutable";
 }
 
-location /willow/ {
-    alias /var/www/willow/publish/;
+location /site/ {
+    alias /var/www/site/publish/;
     index index.html;
     add_header Cache-Control "public, max-age=0, must-revalidate";
 }

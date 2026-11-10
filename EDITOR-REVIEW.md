@@ -18,7 +18,7 @@ A type still has three jobs, all about pages:
 
 Items are reusable zone bags. Bindings pair a public id with a registered component. Neither is a page, and neither stretches `Page`.
 
-**Datasets and runtime modules (since this review).** Tabular data that is not prose on a page belongs in **`datasets/`** and reaches visitors through **dataset list** bindings (embedded into the flattened document at publish) or a **runtime module** binding. Each dataset is one flat table: scalar fields, optional `asset.many`, and `ref` pointers to a row in another dataset. There are no nested object or list columns. That is the schema-led path for booleans, numbers, dates, and refs — not extra fields on every page poster. **Runtime modules** are site-owner ESM under `runtime-modules/`; Tessera copies referenced files into `publish/` and runs them in the browser only. Catalogue micro-apps still ship with Tessera.
+**Datasets and runtime modules.** Tabular data that is not prose on a page belongs in **`datasets/`** and reaches visitors through **dataset list** bindings (embedded into the flattened document at publish) or a **runtime module** binding. Each dataset is one table: scalar fields, optional `asset.many`, and `ref` pointers to a row in another dataset. **Runtime modules** are site-owner ESM under `runtime-modules/`; Tessera copies referenced files into `publish/` and runs them in the browser only. Catalogue micro-apps still ship with Tessera.
 
 Page **posters** stay string fields plus zones for prose. Repeating structured rows belong in datasets. A row that needs its own URL is a page (a typed page, or the reserved blog), not a dataset record.
 
@@ -26,7 +26,7 @@ Page **posters** stay string fields plus zones for prose. Repeating structured r
 
 ## Known splinters we are leaving
 
-**Zone JSON and the Willow list components are gone.** A zone is `html`, `component`, or `blocks` (`text`, `media`, `image`, `component`). `datedList`, `peopleGrid`, `eventList`, and the profile lines are not registered, so a binding that still names them does not render. Structured lists belong in **datasets** and dataset bindings. Blog listings use the reserved blog types and `bootBlog` hydration (`<script type="application/json" class="tessera-blog-data">`).
+**Zones.** A zone is `html`, `component`, or `blocks` (`text`, `media`, `image`, `component`). Structured lists belong in **datasets** and dataset bindings. Blog listings use the reserved blog types and `bootBlog` hydration (`<script type="application/json" class="tessera-blog-data">`).
 
 **`fields.showIndexInNav` is one hardcoded name in the shared form reader** (`apps/editor/src/forms/form.ts`). Page fields are strings, and a checkbox on a dotted name would otherwise become a boolean, which `stringFields` drops. The blog save path rewrites `true` or `"true"` to the string `"true"` and deletes anything else. The editor branch does the same rewrite one step earlier so the draft matches. The page-level Show in nav checkbox is a real boolean and uses the normal path. This is the only boolean hiding in the string map. Leave it. A second checkbox under `fields.` should share one rule rather than add another named branch.
 

@@ -100,7 +100,7 @@ The editor process serves the working snapshot at `/preview/` on the editor orig
 
 ## Datasets
 
-Structured collections (events, products, meeting rows, branches, and similar) live in `$TESSERA_DATA/datasets/<id>.json`. Each file is one flat table: a `schema` of scalar fields, view prefs (`view.columns`, `view.displayName`), a `nextUid` counter, and `records`. A field kind is string, text, url, number, boolean, date, enum, asset (optional `many`), or ref (a uid in another dataset). There are no nested object or list columns. Each record stores `uid`, `added`, `modified`, and the schema field values. `view.displayName` is a template such as `{make} {model} {year}` used in pickers and labels. Grid columns come from `view.columns` (optional `uid`, schema fields, and optional `added` / `modified`). Publish embeds a referenced dataset when a binding’s rows point at it through `ref`.
+Structured collections (events, products, meeting rows, branches, and similar) live in `$TESSERA_DATA/datasets/<id>.json`. Each file is one flat table: a `schema` of scalar fields, view prefs (`view.columns`, `view.displayName`), a `nextUid` counter, and `records`. A field kind is string, text, url, number, boolean, date, enum, asset (optional `many`), or ref (a uid in another dataset). Each record stores `uid`, `added`, `modified`, and the schema field values. `view.displayName` is a template such as `{make} {model} {year}` used in pickers and labels. Grid columns come from `view.columns` (optional `uid`, schema fields, and optional `added` / `modified`). Publish embeds a referenced dataset when a binding’s rows point at it through `ref`.
 
 The editor **Datasets** section designs the schema and edits records (grid, inline grid edit, and record dialog). Saving a schema runs `adaptRecords` in `@r-a-i-t-h/tessera-model` so renames, removals, and defaults rewrite stored rows. Bindings that reference a dataset embed its payload at flatten/preview/publish time.
 
@@ -270,8 +270,8 @@ Dedicated vhost (`root` = your `publish/` copy):
 
 ```nginx
 server {
-    server_name willow.example.com;
-    root /var/www/willow/publish;
+    server_name example.com;
+    root /var/www/site/publish;
     index index.html;
 
     location ~* /data/site\.[a-f0-9]+\.json$ {
@@ -288,17 +288,17 @@ server {
 A site in a folder on a shared host uses the same rules under a prefix:
 
 ```nginx
-location = /willow {
-    return 301 /willow/;
+location = /site {
+    return 301 /site/;
 }
 
-location ~* ^/willow/data/(site\.[a-f0-9]+\.json)$ {
-    alias /var/www/willow/publish/data/$1;
+location ~* ^/site/data/(site\.[a-f0-9]+\.json)$ {
+    alias /var/www/site/publish/data/$1;
     add_header Cache-Control "public, max-age=31536000, immutable";
 }
 
-location /willow/ {
-    alias /var/www/willow/publish/;
+location /site/ {
+    alias /var/www/site/publish/;
     index index.html;
     add_header Cache-Control "public, max-age=0, must-revalidate";
 }
@@ -333,4 +333,4 @@ npm run dev:site                         # instance preview (port 5173)
 npm run dev:api                          # edit data/; Render site writes the preview, Publish writes publish/
 ```
 
-Willow’s person type uses the `profile` layout. Its event and news types use `article`. The directory holds records in `records/`, a document shell in `shell/`, and static files in `publish/`. The frame is the master layout.
+The directory holds records in `records/`, a document shell in `shell/`, and static files in `publish/`. The frame is the master layout.

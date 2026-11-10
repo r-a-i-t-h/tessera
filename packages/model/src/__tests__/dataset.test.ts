@@ -86,15 +86,6 @@ describe("validateRootRecord", () => {
     ).toThrow(/reserved/);
   });
 
-  it("rejects nested and html field kinds", () => {
-    for (const kind of ["object", "list", "html"]) {
-      expect(() =>
-        parseDatasetSchema({
-          fields: [{ key: "f1", id: "extra", label: "Extra", kind }],
-        }),
-      ).toThrow(new RegExp(`Field type ${kind} is no longer supported`));
-    }
-  });
 });
 
 describe("formatRecordDisplayName", () => {
@@ -115,7 +106,7 @@ describe("validateDisplayNameTemplate", () => {
 });
 
 describe("parseDatasetFile", () => {
-  it("strips legacy id and title from stored records", () => {
+  it("keeps id and title on a record when they are not schema fields", () => {
     const file = parseDatasetFile({
       id: "cars",
       title: "Cars",
@@ -124,8 +115,8 @@ describe("parseDatasetFile", () => {
       nextUid: 2,
       records: [{ uid: 1, id: "legacy", title: "Old", added: "2026-01-01T00:00:00.000Z", modified: "2026-01-01T00:00:00.000Z", make: "Ford" }],
     });
-    expect(file.records[0]).not.toHaveProperty("id");
-    expect(file.records[0]).not.toHaveProperty("title");
+    expect(file.records[0]?.id).toBe("legacy");
+    expect(file.records[0]?.title).toBe("Old");
     expect(file.records[0]?.make).toBe("Ford");
   });
 

@@ -224,10 +224,6 @@ export class DatasetStore {
       cleaned.modified = t;
     }
 
-    const rootFieldIds = new Set(file.schema.fields.map((f) => f.id));
-    if (!rootFieldIds.has("id")) delete cleaned.id;
-    if (!rootFieldIds.has("title")) delete cleaned.title;
-
     const issues = validateRootRecord(cleaned, file.schema);
     if (issues.length) {
       throw new ValidationError(issues);

@@ -18,10 +18,7 @@ export const DATASET_SCALAR_KINDS = [
   "ref",
 ] as const;
 
-/** Flat scalar columns. Nested object/list kinds are rejected at parse. */
 export const DATASET_FIELD_KINDS = [...DATASET_SCALAR_KINDS] as const;
-
-const REMOVED_FIELD_KINDS = new Set(["object", "list", "html"]);
 
 export type DatasetScalarKind = (typeof DATASET_SCALAR_KINDS)[number];
 export type DatasetFieldKind = (typeof DATASET_FIELD_KINDS)[number];
@@ -38,7 +35,6 @@ export type DatasetField = {
   many?: boolean;
   options?: DatasetEnumOption[];
   dataset?: string;
-  labelField?: string;
 };
 
 export type DatasetSchemaBody = {
@@ -123,9 +119,6 @@ function parseField(raw: unknown): DatasetField {
   const key = typeof o.key === "string" ? o.key.trim() : "";
   const id = typeof o.id === "string" ? o.id.trim() : "";
   const label = typeof o.label === "string" ? o.label : id;
-  if (typeof o.kind === "string" && REMOVED_FIELD_KINDS.has(o.kind)) {
-    throw new Error(`Field type ${o.kind} is no longer supported.`);
-  }
   const kind = FieldKindSchema.parse(o.kind);
   if (!key) throw new Error("Each field needs a key.");
   if (!id) throw new Error("Each field needs an id.");
@@ -206,7 +199,7 @@ export function parseDatasetFile(raw: unknown): DatasetFile {
   const displayName = typeof viewRaw.displayName === "string" ? viewRaw.displayName : "";
   const nextUid = typeof o.nextUid === "number" && Number.isInteger(o.nextUid) && o.nextUid >= 1 ? o.nextUid : 1;
   const records = Array.isArray(o.records)
-    ? o.records.map((r) => scrubLegacyRootRecord(r as Record<string, unknown>, schema.fields))
+    ? o.records.map((r) => ({ ...(r as Record<string, unknown>) }) as DatasetRootRecord)
     : [];
   const view: DatasetView = {
     columns: sanitizeViewColumns(columns, schema.fields),
@@ -222,17 +215,6 @@ export function parseDatasetFile(raw: unknown): DatasetFile {
     nextUid,
     records,
   };
-}
-
-export function scrubLegacyRootRecord(
-  raw: Record<string, unknown>,
-  rootFields?: readonly DatasetField[],
-): DatasetRootRecord {
-  const copy = { ...raw };
-  const rootIds = new Set((rootFields ?? []).map((f) => f.id));
-  if (!rootIds.has("id")) delete copy.id;
-  if (!rootIds.has("title")) delete copy.title;
-  return copy as DatasetRootRecord;
 }
 
 export function sanitizeViewColumns(columns: readonly string[], fields: readonly DatasetField[]): string[] {
@@ -273,7 +255,7 @@ export function validateDisplayNameTemplate(
   return undefined;
 }
 
-/** Plain-text display for a scalar field value (HTML is stripped). */
+/** Plain-text display for a scalar field value. */
 export function formatDatasetFieldDisplay(
   record: Record<string, unknown>,
   field: DatasetField,

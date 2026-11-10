@@ -51,7 +51,7 @@ The whole text/data payload for a site is one **`SiteDocument`**: site meta, lay
 - `site.masterLayoutId` names the outer page (the frame: header, nav, drawer). Its `page` node is replaced by the page's own layout. A page may set `masterLayoutId`. Descendants use the nearest ancestor's frame until one of them sets its own. The home page's `parentId` is ignored, so it does not inherit a frame. Content cannot fill that node. Nav is a component placed in the frame. The shell is the document head, one mount, and CSS.
 - A **page** uses the layout of its site-defined **type**, or `site.defaultLayoutId` when it has no type.
 - A page or a layout may pull in shared **items**, and a page may contribute blocks into zones.
-- Contributions to zones the layout does not declare are not painted, but may remain available as data for components (e.g. JSON for a list).
+- Contributions to zones the layout does not declare are not painted.
 
 ### Types
 
@@ -59,7 +59,7 @@ A **type** is site configuration, not a built-in class. `{ id, layoutId?, fields
 
 Fields are scalar values on the entry (`date`, `precis`, and whatever else the type names). `title` and the body zone are always available. A layout zone with no authored HTML shows the field of the same id. Subject `tags` filter. They do not choose the type or the layout.
 
-A listing behavior names the types it reads and, for dates, a window (`past`, `upcoming`, or all). It shows `title`, `date`, and `precis`. `blog`, `article`, and `blog-index` are reserved. Every other type stays site-defined. Willow's `event` type is an example that satisfies the listing behavior.
+Lists of pages come from nav `source.pageType`, from `linkCluster`, or from a dataset list binding. `blog`, `article`, and `blog-index` are reserved. Every other type stays site-defined.
 
 ### Blog
 
@@ -225,7 +225,7 @@ Nav is first-class document content, not merely demo chrome — and it is **dist
 
 ## 6. Inclusion without recursive zones
 
-Rec-Tem’s strength was content that could add zones without knowing what would fill them. Tessera forbids inventing zones from content. The replacement:
+Content cannot invent zones. Layouts declare them. Shared data reaches a page through bindings:
 
 1. **Bindings live in the site document** — not only in TypeScript. Example: a dataset list binding `branch-list` uses the catalogue component `datasetTable`.
 2. Other content inserts the populated view with `{{branch-list}}` (or a component block with that name). Authors do not re-wire data to the component at each call site.
@@ -235,8 +235,6 @@ Rec-Tem’s strength was content that could add zones without knowing what would
 bindings[]: { id: "branch-list", component: "datasetTable", props: { dataset: "branches" } }
 content: "{{branch-list}}"
 ```
-
-**Note:** Iteration over items that themselves invented nested zones (old Rec-Tem) is **out**. Iteration via bindings + components is **in**.
 
 Inserting a binding onto a page is **separate** from inserting a page into nav — symbiotic, not coupled.
 ---
@@ -304,7 +302,6 @@ Three facets stay separate on a **theme apply** (drop-in design):
 
 - **`POST /api/themes/:id/apply`** — patch layouts, shell, and allowed site keys; safety backup first; **does not** touch content or the media library.
 - **`POST /api/site/reseed`** — replace the site with the blank starter (destructive to content).
-- **Restore example (Willow)** — full example site (destructive).
 
 **Zone naming (guidance, not runtime validation):**
 

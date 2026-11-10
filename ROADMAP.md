@@ -6,9 +6,9 @@ When a capability moves, update the SPEC acceptance criteria in the same change.
 
 ## Where we are
 
-An author can start from an empty directory, or from Willow, and reach a copyable static site without writing markup. The editor creates pages and a sidebar, composes a page from sections, starts a page from a template (locked or not), keeps images and PDFs in a library whose published URL does not change when the file moves, tunes chrome on a Styles page, previews the snapshot, and writes `publish/` only when asked. Willow is the specimen. Its pages start from locked templates. Pure, Ineffable, and Miller’s Ark are no longer example archives.
+An author can start from an empty directory, or from the blank starter, and reach a copyable static site without writing markup. The editor creates pages and a sidebar, composes a page from sections, starts a page from a template (locked or not), keeps images and PDFs in a library whose published URL does not change when the file moves, tunes chrome on a Styles page, previews the snapshot, and writes `publish/` only when asked.
 
-That is a small-site CMS for prose pages, media, and a designed menu. It is one site per process, one role for every signed-in user, and one published tree for the whole site. A type of thing that is listed and then opened as its own page (people, events, news) is a site-defined type plus a binding that names that type. Compose does not show the rendered page: **Render site** writes `preview/`, and the author reloads the site runtime. The authoring loop is in the tree. A full pass through Willow, and a site built from empty, has not been recorded yet.
+That is a small-site CMS for prose pages, media, and a designed menu. It is one site per process, one role for every signed-in user, and one published tree for the whole site. A type of thing that is listed and then opened as its own page (people, events, news) is a site-defined type plus a binding that names that type. Compose does not show the rendered page: **Render site** writes `preview/`, and the author reloads the site runtime. The authoring loop is in the tree. A full pass through the blank starter, and a site built from empty, has not been recorded yet.
 
 ## Done
 
@@ -16,8 +16,8 @@ That is a small-site CMS for prose pages, media, and a designed menu. It is one 
 |------|--------|
 | Dynamic menus (baseline) | Document `nav` → chrome; evolved into nav components below. |
 | Content fetch + cache + TTL + schema abandon | Content-hashed `site.<hash>.json` named from the shell, `rev.json` poll, `localStorage`, stale signal, 5‑minute TTL, schema abandon. The site runtime shows `renderStaleBanner`. Silent unknown-hash → home. |
-| Site-data bindings + `{{id}}` | `document.bindings`; mustache + component-name insertion (Willow `upcoming-events`). |
-| Nav: pages ≠ visibility; multi presentation | Designed nav + `source`; `navTags` / `navTree` / `navCollapse`; Willow’s master uses `navFlat`. Page existence does not imply a nav entry. |
+| Site-data bindings + `{{id}}` | `document.bindings`; mustache + component-name insertion. |
+| Nav: pages ≠ visibility; multi presentation | Designed nav + `source`; `navFlat` / `navTags` / `navTree` / `navCollapse`. Page existence does not imply a nav entry. |
 | Types | `document.types` + `resolvePageProfile`. A site-defined type supplies the layout and the field list. Listings select types, not kind-tags. |
 | Editor API (auth host) | `apps/editor-api`: Hono JSON API, file users, no signup, cookie/Bearer sessions, `requireEditor` all-or-nothing gate. |
 | Editor SPA (login shell) | `apps/editor`: same-origin Vite SPA; login, session cookie, record editing. Hono serves `dist` when built. |
@@ -43,7 +43,7 @@ That is a small-site CMS for prose pages, media, and a designed menu. It is one 
    → [SPEC §2](./SPEC.md#pages-items-and-datasets), [acceptance](./SPEC.md#inclusion-and-items)
 
 3. **Editor chrome**  
-   The authoring model is ahead of the screens an author lives in. The next input is a snagging pass: Willow first, then a site started empty. Schedule UI work from that list.  
+   The authoring model is ahead of the screens an author lives in. The next input is a snagging pass on a site started empty, then the blank starter. Schedule UI work from that list.  
    → [SPEC §9](./SPEC.md#9-editor-boundary)
 
 4. **Fanciness / polish**  

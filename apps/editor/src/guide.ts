@@ -10,7 +10,7 @@ export function guideHtml(): string {
 
   return `<article class="editor-guide">
     <h1 class="w3-large">Guide</h1>
-    <p>How menus, styles, and YAML fit together. Willow is the worked example.</p>
+    <p>How menus, styles, and YAML fit together.</p>
 
     <nav class="editor-guide-toc" aria-label="On this page">
       <p class="w3-medium"><strong>On this page</strong></p>
@@ -46,12 +46,12 @@ export function guideHtml(): string {
 
     <h2 id="menus">Menus</h2>
     <p>Links live on the Nav record (<a href="#/navigation">Navigation</a>, file <code>records/nav.yaml</code>). Each row has three places: <strong>Sidebar</strong>, <strong>Top bar</strong>, and <strong>Footer</strong>. A place shows the row only when the master layout draws a menu component for that place.</p>
-    <p>Willow’s master layout (<a href="#/records/layouts">Records → Layouts</a>, then <a href="#/layouts/master"><code>master</code></a>) has two:</p>
+    <p>The master layout (<a href="#/records/layouts">Records → Layouts</a>, then <a href="#/layouts/master"><code>master</code></a>) often has two:</p>
     <ul>
       <li><code>navFlat</code> with <code>scope: topbar</code> is the row of links under the logo.</li>
       <li><code>navFlat</code> with <code>scope: sidebar</code> is the drawer. On a wide window the Menu button is hidden and the drawer stays closed. Narrow the window and Menu opens it.</li>
     </ul>
-    <p>A heading can fill itself. <strong>Type</strong> <code>meeting</code> lists every page whose type is <code>meeting</code>. The nav <strong>Items</strong> field (tag name) lists pages whose id matches a shared <a href="${guideSectionHref("items")}">item</a> record carrying that tag — not the Records → Items list. Willow’s “This term” heading uses Type <code>meeting</code> and Sidebar only, which is why meetings appear in the drawer and stay off the top bar. Events have no such heading, so an event page stays out of both menus until you add one:</p>
+    <p>A heading can fill itself. <strong>Type</strong> <code>meeting</code> lists every page whose type is <code>meeting</code>. The nav <strong>Items</strong> field (tag name) lists pages whose id matches a shared <a href="${guideSectionHref("items")}">item</a> record carrying that tag — not the Records → Items list. Tick Sidebar only and those pages stay in the drawer. Without a heading of that type, those pages stay out of both menus until you add one:</p>
     <pre>- heading: What's on
   sidebar: true
   source:
@@ -62,7 +62,7 @@ export function guideHtml(): string {
     <h2 id="menu-components">Menu components</h2>
     <p>Put one of these in the master layout as a component. <code>scope</code> is <code>sidebar</code> (the default for <code>navFlat</code>), <code>topbar</code>, or <code>footer</code>.</p>
     <ul>
-      <li><code>navFlat</code> — <strong>Menu - Top-level</strong>: one column of links; optional group titles as large headings. This is what Willow uses.</li>
+      <li><code>navFlat</code> — <strong>Menu - Top-level</strong>: one column of links; optional group titles as large headings.</li>
       <li><code>navTree</code> — <strong>Menu - Sub-level</strong>: optional small group titles; child links in a nested list.</li>
       <li><code>navCollapse</code> — <strong>Menu - Current group</strong>: no group titles; first link under each heading is the section entry; siblings show in Sub-level style when the current page is in that group.</li>
       <li><code>navPane</code> — <strong>Menu - Tessera</strong>: Sub-level nesting with the editor-style active tab onto the page. Add <code>w3-theme</code> on the sidebar region for stronger contrast if you like.</li>
@@ -88,7 +88,7 @@ export function guideHtml(): string {
     <h2 id="items">Items</h2>
     <p>An <strong>item</strong> is reusable zone content with no URL of its own — typically shared <strong>HTML</strong> (a footer) or a <strong>component</strong> mount included on many pages. Records live under <a href="#/records/items">Records → Items</a> (<code>records/items/&lt;id&gt;.yaml</code>). Open <code>#/items/&lt;id&gt;</code> to edit <strong>tags</strong> and each zone’s <strong>HTML</strong> or a named <strong>component</strong> plus props. HTML zones include <strong>Image</strong>, <strong>Document</strong>, and <strong>Page</strong> insert buttons above the raw textarea (library assets and page links). Structured tabular data belongs in a <a href="${guideSectionHref("datasets")}">dataset</a> plus a binding.</p>
     <p><strong>Includes</strong> pull items into a page at render time. On a page, template, or layout, list item ids in <strong>Includes</strong>. Tessera merges zones in order: the page’s zones first, then the page’s includes, then the page layout’s includes, then the master frame’s includes when that layout differs. Each item id is merged once. Blocks in the same zone id are concatenated.</p>
-    <p>Willow’s <a href="#/items/common-footer"><code>common-footer</code></a> fills the layout <code>footer</code> zone. Most pages and templates include it:</p>
+    <p>A shared footer item such as <a href="#/items/common-footer"><code>common-footer</code></a> fills the layout <code>footer</code> zone. Pages and templates include it:</p>
     <pre>includes:
   - common-footer</pre>
     <p>Put the footer on a <strong>template</strong> or <strong>layout</strong> when every page in that family should share it without repeating the list.</p>
@@ -97,7 +97,7 @@ export function guideHtml(): string {
 
     <h2 id="datasets">Datasets</h2>
     <p>Structured tabular data (branch lists, product lines, reusable lookups) lives outside the page tree. <a href="#/records/datasets">Records → Datasets</a> lists every dataset. Create one, then open its setup to define the <strong>schema</strong>, <strong>visible columns</strong> for the editor grid, and an optional <strong>display name</strong> template such as <code>{make} {model} {year}</code> for record labels in pickers and list headings.</p>
-    <p>Each schema field has an id, label, and <strong>kind</strong>: <strong>string</strong>, <strong>text</strong> (multi-line), <strong>url</strong> (plain text in the editor; a link icon on the site), <strong>number</strong>, <strong>boolean</strong>, <strong>date</strong>, <strong>enum</strong> (fixed options), <strong>asset</strong> (library image or document; optional <strong>many</strong> for several ids), or <strong>ref</strong> (link to a row in another dataset). Fields are flat — there are no nested object or list columns. Use <strong>text</strong> for longer copy; it is stored and shown as plain text, not rendered as HTML on the site.</p>
+    <p>Each schema field has an id, label, and <strong>kind</strong>: <strong>string</strong>, <strong>text</strong> (multi-line), <strong>url</strong> (plain text in the editor; a link icon on the site), <strong>number</strong>, <strong>boolean</strong>, <strong>date</strong>, <strong>enum</strong> (fixed options), <strong>asset</strong> (library image or document; optional <strong>many</strong> for several ids), or <strong>ref</strong> (link to a row in another dataset). <strong>text</strong> is stored and shown as plain text.</p>
     <p><a href="#/data">Data</a> appears in the sidebar once at least one dataset exists. Choose a dataset to add rows, edit in a dialog, filter columns, or switch to <strong>Edit grid</strong> for bulk changes. In view mode the grid shows asset thumbnails where an asset column is visible; use the record dialog to pick assets.</p>
     <p>Visitors do not open dataset files directly. Put data on the site with a <strong>Dataset list</strong> binding (<a href="#/records/bindings">Records → Bindings</a>): pick the dataset, then <strong>Presentation</strong> — <strong>table</strong>, <strong>cards</strong>, <strong>plain list</strong>, or <strong>runtime module</strong> (custom markup from a <a href="${guideSectionHref("runtime-modules")}">runtime module</a> catalog entry). Set columns, default sort, limit, filters, and empty-state text in the wizard. Insert with <strong>Compose → Insert</strong> like any other binding (<code>{{id}}</code>).</p>
     <p>On <strong>publish</strong>, Tessera embeds a snapshot of every dataset referenced by bindings, including datasets reached through <strong>ref</strong> fields.</p>
@@ -201,7 +201,7 @@ export function guideHtml(): string {
     <p><strong>Compose preview.</strong> Built-in tones use W3 classes such as <code>w3-sand</code> on the panel shell; the editor loads W3.CSS, so those fills show while you edit. Custom tones paint your <code>className</code> on the same shell; rules live in ${sheetLink("local", "site local")}. The editor loads that file in Compose as well, so shell background and colour on your tone class preview there too.</p>
     <p>Keep typed divergence small. Put the callout <strong>fill and default text colour on the panel shell</strong> (your tone class on the <code>w3-panel</code> wrapper). Scope stronger typography to <strong>direct children</strong> of <code>.rt-panel-body</code> — standalone <strong>Heading</strong> blocks (<code>h1</code>–<code>h6</code> with <code>tessera-block</code>), <strong>Text</strong> widgets (<code>.tessera-text</code>), and optionally a title line inside Text — not cards, quotes, images, or blocks nested inside those. Example <code>panelTones</code> on the site record and matching CSS:</p>
     <pre>id: demo-site
-title: Willow Hall
+title: Example site
 homePageId: home
 panelTones:
   - id: callout

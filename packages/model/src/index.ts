@@ -145,7 +145,6 @@ export {
   formatDatasetFieldRichHtml,
   formatDatasetUrlHtml,
   normalizeDatasetUrl,
-  scrubLegacyRootRecord,
   datasetFileToSnapshot,
 } from "./dataset.js";
 export { sanitizeRichHtml, decodeHtmlEntitiesOnce } from "./html-sanitize.js";
