@@ -380,7 +380,7 @@ function renderItem(node: EditNode, choices: Choices, zone: string, locked: bool
   const hiddenClass = node.hidden === true ? " editor-section-hidden" : "";
   const hiddenBadge =
     node.hidden === true ? `<span class="editor-section-hidden-label w3-tag w3-light-grey w3-tiny">Hidden</span>` : "";
-  const preview = escapeText(listPreviewText(node, choices));
+  const preview = escapeText(listPreviewDisplayText(node, choices));
   return `<article class="editor-section${hiddenClass}" data-item-id="${node.uid}" data-zone="${escapeAttr(zone)}">
     <div class="editor-section-bar">
       ${drag}
@@ -441,6 +441,10 @@ function dragLabelFor(node: EditNode, choices?: Choices): string {
   return hint ? `${kind} · ${hint}` : kind;
 }
 
+function listPreviewDisplayText(node: EditNode, choices?: Choices): string {
+  return clipLabel(listPreviewText(node, choices));
+}
+
 function listPreviewText(node: EditNode, choices?: Choices): string {
   switch (node.kind) {
     case "heading":
@@ -499,7 +503,7 @@ function refreshSectionChrome(article: HTMLElement | null | undefined, node: Edi
   const kind = article.querySelector(".editor-section-kind");
   if (kind) kind.textContent = labelFor(node);
   const preview = article.querySelector("[data-list-preview]");
-  if (preview) preview.textContent = listPreviewText(node, choices);
+  if (preview) preview.textContent = listPreviewDisplayText(node, choices);
 }
 
 function propsFor(node: EditNode, choices: Choices, locked: boolean): string {

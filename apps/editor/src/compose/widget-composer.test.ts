@@ -421,6 +421,13 @@ describe("section kind labels", () => {
     expect(form.classList.contains("editor-compose-list")).toBe(false);
     expect(widget.querySelector(".editor-text-body")).not.toBeNull();
   });
+
+  it("clips list previews when they fall back to body content", () => {
+    const long = "abcdefghij".repeat(8);
+    const form = mountZone(`<p>${long}</p>`);
+    const preview = form.querySelector("[data-list-preview]");
+    expect(preview?.textContent).toBe(`${long.slice(0, 35)}…`);
+  });
 });
 
 describe("editing toolbar visibility", () => {
