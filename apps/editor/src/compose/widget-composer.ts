@@ -34,6 +34,8 @@ import {
   type ToneId,
   type Widget,
 } from "@r-a-i-t-h/tessera-sections";
+import { openComposeAddDialog } from "./compose-add-dialog.js";
+import { wireComposeTouchLayout } from "./compose-touch.js";
 import { setDragGhost } from "../drag-ghost.js";
 import { startDragScroll, type DragScroll } from "../drag-scroll.js";
 import { REORDER_ICONS } from "../editor-icons.js";
@@ -118,6 +120,7 @@ type Mounted = {
   dragScroll?: DragScroll;
   onDocDragOver?: (event: DragEvent) => void;
   onEdit?: (burstId?: string) => void;
+  disposeTouch?: () => void;
 };
 
 const mounted = new WeakMap<HTMLElement, Mounted>();
@@ -172,7 +175,10 @@ export function mountWidgetComposer(
     locked: options.locked === true,
     onEdit: options.onEdit,
   };
+  const previous = mounted.get(form);
+  previous?.disposeTouch?.();
   mounted.set(form, state);
+  state.disposeTouch = wireComposeTouchLayout(form);
   for (const zone of zones) renderZone(form, zone);
 
   bindRichTextField(form, richTextOptionsOn(form));
@@ -912,6 +918,17 @@ function onClick(form: HTMLFormElement, event: MouseEvent): void {
   if (!(target instanceof Element)) return;
   const state = mounted.get(form);
   if (!state) return;
+  const addOpen = target.closest<HTMLElement>("[data-compose-add-open]");
+  if (addOpen && form.contains(addOpen)) {
+    event.preventDefault();
+    if (state.locked) return;
+    const focus = addOpen instanceof HTMLElement ? addOpen : null;
+    openComposeAddDialog({
+      onPick: (kind) => appendPalette(form, kind),
+      returnFocus: focus,
+    });
+    return;
+  }
   const palette = target.closest<HTMLElement>("[data-palette]");
   if (palette?.dataset.palette) {
     event.preventDefault();

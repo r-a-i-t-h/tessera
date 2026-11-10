@@ -200,6 +200,7 @@ body {
   overscroll-behavior: none;
   scrollbar-gutter: stable;
   scrollbar-width: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .editor-main {
@@ -1790,6 +1791,16 @@ img[data-hero-preview] {
   .editor-props {
     grid-template-columns: 1fr;
   }
+
+  .editor-props-inline > p:not(.editor-check):not(.editor-prop-wide) {
+    grid-template-columns: 1fr;
+  }
+
+  .editor-props-inline > p:not(.editor-check):not(.editor-prop-wide) > label {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
 }
 
 .editor-main.editor-compose {
@@ -2154,13 +2165,150 @@ img[data-hero-preview] {
   outline: none;
 }
 
+.editor-compose-touch-chrome {
+  display: none;
+}
+
+.editor-compose-add-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+}
+
+.editor-compose-add-bar .w3-button {
+  margin: 0;
+}
+
+.editor-compose-add-open {
+  flex: 1 1 auto;
+  min-width: 10rem;
+}
+
+.editor-compose-add-dialog {
+  width: min(28rem, calc(100vw - 2rem));
+  max-height: min(32rem, 85vh);
+  overflow: auto;
+}
+
+.editor-compose-add-kind {
+  display: block;
+  width: 100%;
+  margin: 0.2rem 0 !important;
+  text-align: left;
+}
+
+.editor-compose-add-group {
+  margin: 0.35rem 0 0;
+}
+
 @media (max-width: 800px) {
   .editor-compose-layout {
     grid-template-columns: 1fr;
   }
 
-  .editor-palette {
+  .editor-palette-desktop {
     position: static;
+  }
+}
+
+/* Touch compose: substitute Add dialog + canvas-first (not width-only — desktop mouse keeps full palette). */
+@media (pointer: coarse) and (max-width: 800px) {
+  .editor-compose-layout.editor-compose--touch {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .editor-compose-layout.editor-compose--touch .editor-zones {
+    order: 1;
+  }
+
+  .editor-compose-layout.editor-compose--touch .editor-compose-touch-chrome {
+    display: block;
+    order: 2;
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    margin: 0 -0.35rem -0.35rem;
+    padding: 0.5rem 0.35rem 0.65rem;
+    background: linear-gradient(to top, #fff 70%, transparent);
+    border-top: 1px solid #e0e0e0;
+  }
+
+  .editor-compose-layout.editor-compose--touch .editor-palette-desktop {
+    display: none;
+  }
+
+  .editor-compose-layout.editor-compose--touch .editor-handle,
+  .editor-compose-layout.editor-compose--touch .editor-drop-line {
+    display: none;
+  }
+}
+
+@media (pointer: coarse) {
+  .editor-handle {
+    display: none;
+  }
+
+  .editor-section-icon,
+  .editor-nav-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .editor-section-icon svg,
+  .editor-nav-icon svg {
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+
+  .editor-mark {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+}
+
+@media (max-width: 40rem) {
+  .editor-section-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .editor-section-actions {
+    width: 100%;
+    justify-content: flex-start;
+    margin-left: 0;
+    padding-top: 0.15rem;
+  }
+}
+
+.editor-compose-touch-hint {
+  display: none;
+  margin: 0.35rem 0 0;
+}
+
+@media (pointer: coarse) and (max-width: 800px) {
+  .editor-compose-layout.editor-compose--touch .editor-compose-touch-hint {
+    display: block;
+  }
+}
+
+@media (pointer: coarse) {
+  .editor-arrange-stage::before,
+  .editor-nav-build::before {
+    display: block;
+    margin: 0 0 0.5rem;
+    color: #666;
+    font-size: 0.85rem;
+  }
+
+  .editor-arrange-stage::before {
+    content: "Drag may not work on touch devices. Use ↑ ↓ on each row to reorder.";
+  }
+
+  .editor-nav-build::before {
+    content: "Drag may not work on touch devices. Use ↑ ↓ where available to reorder.";
   }
 }
 
@@ -2588,6 +2736,23 @@ img[data-hero-preview] {
   min-width: 4.75rem;
 }
 
+.editor-backups-browse {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+@media (max-width: 40rem) {
+  .editor-backups-browse .editor-backup {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+
+  .editor-backup-actions {
+    justify-self: start;
+  }
+}
+
 .editor-toolbar .editor-list-order {
   margin: 0;
   flex: 0 1 auto;
@@ -2699,6 +2864,12 @@ a.editor-library-row {
 
 .editor-dataset-grid tbody tr[data-record-row]:hover {
   background: var(--editor-list-row-hover);
+}
+
+.editor-dataset-grid-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
 }
 
 .editor-library-name {
@@ -2842,6 +3013,18 @@ a.editor-library-row {
 
 .editor-dataset-schema .editor-type-line {
   grid-template-columns: minmax(6rem, 1fr) minmax(6rem, 1fr) minmax(5.5rem, 7rem) auto auto auto auto;
+}
+
+@media (max-width: 40rem) {
+  .editor-dataset-schema .editor-type-line,
+  .editor-dataset-schema-meta-row {
+    grid-template-columns: 1fr;
+    gap: 0.35rem 0;
+  }
+
+  .editor-dataset-schema-visible-cell {
+    white-space: normal;
+  }
 }
 
 .editor-dataset-schema-visible-cell {
@@ -3277,6 +3460,40 @@ button.editor-picker-asset:hover {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+@media (pointer: coarse) and (max-width: 900px) {
+  .editor-scroll:has(.editor-nav-build) {
+    overflow: scroll;
+    display: block;
+  }
+
+  .editor-scroll:has(.editor-nav-build) > .editor-main,
+  .editor-scroll:has(.editor-nav-build) .editor-kind,
+  .editor-scroll:has(.editor-nav-build) #record-editor,
+  .editor-scroll:has(.editor-nav-build) #record-form,
+  .editor-scroll:has(.editor-nav-build) #record-editor > .editor-tab-panel,
+  .editor-scroll:has(.editor-nav-build) .editor-tab-body,
+  .editor-scroll:has(.editor-nav-build) .editor-tab-body > .editor-card {
+    display: block;
+    flex: none;
+    min-height: auto;
+  }
+
+  .editor-nav-build {
+    min-height: auto;
+  }
+
+  .editor-nav-build-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-height: auto;
+  }
+
+  .editor-nav-build-scroll {
+    max-height: min(50vh, 24rem);
+  }
 }
 
 .editor-scroll:has(.editor-nav-build) > .editor-main {

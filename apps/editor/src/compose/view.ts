@@ -110,8 +110,16 @@ function composePalette(): string {
     at += length;
     return slice.map(button).join("");
   });
-  return `<div class="editor-palette">
-        <p><button type="button" class="w3-button w3-white w3-border" data-compose-list aria-pressed="false">${COMPOSE_LIST_EXPANDED_LABEL}</button></p>
+  const listToggle = `<p><button type="button" class="w3-button w3-white w3-border" data-compose-list aria-pressed="false">${COMPOSE_LIST_EXPANDED_LABEL}</button></p>`;
+  return `<div class="editor-compose-touch-chrome" role="region" aria-label="Add widgets">
+        <div class="editor-compose-add-bar">
+          <button type="button" class="w3-button w3-theme editor-compose-add-open" data-compose-add-open>Add widget…</button>
+          ${listToggle}
+        </div>
+        <p class="w3-small w3-text-grey editor-compose-touch-hint">Collapse editors hides text so you can reorder with ↑ ↓.</p>
+      </div>
+      <div class="editor-palette editor-palette-desktop">
+        ${listToggle}
         ${groups.join(`<hr class="editor-palette-rule">`)}
       </div>`;
 }

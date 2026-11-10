@@ -65,6 +65,8 @@ describe("editor chrome", () => {
     expect(html).toContain('data-action="close-editor-sidebar"');
     expect(html).toContain('class="editor-mobile-bar');
     expect(html).toContain("tessera-nav-brand w3-theme-d3");
+    expect(html).toContain('href="#/"');
+    expect(html).toContain(">Home</a>");
     expect(html).toContain('class="editor-shell"');
     expect(html).toContain('class="editor-scroll"');
     expect(html).toContain('class="editor-sidebar-version"');
