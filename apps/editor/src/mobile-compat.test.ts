@@ -60,6 +60,15 @@ describe("desktop regression gates (CSS)", () => {
       /@media \(max-width: 600px\)[\s\S]*\.editor-sidebar[\s\S]*top:\s*var\(--editor-mobile-bar-height/,
     );
   });
+
+  it("keeps compose block chrome on two compact rows at phone width", () => {
+    expect(appCss).toMatch(
+      /@media \(max-width: 40rem\)[\s\S]*\.editor-section-kind[\s\S]*order:\s*1/,
+    );
+    expect(appCss).toMatch(
+      /@media \(max-width: 40rem\)[\s\S]*\.editor-section-bar::after[\s\S]*flex-basis:\s*100%/,
+    );
+  });
 });
 
 /**

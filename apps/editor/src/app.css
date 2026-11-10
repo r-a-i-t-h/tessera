@@ -2308,16 +2308,50 @@ img[data-hero-preview] {
 }
 
 @media (max-width: 40rem) {
+  /* Row 1: block kind (+ optional badge) and ↑↓ actions; row 2+: props/toolbar wrap together. */
   .editor-section-bar {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.2rem 0.45rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .editor-section-kind,
+  .editor-section-hidden-label,
+  .editor-section-actions {
+    order: 1;
   }
 
   .editor-section-actions {
-    width: 100%;
-    justify-content: flex-start;
-    margin-left: 0;
-    padding-top: 0.15rem;
+    width: auto;
+    justify-content: flex-end;
+    margin-left: auto;
+    padding-top: 0;
+  }
+
+  .editor-section-bar::after {
+    content: "";
+    order: 2;
+    flex-basis: 100%;
+    width: 0;
+    height: 0;
+  }
+
+  .editor-section-bar > .editor-handle,
+  .editor-section-bar > .editor-prop,
+  .editor-section-bar > .editor-section-editing-tools,
+  .editor-section-bar > button[data-library] {
+    order: 3;
+  }
+
+  .editor-section-bar .editor-section-editing-tools .editor-prop {
+    order: 3;
+  }
+
+  .editor-section-bar .editor-prop .editor-inline {
+    flex-wrap: wrap;
+    row-gap: 0.15rem;
   }
 }
 
