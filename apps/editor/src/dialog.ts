@@ -3,6 +3,27 @@ export type DialogController = {
   destroy: () => void;
 };
 
+/** Open modals, most recent last. Escape cancels only the top one. */
+const escapeCancels: Array<() => void> = [];
+let escapeListenerInstalled = false;
+
+function ensureDocumentEscapeListener(): void {
+  if (escapeListenerInstalled) return;
+  escapeListenerInstalled = true;
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      const cancel = escapeCancels[escapeCancels.length - 1];
+      if (!cancel) return;
+      event.preventDefault();
+      event.stopPropagation();
+      cancel();
+    },
+    true,
+  );
+}
+
 const FOCUSABLE = [
   "button:not([disabled])",
   "a[href]",
@@ -29,12 +50,10 @@ export function activateDialog(
   }
 
   const listeners = new AbortController();
+  const cancelFromEscape = () => options.onCancel();
+  escapeCancels.push(cancelFromEscape);
+  ensureDocumentEscapeListener();
   host.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      options.onCancel();
-      return;
-    }
     if (event.key !== "Tab") return;
     const dialog = currentDialog();
     if (!dialog) return;
@@ -76,6 +95,8 @@ export function activateDialog(
   return {
     focus,
     destroy: () => {
+      const index = escapeCancels.lastIndexOf(cancelFromEscape);
+      if (index !== -1) escapeCancels.splice(index, 1);
       listeners.abort();
       if (options.returnFocus?.isConnected) options.returnFocus.focus();
     },

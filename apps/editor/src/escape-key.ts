@@ -7,7 +7,7 @@ import { closeEntityOpener } from "./entity-opener.js";
 export const COMPOSE_LIST_EXPANDED_LABEL = "Collapse editors";
 export const COMPOSE_LIST_COLLAPSED_LABEL = "Expand editors";
 
-/** True when a modal dialog is open (Escape is handled on the dialog host). */
+/** True when a modal dialog is open (Escape cancels it even if focus is outside). */
 export function hasOpenModal(): boolean {
   return Boolean(document.querySelector('[role="dialog"][aria-modal="true"]'));
 }
