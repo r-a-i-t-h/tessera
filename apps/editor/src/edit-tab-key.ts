@@ -18,8 +18,12 @@ export function editTabDirectionFromEvent(event: KeyboardEvent): EditTabDirectio
   return undefined;
 }
 
+/** Primary editor tabs. Skips inline strips such as the library picker. */
+const EDITOR_TAB_SELECTOR =
+  '.editor-tab-strip:not(.editor-tab-strip--inline) > .editor-tabs[role="tablist"] > button[role="tab"]';
+
 function visibleTabs(root: ParentNode): HTMLButtonElement[] {
-  const tabs = [...root.querySelectorAll<HTMLButtonElement>('[aria-label="Editing mode"] [data-mode]')];
+  const tabs = [...root.querySelectorAll<HTMLButtonElement>(EDITOR_TAB_SELECTOR)];
   return tabs.filter((tab) => {
     if (tab.disabled || tab.hidden) return false;
     if (
@@ -40,7 +44,7 @@ function activeTabIndex(tabs: HTMLButtonElement[]): number {
   );
 }
 
-/** Activates the next or previous tab in the Editing mode tablist. Returns true when a tab was activated. */
+/** Activates the next or previous tab in the main editor tab strip. Returns true when a tab was activated. */
 export function triggerEditTabAdjacent(root: ParentNode, direction: EditTabDirection): boolean {
   const tabs = visibleTabs(root);
   if (!tabs.length) return false;
