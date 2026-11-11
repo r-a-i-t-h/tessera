@@ -68,16 +68,16 @@ body {
 }
 
 /* Phone drawer: branded Home row; desktop keeps “Tessera editor” brand. */
-.editor-sidebar-home {
+.editor-sidebar .w3-bar-block .editor-sidebar-home {
   display: none;
 }
 
 @media (max-width: 600px) {
-  .editor-sidebar-home {
+  .editor-sidebar .w3-bar-block .editor-sidebar-home {
     display: block;
   }
 
-  .editor-sidebar-brand-desktop {
+  .editor-sidebar .w3-bar-block .editor-sidebar-brand-desktop {
     display: none !important;
   }
 }

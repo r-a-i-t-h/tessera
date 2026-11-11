@@ -50,7 +50,10 @@ describe("desktop regression gates (CSS)", () => {
     expect(appCss).toContain(".editor-sidebar-home");
     expect(appCss).toContain(".editor-sidebar-brand-desktop");
     expect(appCss).toMatch(
-      /@media \(max-width: 600px\)[\s\S]*\.editor-sidebar-home[\s\S]*display:\s*block/,
+      /\.editor-sidebar \.w3-bar-block \.editor-sidebar-home[\s\S]*display:\s*none/,
+    );
+    expect(appCss).toMatch(
+      /@media \(max-width: 600px\)[\s\S]*\.editor-sidebar \.w3-bar-block \.editor-sidebar-home[\s\S]*display:\s*block/,
     );
   });
 
