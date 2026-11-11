@@ -9,6 +9,7 @@ Static small-site CMS: structured records flatten to a validated **`SiteDocument
 | [ROADMAP.md](./ROADMAP.md) | Where the product is, and the work still ahead |
 | [GUIDE.md](./GUIDE.md) | Authoring how-to: YAML, menus, and styles. The editor’s Guide page shows the same notes |
 | [THEME-BUILDER.md](./THEME-BUILDER.md) | Building theme kits: concepts, folder layout, and manifest syntax |
+| [docs/manual-release.md](./docs/manual-release.md) | Pack locally, seed the VPS cache, and deploy when GitHub Releases are unavailable |
 | [EDITOR-REVIEW.md](./EDITOR-REVIEW.md) | 21 October 2026 review: page types, editor shape, and why we are not rewriting |
 
 ## Quick start
@@ -118,7 +119,7 @@ The editor’s Backups page writes a dated `tar.gz` of `data/` into the sibling 
 
 ## Release
 
-`npm run release -- --patch` (or `--minor` / `--major`) bumps the root `package.json` version, commits it, tags `vX.Y.Z`, and pushes. That tag runs `.github/workflows/release.yml`, which packs `dist-release/tessera.tar.gz` (and a versioned copy) and attaches both to a GitHub Release. [node-vps-kit](https://github.com/r-a-i-t-h/node-vps-kit) installs that tarball as one process: `node dist/server.js` serves the API and the editor UI in `spa/`. The same tree carries `runtime/` and `skin/`, which preview and publish copy into the site. The kit keeps instance data at `/opt/tessera/<name>/data` and sets `TESSERA_DATA` to that path. Updates replace `current/` and leave `data/` alone. Locally: `npm run pack`.
+`npm run release -- --patch` (or `--minor` / `--major`) bumps the root `package.json` version, commits it, tags `vX.Y.Z`, and pushes. That tag runs `.github/workflows/release.yml`, which packs `dist-release/tessera.tar.gz` (and a versioned copy) and attaches both to a GitHub Release. [node-vps-kit](https://github.com/r-a-i-t-h/node-vps-kit) installs that tarball as one process: `node dist/server.js` serves the API and the editor UI in `spa/`. The same tree carries `runtime/` and `skin/`, which preview and publish copy into the site. The kit keeps instance data at `/opt/tessera/<name>/data` and sets `TESSERA_DATA` to that path. Updates replace `current/` and leave `data/` alone. Locally: `npm run pack` (same artefact as CI). For GitHub outages, rollbacks, or `-Archive` deploys, see [docs/manual-release.md](./docs/manual-release.md).
 
 Before making a production editor reachable:
 
