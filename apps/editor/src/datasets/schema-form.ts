@@ -116,11 +116,13 @@ function objectSubfieldRow(
           (field.options ?? []).map((o) => `${o.value}|${o.label}`).join("\n"),
         )}</textarea></label></p>`
       : "";
-  return `<li data-schema-sub-index="${subIndex}">
+  return `<li class="editor-type-item" data-schema-sub-index="${subIndex}">
     <input type="hidden" data-schema-sub-key="${parentIndex}" data-schema-sub="${subIndex}" data-depth="1" value="${escapeHtml(field.key)}" />
-    <input class="w3-input" placeholder="Subfield id" data-schema-sub-id="${parentIndex}" data-schema-sub="${subIndex}" data-depth="1" value="${escapeHtml(field.id)}" />
-    <input class="w3-input" placeholder="Label" data-schema-sub-label="${parentIndex}" data-schema-sub="${subIndex}" data-depth="1" value="${escapeHtml(field.label)}" />
-    <select class="w3-select" data-schema-sub-kind="${parentIndex}" data-schema-sub="${subIndex}" data-depth="1">${kindOptions}</select>
+    <div class="editor-type-line">
+      <input class="w3-input" placeholder="Subfield id" data-schema-sub-id="${parentIndex}" data-schema-sub="${subIndex}" data-depth="1" value="${escapeHtml(field.id)}" />
+      <input class="w3-input" placeholder="Label" data-schema-sub-label="${parentIndex}" data-schema-sub="${subIndex}" data-depth="1" value="${escapeHtml(field.label)}" />
+      <select class="w3-select" data-schema-sub-kind="${parentIndex}" data-schema-sub="${subIndex}" data-depth="1">${kindOptions}</select>
+    </div>
     ${refDs}
     ${enumOpts}
   </li>`;

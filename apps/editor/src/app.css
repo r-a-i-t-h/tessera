@@ -3126,6 +3126,16 @@ a.editor-library-row {
   grid-template-columns: minmax(6rem, 1fr) minmax(6rem, 1fr) minmax(5.5rem, 7rem) auto auto auto auto;
 }
 
+.editor-dataset-schema .editor-dataset-object-schema .editor-type-line {
+  grid-template-columns: minmax(6rem, 1fr) minmax(6rem, 1fr) minmax(5.5rem, 7rem);
+}
+
+.editor-dataset-object-schema {
+  margin: 0.35rem 0 0.5rem;
+  padding-left: 0.75rem;
+  border-left: 2px solid #e8e8e8;
+}
+
 @media (max-width: 40rem) {
   .editor-dataset-schema .editor-type-line,
   .editor-dataset-schema-meta-row {
