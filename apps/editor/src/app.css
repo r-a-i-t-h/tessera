@@ -3183,8 +3183,20 @@ a.editor-library-row {
 }
 
 .editor-schema-enum {
-  margin: 0.35rem 0 0.15rem;
-  max-width: 28rem;
+  width: min(28rem, 100%);
+  margin: 0.35rem 0 0.15rem auto;
+}
+
+.editor-schema-enum .editor-schema-help-pop {
+  left: auto;
+  right: 0;
+}
+
+@media (max-width: 36rem) {
+  .editor-schema-enum .editor-schema-help-pop {
+    left: 0;
+    right: auto;
+  }
 }
 
 .editor-schema-enum-head {

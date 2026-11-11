@@ -152,6 +152,8 @@ describe("schema form", () => {
       host.innerHTML = renderSchemaForm(draft);
       const area = host.querySelector<HTMLTextAreaElement>("[data-schema-enum]");
       expect(area).toBeTruthy();
+      expect(area?.closest(".editor-type-line")).toBeNull();
+      expect(area?.closest(".editor-schema-enum")?.previousElementSibling?.classList.contains("editor-type-line")).toBe(true);
       expect(host.querySelector("[data-schema-help]")).toBeTruthy();
       expect(host.querySelector(".editor-schema-help-pop")?.textContent).toContain("value|label");
       host.querySelector<HTMLSelectElement>('[data-schema-kind="0"]')!.value = "enum";
@@ -187,7 +189,10 @@ describe("schema form", () => {
       const draft = readSchemaForm(host, schemaDraftFromFields(fields));
       expect(draft.fields[0]?.fields?.[0]?.kind).toBe("enum");
       host.innerHTML = renderSchemaForm(draft);
-      expect(host.querySelector("textarea[data-schema-enum][data-schema-sub]")).toBeTruthy();
+      const subEnum = host.querySelector("textarea[data-schema-enum][data-schema-sub]");
+      expect(subEnum).toBeTruthy();
+      expect(subEnum?.closest(".editor-type-line")).toBeNull();
+      expect(subEnum?.closest(".editor-schema-enum")?.previousElementSibling?.classList.contains("editor-type-line")).toBe(true);
       expect(host.querySelector("[data-schema-help]")).toBeTruthy();
     } finally {
       host.remove();
