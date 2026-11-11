@@ -1,3 +1,4 @@
+import "./dom-globals.js";
 import { serve } from "@hono/node-server";
 import { existsSync } from "node:fs";
 import { join } from "node:path";

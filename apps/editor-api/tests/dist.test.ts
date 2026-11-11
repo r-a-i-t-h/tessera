@@ -1,6 +1,3 @@
-/**
- * @vitest-environment happy-dom
- */
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -174,6 +171,61 @@ body { margin: 0; }
     expect(report.dist.flavour).toBe("pages");
     expect(report.installed).toBeUndefined();
     expect(await readFile(join(fixture.root, "publish", "index.html"), "utf8")).toContain("Welcome");
+  });
+
+  it("sanitizes dataset text fields when publishing pages", async () => {
+    const fixture = await target("pages");
+    const doc = parseSiteDocument({
+      ...fixture.document,
+      pages: [
+        {
+          id: "home",
+          title: "Home",
+          zones: { main: [{ type: "text", html: "{{list}}" }] },
+        },
+      ],
+      bindings: [
+        {
+          id: "list",
+          component: "datasetCards",
+          props: { dataset: "demo", fields: ["blurb"] },
+        },
+      ],
+    });
+    await mkdir(join(fixture.root, "datasets"), { recursive: true });
+    await writeFile(
+      join(fixture.root, "datasets", "demo.json"),
+      JSON.stringify({
+        id: "demo",
+        title: "Demo",
+        view: { columns: ["blurb"] },
+        schema: {
+          fields: [{ key: "f1", id: "blurb", label: "Blurb", kind: "text" }],
+        },
+        nextUid: 2,
+        records: [
+          {
+            uid: 1,
+            added: "2026-01-01T00:00:00.000Z",
+            modified: "2026-01-01T00:00:00.000Z",
+            blurb: "<p>Hello <strong>world</strong></p>",
+          },
+        ],
+      }),
+      "utf8",
+    );
+    const store = new SiteStore(
+      join(fixture.root, "records"),
+      join(fixture.root, "preview", "data", "site.json"),
+      async () => 0,
+      join(fixture.root, "history"),
+      fixture.target,
+    );
+    await store.writeFromDocument(doc);
+    await store.publish();
+    const html = await readFile(join(fixture.root, "publish", "index.html"), "utf8");
+    expect(html).toContain("<strong>world</strong>");
+    expect(html).not.toMatch(/DOMParser is not defined/);
   });
 
   it("embeds dataset snapshots when publishing pages", async () => {

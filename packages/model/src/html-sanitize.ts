@@ -1,3 +1,6 @@
+const TEXT_NODE = 3;
+const ELEMENT_NODE = 1;
+
 const ALLOWED_TAGS = new Set([
   "strong",
   "b",
@@ -34,11 +37,11 @@ function escapeText(value: string): string {
 function serializeChildren(root: Element): string {
   let out = "";
   for (const node of root.childNodes) {
-    if (node.nodeType === Node.TEXT_NODE) {
+    if (node.nodeType === TEXT_NODE) {
       out += escapeText(node.textContent ?? "");
       continue;
     }
-    if (!(node instanceof Element)) continue;
+    if (node.nodeType !== ELEMENT_NODE) continue;
     const tag = node.tagName.toLowerCase();
     if (!ALLOWED_TAGS.has(tag)) continue;
     if (tag === "br") {
