@@ -42,28 +42,29 @@ function serializeChildren(root: Element): string {
       continue;
     }
     if (node.nodeType !== ELEMENT_NODE) continue;
-    const tag = node.tagName.toLowerCase();
+    const el = node as Element;
+    const tag = el.tagName.toLowerCase();
     if (!ALLOWED_TAGS.has(tag)) continue;
     if (tag === "br") {
       out += "<br>";
       continue;
     }
     if (tag === "img") {
-      const src = node.getAttribute("src") ?? "";
-      const alt = node.getAttribute("alt") ?? "";
+      const src = el.getAttribute("src") ?? "";
+      const alt = el.getAttribute("alt") ?? "";
       if (!src) continue;
       out += `<img src="${escapeAttr(src)}" alt="${escapeAttr(alt)}" />`;
       continue;
     }
     let attrs = "";
     if (tag === "a") {
-      const pageId = node.getAttribute("data-tessera-page")?.trim() ?? "";
-      attrs = ` href="${escapeAttr(node.getAttribute("href") ?? "")}"`;
+      const pageId = el.getAttribute("data-tessera-page")?.trim() ?? "";
+      attrs = ` href="${escapeAttr(el.getAttribute("href") ?? "")}"`;
       if (pageId) attrs += ` data-tessera-page="${escapeAttr(pageId)}"`;
-    } else if (tag === "pre" && node.getAttribute("class") === "tessera-pre") {
+    } else if (tag === "pre" && el.getAttribute("class") === "tessera-pre") {
       attrs = ' class="tessera-pre"';
     }
-    const inner = serializeChildren(node);
+    const inner = serializeChildren(el);
     out += `<${tag}${attrs}>${inner}</${tag}>`;
   }
   return out;

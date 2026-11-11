@@ -5,5 +5,5 @@
 import { Window } from "happy-dom";
 
 if (typeof globalThis.DOMParser === "undefined") {
-  globalThis.DOMParser = new Window().DOMParser;
+  globalThis.DOMParser = new Window().DOMParser as unknown as typeof DOMParser;
 }
