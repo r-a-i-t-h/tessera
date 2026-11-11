@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -15,6 +15,30 @@ describe("DatasetStore", () => {
 
   afterEach(async () => {
     await rm(dir, { recursive: true, force: true });
+  });
+
+  it("invalidateListing drops a stale summary cache", async () => {
+    await store.create("alpha", "Alpha");
+    expect((await store.list()).map((d) => d.id)).toEqual(["alpha"]);
+    const otherPath = join(dir, "datasets", "beta.json");
+    await writeFile(
+      otherPath,
+      `${JSON.stringify(
+        {
+          id: "beta",
+          title: "Beta",
+          schema: { fields: [] },
+          view: { columns: ["uid"] },
+          records: [],
+          nextUid: 1,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    expect((await store.list()).map((d) => d.id)).toEqual(["alpha"]);
+    store.invalidateListing();
+    expect((await store.list()).map((d) => d.id)).toEqual(["alpha", "beta"]);
   });
 
   it("lists datasets sorted by title", async () => {

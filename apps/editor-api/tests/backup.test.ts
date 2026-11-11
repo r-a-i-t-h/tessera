@@ -15,6 +15,8 @@ import {
   restoreDataBackup,
 } from "../src/site/backup.js";
 import { UserStore } from "../src/store/users.js";
+import { SiteStore } from "../src/site/store.js";
+import { DatasetStore } from "../src/site/dataset-store.js";
 
 const seedDir = join(dirname(fileURLToPath(import.meta.url)), "..", "seed");
 
@@ -160,6 +162,42 @@ describe("site backups", () => {
     const body = (await res.json()) as { ok: boolean; name: string };
     expect(body.ok).toBe(true);
     expect((await listBackups(backup)).some((item) => item.name === body.name)).toBe(true);
+  });
+
+  it("restore refreshes the dataset listing cache", async () => {
+    const { site, backup } = await siteWith("Datasets");
+    const datasets = new DatasetStore(join(site, "datasets"));
+    await datasets.create("people", "People");
+    const users = new UserStore(site);
+    await users.load();
+    const password = await hashPassword("secret1");
+    await users.createUser("alice", password.hash, password.salt);
+    const created = await createDataBackup(site, backup);
+    await rm(join(site, "datasets"), { recursive: true, force: true });
+
+    const sessions = new SessionStore();
+    const token = sessions.create("alice").token;
+    const siteStore = new SiteStore(join(site, "records"));
+    const app = createApp({ users, sessions, site: siteStore, siteRoot: site, backupDir: backup });
+
+    const empty = await app.request("/api/datasets", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(empty.status).toBe(200);
+    expect(((await empty.json()) as { datasets: unknown[] }).datasets).toEqual([]);
+
+    const restored = await app.request(`/api/backups/${created.name}/restore`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(restored.status).toBe(200);
+
+    const listed = await app.request("/api/datasets", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(listed.status).toBe(200);
+    const body = (await listed.json()) as { datasets: { id: string }[] };
+    expect(body.datasets.map((d) => d.id)).toEqual(["people"]);
   });
 
   it("requires an editor to list backups", async () => {

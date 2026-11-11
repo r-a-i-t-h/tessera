@@ -18,6 +18,7 @@ import {
 } from "@r-a-i-t-h/tessera-model";
 import { readJson, writeTextAtomic } from "../store/fs.js";
 import { isRecordId } from "./kinds.js";
+import type { SiteStore } from "./store.js";
 
 const writeQueues = new Map<string, Promise<void>>();
 
@@ -53,6 +54,11 @@ export class DatasetStore {
 
   listingVersion(): string {
     return String(this.listingGeneration);
+  }
+
+  /** Drop cached `/api/datasets` listings after writes that bypass the store (restore, reseed, …). */
+  invalidateListing(): void {
+    this.bumpSummaryCache();
   }
 
   private bumpSummaryCache(): void {
@@ -332,4 +338,10 @@ export function datasetStoreForSiteRoot(siteRoot: string): DatasetStore {
     datasetStores.set(dir, store);
   }
   return store;
+}
+
+/** Drop in-memory API listings after direct changes under `siteRoot`. */
+export function invalidateSiteListings(site: SiteStore, siteRoot: string): void {
+  site.invalidateListing();
+  datasetStoreForSiteRoot(siteRoot).invalidateListing();
 }

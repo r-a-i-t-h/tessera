@@ -4,6 +4,7 @@ import { apiError } from "../http.js";
 import { authenticatedSiteRoot } from "../middleware/editor-site.js";
 import { reseedSite } from "../site/backup.js";
 import { writeBlankSite } from "../site/blank.js";
+import { invalidateSiteListings } from "../site/dataset-store.js";
 
 export const siteRoutes = new Hono();
 siteRoutes.use("/site/*", authenticatedSiteRoot);
@@ -19,7 +20,7 @@ siteRoutes.post("/site/init", async (c) => {
 
   try {
     await writeBlankSite(siteRoot, seedDir);
-    site.invalidateListing();
+    invalidateSiteListings(site, siteRoot);
     const doc = await site.flatten();
     if (!doc) return apiError(c, 400, "The new site did not flatten.");
     const snapshot = await site.publishedSnapshot();
@@ -48,7 +49,7 @@ siteRoutes.post("/site/reseed", async (c) => {
 
   try {
     const result = await reseedSite(siteRoot, backupDir, seedDir);
-    site.invalidateListing();
+    invalidateSiteListings(site, siteRoot);
     const doc = await site.flatten();
     if (!doc) return apiError(c, 400, "The new site did not flatten.");
     const snapshot = await site.publishedSnapshot();

@@ -13,6 +13,7 @@ import {
   restoreDataBackup,
   restoreExample,
 } from "../site/backup.js";
+import { invalidateSiteListings } from "../site/dataset-store.js";
 
 export const backupRoutes = new Hono();
 backupRoutes.use("/backups", authenticatedFullAdmin);
@@ -101,7 +102,8 @@ backupRoutes.post("/backups/:name/restore", async (c) => {
   if (!backupPath(dirs.backupDir, name)) return apiError(c, 400, "Invalid backup name");
   try {
     const result = await restoreDataBackup(dirs.siteRoot, dirs.backupDir, name);
-    c.get("site")?.invalidateListing();
+    const site = c.get("site");
+    if (site) invalidateSiteListings(site, dirs.siteRoot);
     await dirs.users.load(dirs.seedDir);
     return c.json({ ok: true, ...result });
   } catch (err) {
@@ -114,7 +116,8 @@ backupRoutes.post("/examples/:name/restore", async (c) => {
   if (isResponse(dirs)) return dirs;
   try {
     const result = await restoreExample(dirs.siteRoot, dirs.backupDir, c.req.param("name"));
-    c.get("site")?.invalidateListing();
+    const site = c.get("site");
+    if (site) invalidateSiteListings(site, dirs.siteRoot);
     await dirs.users.load(dirs.seedDir);
     return c.json({ ok: true, ...result });
   } catch (err) {
