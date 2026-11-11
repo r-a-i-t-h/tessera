@@ -14,9 +14,13 @@ function stringList(props: Record<string, unknown>, key: string): string[] | und
   return out.length ? out : undefined;
 }
 
-export function queryOptionsFromProps(props: Record<string, unknown>): DatasetQueryOptions | undefined {
+export function queryOptionsFromProps(
+  props: Record<string, unknown>,
+  pageId?: string,
+): DatasetQueryOptions | undefined {
   const dataset = typeof props.dataset === "string" ? props.dataset.trim() : "";
   if (!dataset) return undefined;
+  const pageData = props.pageData === true;
   const sortRaw = props.sort;
   let sort: DatasetQueryOptions["sort"];
   if (sortRaw && typeof sortRaw === "object" && !Array.isArray(sortRaw)) {
@@ -26,6 +30,7 @@ export function queryOptionsFromProps(props: Record<string, unknown>): DatasetQu
   }
   return {
     dataset,
+    ...(pageData && pageId ? { pageId } : {}),
     fields: stringList(props, "fields"),
     sort,
     limit: num(props, "limit"),

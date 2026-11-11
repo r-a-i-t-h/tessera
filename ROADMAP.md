@@ -1,6 +1,6 @@
 # Tessera roadmap
 
-Sequenced upcoming work. Requirements and acceptance criteria live in [SPEC.md](./SPEC.md). As-built engine details live in [ARCHITECTURE.md](./ARCHITECTURE.md).
+Sequenced upcoming work. Requirements and acceptance criteria live in [SPEC.md](./SPEC.md). As-built engine details live in [ARCHITECTURE.md](./ARCHITECTURE.md). Next-generation **dataset** constraints and parked follow-ups: [docs/datasets-plan.md](./docs/datasets-plan.md).
 
 When a capability moves, update the SPEC acceptance criteria in the same change.
 
@@ -31,6 +31,7 @@ That is a small-site CMS for prose pages, media, and a designed menu. It is one 
 | Media library | Images and PDFs in `files/` plus virtual folders. The published URL is `./media/<id>.<ext>`. A move changes `folderId` only. |
 | Gallery | `<tessera-gallery>` grid or slides, plus a dialog. A Compose gallery section names a library folder. Flatten lists that folder’s images. |
 | Blog | Reserved `blog`, `article`, and `blog-index`. Tenants are records. The author places a blog in the nav for its path and frame. The menu adds the index, and tenant names when the blog names none. Articles are pages with a fixed layout, a date, and tags. A future date hides an article until that local day. |
+| Next-gen datasets (in place) | Objects, universal `many`, page metadata, ref walk, page-data roots, drill-down, rich `text` / `html` / `string`. → [docs/datasets-plan.md](./docs/datasets-plan.md) |
 
 ## Upcoming (ordered)
 

@@ -125,6 +125,8 @@ export {
   DATASET_RESERVED_FIELD_IDS,
   DATASET_SCALAR_KINDS,
   DATASET_FIELD_KINDS,
+  DATASET_SIMPLE_FILTER_KINDS,
+  isSimpleTopLevelField,
   parseDatasetFields,
   parseDatasetSchema,
   parseDatasetFile,
@@ -159,6 +161,8 @@ export {
   parseDatasetFilters,
   evaluationDay,
 } from "./dataset-query.js";
+export { pageDataRoots, sourceDatasetRoots, walkDatasetRecords } from "./dataset-walk.js";
+export type { DatasetRecordRef } from "./dataset-walk.js";
 export type {
   DatasetScalarKind,
   DatasetFieldKind,

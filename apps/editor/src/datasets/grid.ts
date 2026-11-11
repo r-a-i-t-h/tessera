@@ -1,4 +1,5 @@
 import type { DatasetField, DatasetRootRecord } from "@r-a-i-t-h/tessera-model";
+import { formatDatasetFieldDisplay } from "@r-a-i-t-h/tessera-model";
 import { fieldById, rootColumnFieldIds } from "@r-a-i-t-h/tessera-model";
 
 export type GridColumn =
@@ -73,7 +74,11 @@ export function cellDisplay(
       return ctx.assetName(String(raw));
     case "ref":
       return ctx.refTitle(field.dataset ?? "", Number(raw));
+    case "string":
+      return String(raw).trim();
     case "text":
+      return formatDatasetFieldDisplay(record, field);
+    case "html":
       return String(raw).replace(/\s+/g, " ").trim();
     default:
       return String(raw);

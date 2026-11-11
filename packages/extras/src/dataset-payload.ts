@@ -8,13 +8,15 @@ import {
   type DatasetSnapshot,
   type RecordDisplayContext,
 } from "@r-a-i-t-h/tessera-model";
-import type { RenderContext } from "@r-a-i-t-h/tessera-renderer";
+import { resolvePageRefs, type RenderContext } from "@r-a-i-t-h/tessera-renderer";
+import type { DatasetDrillDownPayload } from "./dataset-drilldown.js";
 import { normalizeFrameColor } from "@r-a-i-t-h/tessera-sections";
+import { buildDrillDownPayload } from "./dataset-drilldown.js";
 import { queryOptionsFromProps } from "./dataset-present-props.js";
 
 export type DatasetColumnAlign = "left" | "center" | "right";
 
-export type DatasetColumnCellFormat = "url" | "asset";
+export type DatasetColumnCellFormat = "url" | "asset" | "html";
 
 export type DatasetColumnPayload = {
   id: string;
@@ -31,6 +33,8 @@ export type DatasetRowPayload = {
   values: Record<string, string>;
   /** Sanitized HTML for asset columns. */
   richValues?: Record<string, string>;
+  hasDrillDown?: boolean;
+  drillDown?: import("./dataset-drilldown.js").DatasetDrillDownPayload;
 };
 
 export type DatasetViewPayload = {
@@ -49,7 +53,7 @@ export type DatasetViewPayload = {
 };
 
 function columnCellFormat(kind?: DatasetFieldKind): DatasetColumnCellFormat | undefined {
-  if (kind === "url" || kind === "asset") return kind;
+  if (kind === "url" || kind === "asset" || kind === "html" || kind === "text") return kind === "text" ? "html" : kind;
   return undefined;
 }
 
@@ -67,10 +71,46 @@ function isSortableColumn(fieldId: string, snapshot: DatasetSnapshot): boolean {
   if (fieldId === "uid" || fieldId === "added" || fieldId === "modified") return true;
   const field = fieldById(snapshot.schema.fields, fieldId);
   if (!field) return false;
-  if (field.kind === "asset") {
+  if (field.kind === "asset" || field.kind === "object" || field.kind === "ref") {
     return false;
   }
   return true;
+}
+
+function resolveDatasetRichHtml(html: string, ctx: RenderContext): string {
+  return resolvePageRefs(html, ctx);
+}
+
+function resolveDrillDownPayload(drill: DatasetDrillDownPayload, ctx: RenderContext): DatasetDrillDownPayload {
+  return {
+    ...drill,
+    topLevel: drill.topLevel.map((field) => ({
+      ...field,
+      ...(field.richHtml ? { richHtml: resolveDatasetRichHtml(field.richHtml, ctx) } : {}),
+    })),
+    sections: drill.sections.map((section) => ({
+      ...section,
+      rows: section.rows.map((row) => {
+        if (!row.richCells) return row;
+        const richCells: Record<string, string> = {};
+        for (const [id, html] of Object.entries(row.richCells)) {
+          richCells[id] = resolveDatasetRichHtml(html, ctx);
+        }
+        return { ...row, richCells };
+      }),
+    })),
+  };
+}
+
+function resolveRowPayload(row: DatasetRowPayload, ctx: RenderContext): DatasetRowPayload {
+  if (!row.richValues) return row;
+  const richValues: Record<string, string> = {};
+  for (const [id, html] of Object.entries(row.richValues)) {
+    richValues[id] = resolveDatasetRichHtml(html, ctx);
+  }
+  const out: DatasetRowPayload = { ...row, richValues };
+  if (row.drillDown) out.drillDown = resolveDrillDownPayload(row.drillDown, ctx);
+  return out;
 }
 
 function rowToPayload(row: DatasetRowView): DatasetRowPayload {
@@ -108,7 +148,7 @@ export function buildDatasetViewPayload(
   variant: DatasetViewPayload["variant"],
   display: RecordDisplayContext,
 ): DatasetViewPayload | undefined {
-  const options = queryOptionsFromProps(props);
+  const options = queryOptionsFromProps(props, ctx.page.id);
   if (!options) return undefined;
   const snapshots = documentDatasetMap(ctx.document);
   const snapshot = snapshots[options.dataset];
@@ -141,6 +181,7 @@ export function buildDatasetViewPayload(
   const frameColor =
     variant === "cards" ? normalizeFrameColor(frameColorRaw) : undefined;
 
+  const schemaRecordByUid = new Map(result.rows.map((r) => [r.uid, snapshot.records.find((rec) => rec.uid === r.uid)]));
   return {
     variant,
     empty: typeof props.empty === "string" ? props.empty : "",
@@ -150,7 +191,15 @@ export function buildDatasetViewPayload(
     sort: resolveSort(props, columns),
     interactiveSort: props.interactiveSort === true,
     columns,
-    rows: result.rows.map(rowToPayload),
+    rows: result.rows.map((row) => {
+      let payload = rowToPayload(row);
+      const record = schemaRecordByUid.get(row.uid);
+      if (record) {
+        const drillDown = buildDrillDownPayload(snapshot, record, snapshots, display);
+        if (drillDown) payload = { ...payload, hasDrillDown: true, drillDown };
+      }
+      return resolveRowPayload(payload, ctx);
+    }),
     ...(frameColor ? { frameColor } : {}),
   };
 }

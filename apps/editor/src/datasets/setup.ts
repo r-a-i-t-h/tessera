@@ -451,6 +451,14 @@ export async function mountDatasetSetup(
         addRootField();
         return;
       }
+      if (button.dataset.schemaObjectAdd !== undefined) {
+        event.preventDefault();
+        syncDraftFromDom();
+        const parentIndex = Number(button.dataset.schemaObjectAdd);
+        draft = applySchemaAction(draft, "add-object-sub", parentIndex);
+        paintSchemaFields();
+        return;
+      }
       const action = button.dataset.schemaRowAction;
       if (!action) return;
       const row = button.closest("li[data-schema-index]");
@@ -470,9 +478,12 @@ export async function mountDatasetSetup(
       }
       if (!(target instanceof HTMLSelectElement) || !target.matches("[data-schema-kind]")) return;
       syncDraftFromDom();
+      const index = Number(target.dataset.schemaKind);
+      if (target.value === "object" && !(draft.fields[index]?.fields?.length)) {
+        draft = applySchemaAction(draft, "add-object-sub", index);
+      }
       paintSchemaFields();
       const depth = Number(target.dataset.depth ?? "0");
-      const index = Number(target.dataset.schemaKind);
       const rootEl = schemaRoot();
       if (rootEl instanceof HTMLElement) focusSchemaFieldId(rootEl, depth, index);
     });

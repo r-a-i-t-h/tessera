@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@r-a-i-t-h/tessera-sections": "*",
     "zod": "^3.24.2"
   },
   "devDependencies": {

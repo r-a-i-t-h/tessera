@@ -15,6 +15,7 @@ export type DatasetDraft = {
   presentation: DatasetPresentation;
   runtimeModuleId: string;
   datasetId: string;
+  pageData: boolean;
   fields: string[];
   sortField: string;
   sortDir: "asc" | "desc";
@@ -56,6 +57,7 @@ export function blankDataset(): DatasetDraft {
     presentation: "table",
     runtimeModuleId: "",
     datasetId: "",
+    pageData: false,
     fields: [],
     sortField: "",
     sortDir: "asc",
@@ -79,6 +81,7 @@ export function datasetDraft(data: unknown): DatasetDraft {
   const props = isRecord(record.props) ? record.props : {};
   const propsExtra = { ...props };
   delete propsExtra.dataset;
+  delete propsExtra.pageData;
   delete propsExtra.fields;
   delete propsExtra.sort;
   delete propsExtra.limit;
@@ -97,6 +100,7 @@ export function datasetDraft(data: unknown): DatasetDraft {
     presentation,
     runtimeModuleId: typeof props.module === "string" ? props.module : "",
     datasetId: typeof props.dataset === "string" ? props.dataset : "",
+    pageData: props.pageData === true,
     fields: stringList(props.fields) ?? [],
     sortField,
     sortDir,
@@ -118,6 +122,8 @@ export function datasetRecord(id: string, draft: DatasetDraft): Record<string, u
   const datasetId = draft.datasetId.trim();
   if (datasetId) props.dataset = datasetId;
   else delete props.dataset;
+  if (draft.pageData) props.pageData = true;
+  else delete props.pageData;
   if (draft.fields.length) props.fields = [...draft.fields];
   else delete props.fields;
   const sortField = draft.sortField.trim();
@@ -198,6 +204,7 @@ export function datasetDraftFromForm(
     headingField: valueOf(controls, "dataset-heading-field"),
     frameColor: valueOf(controls, "dataset-frame-color"),
     filters: form ? filtersFromForm(form, catalog) : filtersFromControls(controls, catalog),
+    pageData: controls.some((c) => c.name === "dataset-page-data" && c.checked),
     propsExtra: parseObject(valueOf(controls, "dataset-props-extra")),
     recordExtra: parseObject(valueOf(controls, "dataset-record-extra")),
   };
@@ -302,16 +309,23 @@ function filterOpNeedsValue(op: DatasetFilterOp): boolean {
 }
 
 function isTextFilterKind(kind: DatasetFieldOption["kind"]): boolean {
-  return kind === "string" || kind === "text";
+  return kind === "string" || kind === "text" || kind === "html";
 }
 
 function filterFieldCatalog(catalog: readonly DatasetFieldOption[]): DatasetFieldOption[] {
-  const meta: DatasetFieldOption[] = [
-    { id: "uid", label: "Uid", kind: "uid" },
-    { id: "added", label: "Added", kind: "added" },
-    { id: "modified", label: "Modified", kind: "modified" },
-  ];
-  return [...meta, ...catalog.filter((row) => !meta.some((m) => m.id === row.id))];
+  const simpleKinds = new Set([
+    "string",
+    "text",
+    "number",
+    "date",
+    "boolean",
+    "html",
+    "enum",
+    "asset",
+    "url",
+  ]);
+  const data = catalog.filter((row) => simpleKinds.has(row.kind));
+  return data;
 }
 
 function fieldKindFor(fieldId: string, catalog: readonly DatasetFieldOption[]): DatasetFieldOption["kind"] {
@@ -592,6 +606,7 @@ export function datasetFields(draft: DatasetDraft, choices: DatasetBindingChoice
     <p aria-hidden="true"></p>
     <p><label for="dataset-dataset">Dataset</label>
       ${datasetSelect(draft.datasetId, choices.datasets)}</p>
+    <p class="editor-check"><label><input type="checkbox" name="dataset-page-data"${draft.pageData ? " checked" : ""} /> Page data (records linked to this page only)</label></p>
     <fieldset class="editor-fieldset" data-dataset-columns><legend>Columns</legend>
       ${fieldChecklist("dataset-field", draft.fields, catalog)}
     </fieldset>

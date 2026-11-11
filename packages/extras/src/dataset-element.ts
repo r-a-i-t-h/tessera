@@ -1,11 +1,13 @@
 import { formatDatasetUrlHtml } from "@r-a-i-t-h/tessera-model";
 import { applyFrameColorStyle, cardClass } from "@r-a-i-t-h/tessera-sections";
 import { WCBase } from "@r-a-i-t-h/tessera-wc-base";
+import type { DatasetDrillDownPayload } from "./dataset-drilldown.js";
 import {
   datasetRowTitle,
   escapeJsonScript,
   sortRowsClient,
   type DatasetColumnAlign,
+  type DatasetRowPayload,
   type DatasetViewPayload,
 } from "./dataset-payload.js";
 
@@ -23,6 +25,7 @@ abstract class DatasetViewElement extends WCBase {
   useShadow = false;
   #payload: DatasetViewPayload | undefined;
   #sort: { field: string; dir: "asc" | "desc" } = { field: "uid", dir: "asc" };
+  #dialogEl: HTMLDialogElement | null = null;
   rootEl = this.d({ className: "tessera-dataset-view" });
 
   connectedCallback(): void {
@@ -165,6 +168,83 @@ abstract class DatasetViewElement extends WCBase {
     th.append(inner);
   }
 
+  #drillButton(row: DatasetRowPayload): HTMLButtonElement {
+    const btn = this.e("button", { type: "button", className: "tessera-dataset-drill w3-button w3-tiny w3-white w3-border" });
+    btn.setAttribute("aria-label", "Show related data");
+    btn.title = "Show related data";
+    btn.textContent = "…";
+    btn.addEventListener("click", () => {
+      if (row.drillDown) this.#openDrillDialog(row.drillDown);
+    });
+    return btn;
+  }
+
+  #openDrillDialog(payload: DatasetDrillDownPayload): void {
+    if (!this.#dialogEl) {
+      const dialog = this.e("dialog", { className: "tessera-dataset-drill-dialog w3-card" });
+      dialog.addEventListener("click", (ev) => {
+        if (ev.target === dialog) dialog.close();
+      });
+      document.body.append(dialog);
+      this.#dialogEl = dialog as HTMLDialogElement;
+    }
+    const dialog = this.#dialogEl;
+    dialog.replaceChildren();
+    const header = this.d({ className: "w3-container w3-border-bottom" });
+    const title = this.e("h3");
+    title.textContent = payload.title;
+    const close = this.e("button", { type: "button", className: "w3-button w3-white w3-border w3-small" });
+    close.textContent = "Close";
+    close.addEventListener("click", () => dialog.close());
+    header.append(title, close);
+    const body = this.d({ className: "w3-container w3-padding" });
+    if (payload.topLevel.length) {
+      const dl = this.e("dl", { className: "tessera-dataset-drill-top" });
+      for (const field of payload.topLevel) {
+        const dt = this.e("dt");
+        dt.textContent = field.label;
+        const dd = this.e("dd");
+        if (field.richHtml) dd.innerHTML = field.richHtml;
+        else dd.textContent = field.text;
+        dl.append(dt, dd);
+      }
+      body.append(dl);
+    }
+    for (const section of payload.sections) {
+      const wrap = this.d({ className: "tessera-dataset-drill-section w3-margin-top" });
+      const h4 = this.e("h4");
+      h4.textContent = section.label;
+      wrap.append(h4);
+      const table = this.e("table", { className: "w3-table w3-bordered w3-small" });
+      const thead = this.e("thead");
+      const headTr = this.e("tr");
+      for (const col of section.columns) {
+        const th = this.e("th");
+        th.textContent = col.label;
+        headTr.append(th);
+      }
+      thead.append(headTr);
+      table.append(thead);
+      const tbody = this.e("tbody");
+      for (const row of section.rows) {
+        const tr = this.e("tr");
+        for (const col of section.columns) {
+          const td = this.e("td");
+          const rich = row.richCells?.[col.id];
+          if (rich) td.innerHTML = rich;
+          else td.textContent = row.cells[col.id] ?? "";
+          tr.append(td);
+        }
+        tbody.append(tr);
+      }
+      table.append(tbody);
+      wrap.append(table);
+      body.append(wrap);
+    }
+    dialog.append(header, body);
+    if (typeof dialog.showModal === "function") dialog.showModal();
+  }
+
   #paintTable(): void {
     const payload = this.#payload;
     if (!payload) return;
@@ -187,10 +267,17 @@ abstract class DatasetViewElement extends WCBase {
         this.#appendTableHeader(th, col, payload);
         tr.append(th);
       }
+      if (payload.rows.some((row) => row.hasDrillDown)) {
+        const th = this.e("th", { className: "tessera-dataset-table__th tessera-dataset-align-center" });
+        th.textContent = "";
+        th.setAttribute("aria-label", "Details");
+        tr.append(th);
+      }
       thead.append(tr);
       table.append(thead);
     }
     const tbody = this.e("tbody");
+    const showDrill = payload.rows.some((row) => row.hasDrillDown);
     for (const row of rows) {
       const tr = this.e("tr");
       for (const col of payload.columns) {
@@ -198,6 +285,11 @@ abstract class DatasetViewElement extends WCBase {
         const td = this.e("td", { className: `tessera-dataset-align-${align}` });
         td.style.textAlign = align;
         this.#setCellContent(td, row, col);
+        tr.append(td);
+      }
+      if (showDrill) {
+        const td = this.e("td", { className: "tessera-dataset-align-center" });
+        if (row.hasDrillDown && row.drillDown) td.append(this.#drillButton(row));
         tr.append(td);
       }
       tbody.append(tr);
@@ -244,6 +336,11 @@ abstract class DatasetViewElement extends WCBase {
         table.append(tbody);
         body.append(table);
         card.append(body);
+      }
+      if (row.hasDrillDown && row.drillDown) {
+        const actions = this.d({ className: "w3-margin-top" });
+        actions.append(this.#drillButton(row));
+        card.append(actions);
       }
       wrap.append(card);
     }

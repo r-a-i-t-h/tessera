@@ -8,6 +8,8 @@ import {
   getDataset,
   getLibrary,
   listDatasets,
+  listRecords,
+  getRecord,
   patchDatasetRecords,
   saveDatasetRecord,
   type PublicUser,
@@ -37,6 +39,11 @@ import { parseRoute } from "../router.js";
 import { datasetNavItems } from "./nav.js";
 import { openRecordPicker } from "./record-picker.js";
 import { readRecordForm, renderRecordForm } from "./record-form.js";
+import { bindRawHtmlField } from "../raw-html-field.js";
+import { bindRichTextField, runRichTextCommand, type RichTextFieldOptions } from "../compose/rich-text-field.js";
+import { buildPageTargetChoices, type PageTargetChoices } from "../forms/page-target.js";
+import type { NavEntry } from "@r-a-i-t-h/tessera-model";
+import { openPageTargetPicker as openPageTargetPickerDialog } from "../page-target-picker.js";
 
 type BindChrome = (root: HTMLElement) => void;
 
@@ -92,11 +99,30 @@ async function mountDatasetGrid(
   bindChrome: BindChrome,
 ): Promise<void> {
   const mountId = ++datasetGridMountSeq;
-  const [{ file }, library, { datasets: datasetSummaries }] = await Promise.all([
+  const [{ file }, library, { datasets: datasetSummaries }, listing] = await Promise.all([
     getDataset(datasetId),
     getLibrary(),
     listDatasets(),
+    listRecords(),
   ]);
+  const pageTitles = new Map<string, string>();
+  for (const row of listing.records) {
+    if (row.kind === "content" && row.title) pageTitles.set(row.id, row.title);
+  }
+  let pageChoices: PageTargetChoices | undefined;
+  try {
+    const siteRow = listing.records.find((row) => row.kind === "site");
+    const sitePayload = siteRow ? await getRecord("site", siteRow.id).catch(() => undefined) : undefined;
+    const navPayload = await getRecord("nav", "nav").catch(() => undefined);
+    const navEntries = Array.isArray(navPayload?.data) ? (navPayload.data as NavEntry[]) : [];
+    const siteData =
+      sitePayload?.data && typeof sitePayload.data === "object" && !Array.isArray(sitePayload.data)
+        ? (sitePayload.data as Record<string, unknown>)
+        : { id: "site", title: "Site", homePageId: "home" };
+    pageChoices = buildPageTargetChoices(listing, siteData, navEntries);
+  } catch {
+    pageChoices = undefined;
+  }
   if (!isActiveDatasetGridMount(mountId, datasetId)) return;
   const navDatasets = datasetNavItems(datasetSummaries);
   const refCache = new Map<string, Map<number, string>>();
@@ -410,7 +436,7 @@ async function mountDatasetGrid(
         ${record ? `<button type="button" class="w3-button w3-white w3-border w3-border-red" data-record-delete>Delete</button>` : ""}
         <button type="button" class="w3-button w3-white" data-record-cancel>Cancel</button></p></form>
       </div></div>`;
-      bindRecordForm(host, draft, paintDialog);
+      bindRecordForm(host, draft, paintDialog, pageTitles, pageChoices);
     };
     let dialog: ReturnType<typeof activateDialog> | undefined;
     const close = () => {
@@ -463,7 +489,48 @@ async function mountDatasetGrid(
     });
   }
 
-  function bindRecordForm(host: HTMLElement, draft: Record<string, unknown>, repaint: () => void): void {
+  function bindRecordForm(
+    host: HTMLElement,
+    draft: Record<string, unknown>,
+    repaint: () => void,
+    titles: Map<string, string>,
+    choices?: PageTargetChoices,
+  ): void {
+    const form = host.querySelector<HTMLFormElement>("#dataset-record-form");
+    if (form) {
+      const richTextOptions: RichTextFieldOptions = {
+        getContext: () => ({
+          pageTitles: titles,
+          pickPageLink: choices
+            ? async (current, options) => {
+                const picked = await openPageTargetPickerDialog(choices, current, options?.returnFocus);
+                if (picked === undefined) return undefined;
+                if (/^[a-z][a-z0-9+.-]*:/i.test(picked) || picked.startsWith("//")) {
+                  return { kind: "url", href: picked };
+                }
+                return { kind: "page", id: picked, title: titles.get(picked) };
+              }
+            : undefined,
+        }),
+        onDirty: () => {},
+      };
+      bindRichTextField(form, richTextOptions);
+      bindRawHtmlField(form, {
+        openLibraryPicker,
+        openPageTargetPicker: (choices, current, returnFocus) =>
+          openPageTargetPickerDialog(choices, current, returnFocus),
+        onDirty: () => {},
+      });
+      form.addEventListener("click", (event) => {
+        const cmd = (event.target as HTMLElement).closest<HTMLElement>("[data-cmd]");
+        if (!cmd?.dataset.cmd) return;
+        event.preventDefault();
+        runRichTextCommand(form, cmd.dataset.cmd, richTextOptions);
+      });
+      form.addEventListener("mousedown", (event) => {
+        if ((event.target as HTMLElement | null)?.closest("[data-cmd]")) event.preventDefault();
+      });
+    }
     host.querySelectorAll("[data-picker-clear]").forEach((el) => {
       el.addEventListener("click", () => {
         const row = el.closest<HTMLElement>("[data-picker-field]");

@@ -82,6 +82,8 @@ export type DatasetFilter = {
 
 export type DatasetQueryOptions = {
   dataset: string;
+  /** When set, roots are records in `dataset` whose `page` matches this id. */
+  pageId?: string;
   fields?: readonly string[];
   sort?: { field: string; dir?: DatasetSortDir };
   limit?: number;
@@ -90,7 +92,7 @@ export type DatasetQueryOptions = {
   asOf?: Date;
 };
 
-export type DatasetFieldCellFormat = "plain" | "asset" | "url";
+export type DatasetFieldCellFormat = "plain" | "asset" | "url" | "html";
 
 export type DatasetFieldCell = {
   id: string;
@@ -234,7 +236,9 @@ export function queryDatasetRecords(
   const snapshot = snapshots[options.dataset];
   if (!snapshot) return undefined;
 
-  let rows: DatasetRootRecord[] = [...snapshot.records];
+  let rows: DatasetRootRecord[] = options.pageId
+    ? snapshot.records.filter((r) => typeof r.page === "string" && r.page === options.pageId)
+    : [...snapshot.records];
   const schemaFields = snapshot.schema.fields;
 
   const asOf = options.asOf ?? new Date();
@@ -264,8 +268,9 @@ export function queryDatasetRecords(
       }
       const richHtml = formatDatasetFieldRichHtml(record, field, ctx);
       const text = formatDatasetFieldDisplay(record, field, ctx);
-      if (richHtml && (field.kind === "asset" || field.kind === "url")) {
-        return { id: field.id, label: field.label, text, format: field.kind, richHtml };
+      if (richHtml && (field.kind === "asset" || field.kind === "url" || field.kind === "html" || field.kind === "text")) {
+        const format = field.kind === "html" || field.kind === "text" ? "html" : field.kind;
+        return { id: field.id, label: field.label, text, format, richHtml };
       }
       return { id: field.id, label: field.label, text };
     }),
@@ -307,8 +312,18 @@ function collectRefTargets(
   seen: Set<string>,
 ): void {
   for (const field of fields) {
-    if (field.kind === "ref" && field.dataset && obj[field.id] !== undefined && obj[field.id] !== null) {
+    const raw = obj[field.id];
+    if (field.kind === "ref" && field.dataset && raw !== undefined && raw !== null) {
       if (!seen.has(field.dataset)) pending.push(field.dataset);
+      continue;
+    }
+    if (field.kind === "object" && field.fields?.length) {
+      const rows = field.many ? (Array.isArray(raw) ? raw : []) : raw && typeof raw === "object" ? [raw] : [];
+      for (const row of rows) {
+        if (row && typeof row === "object") {
+          collectRefTargets(field.fields, row as Record<string, unknown>, pending, seen);
+        }
+      }
     }
   }
 }

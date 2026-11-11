@@ -1,6 +1,11 @@
 import { documentDatasetMap, type DatasetSnapshot, type RecordDisplayContext } from "@r-a-i-t-h/tessera-model";
 import type { ComponentFn, RenderContext } from "@r-a-i-t-h/tessera-renderer";
-import { buildDatasetViewPayload, escapeJsonScript } from "./dataset-payload.js";
+import { buildWalkedRawPayload } from "./dataset-drilldown.js";
+import { escapeJsonScript } from "./dataset-payload.js";
+import {
+  pageDataRoots,
+  sourceDatasetRoots,
+} from "@r-a-i-t-h/tessera-model";
 import { formatRecordDisplayName } from "@r-a-i-t-h/tessera-model";
 import { publicRuntimeModuleUrlFromCatalog } from "./runtime-module-url.js";
 
@@ -59,8 +64,14 @@ export function mountRuntimeModuleMarkup(
       const media = ctx.document.media.find((m) => m.id === id);
       return media?.title?.trim() || id;
     };
-    const payload = buildDatasetViewPayload(ctx, props, "list", display);
-    if (payload) dataset = payload;
+    const snap = snapshots[datasetId];
+    if (snap) {
+      const pageData = props.pageData === true;
+      const roots = pageData
+        ? pageDataRoots(snapshots, datasetId, ctx.page.id)
+        : sourceDatasetRoots(snapshots, datasetId);
+      dataset = buildWalkedRawPayload(snapshots, datasetId, roots);
+    }
   }
 
   const spec: RuntimeModuleMountSpec = {

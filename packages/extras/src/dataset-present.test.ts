@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { describe, expect, it } from "vitest";
 import { parseDatasetSchema } from "@r-a-i-t-h/tessera-model";
 import { ComponentRegistry, type RenderContext } from "@r-a-i-t-h/tessera-renderer";
@@ -215,6 +216,61 @@ describe("dataset presentations", () => {
     expect(json).toBeTruthy();
     const payload = JSON.parse(json!) as { frameColor?: string };
     expect(payload.frameColor).toBe("rgba(0, 0, 0, 0.55)");
+  });
+
+  it("resolves page links in text fields when the view payload is built", () => {
+    const registry = new ComponentRegistry();
+    registerExtras((name, fn) => registry.define(name, fn));
+    const ctx: RenderContext = {
+      document: {
+        version: 2,
+        site: { id: "t", title: "T", homePageId: "home", defaultLayoutId: "l" },
+        layouts: [{ id: "l", root: { type: "region", role: "main", children: [{ type: "page" }] } }],
+        pages: [
+          { id: "home", title: "Home", zones: {} },
+          { id: "about", title: "About", zones: {} },
+        ],
+        datasets: {
+          items: {
+            id: "items",
+            title: "Items",
+            view: { columns: ["body"], displayName: "" },
+            schema: parseDatasetSchema({
+              fields: [{ key: "f1", id: "body", label: "Body", kind: "text" }],
+            }),
+            records: [
+              {
+                uid: 1,
+                added: "2026-01-01T00:00:00.000Z",
+                modified: "2026-01-01T00:00:00.000Z",
+                body: '<p>See <a data-tessera-page="about" href="#">About</a></p>',
+              },
+            ],
+          },
+        },
+        items: [],
+        media: [],
+        folders: [],
+        nav: [],
+        bindings: [],
+        types: [],
+        runtimeModules: [],
+      },
+      page: { id: "home", title: "Home", zones: {} },
+      profile: { layoutId: "l", layoutSource: "site" },
+      zones: new Map(),
+      registry,
+      renderBlocks: () => "",
+      mediaHtml: () => "",
+      escapeHtml: (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;"),
+    };
+    const html = datasetTable(ctx, { dataset: "items", fields: ["body"] });
+    const json = html.match(/<script type="application\/json">([\s\S]*?)<\/script>/)?.[1];
+    expect(json).toBeTruthy();
+    const payload = JSON.parse(json!) as { rows: { richValues?: Record<string, string> }[] };
+    const rich = payload.rows[0]?.richValues?.body ?? "";
+    expect(rich).toContain('href="#about"');
+    expect(rich).not.toContain("tessera-page-missing");
   });
 
   it("shows the binding empty message when the query returns no rows", () => {

@@ -100,6 +100,8 @@ The editor process serves the working snapshot at `/preview/` on the editor orig
 
 ## Datasets
 
+Design constraints, field kinds (`object`, universal `many`, page metadata, ref walk), and parked follow-ups: [docs/datasets-plan.md](./docs/datasets-plan.md).
+
 Structured collections (events, products, meeting rows, branches, and similar) live in `$TESSERA_DATA/datasets/<id>.json`. Each file is one flat table: a `schema` of scalar fields, view prefs (`view.columns`, `view.displayName`), a `nextUid` counter, and `records`. A field kind is string, text, url, number, boolean, date, enum, asset (optional `many`), or ref (a uid in another dataset). Each record stores `uid`, `added`, `modified`, and the schema field values. `view.displayName` is a template such as `{make} {model} {year}` used in pickers and labels. Grid columns come from `view.columns` (optional `uid`, schema fields, and optional `added` / `modified`). Publish embeds a referenced dataset when a binding’s rows point at it through `ref`.
 
 The editor **Datasets** section designs the schema and edits records (grid, inline grid edit, and record dialog). Saving a schema runs `adaptRecords` in `@r-a-i-t-h/tessera-model` so renames, removals, and defaults rewrite stored rows. Bindings that reference a dataset embed its payload at flatten/preview/publish time.

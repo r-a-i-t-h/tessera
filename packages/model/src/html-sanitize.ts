@@ -52,11 +52,15 @@ function serializeChildren(root: Element): string {
       out += `<img src="${escapeAttr(src)}" alt="${escapeAttr(alt)}" />`;
       continue;
     }
-    const inner = tag === "a" ? serializeChildren(node) : serializeChildren(node);
-    const attrs =
-      tag === "a"
-        ? ` href="${escapeAttr(node.getAttribute("href") ?? "")}"`
-        : "";
+    let attrs = "";
+    if (tag === "a") {
+      const pageId = node.getAttribute("data-tessera-page")?.trim() ?? "";
+      attrs = ` href="${escapeAttr(node.getAttribute("href") ?? "")}"`;
+      if (pageId) attrs += ` data-tessera-page="${escapeAttr(pageId)}"`;
+    } else if (tag === "pre" && node.getAttribute("class") === "tessera-pre") {
+      attrs = ' class="tessera-pre"';
+    }
+    const inner = serializeChildren(node);
     out += `<${tag}${attrs}>${inner}</${tag}>`;
   }
   return out;

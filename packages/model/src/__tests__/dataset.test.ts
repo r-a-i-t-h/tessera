@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { describe, expect, it } from "vitest";
 import {
   adaptRecords,
@@ -25,6 +26,28 @@ const carSchema = parseDatasetSchema({
     { key: "f2", id: "model", label: "Model", kind: "string" },
     { key: "f3", id: "year", label: "Year", kind: "number" },
   ],
+});
+
+describe("text fields", () => {
+  const textSchema = parseDatasetSchema({
+    fields: [{ key: "f1", id: "body", label: "Body", kind: "text" }],
+  });
+
+  it("renders allowed markup like compose text widgets", () => {
+    const field = textSchema.fields[0]!;
+    const html = formatDatasetFieldRichHtml({ body: "<p>Hi <strong>there</strong></p>" }, field);
+    expect(html).toContain("tessera-text");
+    expect(html).toContain("<strong>there</strong>");
+  });
+
+  it("keeps code blocks with tessera-pre", () => {
+    const field = textSchema.fields[0]!;
+    const html = formatDatasetFieldRichHtml(
+      { body: '<p>Intro</p><pre class="tessera-pre">const x = 1;</pre>' },
+      field,
+    );
+    expect(html).toContain('<pre class="tessera-pre">const x = 1;</pre>');
+  });
 });
 
 describe("url fields", () => {

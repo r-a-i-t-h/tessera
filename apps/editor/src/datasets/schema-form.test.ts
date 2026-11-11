@@ -119,10 +119,11 @@ describe("schema form", () => {
     expect(html).toContain('data-view-col="uid"');
   });
 
-  it("does not offer removed field kinds", () => {
+  it("offers object, text, and html field kinds", () => {
     const html = renderSchemaForm(schemaDraftFromFields(sample));
-    expect(html).not.toContain('value="object"');
+    expect(html).toContain('value="object"');
+    expect(html).toContain('value="html"');
+    expect(html).toContain('value="text"');
     expect(html).not.toContain('value="list"');
-    expect(html).not.toContain('value="html"');
   });
 });

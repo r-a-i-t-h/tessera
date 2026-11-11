@@ -1,10 +1,26 @@
 import { z } from "zod";
+import { renderMarkdownLinks } from "@r-a-i-t-h/tessera-sections";
+import { sanitizeRichHtml } from "./html-sanitize.js";
 
 /** Same rule as editor-api record ids — one path segment. */
 export const DATASET_RECORD_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
 /** Schema field ids that map to record metadata, not user-defined columns. */
-export const DATASET_RESERVED_FIELD_IDS = ["uid", "added", "modified"] as const;
+export const DATASET_RESERVED_FIELD_IDS = ["uid", "added", "modified", "page"] as const;
+
+export const DATASET_SIMPLE_FILTER_KINDS = [
+  "string",
+  "text",
+  "number",
+  "date",
+  "boolean",
+  "html",
+  "enum",
+  "asset",
+  "url",
+] as const;
+
+export type DatasetSimpleFilterKind = (typeof DATASET_SIMPLE_FILTER_KINDS)[number];
 
 export const DATASET_SCALAR_KINDS = [
   "string",
@@ -15,10 +31,10 @@ export const DATASET_SCALAR_KINDS = [
   "date",
   "enum",
   "asset",
-  "ref",
+  "html",
 ] as const;
 
-export const DATASET_FIELD_KINDS = [...DATASET_SCALAR_KINDS] as const;
+export const DATASET_FIELD_KINDS = [...DATASET_SCALAR_KINDS, "ref", "object"] as const;
 
 export type DatasetScalarKind = (typeof DATASET_SCALAR_KINDS)[number];
 export type DatasetFieldKind = (typeof DATASET_FIELD_KINDS)[number];
@@ -35,6 +51,8 @@ export type DatasetField = {
   many?: boolean;
   options?: DatasetEnumOption[];
   dataset?: string;
+  /** Inline subtype when `kind` is `object`. */
+  fields?: DatasetField[];
 };
 
 export type DatasetSchemaBody = {
@@ -51,6 +69,8 @@ export type DatasetRootRecord = Record<string, unknown> & {
   uid: number;
   added: string;
   modified: string;
+  /** Exclusive page link when this record belongs to one page only. */
+  page?: string;
 };
 
 export type RecordDisplayContext = {
@@ -113,7 +133,7 @@ function fieldIdReserved(id: string): boolean {
   return (DATASET_RESERVED_FIELD_IDS as readonly string[]).includes(id);
 }
 
-function parseField(raw: unknown): DatasetField {
+function parseField(raw: unknown, depth = 0): DatasetField {
   if (!raw || typeof raw !== "object") throw new Error("Field must be an object.");
   const o = raw as Record<string, unknown>;
   const key = typeof o.key === "string" ? o.key.trim() : "";
@@ -124,6 +144,7 @@ function parseField(raw: unknown): DatasetField {
   if (!id) throw new Error("Each field needs an id.");
   if (fieldIdReserved(id)) throw new Error(`Field id ${id} is reserved.`);
   if (!DATASET_RECORD_ID.test(id)) throw new Error(`Field id ${id} is invalid.`);
+  if (kind === "object" && depth > 0) throw new Error("Object fields cannot nest another object.");
 
   const field: DatasetField = { key, id, label, kind };
   if (o.required === true) field.required = true;
@@ -137,7 +158,14 @@ function parseField(raw: unknown): DatasetField {
     if (!dataset || !DATASET_RECORD_ID.test(dataset)) throw new Error("Ref field needs a valid dataset id.");
     field.dataset = dataset;
   }
-  if (kind === "asset" && o.many === true) field.many = true;
+  if (kind === "object") {
+    const sub = Array.isArray(o.fields) ? o.fields.map((f) => parseField(f, depth + 1)) : [];
+    if (!sub.length) throw new Error("Object field needs at least one subfield.");
+    assertUniqueFieldKeys(sub);
+    assertUniqueFieldIds(sub);
+    field.fields = sub;
+  }
+  if (o.many === true) field.many = true;
   if ("default" in o) field.default = o.default;
 
   validateFieldDefault(field);
@@ -176,7 +204,10 @@ function assertUniqueFieldIds(fields: DatasetField[]): void {
 }
 
 function walkFields(fields: readonly DatasetField[], fn: (f: DatasetField) => void): void {
-  for (const field of fields) fn(field);
+  for (const field of fields) {
+    fn(field);
+    if (field.kind === "object" && field.fields?.length) walkFields(field.fields, fn);
+  }
 }
 
 export function parseDatasetSchema(raw: unknown): DatasetSchemaBody {
@@ -224,7 +255,11 @@ export function sanitizeViewColumns(columns: readonly string[], fields: readonly
 }
 
 export function rootColumnFieldIds(fields: readonly DatasetField[]): string[] {
-  return fields.map((field) => field.id);
+  return fields.filter((field) => field.kind !== "object").map((field) => field.id);
+}
+
+export function isSimpleTopLevelField(field: DatasetField): boolean {
+  return (DATASET_SIMPLE_FILTER_KINDS as readonly string[]).includes(field.kind);
 }
 
 export function fieldById(fields: readonly DatasetField[], id: string): DatasetField | undefined {
@@ -334,14 +369,20 @@ export function formatDatasetFieldRichHtml(
   const raw = record[field.id];
   if (raw === undefined || raw === null) return undefined;
   if (field.kind === "asset") {
-    if (field.many && Array.isArray(raw)) {
-      const parts = raw.map((id) => assetCellHtml(String(id), ctx)).filter(Boolean);
-      return parts.length ? parts.join(", ") : undefined;
-    }
-    return assetCellHtml(String(raw), ctx);
+    const ids = field.many && Array.isArray(raw) ? raw : [raw];
+    const parts = ids.map((id) => assetCellHtml(String(id), ctx)).filter(Boolean);
+    return parts.length ? parts.join(", ") : undefined;
   }
   if (field.kind === "url") {
     return formatDatasetUrlHtml(String(raw));
+  }
+  if (field.kind === "html") {
+    const html = String(raw).trim();
+    return html || undefined;
+  }
+  if (field.kind === "text") {
+    const html = renderMarkdownLinks(sanitizeRichHtml(String(raw)));
+    return html ? `<div class="tessera-text tessera-dataset-text">${html}</div>` : undefined;
   }
   return undefined;
 }
@@ -353,6 +394,24 @@ function scalarDisplayValue(
 ): string {
   const raw = record[field.id];
   if (raw === undefined || raw === null) return "";
+  if (field.kind === "object") return field.many && Array.isArray(raw) ? `${raw.length} rows` : "…";
+  if (field.many && Array.isArray(raw)) {
+    return raw.map((item) => formatOneScalar(item, field, ctx)).filter(Boolean).join(", ");
+  }
+  return formatOneScalar(raw, field, ctx);
+}
+
+function plainTextFromHtml(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<\/p>/gi, " ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function formatOneScalar(raw: unknown, field: DatasetField, ctx?: RecordDisplayContext): string {
+  if (raw === undefined || raw === null) return "";
   switch (field.kind) {
     case "boolean":
       return raw === true ? "Yes" : raw === false ? "No" : "";
@@ -363,11 +422,12 @@ function scalarDisplayValue(
     case "ref":
       return ctx?.refLabel?.(field.dataset ?? "", Number(raw)) ?? String(raw);
     case "asset":
-      if (field.many && Array.isArray(raw)) {
-        return raw.map((id) => ctx?.assetLabel?.(String(id)) ?? String(id)).join(", ");
-      }
       return ctx?.assetLabel?.(String(raw)) ?? String(raw);
     case "text":
+      return plainTextFromHtml(String(raw));
+    case "string":
+      return String(raw).trim();
+    case "html":
       return String(raw).replace(/\s+/g, " ").trim();
     default:
       return String(raw);
@@ -422,9 +482,19 @@ function validateSystemRoot(record: Record<string, unknown>): DatasetValidationI
 
 function valueMatchesField(field: DatasetField, value: unknown, forDefault = false): boolean {
   if (value === undefined || value === null) return !field.required && forDefault;
+  if (field.many) {
+    if (!Array.isArray(value)) return false;
+    return value.every((item) => valueMatchesSingle(field, item, forDefault));
+  }
+  return valueMatchesSingle(field, value, forDefault);
+}
+
+function valueMatchesSingle(field: DatasetField, value: unknown, forDefault = false): boolean {
+  if (value === undefined || value === null) return !field.required && forDefault;
   switch (field.kind) {
     case "string":
     case "text":
+    case "html":
     case "url":
     case "date":
       return typeof value === "string";
@@ -438,13 +508,17 @@ function valueMatchesField(field: DatasetField, value: unknown, forDefault = fal
       return opts.some((o) => o.value === value);
     }
     case "asset":
-      if (field.many) {
-        if (!Array.isArray(value)) return false;
-        return value.every((v) => typeof v === "string" && v.length > 0);
-      }
       return typeof value === "string" && value.length > 0;
     case "ref":
       return typeof value === "number" && Number.isInteger(value) && value > 0;
+    case "object":
+      if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+      const obj = value as Record<string, unknown>;
+      return !(field.fields ?? []).some((sub) => {
+        const v = obj[sub.id];
+        if (v === undefined || v === null || v === "") return sub.required === true;
+        return !valueMatchesField(sub, v);
+      });
     default:
       return false;
   }
@@ -466,6 +540,17 @@ function validateValueAtField(
   }
   if (!present) return issues;
 
+  if (field.many) {
+    if (!Array.isArray(value)) {
+      issues.push({ path, message: "Expected a list." });
+      return issues;
+    }
+    value.forEach((item, index) => {
+      issues.push(...validateValueAtField({ ...field, many: false }, item, `${path}[${index}]`));
+    });
+    return issues;
+  }
+
   if (!valueMatchesField(field, value)) {
     issues.push({ path, message: `Value does not match ${field.kind}.` });
   }
@@ -474,6 +559,9 @@ function validateValueAtField(
   }
   if (field.kind === "url" && typeof value === "string" && !normalizeDatasetUrl(value)) {
     issues.push({ path, message: "URL must be a site path, http(s), mailto, tel, or a host name." });
+  }
+  if (field.kind === "object" && value && typeof value === "object" && !Array.isArray(value)) {
+    issues.push(...validateObjectFields(field.fields ?? [], value as Record<string, unknown>, path));
   }
   return issues;
 }
@@ -510,7 +598,7 @@ export function validateAllRecords(file: DatasetFile): Map<number, DatasetValida
 }
 
 function textKinds(kind: DatasetFieldKind): boolean {
-  return kind === "string" || kind === "text" || kind === "url";
+  return kind === "string" || kind === "text" || kind === "html" || kind === "url";
 }
 
 function transformScalarValue(
@@ -523,16 +611,26 @@ function transformScalarValue(
 
   if (textKinds(prev.kind) && textKinds(next.kind)) return value;
 
-  if (prev.kind === "asset" && next.kind === "asset") {
+  if (prev.many !== next.many) {
     if (!prev.many && next.many) {
-      if (typeof value === "string") return [value];
-      return value;
+      if (value === undefined || value === null) return value;
+      return Array.isArray(value) ? value : [value];
     }
     if (prev.many && !next.many) {
       if (Array.isArray(value) && value.length) return value[0];
       return undefined;
     }
-    return value;
+  }
+
+  if (prev.kind === "object" && next.kind === "object") {
+    const adaptOne = (row: unknown) => {
+      if (!row || typeof row !== "object" || Array.isArray(row)) return applyDefault(next);
+      return adaptObjectFields(row as Record<string, unknown>, prev.fields ?? [], next.fields ?? [], ctx);
+    };
+    const rows = Array.isArray(value) ? value : value !== undefined && value !== null ? [value] : [];
+    const adapted = rows.map(adaptOne);
+    if (next.many) return adapted;
+    return adapted[0];
   }
 
   if (prev.kind === "ref" && next.kind === "ref") {
@@ -598,6 +696,7 @@ export function adaptRecords(
       uid: record.uid,
       added: record.added,
       modified: record.modified,
+      ...(typeof record.page === "string" && record.page.trim() ? { page: record.page.trim() } : {}),
       ...adapted,
     } as DatasetRootRecord;
   });

@@ -10,6 +10,16 @@ describe("sanitizeRichHtml", () => {
   it("strips script tags", () => {
     expect(sanitizeRichHtml('<p>Ok</p><script>alert(1)</script>')).toBe("<p>Ok</p>");
   });
+
+  it("preserves tessera-pre on code blocks", () => {
+    expect(sanitizeRichHtml('<pre class="tessera-pre">code</pre>')).toBe('<pre class="tessera-pre">code</pre>');
+  });
+
+  it("preserves data-tessera-page on anchors", () => {
+    expect(sanitizeRichHtml('<a data-tessera-page="hall" href="#">Hall</a>')).toBe(
+      '<a href="#" data-tessera-page="hall">Hall</a>',
+    );
+  });
 });
 
 describe("decodeHtmlEntitiesOnce", () => {
