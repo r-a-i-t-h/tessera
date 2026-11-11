@@ -25,7 +25,11 @@ import {
   adaptationSummaryHtml,
   applySchemaAction,
   applySchemaActionForRow,
+  applySchemaSubAction,
+  closeSchemaHelp,
   focusSchemaFieldId,
+  toggleSchemaHelp,
+  focusSchemaKindEditor,
   readSchemaForm,
   renderSchemaForm,
   schemaDraftFromFields,
@@ -39,6 +43,9 @@ type DatasetSetupTab = "dataset" | "schema" | "raw";
 
 /** Bumped on each mount so late API responses cannot repaint another route or dataset. */
 let datasetSetupMountSeq = 0;
+
+/** Host listeners from the previous schema screen. Replaced on each paint. */
+let datasetSetupEvents: AbortController | undefined;
 
 function isActiveDatasetSetupMount(mountId: number, datasetId: string): boolean {
   if (mountId !== datasetSetupMountSeq) return false;
@@ -249,6 +256,9 @@ export async function mountDatasetSetup(
   };
 
   const bindSetupEvents = (host: HTMLElement): void => {
+    datasetSetupEvents?.abort();
+    datasetSetupEvents = new AbortController();
+    const { signal } = datasetSetupEvents;
     for (const button of host.querySelectorAll<HTMLButtonElement>("[data-dataset-tab]")) {
       button.addEventListener("click", () => {
         const next = button.dataset.datasetTab;
@@ -432,16 +442,30 @@ export async function mountDatasetSetup(
     };
 
     host.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && closeSchemaHelp(host)) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
       if (event.metaKey || event.ctrlKey) {
         if (event.code === "KeyS" && !event.altKey && !event.shiftKey) {
           event.preventDefault();
           saveCurrent();
         }
       }
-    });
+    }, { signal });
 
     host.addEventListener("click", (event) => {
-      const button = (event.target instanceof Element ? event.target : null)?.closest("button");
+      const target = event.target instanceof Element ? event.target : null;
+      const help = target?.closest<HTMLButtonElement>("[data-schema-help]");
+      if (help instanceof HTMLButtonElement && host.contains(help)) {
+        event.preventDefault();
+        toggleSchemaHelp(help);
+        return;
+      }
+      if (target?.closest(".editor-schema-help")) return;
+      closeSchemaHelp(host);
+      const button = target?.closest("button");
       if (!(button instanceof HTMLButtonElement) || !host.contains(button)) return;
       if (button.dataset.datasetTab) return;
       const rootEl = schemaRoot();
@@ -457,6 +481,21 @@ export async function mountDatasetSetup(
         const parentIndex = Number(button.dataset.schemaObjectAdd);
         draft = applySchemaAction(draft, "add-object-sub", parentIndex);
         paintSchemaFields();
+        const painted = schemaRoot();
+        if (painted instanceof HTMLElement) focusSchemaKindEditor(painted, parentIndex, undefined, "object");
+        return;
+      }
+      const subAction = button.dataset.schemaSubAction;
+      if (subAction) {
+        event.preventDefault();
+        syncDraftFromDom();
+        draft = applySchemaSubAction(
+          draft,
+          subAction,
+          Number(button.dataset.schemaParent),
+          Number(button.dataset.schemaSub),
+        );
+        paintSchemaFields();
         return;
       }
       const action = button.dataset.schemaRowAction;
@@ -467,7 +506,7 @@ export async function mountDatasetSetup(
       syncDraftFromDom();
       draft = applySchemaActionForRow(draft, row, action);
       paintSchemaFields();
-    });
+    }, { signal });
 
     host.addEventListener("change", (event) => {
       const target = event.target;
@@ -476,17 +515,20 @@ export async function mountDatasetSetup(
         syncDraftFromDom();
         return;
       }
-      if (!(target instanceof HTMLSelectElement) || !target.matches("[data-schema-kind]")) return;
+      if (!(target instanceof HTMLSelectElement)) return;
+      const subKind = target.matches("[data-schema-sub-kind]");
+      const rootKind = target.matches("[data-schema-kind]");
+      if (!subKind && !rootKind) return;
       syncDraftFromDom();
-      const index = Number(target.dataset.schemaKind);
-      if (target.value === "object" && !(draft.fields[index]?.fields?.length)) {
+      const index = Number(subKind ? target.dataset.schemaSubKind : target.dataset.schemaKind);
+      const subIndex = subKind ? Number(target.dataset.schemaSub) : undefined;
+      if (rootKind && target.value === "object" && !(draft.fields[index]?.fields?.length)) {
         draft = applySchemaAction(draft, "add-object-sub", index);
       }
       paintSchemaFields();
-      const depth = Number(target.dataset.depth ?? "0");
       const rootEl = schemaRoot();
-      if (rootEl instanceof HTMLElement) focusSchemaFieldId(rootEl, depth, index);
-    });
+      if (rootEl instanceof HTMLElement) focusSchemaKindEditor(rootEl, index, subIndex, target.value);
+    }, { signal });
   };
 
   paint();

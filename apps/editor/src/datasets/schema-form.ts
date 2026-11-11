@@ -1,12 +1,14 @@
 import {
   DATASET_FIELD_KINDS,
+  DATASET_RECORD_ID,
+  DATASET_RESERVED_FIELD_IDS,
   DATASET_SCALAR_KINDS,
   newFieldKey,
   type DatasetField,
   type DatasetFieldKind,
 } from "@r-a-i-t-h/tessera-model";
 import { escapeHtml } from "../dom.js";
-import { iconButton, REORDER_ICONS } from "../editor-icons.js";
+import { iconButton, INFO_ICON, REORDER_ICONS } from "../editor-icons.js";
 import { availableViewColumns } from "./grid.js";
 
 export type SchemaDraft = {
@@ -65,11 +67,9 @@ export function renderSchemaForm(draft: SchemaDraft, options: SchemaFormOptions 
 function fieldRow(field: DatasetField, index: number, options: SchemaFormOptions): string {
   const enumOpts =
     field.kind === "enum"
-      ? `<p><label>Options (value|label per line) <textarea class="w3-input w3-border" rows="3" data-schema-enum="${index}" data-depth="0">${escapeHtml(
-          (field.options ?? []).map((o) => `${o.value}|${o.label}`).join("\n"),
-        )}</textarea></label></p>`
+      ? enumOptionsEditor(field, `data-schema-enum="${index}" data-depth="0"`, `schema-enum-${index}`)
       : "";
-  const refDs = field.kind === "ref" ? refDatasetControl(field, index, options) : "";
+  const refDs = field.kind === "ref" ? refDatasetControl(field, index, options, 0) : "";
   const many = `<label><input type="checkbox" data-schema-many="${index}" data-depth="0"${field.many ? " checked" : ""} /> Collection</label>`;
   const objectBlock =
     field.kind === "object"
@@ -109,12 +109,14 @@ function objectSubfieldRow(
   const kindOptions = [...DATASET_SCALAR_KINDS, "ref"]
     .map((k) => `<option value="${k}"${field.kind === k ? " selected" : ""}>${k}</option>`)
     .join("");
-  const refDs = field.kind === "ref" ? refDatasetControl(field, parentIndex, options).replace(/data-depth="0"/g, `data-depth="1" data-schema-sub="${subIndex}"`) : "";
+  const refDs = field.kind === "ref" ? refDatasetControl(field, parentIndex, options, 1, subIndex) : "";
   const enumOpts =
     field.kind === "enum"
-      ? `<p><label>Options <textarea class="w3-input w3-border" rows="2" data-schema-enum="${parentIndex}" data-schema-sub="${subIndex}" data-depth="1">${escapeHtml(
-          (field.options ?? []).map((o) => `${o.value}|${o.label}`).join("\n"),
-        )}</textarea></label></p>`
+      ? enumOptionsEditor(
+          field,
+          `data-schema-enum="${parentIndex}" data-schema-sub="${subIndex}" data-depth="1"`,
+          `schema-enum-${parentIndex}-${subIndex}`,
+        )
       : "";
   return `<li class="editor-type-item" data-schema-sub-index="${subIndex}">
     <input type="hidden" data-schema-sub-key="${parentIndex}" data-schema-sub="${subIndex}" data-depth="1" value="${escapeHtml(field.key)}" />
@@ -122,13 +124,67 @@ function objectSubfieldRow(
       <input class="w3-input" placeholder="Subfield id" data-schema-sub-id="${parentIndex}" data-schema-sub="${subIndex}" data-depth="1" value="${escapeHtml(field.id)}" />
       <input class="w3-input" placeholder="Label" data-schema-sub-label="${parentIndex}" data-schema-sub="${subIndex}" data-depth="1" value="${escapeHtml(field.label)}" />
       <select class="w3-select" data-schema-sub-kind="${parentIndex}" data-schema-sub="${subIndex}" data-depth="1">${kindOptions}</select>
+      ${subActions(parentIndex, subIndex)}
     </div>
     ${refDs}
     ${enumOpts}
   </li>`;
 }
 
-function refDatasetControl(field: DatasetField, index: number, options: SchemaFormOptions): string {
+function enumOptionsEditor(field: DatasetField, attrs: string, id: string): string {
+  const helpId = `${id}-help`;
+  const body = escapeHtml((field.options ?? []).map((o) => (o.label && o.label !== o.value ? `${o.value}|${o.label}` : o.value)).join("\n"));
+  return `<div class="editor-schema-enum">
+    <div class="editor-schema-enum-head">
+      <label for="${id}">Options</label>
+      <span class="editor-schema-help">
+        <button type="button" class="editor-schema-help-button" data-schema-help aria-label="Enum options format" aria-expanded="false" aria-controls="${helpId}">${INFO_ICON}</button>
+        <div id="${helpId}" class="editor-schema-help-pop" role="note" hidden>
+          <p>One option per line.</p>
+          <p><code>value|label</code> stores <code>value</code> and shows <code>label</code>. A line without <code>|</code> uses the same text for both.</p>
+          <pre>open|Open
+closed|Closed
+archived</pre>
+        </div>
+      </span>
+    </div>
+    <textarea id="${id}" class="w3-input w3-border" rows="3" ${attrs}>${body}</textarea>
+  </div>`;
+}
+
+/** Open or close the format note next to an enum Options field. */
+export function toggleSchemaHelp(button: HTMLButtonElement): void {
+  const helpId = button.getAttribute("aria-controls");
+  const pop = helpId ? button.ownerDocument.getElementById(helpId) : null;
+  if (!(pop instanceof HTMLElement)) return;
+  const willOpen = pop.hidden;
+  closeSchemaHelp(button.ownerDocument);
+  if (!willOpen) return;
+  pop.hidden = false;
+  button.setAttribute("aria-expanded", "true");
+}
+
+/** Close enum-format notes under `root`. Returns true when one was open. */
+export function closeSchemaHelp(root: ParentNode): boolean {
+  let closed = false;
+  for (const pop of root.querySelectorAll<HTMLElement>(".editor-schema-help-pop")) {
+    if (pop.hidden) continue;
+    pop.hidden = true;
+    closed = true;
+  }
+  for (const button of root.querySelectorAll<HTMLButtonElement>('[data-schema-help][aria-expanded="true"]')) {
+    button.setAttribute("aria-expanded", "false");
+  }
+  return closed;
+}
+
+function refDatasetControl(
+  field: DatasetField,
+  index: number,
+  options: SchemaFormOptions,
+  depth: number,
+  subIndex?: number,
+): string {
   const datasets = (options.datasetOptions ?? []).filter((d) => d.id !== options.excludeDatasetId);
   const selected = field.dataset ?? "";
   const opts = [
@@ -138,7 +194,8 @@ function refDatasetControl(field: DatasetField, index: number, options: SchemaFo
       return `<option value="${escapeHtml(d.id)}"${d.id === selected ? " selected" : ""}>${escapeHtml(label)} (${escapeHtml(d.id)})</option>`;
     }),
   ].join("");
-  return `<p><label>Dataset <select class="w3-select" data-schema-dataset="${index}" data-depth="0">${opts}</select></label></p>`;
+  const sub = subIndex === undefined ? "" : ` data-schema-sub="${subIndex}"`;
+  return `<p><label>Dataset <select class="w3-select" data-schema-dataset="${index}" data-depth="${depth}"${sub}>${opts}</select></label></p>`;
 }
 
 function actions(index: number): string {
@@ -147,6 +204,29 @@ function actions(index: number): string {
     ${schemaIcon("down", index)}
     ${schemaIcon("remove", index)}
   </span>`;
+}
+
+function subActions(parentIndex: number, subIndex: number): string {
+  return `<span class="editor-type-actions">
+    ${subIcon("up", parentIndex, subIndex)}
+    ${subIcon("down", parentIndex, subIndex)}
+    ${subIcon("remove", parentIndex, subIndex)}
+  </span>`;
+}
+
+function subIcon(action: "up" | "down" | "remove", parentIndex: number, subIndex: number): string {
+  const labels = { up: "Up", down: "Down", remove: "Remove" } as const;
+  const icons = { up: REORDER_ICONS.up, down: REORDER_ICONS.down, remove: REORDER_ICONS.remove } as const;
+  return iconButton({
+    className: "editor-type-icon",
+    label: labels[action],
+    actionAttribute: "data-schema-sub-action",
+    action,
+    indexAttribute: "data-schema-sub",
+    index: subIndex,
+    icon: icons[action],
+    extraAttributes: ` data-schema-parent="${parentIndex}"`,
+  });
 }
 
 function schemaIcon(action: "up" | "down" | "remove", index: number): string {
@@ -187,54 +267,47 @@ export function readViewColumnsFromSchemaForm(root: HTMLElement, draft: SchemaDr
 export function readSchemaForm(root: HTMLElement, draft: SchemaDraft): SchemaDraft {
   const list = root.querySelector(".editor-dataset-schema-custom-fields");
   const rows = [...(list?.querySelectorAll<HTMLElement>(":scope > li[data-schema-index]") ?? [])];
+  const claimed: DatasetField[] = [];
+  const takeKey = (preferred: string | undefined): string => claimFieldKey(preferred, claimed);
   const fields: DatasetField[] = [];
   for (const row of rows) {
     const index = Number(row.dataset.schemaIndex);
     const base =
       draft.fields[index] ?? {
-        key: newFieldKey([...draft.fields, ...fields]),
+        key: "",
         id: "",
         label: "",
         kind: "string" as DatasetFieldKind,
       };
-    const scoped = `[data-depth="0"]`;
-    const line = row.querySelector(".editor-type-line") ?? row;
-    const kindEl = line.querySelector<HTMLSelectElement>(`[data-schema-kind="${index}"]${scoped}`);
+    const line = row.querySelector<HTMLElement>(":scope > .editor-type-line") ?? row;
+    const kindEl = line.querySelector<HTMLSelectElement>(`[data-schema-kind="${index}"][data-depth="0"]`);
     const kindFromDom = (kindEl?.value.trim() || "") as DatasetFieldKind | "";
     const resolvedKind = (kindFromDom || base.kind || "string") as DatasetFieldKind;
     const field: DatasetField = {
       ...base,
-      key: row.querySelector<HTMLInputElement>(`[data-schema-key="${index}"]${scoped}`)?.value || base.key,
-      id: line.querySelector<HTMLInputElement>(`[data-schema-id="${index}"]${scoped}`)?.value.trim() ?? "",
-      label: line.querySelector<HTMLInputElement>(`[data-schema-label="${index}"]${scoped}`)?.value.trim() ?? "",
+      key: takeKey(row.querySelector<HTMLInputElement>(":scope > [data-schema-key]")?.value || base.key),
+      id: line.querySelector<HTMLInputElement>(`[data-schema-id="${index}"][data-depth="0"]`)?.value.trim() ?? "",
+      label: line.querySelector<HTMLInputElement>(`[data-schema-label="${index}"][data-depth="0"]`)?.value.trim() ?? "",
       kind: resolvedKind,
-      required: line.querySelector<HTMLInputElement>(`[data-schema-required="${index}"]${scoped}`)?.checked === true,
+      required: line.querySelector<HTMLInputElement>(`[data-schema-required="${index}"][data-depth="0"]`)?.checked === true,
     };
-    field.many = line.querySelector<HTMLInputElement>(`[data-schema-many="${index}"]${scoped}`)?.checked === true;
+    field.many = line.querySelector<HTMLInputElement>(`[data-schema-many="${index}"][data-depth="0"]`)?.checked === true;
     if (field.kind === "ref") {
       const picked = row
-        .querySelector<HTMLSelectElement>(`[data-schema-dataset="${index}"]${scoped}`)
+        .querySelector<HTMLSelectElement>(`:scope > p [data-schema-dataset="${index}"][data-depth="0"]`)
         ?.value.trim();
       field.dataset = picked || base.dataset;
     } else {
       delete field.dataset;
     }
     if (field.kind === "object") {
-      field.fields = readObjectSubfields(row, index, base.fields ?? []);
+      field.fields = readObjectSubfields(row, base.fields ?? [], takeKey);
     } else {
       delete field.fields;
     }
     if (field.kind === "enum") {
-      const text = row.querySelector<HTMLTextAreaElement>(`[data-schema-enum="${index}"]${scoped}`)?.value ?? "";
-      field.options = text
-        .split("\n")
-        .map((line) => line.trim())
-        .filter(Boolean)
-        .map((line) => {
-          const [value, label] = line.split("|");
-          return { value: (value ?? "").trim(), label: (label ?? value ?? "").trim() };
-        })
-        .filter((o) => o.value);
+      const text = row.querySelector<HTMLTextAreaElement>(`:scope > .editor-schema-enum [data-schema-enum="${index}"][data-depth="0"]`)?.value ?? "";
+      field.options = parseEnumOptions(text);
     } else {
       delete field.options;
     }
@@ -242,6 +315,18 @@ export function readSchemaForm(root: HTMLElement, draft: SchemaDraft): SchemaDra
   }
   const viewColumns = readViewColumnsFromSchemaForm(root, { fields, viewColumns: draft.viewColumns });
   return { fields, viewColumns };
+}
+
+/** Keep the preferred key when it is free. Otherwise mint one that is unused in `claimed`. */
+function claimFieldKey(preferred: string | undefined, claimed: DatasetField[]): string {
+  const key = preferred?.trim() ?? "";
+  if (key && !claimed.some((field) => field.key === key)) {
+    claimed.push({ key, id: "taken", label: "", kind: "string" });
+    return key;
+  }
+  const next = newFieldKey(claimed);
+  claimed.push({ key: next, id: "taken", label: "", kind: "string" });
+  return next;
 }
 
 export function schemaRowPath(row: HTMLElement): number[] {
@@ -259,7 +344,7 @@ function mutateFieldList(fields: DatasetField[], action: string, index: number):
     const parent = list[index];
     if (!parent || parent.kind !== "object") return list;
     const subs = [...(parent.fields ?? [])];
-    subs.push({ key: newFieldKey(subs), id: "", label: "", kind: "string" });
+    subs.push({ key: newFieldKey(list), id: "", label: "", kind: "string" });
     list[index] = { ...parent, fields: subs };
     return list;
   }
@@ -284,6 +369,50 @@ export function focusSchemaFieldId(root: HTMLElement, _depth: number, index: num
   });
 }
 
+/** After a kind change, focus the control that kind just revealed. */
+export function focusSchemaKindEditor(
+  root: HTMLElement,
+  index: number,
+  subIndex: number | undefined,
+  kind: string,
+): void {
+  queueMicrotask(() => {
+    const focus = (selector: string) => {
+      root.querySelector<HTMLElement>(selector)?.focus();
+    };
+    if (kind === "enum") {
+      focus(
+        subIndex === undefined
+          ? `[data-schema-enum="${index}"][data-depth="0"]`
+          : `[data-schema-enum="${index}"][data-schema-sub="${subIndex}"]`,
+      );
+      return;
+    }
+    if (kind === "ref") {
+      focus(
+        subIndex === undefined
+          ? `[data-schema-dataset="${index}"][data-depth="0"]`
+          : `[data-schema-dataset="${index}"][data-schema-sub="${subIndex}"]`,
+      );
+      return;
+    }
+    if (kind === "object" && subIndex === undefined) {
+      const subs = root.querySelectorAll<HTMLInputElement>(`[data-schema-sub-id="${index}"]`);
+      const target = subs[subs.length - 1];
+      if (target) {
+        target.focus();
+        target.select();
+        return;
+      }
+    }
+    focus(
+      subIndex === undefined
+        ? `[data-schema-kind="${index}"][data-depth="0"]`
+        : `[data-schema-sub-kind="${index}"][data-schema-sub="${subIndex}"]`,
+    );
+  });
+}
+
 export function applySchemaAction(draft: SchemaDraft, action: string, index: number): SchemaDraft {
   const fields = mutateFieldList(draft.fields, action, index);
   if (action === "remove") {
@@ -299,50 +428,100 @@ export function applySchemaActionForRow(draft: SchemaDraft, row: HTMLElement, ac
   return applySchemaAction(draft, action, index);
 }
 
-function readObjectSubfields(row: HTMLElement, parentIndex: number, fallback: DatasetField[]): DatasetField[] {
-  const items = [...row.querySelectorAll<HTMLElement>(`[data-schema-sub-index]`)];
+export function applySchemaSubAction(
+  draft: SchemaDraft,
+  action: string,
+  parentIndex: number,
+  subIndex: number,
+): SchemaDraft {
+  const fields = draft.fields.map((field, index) => {
+    if (index !== parentIndex || field.kind !== "object") return field;
+    const subs = [...(field.fields ?? [])];
+    if (action === "remove") return { ...field, fields: subs.filter((_, i) => i !== subIndex) };
+    if (action === "up" && subIndex > 0) {
+      [subs[subIndex - 1], subs[subIndex]] = [subs[subIndex]!, subs[subIndex - 1]!];
+    } else if (action === "down" && subIndex < subs.length - 1) {
+      [subs[subIndex + 1], subs[subIndex]] = [subs[subIndex]!, subs[subIndex + 1]!];
+    }
+    return { ...field, fields: subs };
+  });
+  return { fields, viewColumns: draft.viewColumns };
+}
+
+function readObjectSubfields(
+  row: HTMLElement,
+  fallback: DatasetField[],
+  takeKey: (preferred: string | undefined) => string,
+): DatasetField[] {
+  const host = row.querySelector(":scope > .editor-dataset-object-schema");
+  const items = [...(host?.querySelectorAll<HTMLElement>(":scope > ul > li[data-schema-sub-index]") ?? [])];
   return items.map((item) => {
     const subIndex = Number(item.dataset.schemaSubIndex);
-    const base = fallback[subIndex] ?? { key: newFieldKey(fallback), id: "", label: "", kind: "string" as DatasetFieldKind };
+    const base = fallback[subIndex] ?? { key: "", id: "", label: "", kind: "string" as DatasetFieldKind };
+    const kind = (item.querySelector<HTMLSelectElement>("[data-schema-sub-kind]")?.value || "string") as DatasetFieldKind;
     const field: DatasetField = {
-      ...base,
-      key: item.querySelector<HTMLInputElement>(`[data-schema-sub-key="${parentIndex}"][data-schema-sub="${subIndex}"]`)?.value || base.key,
-      id: item.querySelector<HTMLInputElement>(`[data-schema-sub-id="${parentIndex}"][data-schema-sub="${subIndex}"]`)?.value.trim() ?? "",
-      label: item.querySelector<HTMLInputElement>(`[data-schema-sub-label="${parentIndex}"][data-schema-sub="${subIndex}"]`)?.value.trim() ?? "",
-      kind: (item.querySelector<HTMLSelectElement>(`[data-schema-sub-kind="${parentIndex}"][data-schema-sub="${subIndex}"]`)?.value ||
-        "string") as DatasetFieldKind,
+      key: takeKey(item.querySelector<HTMLInputElement>("[data-schema-sub-key]")?.value || base.key),
+      id: item.querySelector<HTMLInputElement>("[data-schema-sub-id]")?.value.trim() ?? "",
+      label: item.querySelector<HTMLInputElement>("[data-schema-sub-label]")?.value.trim() ?? "",
+      kind,
     };
+    if (base.required) field.required = true;
+    if (base.many) field.many = true;
+    if (base.default !== undefined) field.default = base.default;
     if (field.kind === "ref") {
-      field.dataset =
-        item.querySelector<HTMLSelectElement>(`[data-schema-dataset="${parentIndex}"]`)?.value.trim() || base.dataset;
+      const picked = item.querySelector<HTMLSelectElement>("[data-schema-dataset]")?.value.trim() ?? "";
+      field.dataset = picked || base.dataset;
     }
     if (field.kind === "enum") {
-      const text = item.querySelector<HTMLTextAreaElement>(`[data-schema-enum="${parentIndex}"][data-schema-sub="${subIndex}"]`)?.value ?? "";
-      field.options = text
-        .split("\n")
-        .map((line) => line.trim())
-        .filter(Boolean)
-        .map((line) => {
-          const [value, label] = line.split("|");
-          return { value: (value ?? "").trim(), label: (label ?? value ?? "").trim() };
-        })
-        .filter((o) => o.value);
+      field.options = parseEnumOptions(item.querySelector<HTMLTextAreaElement>("[data-schema-enum]")?.value ?? "");
     }
     return field;
   });
 }
 
+function parseEnumOptions(text: string): { value: string; label: string }[] {
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [value, label] = line.split("|");
+      return { value: (value ?? "").trim(), label: (label ?? value ?? "").trim() };
+    })
+    .filter((o) => o.value);
+}
+
 export function validateSchemaDraft(fields: DatasetField[]): string | undefined {
-  for (const field of fields) {
-    if (!field.id.trim()) return "Each field needs an id.";
-    if (field.kind === "ref" && !field.dataset?.trim()) {
-      return `Ref field "${field.id}" needs a target dataset.`;
+  const ids = new Set<string>();
+  const keys = new Set<string>();
+  const visit = (list: readonly DatasetField[], depth: number): string | undefined => {
+    for (const field of list) {
+      const id = field.id.trim();
+      if (!id) return "Each field needs an id.";
+      if ((DATASET_RESERVED_FIELD_IDS as readonly string[]).includes(id)) return `Field id ${id} is reserved.`;
+      if (!DATASET_RECORD_ID.test(id)) return `Field id ${id} is invalid.`;
+      if (ids.has(id)) return `Field id ${id} is listed twice.`;
+      ids.add(id);
+      const key = field.key.trim();
+      if (!key) return "Each field needs a key.";
+      if (keys.has(key)) return `Field key ${key} is listed twice.`;
+      keys.add(key);
+      if (field.kind === "ref" && !field.dataset?.trim()) {
+        return `Ref field "${id}" needs a target dataset.`;
+      }
+      if (field.kind === "enum" && !(field.options ?? []).some((option) => option.value.trim())) {
+        return `Enum field "${id}" needs at least one option.`;
+      }
+      if (field.kind === "object") {
+        if (depth > 0) return "Object fields cannot nest another object.";
+        if (!(field.fields ?? []).length) return `Object field "${id}" needs at least one subfield.`;
+        const nested = visit(field.fields ?? [], depth + 1);
+        if (nested) return nested;
+      }
     }
-    if (field.kind === "object" && !(field.fields ?? []).length) {
-      return `Object field "${field.id}" needs at least one subfield.`;
-    }
-  }
-  return undefined;
+    return undefined;
+  };
+  return visit(fields, 0);
 }
 
 export function adaptationSummaryHtml(summary: {

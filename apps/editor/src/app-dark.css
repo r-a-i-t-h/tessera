@@ -305,6 +305,20 @@ html.editor-dark .editor-entry-filter label,
 html.editor-dark .editor-list-order label,
 html.editor-dark .editor-page-target-filter label,
 html.editor-dark .editor-dataset-settings-row label,
+html.editor-dark .editor-schema-help-button {
+  color: var(--editor-text-muted);
+}
+
+html.editor-dark .editor-schema-help-button[aria-expanded="true"] {
+  color: var(--editor-text);
+}
+
+html.editor-dark .editor-schema-help-pop {
+  background: var(--editor-surface-raised);
+  border-color: var(--editor-border);
+  color: var(--editor-text);
+}
+
 html.editor-dark .editor-dataset-schema .editor-type-line > label,
 html.editor-dark .nav-build-palette-filter label,
 html.editor-dark .editor-raw-html > label,

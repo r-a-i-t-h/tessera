@@ -3127,7 +3127,7 @@ a.editor-library-row {
 }
 
 .editor-dataset-schema .editor-dataset-object-schema .editor-type-line {
-  grid-template-columns: minmax(6rem, 1fr) minmax(6rem, 1fr) minmax(5.5rem, 7rem);
+  grid-template-columns: minmax(6rem, 1fr) minmax(6rem, 1fr) minmax(5.5rem, 7rem) auto;
 }
 
 .editor-dataset-object-schema {
@@ -3180,6 +3180,84 @@ a.editor-library-row {
 
 .editor-dataset-setup .editor-dataset-settings-body {
   max-width: 48rem;
+}
+
+.editor-schema-enum {
+  margin: 0.35rem 0 0.15rem;
+  max-width: 28rem;
+}
+
+.editor-schema-enum-head {
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
+  margin: 0 0 0.2rem;
+}
+
+.editor-schema-enum-head label {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.editor-schema-help {
+  position: relative;
+  display: inline-flex;
+}
+
+.editor-schema-help-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #666;
+  cursor: pointer;
+}
+
+.editor-schema-help-button svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.editor-schema-help-button[aria-expanded="true"] {
+  color: #222;
+}
+
+.editor-schema-help-pop {
+  position: absolute;
+  z-index: 8;
+  top: calc(100% + 0.2rem);
+  left: 0;
+  width: 16.5rem;
+  margin: 0;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #ccc;
+  border-radius: 0.3rem;
+  background: #fff;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: #222;
+}
+
+.editor-schema-help-pop p {
+  margin: 0 0 0.4rem;
+}
+
+.editor-schema-help-pop pre {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  white-space: pre-wrap;
+}
+
+.editor-schema-enum textarea.w3-input {
+  height: auto;
+  min-height: 4.2rem;
 }
 
 .editor-dataset-schema .editor-type-line > label {

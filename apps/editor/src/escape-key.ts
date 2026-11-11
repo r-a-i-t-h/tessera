@@ -1,5 +1,6 @@
 import { confirmDialog } from "./confirm-dialog.js";
 import { closeCommandPalette } from "./command-palette.js";
+import { closeSchemaHelp } from "./datasets/schema-form.js";
 import { closeEditorSidebar } from "./editor-sidebar-mobile.js";
 import { closeEntityOpener } from "./entity-opener.js";
 
@@ -19,6 +20,7 @@ export type EscapeHandlers = {
  * Cancel the current inline operation, or navigate back. Returns true when Escape was handled.
  */
 export function handleEscape(root: ParentNode, handlers?: EscapeHandlers): boolean {
+  if (closeSchemaHelp(root)) return true;
   if (closeEditorSidebar(root)) return true;
   if (cancelCreationForm(root)) return true;
   if (cancelBindingWizard(root)) return true;
