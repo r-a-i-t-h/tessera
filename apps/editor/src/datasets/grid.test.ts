@@ -65,9 +65,7 @@ describe("dataset grid", () => {
     const bodyCol = columns.find((c) => c.kind === "field" && c.id === "body");
     expect(bodyCol).toBeTruthy();
     if (!bodyCol || bodyCol.kind !== "field") return;
-    expect(cellDisplay(record, bodyCol, { assetName: (id) => id, refTitle: () => "" })).toBe(
-      "<p>Hello <strong>world</strong></p>",
-    );
+    expect(cellDisplay(record, bodyCol, { assetName: (id) => id, refTitle: () => "" })).toBe("Hello world");
   });
 
   it("sorts by title when the column is visible", () => {
