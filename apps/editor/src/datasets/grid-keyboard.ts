@@ -11,9 +11,9 @@ function datasetGridPage(main: HTMLElement): HTMLElement | null {
   return main.querySelector<HTMLElement>(".editor-dataset-page");
 }
 
-/** View mode shows “Edit grid”; inline grid editing disables row keyboard nav. */
-function datasetGridViewMode(page: HTMLElement): boolean {
-  return Boolean(page.querySelector("[data-dataset-edit-mode]"));
+/** View mode toolbar shows “Edit grid”; “Save grid” means inline editing and no row keyboard nav. */
+function datasetGridViewMode(main: HTMLElement): boolean {
+  return !main.querySelector("[data-dataset-save-grid]");
 }
 
 export function navigableDatasetGridRows(page: HTMLElement): HTMLElement[] {
@@ -56,7 +56,7 @@ export function handleDatasetGridKeyboard(root: HTMLElement, event: KeyboardEven
   const main = editorMain(root);
   if (!main) return false;
   const page = datasetGridPage(main);
-  if (!page || !datasetGridViewMode(page)) return false;
+  if (!page || !datasetGridViewMode(main)) return false;
 
   const rows = navigableDatasetGridRows(page);
   if (!rows.length) return false;

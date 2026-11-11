@@ -15,8 +15,12 @@ function page(html: string): HTMLElement {
 }
 
 const gridShell = (body: string, viewMode = true) => `
+  <div class="editor-toolbar">${
+    viewMode
+      ? '<button type="button" data-dataset-edit-mode>Edit grid</button>'
+      : '<button type="button" data-dataset-save-grid>Save grid</button>'
+  }</div>
   <div class="editor-dataset-page" data-dataset-id="events">
-    ${viewMode ? '<button type="button" data-dataset-edit-mode>Edit grid</button>' : ""}
     <table class="editor-dataset-grid"><tbody>${body}</tbody></table>
   </div>`;
 
