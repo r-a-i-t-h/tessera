@@ -4,6 +4,7 @@ import { darkModeLoginToggle, darkModeSidebarToggle } from "./editor-color-mode.
 import type { PublicUser } from "./api.js";
 import { isFullAdmin } from "./access.js";
 import { escapeHtml } from "./dom.js";
+import { EDITOR_SIDEBAR_USER_ICON } from "./editor-icons.js";
 import { ADMIN_MENU, isSidebarLinkCurrent, SETUP_MENU } from "./editor-sidebar-menu.js";
 
 export type EditorSection =
@@ -142,7 +143,7 @@ export function editorChrome(
           ${darkModeSidebarToggle()}
         </div>
         <div class="editor-nav-account w3-bar-block">
-          <a class="w3-bar-item w3-button${section === "account" ? " tessera-nav-current" : ""}" href="#/account" title="Account"${section === "account" ? ' aria-current="page"' : ""}>${escapeHtml(user.username)}</a>
+          <a class="w3-bar-item w3-button editor-sidebar-account-link${section === "account" ? " tessera-nav-current" : ""}" href="#/account" title="Account"${section === "account" ? ' aria-current="page"' : ""}>${EDITOR_SIDEBAR_USER_ICON}<span class="editor-sidebar-account-name">${escapeHtml(user.username)}</span></a>
         </div>
         <div class="editor-sidebar-version">${editorVersionLabel()}</div>
       </aside>

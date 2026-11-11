@@ -56,6 +56,7 @@ describe("editor chrome", () => {
     );
     expect(html).toContain('href="#/records/site"');
     expect(html).toContain('aria-label="Setup"');
+    expect(html).toContain("editor-sidebar-account-icon");
     expect(html).toContain("&lt;Alice&gt;");
     expect(html).toContain('aria-live="polite"');
     expect(html).toContain('id="editor-sidebar"');

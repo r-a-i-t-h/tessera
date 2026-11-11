@@ -1,5 +1,8 @@
 import { escapeHtml } from "./dom.js";
 
+/** Person icon for the signed-in account link in the editor sidebar. */
+export const EDITOR_SIDEBAR_USER_ICON = `<svg class="editor-sidebar-account-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5.2" r="2.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" d="M3.5 13.5c.8-2.2 2.6-3.5 4.5-3.5s3.7 1.3 4.5 3.5"/></svg>`;
+
 export const REORDER_ICONS = {
   up: `<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M3.2 10.4 8 4.4l4.8 6"/></svg>`,
   down: `<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M3.2 5.6 8 11.6l4.8-6"/></svg>`,
