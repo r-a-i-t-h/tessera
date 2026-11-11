@@ -63,4 +63,36 @@ describe("dataset walk", () => {
     expect(roots).toHaveLength(1);
     expect(roots[0]?.topic).toBe("AGM");
   });
+
+  it("does not treat a page id inside a nested object as a root", () => {
+    const meetings = parseDatasetFile({
+      id: "meetings",
+      title: "Meetings",
+      schema: {
+        fields: [
+          { key: "f1", id: "topic", label: "Topic", kind: "string" },
+          {
+            key: "f2",
+            id: "notes",
+            label: "Notes",
+            kind: "object",
+            fields: [{ key: "f3", id: "body", label: "Body", kind: "string" }],
+          },
+        ],
+      },
+      view: { columns: ["topic"] },
+      nextUid: 2,
+      records: [
+        {
+          uid: 1,
+          added: "2026-01-01T00:00:00.000Z",
+          modified: "2026-01-01T00:00:00.000Z",
+          topic: "Other",
+          notes: { body: "Held elsewhere", page: "agm" },
+        },
+      ],
+    });
+    const snapshots = { meetings: datasetFileToSnapshot(meetings) };
+    expect(pageDataRoots(snapshots, "meetings", "agm")).toEqual([]);
+  });
 });

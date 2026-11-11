@@ -28,7 +28,7 @@ function renderRootSystem(record: Record<string, unknown>, _fields: readonly Dat
   const page = typeof record.page === "string" ? record.page : "";
   return `<div class="editor-props">
         <p><label>uid</label><span class="editor-prop-control">${escapeHtml(String(record.uid ?? ""))}</span></p>
-        <p><label for="dataset-record-page">page</label><span class="editor-prop-control"><input id="dataset-record-page" name="page" class="w3-input w3-border" value="${escapeHtml(page)}" placeholder="Page id when this record belongs to one page only" /></span></p>
+        <p><label for="dataset-record-page">page</label><span class="editor-prop-control"><input id="dataset-record-page" name="page" data-record-page class="w3-input w3-border" value="${escapeHtml(page)}" placeholder="Page id when this record belongs to one page only" /></span></p>
         <p><label>added</label><span class="editor-prop-control w3-text-grey">${escapeHtml(String(record.added ?? ""))}</span></p>
         <p><label>modified</label><span class="editor-prop-control w3-text-grey">${escapeHtml(String(record.modified ?? ""))}</span></p>
       </div>`;
@@ -97,12 +97,13 @@ function renderObjectField(
   value: unknown,
   options: RecordFormOptions,
 ): string {
+  const nested: RecordFormOptions = { ...options, isRoot: false };
   const subfields = field.fields ?? [];
   const items = field.many ? (Array.isArray(value) ? value : []) : value && typeof value === "object" ? [value] : [{}];
   const blocks = items
     .map((item, index) => {
       const obj = item && typeof item === "object" && !Array.isArray(item) ? (item as Record<string, unknown>) : {};
-      const inner = renderRecordForm(obj, subfields, options);
+      const inner = renderRecordForm(obj, subfields, nested);
       return `<fieldset class="editor-fieldset editor-dataset-object-row" data-object-field="${escapeHtml(name)}" data-object-index="${index}">
         <legend>${label}${field.many ? ` ${index + 1}` : ""}</legend>
         ${inner}
@@ -112,7 +113,7 @@ function renderObjectField(
   const addBtn = field.many
     ? `<p><button type="button" class="w3-button w3-tiny w3-white w3-border" data-object-add="${escapeHtml(name)}">Add ${escapeHtml(label)}</button></p>`
     : "";
-  return `<motion-capture class="editor-dataset-object" data-object-parent="${escapeHtml(name)}">${blocks || renderRecordForm({}, subfields, options)}${addBtn}</motion-capture>`.replace(
+  return `<motion-capture class="editor-dataset-object" data-object-parent="${escapeHtml(name)}">${blocks || renderRecordForm({}, subfields, nested)}${addBtn}</motion-capture>`.replace(
     "<motion-capture",
     "<div",
   ).replace("</motion-capture>", "</div>");
@@ -120,7 +121,7 @@ function renderObjectField(
 
 export function readRecordForm(form: HTMLFormElement, fields: readonly DatasetField[], base: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = { ...base };
-  const pageEl = form.elements.namedItem("page");
+  const pageEl = form.querySelector<HTMLInputElement>("[data-record-page]");
   if (pageEl instanceof HTMLInputElement) {
     const page = pageEl.value.trim();
     if (page) out.page = page;

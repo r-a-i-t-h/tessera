@@ -43,9 +43,9 @@ Page scope is a reference to an existing page id. There is no extra cross-refere
 
 A record stores a page id only when that page is the only page the record relates to. If more than one page needs the record, the record stores no page id, and each page selects the records itself (a binding filter, or a walk from other records).
 
-Any record may carry that exclusive page link. It is not a special dataset kind. The link is optional system metadata on every record, beside `uid`, in the same way `added` and `modified` sit outside the schema today. The value is a page id, or empty. It is not a schema field: a schema field can be forgotten, made a collection, or pointed at a dataset. The rule is narrower than that. Zero or one page, only when the relationship is exclusive, on every record, and always a page id.
+Only a top-level record may carry that exclusive page link. Nested object values are not records: they have no `uid`, and they do not store a page id. A page does not pick nested objects out of a parent record. The link is optional system metadata beside `uid`, in the same way `added` and `modified` sit outside the schema today. The value is a page id, or empty. It is not a schema field: a schema field can be forgotten, made a collection, or pointed at a dataset. The rule is narrower than that. Zero or one page, only when the relationship is exclusive, and always a page id.
 
-The other direction is a lookup, not a copy. A page-data binding names one dataset and lists the records in that dataset whose page id is the current page. The bytes stay in the dataset.
+The other direction is a lookup, not a copy. A page-data binding names one dataset and lists the top-level records in that dataset whose own page id is the current page. It does not search inside objects. The bytes stay in the dataset.
 
 Records also relate to records, including back and forth. A page is given the joined records it needs. Two pages may arrive by different starting records and still receive the same set. In that payload each record appears once, identified by dataset plus integer id. Referenced records are not deep-copied into the parent. Deep-copying would duplicate shared records and cannot represent a cycle.
 
@@ -82,7 +82,7 @@ Every field is either one value or a collection. That includes simple fields, re
 This bound is enough to keep the editors maintainable, provided three consequences stay with it:
 
 - The schema UI is a two-level form. It is not a recursive type builder.
-- The record dialog has a fixed set of widgets: single simple, simple list, single ref, ref list, one subtype, and a list of subtypes. Inside a subtype, only the first four appear. The grid edits top-level single simple values and shows ref labels. Lists of subtypes are edited in the record dialog, not in the grid. Spreadsheet editing of nested collections is the part that would make this hard, and it is out.
+- The record dialog has a fixed set of widgets: single simple, simple list, single ref, ref list, one subtype, and a list of subtypes. Inside a subtype, only the first four appear. The page id control is on the root record only. The grid edits top-level single simple values and shows ref labels. Lists of subtypes are edited in the record dialog, not in the grid. Spreadsheet editing of nested collections is the part that would make this hard, and it is out.
 - A ref is shown in the editor as the target’s label. The target record is not pasted into the form. That is what stops a self-ref from turning the form into a tree.
 
 A list of subtypes whose fields are themselves lists is the most awkward dialog, and it is still one known widget. Arbitrary depth is the version that is not worth building.
@@ -113,7 +113,7 @@ A second file stays out. It would pay off only if schema diffs must be reviewed 
 
 Every binding of this kind names a dataset. The name is what keeps page data to one schema.
 
-- **Page data.** The roots are the records in that dataset whose page id is the current page.
+- **Page data.** The roots are the top-level records in that dataset whose own page id is the current page. A page id is not read from inside an object, and a nested object is never a root of its own.
 - **Source dataset.** The roots are every record in that dataset.
 
 The walk follows stored `ref` fields on those roots, including refs inside objects and collections, until no unused ref remains. A record already in the set is not entered again. A dangling ref ends that step. Each reached record appears once, keyed by dataset id plus `uid`. Object values stay inside their parent. Targets are not copied into the parent.
