@@ -1,0 +1,12 @@
+id: page-product
+component: datasetCards
+props:
+  dataset: products
+  pageData: true
+  fields:
+    - name
+    - category
+    - price
+    - inStock
+    - blurb
+  headingField: name

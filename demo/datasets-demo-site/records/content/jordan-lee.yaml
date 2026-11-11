@@ -1,0 +1,13 @@
+id: jordan-lee
+title: Jordan Lee
+type: standard
+zones:
+  title:
+    html: Jordan Lee
+  main:
+    html: |-
+      <p>Jordan's person record is exclusive to this page.</p>
+      <h2>This person (page data)</h2>
+      {{page-person}}
+      <h2>Everyone (global)</h2>
+      {{all-people}}

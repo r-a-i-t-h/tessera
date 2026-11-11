@@ -17,6 +17,7 @@
     "flatten:site": "npm run flatten:site -w @r-a-i-t-h/tessera-editor-api",
     "stamp:snapshot": "npm run stamp:snapshot -w @r-a-i-t-h/tessera-editor-api",
     "pack": "sh scripts/pack-release.sh",
+    "pack:datasets-demo": "node demo/build-datasets-demo.mjs",
     "release": "npm run typecheck && npm run build && node scripts/release.mjs"
   },
   "allowScripts": {

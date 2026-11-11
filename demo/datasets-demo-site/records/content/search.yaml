@@ -1,0 +1,6 @@
+id: search
+title: Search
+type: search
+zones:
+  title:
+    html: Search

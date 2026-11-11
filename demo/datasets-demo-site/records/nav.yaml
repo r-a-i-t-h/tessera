@@ -1,0 +1,24 @@
+- id: home
+  title: Overview
+  sidebar: true
+- id: products
+  title: Products
+  sidebar: true
+- id: orchard-tablet
+  title: Orchard Tablet
+  sidebar: true
+- id: meetings
+  title: Meetings
+  sidebar: true
+- id: spring-planning
+  title: Spring planning
+  sidebar: true
+- id: people
+  title: People
+  sidebar: true
+- id: jordan-lee
+  title: Jordan Lee
+  sidebar: true
+- id: search
+  title: Search
+  sidebar: true

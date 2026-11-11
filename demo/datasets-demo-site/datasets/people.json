@@ -1,0 +1,89 @@
+{
+  "id": "people",
+  "title": "People",
+  "view": {
+    "columns": [
+      "name",
+      "role",
+      "email",
+      "manager"
+    ],
+    "displayName": "{name}"
+  },
+  "schema": {
+    "fields": [
+      {
+        "key": "f1",
+        "id": "name",
+        "label": "Name",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "f2",
+        "id": "role",
+        "label": "Role",
+        "kind": "string"
+      },
+      {
+        "key": "f3",
+        "id": "email",
+        "label": "Email",
+        "kind": "string"
+      },
+      {
+        "key": "f4",
+        "id": "manager",
+        "label": "Manager",
+        "kind": "ref",
+        "dataset": "people"
+      }
+    ]
+  },
+  "nextUid": 6,
+  "records": [
+    {
+      "uid": 1,
+      "page": "jordan-lee",
+      "added": "2026-11-01T12:00:00.000Z",
+      "modified": "2026-11-01T12:00:00.000Z",
+      "name": "Jordan Lee",
+      "role": "Engineering lead",
+      "email": "jordan@example.com"
+    },
+    {
+      "uid": 2,
+      "added": "2026-11-01T12:00:00.000Z",
+      "modified": "2026-11-01T12:00:00.000Z",
+      "name": "Sam Rivera",
+      "role": "Designer",
+      "email": "sam@example.com"
+    },
+    {
+      "uid": 3,
+      "added": "2026-11-01T12:00:00.000Z",
+      "modified": "2026-11-01T12:00:00.000Z",
+      "name": "Alex Chen",
+      "role": "Developer",
+      "email": "alex@example.com",
+      "manager": 1
+    },
+    {
+      "uid": 4,
+      "added": "2026-11-01T12:00:00.000Z",
+      "modified": "2026-11-01T12:00:00.000Z",
+      "name": "Morgan Patel",
+      "role": "Product manager",
+      "email": "morgan@example.com",
+      "manager": 1
+    },
+    {
+      "uid": 5,
+      "added": "2026-11-01T12:00:00.000Z",
+      "modified": "2026-11-01T12:00:00.000Z",
+      "name": "Quinn Okonkwo",
+      "role": "Support",
+      "email": "quinn@example.com"
+    }
+  ]
+}

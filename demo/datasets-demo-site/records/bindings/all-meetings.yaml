@@ -1,0 +1,11 @@
+id: all-meetings
+component: datasetPlainList
+props:
+  dataset: meetings
+  fields:
+    - title
+    - heldOn
+    - location
+  sort:
+    field: heldOn
+    dir: desc

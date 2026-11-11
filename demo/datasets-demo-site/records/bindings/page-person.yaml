@@ -1,0 +1,11 @@
+id: page-person
+component: datasetCards
+props:
+  dataset: people
+  pageData: true
+  fields:
+    - name
+    - role
+    - email
+    - manager
+  headingField: name

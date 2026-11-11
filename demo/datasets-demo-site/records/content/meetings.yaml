@@ -1,0 +1,22 @@
+id: meetings
+title: Meetings
+type: standard
+zones:
+  title:
+    html: Meetings
+  main:
+    html: >-
+      <p>Meetings reference people as chair and attendees. Ref targets are
+      included when the site is flattened.</p>
+
+      <h2>Runtime module (meetings + walked people)</h2>
+
+      {{meetings-roster-module}}
+
+      <h2>Catalogue list</h2>
+
+      {{all-meetings}}
+
+      <h2>Tabular view</h2>
+
+      {{all-meetings-table}}

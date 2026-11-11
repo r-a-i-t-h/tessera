@@ -1,0 +1,10 @@
+id: products
+title: Product catalog
+type: standard
+zones:
+  title:
+    html: Product catalog
+  main:
+    html: |-
+      <p>Global product table with interactive sort by price.</p>
+      {{all-products}}

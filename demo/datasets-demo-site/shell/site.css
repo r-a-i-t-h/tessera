@@ -1,0 +1,11 @@
+/* Site-specific rules. Shared frame tokens live in skin/tessera.css. */
+
+/* The column stays on the left from 993px up. Below that it is a flyout
+   from the right, so the title and the left of the page stay in view. */
+@media (max-width: 992px) {
+  body.leftnav .tessera-sidebar {
+    left: auto;
+    right: 0;
+    animation: animateright 0.4s;
+  }
+}

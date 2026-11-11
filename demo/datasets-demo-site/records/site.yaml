@@ -1,0 +1,9 @@
+version: 2
+id: datasets-demo
+title: Dataset demo
+homePageId: home
+defaultLayoutId: standard
+masterLayoutId: master
+delivery: pages
+style:
+  navSide: left

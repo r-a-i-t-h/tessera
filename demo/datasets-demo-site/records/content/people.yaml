@@ -1,0 +1,13 @@
+id: people
+title: People
+type: standard
+zones:
+  title:
+    html: People
+  main:
+    html: |-
+      <p>Team directory with optional manager self-references.</p>
+      <h2>Runtime module org chart</h2>
+      {{people-org-chart}}
+      <h2>Cards view</h2>
+      {{all-people}}

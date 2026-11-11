@@ -1,0 +1,5 @@
+id: meetings-roster-module
+component: runtimeModule
+props:
+  dataset: meetings
+  module: demo-meetings-roster

@@ -1,0 +1,102 @@
+{
+  "id": "products",
+  "title": "Products",
+  "view": {
+    "columns": [
+      "name",
+      "category",
+      "price",
+      "inStock"
+    ],
+    "displayName": "{name}"
+  },
+  "schema": {
+    "fields": [
+      {
+        "key": "f1",
+        "id": "name",
+        "label": "Name",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "f2",
+        "id": "category",
+        "label": "Category",
+        "kind": "enum",
+        "options": [
+          {
+            "value": "electronics",
+            "label": "Electronics"
+          },
+          {
+            "value": "accessories",
+            "label": "Accessories"
+          }
+        ]
+      },
+      {
+        "key": "f3",
+        "id": "price",
+        "label": "Price",
+        "kind": "number"
+      },
+      {
+        "key": "f4",
+        "id": "inStock",
+        "label": "In stock",
+        "kind": "boolean"
+      },
+      {
+        "key": "f5",
+        "id": "blurb",
+        "label": "Description",
+        "kind": "text"
+      }
+    ]
+  },
+  "nextUid": 5,
+  "records": [
+    {
+      "uid": 1,
+      "page": "orchard-tablet",
+      "added": "2026-11-01T12:00:00.000Z",
+      "modified": "2026-11-01T12:00:00.000Z",
+      "name": "Orchard Tablet",
+      "category": "electronics",
+      "price": 499,
+      "inStock": true,
+      "blurb": "<p>Lightweight tablet for field notes and sketching.</p>"
+    },
+    {
+      "uid": 2,
+      "added": "2026-11-01T12:00:00.000Z",
+      "modified": "2026-11-01T12:00:00.000Z",
+      "name": "Harbor Keyboard",
+      "category": "accessories",
+      "price": 89,
+      "inStock": true,
+      "blurb": "<p>Mechanical keyboard with quiet switches.</p>"
+    },
+    {
+      "uid": 3,
+      "added": "2026-11-01T12:00:00.000Z",
+      "modified": "2026-11-01T12:00:00.000Z",
+      "name": "Summit Monitor",
+      "category": "electronics",
+      "price": 320,
+      "inStock": false,
+      "blurb": "<p>27-inch display, colour-calibrated.</p>"
+    },
+    {
+      "uid": 4,
+      "added": "2026-11-01T12:00:00.000Z",
+      "modified": "2026-11-01T12:00:00.000Z",
+      "name": "Meadow Headphones",
+      "category": "accessories",
+      "price": 149,
+      "inStock": true,
+      "blurb": "<p>Over-ear headphones with long battery life.</p>"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+id: all-people
+component: datasetCards
+props:
+  dataset: people
+  fields:
+    - name
+    - role
+    - email
+  headingField: name

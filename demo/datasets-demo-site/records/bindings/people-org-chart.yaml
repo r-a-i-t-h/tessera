@@ -1,0 +1,5 @@
+id: people-org-chart
+component: runtimeModule
+props:
+  dataset: people
+  module: demo-org-chart

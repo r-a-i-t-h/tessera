@@ -1,0 +1,18 @@
+id: spring-planning
+title: Spring planning
+type: standard
+zones:
+  title:
+    html: Spring planning
+  main:
+    html: >-
+      <p>Only the <strong>Spring planning</strong> meeting record points at this
+      page.</p>
+
+      <h2>This meeting (page data)</h2>
+
+      {{page-meeting}}
+
+      <h2>All meetings (global)</h2>
+
+      {{all-meetings}}

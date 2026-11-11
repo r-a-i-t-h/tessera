@@ -1,0 +1,12 @@
+id: all-meetings-table
+component: datasetTable
+props:
+  dataset: meetings
+  fields:
+    - title
+    - heldOn
+    - location
+    - chair
+  sort:
+    field: heldOn
+    dir: asc

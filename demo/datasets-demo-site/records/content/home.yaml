@@ -1,0 +1,34 @@
+id: home
+title: Dataset demo
+type: standard
+zones:
+  title:
+    html: Dataset demo
+  main:
+    html: >-
+      <p>This mini-site exercises Tessera datasets and bindings. Data lives in
+      <code>datasets/*.json</code>; pages pull it in through bindings.</p>
+
+      <ul>
+        <li><strong>Global bindings</strong> list every row in a dataset (or apply filters on the binding).</li>
+        <li><strong>Page data</strong> bindings only show records whose <code>page</code> metadata matches the current page id.</li>
+      </ul>
+
+      <p>Some records use <code>ref</code> fields across datasets (meetings →
+      people). Publish embeds referenced rows for drill-down.</p>
+
+      <p><strong>Runtime modules</strong> receive one primary dataset per
+      binding; Tessera walks <code>ref</code> fields and packs every reached row
+      into <code>ctx.dataset.records</code> (see the Meetings page).</p>
+
+      <h2>Products (global table)</h2>
+
+      {{all-products}}
+
+      <h2>People (global cards)</h2>
+
+      {{all-people}}
+
+      <h2>Meetings (global list)</h2>
+
+      {{all-meetings}}

@@ -1,0 +1,12 @@
+id: page-meeting
+component: datasetTable
+props:
+  dataset: meetings
+  pageData: true
+  fields:
+    - title
+    - heldOn
+    - location
+    - chair
+    - attendees
+    - notes

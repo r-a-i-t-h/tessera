@@ -1,0 +1,13 @@
+id: all-products
+component: datasetTable
+props:
+  dataset: products
+  fields:
+    - name
+    - category
+    - price
+    - inStock
+  sort:
+    field: price
+    dir: desc
+  interactiveSort: true

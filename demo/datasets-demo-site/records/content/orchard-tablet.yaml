@@ -1,0 +1,19 @@
+id: orchard-tablet
+title: Orchard Tablet
+type: standard
+zones:
+  title:
+    html: Orchard Tablet
+  main:
+    html: >-
+      <p>The <strong>Orchard Tablet</strong> row in <code>products</code> is
+      linked to this page id. The first binding uses <em>page data</em>; the
+      second is global.</p>
+
+      <h2>This product (page data)</h2>
+
+      {{page-product}}
+
+      <h2>Full catalog (global)</h2>
+
+      {{all-products}}
