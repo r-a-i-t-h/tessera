@@ -56,6 +56,12 @@ body {
   flex: 0 0 auto;
 }
 
+/* Tighter than W3 .w3-bar-block .w3-bar-item (8px 16px); match editor list rows. */
+.editor-sidebar .editor-nav-block > .w3-bar-item.w3-button:not(.tessera-nav-brand),
+.editor-sidebar .editor-nav-block > button.w3-bar-item.w3-button {
+  padding: 0.3rem 1rem;
+}
+
 .editor-sidebar .tessera-nav-brand {
   margin-bottom: 0.55rem;
   padding-top: 1rem !important;
@@ -118,6 +124,7 @@ body {
   align-items: center;
   gap: 0.6rem;
   line-height: 1.35;
+  padding: 0.3rem 1rem;
 }
 
 .editor-nav-account .editor-sidebar-account-icon {

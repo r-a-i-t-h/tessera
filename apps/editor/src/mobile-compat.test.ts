@@ -46,6 +46,12 @@ describe("desktop regression gates (CSS)", () => {
     );
   });
 
+  it("uses compact vertical padding on editor sidebar nav rows", () => {
+    expect(appCss).toMatch(
+      /\.editor-sidebar \.editor-nav-block > \.w3-bar-item\.w3-button:not\(\.tessera-nav-brand\)[\s\S]*padding:\s*0\.3rem 1rem/,
+    );
+  });
+
   it("defines phone drawer Home vs desktop brand sidebar links", () => {
     expect(appCss).toContain(".editor-sidebar-home");
     expect(appCss).toContain(".editor-sidebar-brand-desktop");
