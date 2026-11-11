@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import {
   adaptRecords,
+  coerceCollectionValues,
   emptyRootRecordDraft,
   formatDatasetFieldRichHtml,
   formatRecordDisplayName,
@@ -216,6 +217,15 @@ describe("adaptRecords", () => {
       rootUidsInDataset: () => new Set(),
     });
     expect(out.photo).toEqual(["img-1"]);
+  });
+
+  it("wraps a legacy scalar when a string field becomes a collection", () => {
+    const fields = parseDatasetSchema({
+      fields: [{ key: "f4", id: "new2", label: "New 2", kind: "string", many: true }],
+    }).fields;
+    const record: Record<string, unknown> = { new2: "new 2 data" };
+    coerceCollectionValues(record, fields);
+    expect(record.new2).toEqual(["new 2 data"]);
   });
 });
 

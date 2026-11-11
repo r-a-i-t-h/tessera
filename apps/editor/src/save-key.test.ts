@@ -73,4 +73,46 @@ describe("triggerEditorSave", () => {
     expect(onSave).toHaveBeenCalledOnce();
     root.remove();
   });
+
+  it("submits the dataset record dialog", () => {
+    const host = document.createElement("div");
+    host.innerHTML = `<div role="dialog" aria-modal="true"><form id="dataset-record-form"><button type="submit">Save</button></form></div>`;
+    document.body.append(host);
+    const submit = vi.fn();
+    host.querySelector("form")?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      submit();
+    });
+    const event = new KeyboardEvent("keydown", {
+      code: "KeyS",
+      metaKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    expect(triggerEditorSave(document.body, event)).toBe(true);
+    expect(event.defaultPrevented).toBe(true);
+    expect(submit).toHaveBeenCalledOnce();
+    host.remove();
+  });
+
+  it("does not save a record dialog behind a confirm dialog", () => {
+    const host = document.createElement("div");
+    host.innerHTML = `<div role="dialog" aria-modal="true"><form id="dataset-record-form"><button type="submit">Save</button></form></div>
+      <div role="dialog" aria-modal="true"><button type="button">Delete</button></div>`;
+    document.body.append(host);
+    const submit = vi.fn();
+    host.querySelector("form")?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      submit();
+    });
+    const event = new KeyboardEvent("keydown", {
+      code: "KeyS",
+      metaKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    expect(triggerEditorSave(document.body, event)).toBe(true);
+    expect(submit).not.toHaveBeenCalled();
+    host.remove();
+  });
 });

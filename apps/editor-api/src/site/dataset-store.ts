@@ -2,6 +2,7 @@ import { mkdir, readdir, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import {
   adaptRecords,
+  coerceCollectionValues,
   parseDatasetFile,
   parseDatasetSchema,
   sanitizeViewColumns,
@@ -210,6 +211,7 @@ export class DatasetStore {
     file: DatasetFile,
   ): DatasetRootRecord {
     const cleaned = stripEmptyOptionalFields({ ...incoming }, file.schema.fields);
+    coerceCollectionValues(cleaned, file.schema.fields);
     delete cleaned.added;
     delete cleaned.modified;
 
@@ -271,6 +273,7 @@ export class DatasetStore {
     }
 
     for (const record of nextRecords) {
+      coerceCollectionValues(record, file.schema.fields);
       const issues = validateRootRecord(record, file.schema);
       if (issues.length) throw new ValidationError(issues);
     }

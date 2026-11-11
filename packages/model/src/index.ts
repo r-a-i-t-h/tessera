@@ -139,6 +139,7 @@ export {
   adaptRecords,
   summarizeSchemaAdaptation,
   emptyRootRecordDraft,
+  coerceCollectionValues,
   stripEmptyOptionalFields,
   displayNamePlaceholders,
   validateDisplayNameTemplate,

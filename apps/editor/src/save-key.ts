@@ -1,5 +1,4 @@
 import { showEditorToast } from "./dom.js";
-import { hasOpenModal } from "./escape-key.js";
 
 /** Cmd/Ctrl+S without Shift/Alt. */
 export function isEditorSaveShortcut(event: KeyboardEvent): boolean {
@@ -28,8 +27,16 @@ export function editingForm(form: HTMLFormElement | null): HTMLFormElement | nul
  */
 export function triggerEditorSave(root: ParentNode, event: KeyboardEvent): boolean {
   if (!isEditorSaveShortcut(event)) return false;
-  if (hasOpenModal()) return false;
   if (event.defaultPrevented) return false;
+
+  const dialogs = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
+  const topDialog = dialogs[dialogs.length - 1];
+  if (topDialog) {
+    const recordForm = topDialog.querySelector("#dataset-record-form");
+    event.preventDefault();
+    if (recordForm instanceof HTMLFormElement) recordForm.requestSubmit();
+    return true;
+  }
 
   const datasetSave = document.querySelector<HTMLButtonElement>(
     ".editor-dataset-setup [data-dataset-save]:not([disabled])",

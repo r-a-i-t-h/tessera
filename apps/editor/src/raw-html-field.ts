@@ -23,12 +23,23 @@ export function rawHtmlInsertToolbar(insertTarget: string): string {
   ].join("")}</span>`;
 }
 
-export function rawHtmlField(name: string, label: string, value: string, rows: number, extraClass = ""): string {
-  const id = fieldId(name);
-  const target = escapeHtml(name);
-  return `<p class="editor-raw-html"><label for="${id}">${escapeHtml(label)}</label>
-    ${rawHtmlInsertToolbar(name)}
-    <textarea id="${id}" name="${target}" data-raw-html-target="${target}" rows="${rows}" spellcheck="false" class="w3-input w3-border editor-html${extraClass}">${escapeHtml(value)}</textarea></p>`;
+export function rawHtmlField(
+  name: string,
+  label: string,
+  value: string,
+  rows: number,
+  extraClass = "",
+  idSuffix = "",
+): string {
+  const id = fieldId(`${name}${idSuffix}`);
+  const targetName = `${name}${idSuffix}`;
+  const target = escapeHtml(targetName);
+  const fieldName = escapeHtml(name);
+  const labelHtml = label ? `<label for="${id}">${escapeHtml(label)}</label>` : "";
+  const aria = label ? "" : ` aria-label="${fieldName}"`;
+  return `<p class="editor-raw-html">${labelHtml}
+    ${rawHtmlInsertToolbar(targetName)}
+    <textarea id="${id}" name="${fieldName}" data-raw-html-target="${target}"${aria} rows="${rows}" spellcheck="false" class="w3-input w3-border editor-html${extraClass}">${escapeHtml(value)}</textarea></p>`;
 }
 
 export function layoutStaticHtmlField(value: string): string {

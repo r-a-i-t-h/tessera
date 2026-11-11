@@ -2,6 +2,7 @@ import type { DatasetField, DatasetRootRecord } from "@r-a-i-t-h/tessera-model";
 import { emptyRootRecordDraft, fieldById, formatRecordDisplayName } from "@r-a-i-t-h/tessera-model";
 import {
   appendDatasetRecord,
+  ApiError,
   clearDatasetRecords,
   datasetRootRecords,
   deleteDatasetRecord,
@@ -20,7 +21,7 @@ import { bindEntityOpener, entityOpenerHtml } from "../entity-opener.js";
 import { mergeEditorNav } from "../sidebar-nav.js";
 import { confirmDialog } from "../confirm-dialog.js";
 import { activateDialog } from "../dialog.js";
-import { escapeHtml } from "../dom.js";
+import { escapeHtml, formErrorPanel, showFormError } from "../dom.js";
 import { editorRecordTable } from "../list-row.js";
 import { openLibraryPicker } from "../library-picker.js";
 import type { PickedAsset } from "../forms/picker.js";
@@ -38,7 +39,7 @@ import {
 import { parseRoute } from "../router.js";
 import { datasetNavItems } from "./nav.js";
 import { openRecordPicker } from "./record-picker.js";
-import { readRecordForm, renderRecordForm } from "./record-form.js";
+import { commitObjectListChange, compactRecordCollections, readRecordForm, renderRecordForm } from "./record-form.js";
 import { bindRawHtmlField } from "../raw-html-field.js";
 import { bindRichTextField, runRichTextCommand, type RichTextFieldOptions } from "../compose/rich-text-field.js";
 import { buildPageTargetChoices, type PageTargetChoices } from "../forms/page-target.js";
@@ -264,6 +265,9 @@ async function mountDatasetGrid(
 
   function renderEditCell(record: DatasetRootRecord, field: DatasetField, colId: string): string {
     const v = record[field.id];
+    if (field.kind === "object" || (field.many && field.kind !== "asset" && field.kind !== "ref")) {
+      return escapeHtml(truncate(cellDisplay(record, { kind: "field", id: colId, field }, ctx), 80));
+    }
     if (field.kind === "boolean") {
       return `<input type="checkbox" data-grid-edit="${record.uid}" data-grid-field="${field.id}"${v === true ? " checked" : ""} />`;
     }
@@ -426,13 +430,15 @@ async function mountDatasetGrid(
   }
 
   async function openRecordDialog(record: DatasetRootRecord | undefined): Promise<void> {
-    const draft = record ?? (emptyRootRecordDraft(fileState.schema) as Record<string, unknown>);
+    const draft = (
+      record ? structuredClone(record) : emptyRootRecordDraft(fileState.schema)
+    ) as Record<string, unknown>;
     const host = document.createElement("div");
     let paintDialog: () => void;
     paintDialog = () => {
       host.innerHTML = `<div class="editor-picker-backdrop" data-dialog-backdrop><div class="w3-card w3-white w3-padding editor-card editor-dataset-record-dialog" role="dialog" aria-modal="true" tabindex="-1">
         <h2 class="w3-large">${record ? "Edit record" : "New record"}</h2>
-        <form id="dataset-record-form">${renderRecordForm(draft, fileState.schema.fields, { isRoot: true, formatAssetDisplay })}<p class="editor-actions editor-form-actions"><button type="submit" class="w3-button w3-theme">Save</button>
+        <form id="dataset-record-form">${formErrorPanel()}${renderRecordForm(draft, fileState.schema.fields, { isRoot: true, formatAssetDisplay })}<p class="editor-actions editor-form-actions"><button type="submit" class="w3-button w3-theme">Save</button>
         ${record ? `<button type="button" class="w3-button w3-white w3-border w3-border-red" data-record-delete>Delete</button>` : ""}
         <button type="button" class="w3-button w3-white" data-record-cancel>Cancel</button></p></form>
       </div></div>`;
@@ -447,45 +453,62 @@ async function mountDatasetGrid(
     document.body.appendChild(host);
     dialog = activateDialog(host, { onCancel: close, closeOnBackdrop: false });
 
-    host.querySelector("#dataset-record-form")?.addEventListener("submit", (event) => {
+    host.addEventListener("submit", (event) => {
+      const form = event.target;
+      if (!(form instanceof HTMLFormElement) || form.id !== "dataset-record-form") return;
       event.preventDefault();
-      const form = event.target as HTMLFormElement;
-      const next = readRecordForm(form, fileState.schema.fields, draft);
+      const next = compactRecordCollections(
+        readRecordForm(form, fileState.schema.fields, draft),
+        fileState.schema.fields,
+      );
       const save = record
         ? saveDatasetRecord(datasetId, record.uid, next)
         : appendDatasetRecord(datasetId, next);
-      void save.then((res) => {
-        if (!isActiveDatasetGridMount(mountId, datasetId)) {
+      void save
+        .then((res) => {
+          if (!isActiveDatasetGridMount(mountId, datasetId)) {
+            close();
+            return;
+          }
+          fileState = res.file;
           close();
-          return;
-        }
-        fileState = res.file;
-        close();
-        paint();
-      });
+          paint();
+        })
+        .catch((err: unknown) => {
+          const message = err instanceof ApiError ? err.message : "Could not save this record.";
+          const current = host.querySelector("#dataset-record-form");
+          if (current instanceof HTMLFormElement) showFormError(current, message);
+        });
     });
-    host.querySelector("[data-record-cancel]")?.addEventListener("click", close);
-    host.querySelector("[data-record-delete]")?.addEventListener("click", () => {
-      void (async () => {
-        const deleteButton = host.querySelector<HTMLButtonElement>("[data-record-delete]");
-        if (!record || !(await confirmDialog({
-          message: "Delete this record?",
-          returnFocus: deleteButton,
-          destructive: true,
-          confirmLabel: "Delete",
-        }))) {
-          return;
-        }
-        void deleteDatasetRecord(datasetId, record.uid).then((res) => {
-        if (!isActiveDatasetGridMount(mountId, datasetId)) {
-          close();
-          return;
-        }
-        fileState = res.file;
+    host.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof Element) || !host.contains(target)) return;
+      if (target.closest("[data-record-cancel]")) {
         close();
-        paint();
-      });
-      })();
+        return;
+      }
+      if (target.closest("[data-record-delete]")) {
+        void (async () => {
+          const deleteButton = host.querySelector<HTMLButtonElement>("[data-record-delete]");
+          if (!record || !(await confirmDialog({
+            message: "Delete this record?",
+            returnFocus: deleteButton,
+            destructive: true,
+            confirmLabel: "Delete",
+          }))) {
+            return;
+          }
+          void deleteDatasetRecord(datasetId, record.uid).then((res) => {
+            if (!isActiveDatasetGridMount(mountId, datasetId)) {
+              close();
+              return;
+            }
+            fileState = res.file;
+            close();
+            paint();
+          });
+        })();
+      }
     });
   }
 
@@ -522,7 +545,32 @@ async function mountDatasetGrid(
         onDirty: () => {},
       });
       form.addEventListener("click", (event) => {
-        const cmd = (event.target as HTMLElement).closest<HTMLElement>("[data-cmd]");
+        const target = event.target instanceof Element ? event.target : null;
+        const add = target?.closest<HTMLButtonElement>("[data-object-add], [data-many-add]");
+        const fieldId = add?.dataset.objectAdd || add?.dataset.manyAdd;
+        if (add && fieldId && form.contains(add)) {
+          event.preventDefault();
+          if (!commitObjectListChange(form, fileState.schema.fields, draft, { op: "add", fieldId })) return;
+          const list = draft[fieldId];
+          const index = Array.isArray(list) ? list.length - 1 : 0;
+          repaint();
+          queueMicrotask(() => focusCollectionRow(host, fieldId, index));
+          return;
+        }
+        const remove = target?.closest<HTMLButtonElement>("[data-object-remove], [data-many-remove]");
+        const removeFieldId = remove?.dataset.objectRemove || remove?.dataset.manyRemove;
+        if (remove && removeFieldId && form.contains(remove)) {
+          event.preventDefault();
+          const index = Number(
+            remove.closest<HTMLElement>("[data-object-index], [data-many-index]")?.dataset.objectIndex ??
+              remove.closest<HTMLElement>("[data-many-index]")?.dataset.manyIndex,
+          );
+          if (!commitObjectListChange(form, fileState.schema.fields, draft, { op: "remove", fieldId: removeFieldId, index })) return;
+          repaint();
+          queueMicrotask(() => focusAfterCollectionRemove(host, removeFieldId, index));
+          return;
+        }
+        const cmd = target?.closest<HTMLElement>("[data-cmd]");
         if (!cmd?.dataset.cmd) return;
         event.preventDefault();
         runRichTextCommand(form, cmd.dataset.cmd, richTextOptions);
@@ -570,6 +618,35 @@ async function mountDatasetGrid(
   }
 
   paint();
+}
+
+function focusCollectionRow(host: ParentNode, fieldId: string, index: number): void {
+  const row = collectionRow(host, fieldId, index);
+  row?.querySelector<HTMLElement>("input, select, textarea, [contenteditable='true']")?.focus();
+}
+
+function focusAfterCollectionRemove(host: ParentNode, fieldId: string, index: number): void {
+  const rows = collectionRows(host, fieldId);
+  const next = rows[Math.min(index, rows.length - 1)];
+  if (next) {
+    next.querySelector<HTMLElement>("input, select, textarea, [contenteditable='true']")?.focus();
+    return;
+  }
+  host.querySelector<HTMLButtonElement>(
+    `[data-object-add="${CSS.escape(fieldId)}"], [data-many-add="${CSS.escape(fieldId)}"]`,
+  )?.focus();
+}
+
+function collectionRows(host: ParentNode, fieldId: string): HTMLElement[] {
+  const escaped = CSS.escape(fieldId);
+  return [...host.querySelectorAll<HTMLElement>(`[data-object-field="${escaped}"], [data-many-field="${escaped}"]`)];
+}
+
+function collectionRow(host: ParentNode, fieldId: string, index: number): HTMLElement | null {
+  const escaped = CSS.escape(fieldId);
+  return host.querySelector<HTMLElement>(
+    `[data-object-field="${escaped}"][data-object-index="${index}"], [data-many-field="${escaped}"][data-many-index="${index}"]`,
+  );
 }
 
 function truncate(text: string, max: number): string {

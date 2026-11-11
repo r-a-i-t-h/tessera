@@ -3136,6 +3136,33 @@ a.editor-library-row {
   border-left: 2px solid #e8e8e8;
 }
 
+.editor-dataset-many {
+  margin: 0.75rem 0;
+}
+
+.editor-dataset-many-label {
+  margin: 0 0 0.35rem;
+  font-weight: 600;
+}
+
+.editor-dataset-many-row {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.editor-dataset-many-row > :first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+}
+
+.editor-dataset-object-row > legend {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 @media (max-width: 40rem) {
   .editor-dataset-schema .editor-type-line,
   .editor-dataset-schema-meta-row {

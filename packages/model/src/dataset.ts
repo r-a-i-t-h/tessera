@@ -738,6 +738,29 @@ function applyDefaultsToObject(obj: Record<string, unknown>, fields: readonly Da
   }
 }
 
+/** Wrap a legacy scalar so a collection field validates as a list. */
+export function coerceCollectionValues(
+  record: Record<string, unknown>,
+  fields: readonly DatasetField[],
+): void {
+  for (const field of fields) {
+    const value = record[field.id];
+    if (field.kind === "object" && value && typeof value === "object" && !Array.isArray(value)) {
+      coerceCollectionValues(value as Record<string, unknown>, field.fields ?? []);
+    }
+    if (!field.many) continue;
+    if (value === undefined || value === null || value === "") continue;
+    const list = Array.isArray(value) ? value : [value];
+    record[field.id] = list;
+    if (field.kind !== "object") continue;
+    for (const item of list) {
+      if (item && typeof item === "object" && !Array.isArray(item)) {
+        coerceCollectionValues(item as Record<string, unknown>, field.fields ?? []);
+      }
+    }
+  }
+}
+
 export function stripEmptyOptionalFields(
   obj: Record<string, unknown>,
   fields: readonly DatasetField[],

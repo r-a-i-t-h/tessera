@@ -361,7 +361,8 @@ html.editor-dark #entry-list li.editor-entry-home-boundary {
   border-bottom-color: var(--editor-border);
 }
 
-html.editor-dark .editor-fieldset legend {
+html.editor-dark .editor-fieldset legend,
+html.editor-dark .editor-dataset-many-label {
   color: var(--editor-text);
 }
 
