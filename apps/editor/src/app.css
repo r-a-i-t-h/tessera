@@ -3306,6 +3306,31 @@ a.editor-library-row {
   min-height: 4.2rem;
 }
 
+.editor-schema-ref {
+  width: min(28rem, 100%);
+  margin: 0.35rem 0 0.15rem auto;
+}
+
+.editor-schema-ref-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.editor-schema-ref-row label {
+  margin: 0;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.editor-schema-ref-row .w3-select {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+  max-width: 20rem;
+  margin: 0;
+}
+
 .editor-dataset-schema .editor-type-line > label {
   display: flex;
   align-items: center;

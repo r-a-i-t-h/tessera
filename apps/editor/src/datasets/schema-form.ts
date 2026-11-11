@@ -195,7 +195,14 @@ function refDatasetControl(
     }),
   ].join("");
   const sub = subIndex === undefined ? "" : ` data-schema-sub="${subIndex}"`;
-  return `<p><label>Dataset <select class="w3-select" data-schema-dataset="${index}" data-depth="${depth}"${sub}>${opts}</select></label></p>`;
+  const id =
+    subIndex === undefined ? `schema-ref-dataset-${index}` : `schema-ref-dataset-${index}-${subIndex}`;
+  return `<div class="editor-schema-ref">
+    <div class="editor-schema-ref-row">
+      <label for="${id}">Dataset</label>
+      <select id="${id}" class="w3-select" data-schema-dataset="${index}" data-depth="${depth}"${sub}>${opts}</select>
+    </div>
+  </div>`;
 }
 
 function actions(index: number): string {
@@ -294,7 +301,9 @@ export function readSchemaForm(root: HTMLElement, draft: SchemaDraft): SchemaDra
     field.many = line.querySelector<HTMLInputElement>(`[data-schema-many="${index}"][data-depth="0"]`)?.checked === true;
     if (field.kind === "ref") {
       const picked = row
-        .querySelector<HTMLSelectElement>(`:scope > p [data-schema-dataset="${index}"][data-depth="0"]`)
+        .querySelector<HTMLSelectElement>(
+          `:scope > .editor-schema-ref [data-schema-dataset="${index}"][data-depth="0"]`,
+        )
         ?.value.trim();
       field.dataset = picked || base.dataset;
     } else {
