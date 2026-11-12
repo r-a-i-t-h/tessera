@@ -1,7 +1,6 @@
 /* Editor shell dark mode — chrome only; compose canvas and style specimen stay light. */
 
 html.editor-dark {
-  --tessera-nav-pane: #dce8e6;
   --editor-tab-track: #35383c;
   --editor-tab-pane: #2b2d30;
   --editor-surface: #2b2d30;
@@ -74,7 +73,11 @@ html.editor-dark .w3-pale-red {
   color: #f5c4c4 !important;
 }
 
-/* Sidebar shell */
+/* Sidebar shell. The selected tab uses the page background so it meets the main column. */
+html.editor-dark .editor-sidebar {
+  --tessera-nav-pane: #1e1f22;
+}
+
 html.editor-dark .editor-sidebar.w3-theme,
 html.editor-dark .editor-mobile-bar.w3-theme,
 html.editor-dark .editor-bar.w3-theme {
@@ -107,7 +110,7 @@ html.editor-dark .editor-sidebar .tessera-nav-current,
 html.editor-dark .editor-sidebar .tessera-nav-child-current,
 html.editor-dark .editor-sidebar .tessera-nav-current:hover,
 html.editor-dark .editor-sidebar .tessera-nav-child-current:hover {
-  color: #1a1a1a !important;
+  color: #fff !important;
 }
 
 html.editor-dark .editor-toolbar {
