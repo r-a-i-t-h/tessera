@@ -107,11 +107,8 @@ export function renderRuntimeModulesList(modules: RuntimeModuleAsset[]): string 
   return `<h1 class="w3-large">Runtime modules</h1>
     <div class="editor-library-split editor-runtime-modules">
       <section class="editor-runtime-modules-browse" aria-label="Modules">
-        ${browse}
-      </section>
-      <div class="editor-library-panels">
         <p><button type="button" class="w3-button w3-theme" data-action="add-runtime-module">Add runtime module</button></p>
-        <form id="new-runtime-module-form" class="w3-card w3-white w3-padding editor-card editor-new-page" data-runtime-new hidden>
+        <form id="new-runtime-module-form" class="editor-new-page" data-runtime-new hidden>
           <p>
             <label for="new-runtime-module-id">Id</label>
             <input id="new-runtime-module-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
@@ -132,6 +129,9 @@ export function renderRuntimeModulesList(modules: RuntimeModuleAsset[]): string 
           ${formErrorPanel()}
           <p><button type="submit" class="w3-button w3-theme">Create module</button></p>
         </form>
+        ${browse}
+      </section>
+      <div class="editor-library-panels">
         <details id="runtime-module-add" class="w3-card w3-white editor-card editor-library-add" open>
           <summary>Add modules</summary>
           <form data-runtime-upload class="w3-padding editor-drop">
@@ -167,6 +167,10 @@ export function renderRuntimeModulePage(
       <div class="editor-toolbar-row">
         <a class="w3-button w3-white editor-back" href="${runtimeModulesRouteHash()}" aria-label="Back" title="Back (Escape)">←</a>
         ${titleHtml}
+        <p class="editor-actions">
+          <button type="submit" form="runtime-module-form" class="w3-button w3-theme">Save</button>
+          <button type="button" data-runtime-delete class="w3-button w3-white w3-border w3-border-red">Delete</button>
+        </p>
       </div>
     </div>
     ${renderRuntimeModuleDetail(mod, raw)}
@@ -323,10 +327,6 @@ export function renderRuntimeModuleDetail(mod: RuntimeModuleAsset, raw: string):
       <p class="runtime-module-editor-area"><label for="runtime-module-raw-${escapeHtml(mod.id)}">Raw file</label><textarea id="runtime-module-raw-${escapeHtml(mod.id)}" name="text" class="w3-input w3-border editor-html" rows="24" spellcheck="false">${escapeHtml(raw)}</textarea></p>
       <p class="runtime-module-actions">
         <button type="button" class="w3-button w3-white runtime-module-normalize" data-runtime-normalize>Normalize</button>
-      </p>
-      <p class="editor-actions editor-form-actions">
-        <button type="submit" class="w3-button w3-theme">Save</button>
-        <button type="button" data-runtime-delete class="w3-button w3-white w3-border w3-border-red">Delete</button>
       </p>
     </form>
   </div>`;

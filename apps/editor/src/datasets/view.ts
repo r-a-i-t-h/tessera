@@ -456,9 +456,10 @@ async function mountDatasetGrid(
     paintDialog = () => {
       host.innerHTML = `<div class="editor-picker-backdrop" data-dialog-backdrop><div class="w3-card w3-white w3-padding editor-card editor-dataset-record-dialog" role="dialog" aria-modal="true" tabindex="-1">
         <h2 class="w3-large">${record ? "Edit record" : "New record"}</h2>
-        <form id="dataset-record-form">${formErrorPanel()}${renderRecordForm(draft, fileState.schema.fields, { isRoot: true, formatAssetDisplay })}<p class="editor-actions editor-form-actions"><button type="submit" class="w3-button w3-theme">Save</button>
+        <form id="dataset-record-form">${formErrorPanel()}${renderRecordForm(draft, fileState.schema.fields, { isRoot: true, formatAssetDisplay })}</form>
+        <p class="editor-actions"><button type="submit" form="dataset-record-form" class="w3-button w3-theme">Save</button>
         ${record ? `<button type="button" class="w3-button w3-white w3-border w3-border-red" data-record-delete>Delete</button>` : ""}
-        <button type="button" class="w3-button w3-white" data-record-cancel>Cancel</button></p></form>
+        <button type="button" class="w3-button w3-white" data-record-cancel>Cancel</button></p>
       </div></div>`;
       bindRecordForm(host, draft, paintDialog, pageTitles, pageChoices);
     };

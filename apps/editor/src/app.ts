@@ -895,7 +895,7 @@ async function bindUser(
     if (isFullAdmin(user)) {
       patch.restrictAccessLevel = data.get("limitedEditor") === "on" ? "editor" : null;
     }
-    const button = form?.querySelector<HTMLButtonElement>('button[type="submit"]');
+    const button = root.querySelector<HTMLButtonElement>('button[form="edit-user-form"]');
     if (button) button.disabled = true;
     void (async () => {
       try {
@@ -984,7 +984,10 @@ function userDetailToolbar(target: ManagedUser, actor: PublicUser, users: Manage
       <div class="editor-toolbar-row">
         <a class="w3-button w3-white editor-back" href="#/users" aria-label="Back" title="Back (Escape)">←</a>
         ${titleHtml}
-        <p class="editor-actions">${toggle}${remove}</p>
+        <p class="editor-actions">
+          <button type="submit" form="edit-user-form" class="w3-button w3-theme">Save</button>
+          ${toggle}${remove}
+        </p>
       </div>
     </div>`;
 }
@@ -1058,7 +1061,6 @@ function userEditHtml(target: ManagedUser, actor: PublicUser, notice: string, er
       </p>
       <p class="editor-check"><label><input id="user-disabled" name="disabled" type="checkbox"${disabled}${self ? ' data-user-self-lock aria-readonly="true"' : ""} /> Disabled</label></p>
       ${limitedField}
-      <p class="editor-actions"><button type="submit" class="w3-button w3-theme">Save</button></p>
     </form>`;
 }
 
@@ -3385,7 +3387,7 @@ async function bindEdit(
             : kind === "types"
               ? toolbarDeleteButton("delete-type")
               : "";
-  const actionRow = `<p class="editor-actions editor-form-actions"><button type="submit" id="record-save" class="w3-button w3-theme">Save</button>${sessionActions}${deleteAction}</p>`;
+  const actionRow = `<p class="editor-actions${pageHost ? "" : " editor-form-actions"}"><button type="submit" id="record-save"${pageHost ? ' form="record-form"' : ""} class="w3-button w3-theme">Save</button>${sessionActions}${deleteAction}</p>`;
   const saveStatus = `<p id="save-status" class="w3-text-grey" hidden></p>`;
   const editor = `${lifecycleHtml(payload)}
      ${noticePanel(notice)}
@@ -3408,8 +3410,8 @@ async function bindEdit(
      <p class="w3-text-grey editor-record-note"><code>${escapeHtml(payload.file)}</code></p>
      <form id="record-form" class="w3-card w3-white w3-padding-large editor-card">
        ${rawHtmlPageChoicesHidden}${formInner}
-       ${saveStatus}${actionRow}
-     </form>
+       ${pageHost ? "" : `${saveStatus}${actionRow}`}
+      </form>
      </div>
      </div>
      ${kind === "items" ? itemToolsHtml(id, showDuplicateTools ? duplicateSuggested : undefined) : ""}
@@ -3429,7 +3431,9 @@ async function bindEdit(
          <div class="editor-toolbar-row">
            <a class="w3-button w3-white editor-back" href="${place.back}" aria-label="Back" title="Back (Escape)">←</a>
            ${titleHtml}
+           ${pageHost ? actionRow : ""}
          </div>
+         ${pageHost ? saveStatus : ""}
        </div>
        ${editor}`,
       true,
@@ -4050,8 +4054,9 @@ function toolbarDeleteButton(action: string): string {
 function itemToolsHtml(id: string, duplicateSuggested?: string): string {
   const duplicate = duplicateSuggested ? duplicateToolsRow(duplicateSuggested) : "";
   return `<form id="item-tools" class="w3-card w3-white w3-padding editor-card">
-    <p><label for="item-rename-id">New id <input id="item-rename-id" name="item-rename-id" class="w3-input w3-border" value="${escapeHtml(id)}" autocomplete="off" spellcheck="false" /></label></p>
-    <p class="editor-actions">
+    <p class="editor-rename-row">
+      <label for="item-rename-id">New id</label>
+      <input id="item-rename-id" name="item-rename-id" class="w3-input w3-border" value="${escapeHtml(id)}" autocomplete="off" spellcheck="false" />
       <button type="submit" class="w3-button w3-white">Rename</button>
     </p>
     ${duplicate}

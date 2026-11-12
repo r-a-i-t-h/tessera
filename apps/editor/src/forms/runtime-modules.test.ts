@@ -38,6 +38,8 @@ describe("runtime module editor", () => {
     expect(html).toContain("multiple");
     expect(html).toContain('data-action="add-runtime-module"');
     expect(html).toContain("data-runtime-new");
+    expect(html).toMatch(/editor-runtime-modules-browse[\s\S]*add-runtime-module[\s\S]*runtime-module-list/);
+    expect(html).not.toMatch(/editor-library-panels[\s\S]*add-runtime-module/);
   });
 
   it("blank module source documents mount parameters and exports mount", () => {
