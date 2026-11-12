@@ -1,5 +1,5 @@
 import type { MaintenanceFinding, MaintenanceReport } from "./api.js";
-import { escapeHtml, statusPanels } from "./dom.js";
+import { editorListToolbar, escapeHtml, statusPanels } from "./dom.js";
 import { editorNavListItem } from "./list-row.js";
 
 export type MaintenanceTabId =
@@ -139,7 +139,7 @@ export function maintenanceHtml(
   error = "",
 ): string {
   const tab = maintenanceTabId(selected);
-  return `<h1 class="w3-large">Maintenance</h1>
+  return `${editorListToolbar("Maintenance")}
     ${statusPanels(notice, error)}
     <div class="editor-maintenance-split">
       ${reportNav(report, tab)}

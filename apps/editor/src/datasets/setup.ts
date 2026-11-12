@@ -93,8 +93,7 @@ export function datasetsSetupSection(datasets: DatasetSummary[]): string {
     ],
   }));
   const table = editorRecordTable(rows, ["Id", "Title", "Records", ""], 4, "No datasets yet.");
-  return `<p><button type="button" class="w3-button w3-theme" data-action="add-dataset">Add dataset</button></p>
-    <form id="new-dataset-form" class="editor-new-page" hidden>
+  return `<form id="new-dataset-form" class="editor-new-page" hidden>
       <p>
         <label for="new-dataset-id">Id</label>
         <input id="new-dataset-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />

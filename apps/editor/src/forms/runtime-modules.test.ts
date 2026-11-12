@@ -30,15 +30,16 @@ describe("runtime module editor", () => {
       { id: "demo", url: "./runtime-modules/demo.mjs", ext: "mjs", title: "Demo" },
       { id: "other", url: "./runtime-modules/other.js", ext: "js" },
     ]);
-    expect(html).toContain('<h1 class="w3-large">Runtime modules</h1>');
-    expect(html).not.toContain("editor-toolbar");
+    expect(html).toContain("editor-list-toolbar");
+    expect(html).toContain("Runtime modules");
     expect(html).toContain('id="runtime-module-list"');
     expect(html).toContain("editor-library-split");
     expect(html).toContain("data-runtime-upload");
     expect(html).toContain("multiple");
     expect(html).toContain('data-action="add-runtime-module"');
     expect(html).toContain("data-runtime-new");
-    expect(html).toMatch(/editor-runtime-modules-browse[\s\S]*add-runtime-module[\s\S]*runtime-module-list/);
+    expect(html).toMatch(/editor-list-toolbar[\s\S]*add-runtime-module/);
+    expect(html).toMatch(/editor-runtime-modules-browse[\s\S]*runtime-module-list/);
     expect(html).not.toMatch(/editor-library-panels[\s\S]*add-runtime-module/);
   });
 

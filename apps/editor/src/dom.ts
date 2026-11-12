@@ -44,6 +44,18 @@ export function statusPanels(notice: string, error: string): string {
   return errorPanel(error);
 }
 
+/** List-page chrome: title on the left, optional action buttons aligned right. */
+export function editorListToolbar(title: string, actionsHtml = "", titleExtraClass = ""): string {
+  const titleClass = titleExtraClass ? `w3-large ${titleExtraClass}` : "w3-large";
+  const actions = actionsHtml ? `<p class="editor-actions">${actionsHtml}</p>` : "";
+  return `<div class="editor-toolbar editor-list-toolbar">
+      <div class="editor-toolbar-row">
+        <h1 class="${titleClass}">${escapeHtml(title)}</h1>
+        ${actions}
+      </div>
+    </div>`;
+}
+
 let editorToastHideTimer: ReturnType<typeof setTimeout> | undefined;
 let editorToastRemoveTimer: ReturnType<typeof setTimeout> | undefined;
 

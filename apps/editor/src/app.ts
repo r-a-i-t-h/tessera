@@ -236,7 +236,16 @@ import { guideHtml, scrollGuideSection } from "./guide.js";
 import { maintenanceHtml } from "./maintenance.js";
 import { bindCodeWrap, codeWrapClass, codeWrapToggle, isCodeWrapToggle } from "./code-wrap.js";
 import { bindDarkMode } from "./editor-color-mode.js";
-import { escapeHtml, fieldId, formErrorPanel, noticePanel, showEditorToast, statusPanels, wireEditorThumbFallbacks } from "./dom.js";
+import {
+  editorListToolbar,
+  escapeHtml,
+  fieldId,
+  formErrorPanel,
+  noticePanel,
+  showEditorToast,
+  statusPanels,
+  wireEditorThumbFallbacks,
+} from "./dom.js";
 import { handleDatasetGridKeyboard } from "./datasets/grid-keyboard.js";
 import { clearListKeyboardSelection, handleListKeyboard } from "./list-keyboard.js";
 import { bindEditorListRows, editorNavListItem } from "./list-row.js";
@@ -926,9 +935,8 @@ function usersHtml(users: ManagedUser[], actor: PublicUser, notice: string, erro
   const rows = users.length
     ? `<ul class="w3-ul">${users.map((item) => userRow(item, actor)).join("")}</ul>`
     : `<p class="w3-text-grey">No editors yet.</p>`;
-  return `<h1 class="w3-large">Users</h1>
+  return `${editorListToolbar("Users", '<button type="button" class="w3-button w3-theme" data-action="add-user">Add user</button>')}
     ${statusPanels(notice, error)}
-    <p><button type="button" class="w3-button w3-theme" data-action="add-user">Add user</button></p>
     <form id="new-user-form" class="editor-new-page" hidden>
       <p>
         <label for="new-username">Username</label>
@@ -1157,7 +1165,7 @@ async function bindNavigation(root: HTMLElement, user: PublicUser, notice = "", 
   const row = listing.records.find((item) => item.kind === "nav");
   root.innerHTML = chrome(
     user,
-    `<h1 class="w3-large">Navigation</h1>${statusPanels(notice, error)}<section class="editor-kind" aria-label="Navigation">${singletonEditorMount("nav", row)}</section>`,
+    `${editorListToolbar("Navigation")}${statusPanels(notice, error)}<section class="editor-kind" aria-label="Navigation">${singletonEditorMount("nav", row)}</section>`,
     true,
     "navigation",
   );
@@ -2158,6 +2166,27 @@ function recordsPageHeading(listing: RecordList, active?: string): string {
   return recordKindLabel(listing, active);
 }
 
+function recordListAddAction(active: string | undefined): string {
+  switch (active) {
+    case "blogs":
+      return `<button type="button" class="w3-button w3-theme" data-action="add-blog">Add blog</button>`;
+    case "datasets":
+      return `<button type="button" class="w3-button w3-theme" data-action="add-dataset">Add dataset</button>`;
+    case "layouts":
+      return `<button type="button" class="w3-button w3-theme" data-action="add-layout">Add layout</button>`;
+    case "templates":
+      return `<button type="button" class="w3-button w3-theme" data-action="add-template">Add template</button>`;
+    case "types":
+      return `<button type="button" class="w3-button w3-theme" data-action="add-type">Add type</button>`;
+    case "bindings":
+      return `<button type="button" class="w3-button w3-theme" data-action="add-binding">Add binding</button>`;
+    case "items":
+      return `<button type="button" class="w3-button w3-theme" data-action="add-item">Add item</button>`;
+    default:
+      return "";
+  }
+}
+
 function listHtml(
   listing: RecordList,
   selected?: string,
@@ -2176,7 +2205,7 @@ function listHtml(
   }
   const active = activeRecordKind(listing, selected);
   const siteReady = listing.records.some((row) => row.kind === "site");
-  return `<h1 class="w3-large">${escapeHtml(recordsPageHeading(listing, active))}</h1>
+  return `${editorListToolbar(recordsPageHeading(listing, active), recordListAddAction(active))}
     ${statusPanels(notice, error)}
     ${siteReady ? "" : startSiteHtml(canInitSite)}
     ${recordTab(listing, active, byKind, siteReady, layoutNotes, itemZones, datasetSummaries)}`;
@@ -2235,8 +2264,7 @@ function singletonEditorMount(kind: string, row: RecordSummary | undefined): str
 
 function layoutSection(rows: RecordSummary[], siteReady: boolean, notes: Map<string, string>): string {
   if (!siteReady) return `<p class="w3-text-grey">No records yet.</p>`;
-  return `<p><button type="button" class="w3-button w3-theme" data-action="add-layout">Add layout</button></p>
-    <form id="new-layout-form" class="editor-new-page" hidden>
+  return `<form id="new-layout-form" class="editor-new-page" hidden>
       <p><label for="new-layout-id">Id</label>
         <input id="new-layout-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
       </p>
@@ -2379,7 +2407,7 @@ async function bindPages(root: HTMLElement, user: PublicUser, notice = "", error
   const siteReady = listing.records.some((row) => row.kind === "site");
   root.innerHTML = chrome(
     user,
-    `<h1 class="w3-large">Pages</h1>${statusPanels(notice, error)}${contentSection(listed, templates, siteReady, listOrder, homePageId)}`,
+    `${editorListToolbar("Pages", '<button type="button" class="w3-button w3-theme" data-action="add-page">Add page</button>')}${statusPanels(notice, error)}${contentSection(listed, templates, siteReady, listOrder, homePageId)}`,
     true,
     "pages",
   );
@@ -2563,17 +2591,17 @@ function articlesHtml(
     const hint = blogs.length
       ? `<p class="w3-text-grey">Choose a blog in the sidebar.</p>`
       : `<p class="w3-text-grey">No blogs yet. Add one under <a href="#/records/blogs">Records → Blogs</a>.</p>`;
-    return `<h1 class="w3-large">Articles</h1>${statusPanels(notice, error)}${hint}`;
+    return `${editorListToolbar("Articles")}${statusPanels(notice, error)}${hint}`;
   }
   if (!blogs.some((row) => row.id === blog)) {
-    return `<h1 class="w3-large">Articles</h1><p>That blog is not a record. <a href="#/articles">Back</a></p>`;
+    return `${editorListToolbar("Articles")}<p>That blog is not a record. <a href="#/articles">Back</a></p>`;
   }
   const blogRow = blogs.find((row) => row.id === blog);
   const articles = blogArticles(listing, blog, listOrder);
   const items = renderArticleListItems(articles);
-  return `<h1 class="w3-large">${escapeHtml(blogRow?.title ?? blog)}</h1>
+  const blogTitle = blogRow?.title ?? blog;
+  return `${editorListToolbar(blogTitle, '<button type="button" class="w3-button w3-theme" data-action="add-article">Add article</button>')}
     ${statusPanels(notice, error)}
-    <p><button type="button" class="w3-button w3-theme" data-action="add-article">Add article</button></p>
     <form id="new-article-form" class="editor-new-page" hidden>
       <p><label for="new-article-id">Id</label>
         <input id="new-article-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" /></p>
@@ -2643,8 +2671,7 @@ function blogsSection(listing: RecordList): string {
       </li>`;
     })
     .join("");
-  return `<p><button type="button" class="w3-button w3-theme" data-action="add-blog">Add blog</button></p>
-    <form id="new-blog-form" class="editor-new-page" hidden>
+  return `<form id="new-blog-form" class="editor-new-page" hidden>
       <p><label for="new-blog-id">Id</label>
         <input id="new-blog-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" /></p>
       <p><label for="new-blog-title">Title</label>
@@ -2760,8 +2787,7 @@ function contentSection(
   const options = templates
     .map((row) => `<option value="${escapeHtml(row.id)}">${escapeHtml(row.title ?? row.id)}</option>`)
     .join("");
-  return `<p><button type="button" class="w3-button w3-theme" data-action="add-page">Add page</button></p>
-    <form id="new-page-form" class="editor-new-page" hidden>
+  return `<form id="new-page-form" class="editor-new-page" hidden>
       <p><label for="new-page-id">Id</label>
         <input id="new-page-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
       </p>
@@ -2839,8 +2865,7 @@ function itemSection(rows: RecordSummary[], siteReady: boolean, zones: readonly 
   const zoneOptions = zones
     .map((id) => `<option value="${escapeHtml(id)}">${escapeHtml(id)}</option>`)
     .join("");
-  return `<p><button type="button" class="w3-button w3-theme" data-action="add-item">Add item</button></p>
-    <form id="new-item-form" class="editor-new-page" hidden>
+  return `<form id="new-item-form" class="editor-new-page" hidden>
       <p><label for="new-item-id">Id</label>
         <input id="new-item-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
       </p>
@@ -2867,8 +2892,7 @@ function itemSection(rows: RecordSummary[], siteReady: boolean, zones: readonly 
 
 function typeSection(rows: RecordSummary[], siteReady: boolean): string {
   if (!siteReady) return `<p class="w3-text-grey">No records yet.</p>`;
-  return `<p><button type="button" class="w3-button w3-theme" data-action="add-type">Add type</button></p>
-    <form id="new-type-form" class="editor-new-page" hidden>
+  return `<form id="new-type-form" class="editor-new-page" hidden>
       <p><label for="new-type-id">Id</label>
         <input id="new-type-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
       </p>
@@ -2880,15 +2904,13 @@ function typeSection(rows: RecordSummary[], siteReady: boolean): string {
 
 function bindingSection(rows: RecordSummary[], siteReady: boolean, notes: Map<string, string>): string {
   if (!siteReady) return `<p class="w3-text-grey">No records yet.</p>`;
-  return `<p><button type="button" class="w3-button w3-theme" data-action="add-binding">Add binding</button></p>
-    <form id="new-binding-form" class="editor-new-page" hidden></form>
+  return `<form id="new-binding-form" class="editor-new-page" hidden></form>
     ${rows.length ? recordList(rows, false, (row) => notes.get(row.id) ?? "") : `<p class="w3-text-grey">No bindings yet.</p>`}`;
 }
 
 function templateSection(rows: RecordSummary[], siteReady: boolean): string {
   if (!siteReady) return `<p class="w3-text-grey">No records yet.</p>`;
-  return `<p><button type="button" class="w3-button w3-theme" data-action="add-template">Add template</button></p>
-    <form id="new-template-form" class="editor-new-page" hidden>
+  return `<form id="new-template-form" class="editor-new-page" hidden>
       <p><label for="new-template-id">Id</label>
         <input id="new-template-id" name="id" class="w3-input w3-border w3-margin-top" required autocomplete="off" spellcheck="false" />
       </p>

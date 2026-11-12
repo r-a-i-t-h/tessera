@@ -1,6 +1,6 @@
 import { confirmDialog } from "../confirm-dialog.js";
 import { activateDialog, type DialogController } from "../dialog.js";
-import { escapeHtml, formErrorPanel, showFormError } from "../dom.js";
+import { editorListToolbar, escapeHtml, formErrorPanel, showFormError } from "../dom.js";
 import { editorNavListItem } from "../list-row.js";
 import type { RuntimeModuleAsset } from "../api.js";
 import { buildRuntimeModuleEntityItems } from "../entity-opener-items.js";
@@ -104,10 +104,11 @@ export function renderRuntimeModulesList(modules: RuntimeModuleAsset[]): string 
   const browse = modules.length
     ? `<ul class="w3-ul" id="runtime-module-list">${rows}</ul>`
     : `<p class="w3-text-grey">No modules yet.</p>`;
-  return `<h1 class="w3-large">Runtime modules</h1>
+  const addAction =
+    '<button type="button" class="w3-button w3-theme" data-action="add-runtime-module">Add runtime module</button>';
+  return `${editorListToolbar("Runtime modules", addAction)}
     <div class="editor-library-split editor-runtime-modules">
       <section class="editor-runtime-modules-browse" aria-label="Modules">
-        <p><button type="button" class="w3-button w3-theme" data-action="add-runtime-module">Add runtime module</button></p>
         <form id="new-runtime-module-form" class="editor-new-page" data-runtime-new hidden>
           <p>
             <label for="new-runtime-module-id">Id</label>

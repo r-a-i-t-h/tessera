@@ -1,4 +1,4 @@
-import { escapeHtml, noticePanel } from "../dom.js";
+import { editorListToolbar, escapeHtml, noticePanel } from "../dom.js";
 import {
   libraryAssetListOrderSelect,
   sortLibraryAssets,
@@ -241,15 +241,9 @@ export function renderLibrary(
   const browse = empty
     ? `<p class="w3-text-grey">This folder is empty.</p>`
     : `<ul class="w3-ul editor-library">${rows}</ul>`;
-  return `<div class="editor-toolbar">
-      <div class="editor-toolbar-row">
-        <h1 class="w3-large editor-entity-opener">Library</h1>
-        <p class="editor-actions">
-          <button type="button" class="w3-button w3-white" data-action="add-folder">Add folder</button>
-          <button type="button" class="w3-button w3-white" data-action="rescan">Rescan</button>
-        </p>
-      </div>
-    </div>
+  const libraryActions = `<button type="button" class="w3-button w3-white" data-action="add-folder">Add folder</button>
+          <button type="button" class="w3-button w3-white" data-action="rescan">Rescan</button>`;
+  return `${editorListToolbar("Library", libraryActions, "editor-entity-opener")}
     ${noticePanel(notice)}
     <p class="editor-crumbs">${crumbs}</p>
     <div class="editor-library-split">

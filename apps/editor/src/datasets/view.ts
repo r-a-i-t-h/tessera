@@ -21,7 +21,7 @@ import { bindEntityOpener, entityOpenerHtml } from "../entity-opener.js";
 import { mergeEditorNav } from "../sidebar-nav.js";
 import { confirmDialog } from "../confirm-dialog.js";
 import { activateDialog } from "../dialog.js";
-import { escapeHtml, formErrorPanel, showFormError } from "../dom.js";
+import { editorListToolbar, escapeHtml, formErrorPanel, showFormError } from "../dom.js";
 import { editorRecordTable } from "../list-row.js";
 import { openLibraryPicker } from "../library-picker.js";
 import type { PickedAsset } from "../forms/picker.js";
@@ -85,7 +85,7 @@ async function mountDataList(root: HTMLElement, user: PublicUser, bindChrome: Bi
   const table = editorRecordTable(rows, ["Id", "Title", "Records", "Invalid"], 4, "No datasets yet.");
   root.innerHTML = editorChrome(
     user,
-    `<h1 class="w3-large">Data</h1>
+    `${editorListToolbar("Data")}
      ${table}`,
     true,
     "data" as EditorSection,

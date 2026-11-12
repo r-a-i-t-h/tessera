@@ -1,5 +1,5 @@
 import type { BackupList, ThemeKitInfo } from "../api.js";
-import { escapeHtml, statusPanels } from "../dom.js";
+import { editorListToolbar, escapeHtml, statusPanels } from "../dom.js";
 import { readDataTransfer } from "./drop.js";
 
 const BACKUP_ARCHIVE = /\.tar\.gz$/i;
@@ -121,9 +121,8 @@ export function renderBackupsPage(
     </div>`,
   );
 
-  return `<h1 class="w3-large">Backups</h1>
+  return `${editorListToolbar("Backups", '<button type="button" class="w3-button w3-theme" data-action="backup">Back up now</button>')}
     ${statusPanels(notice, error)}
-    <p><button type="button" class="w3-button w3-theme" data-action="backup">Back up now</button></p>
     <div class="editor-library-split editor-backups">
       <section class="editor-backups-browse" aria-label="Saved backups">
         ${rows}

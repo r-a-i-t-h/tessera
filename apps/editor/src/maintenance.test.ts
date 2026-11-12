@@ -38,7 +38,8 @@ describe("maintenance tabs", () => {
       },
       undefined,
     );
-    expect(html).toContain("<h1 class=\"w3-large\">Maintenance</h1>");
+    expect(html).toContain("editor-list-toolbar");
+    expect(html).toContain("Maintenance");
     expect(html).toContain('aria-label="Maintenance reports"');
     expect(html).toContain("editor-maintenance-split");
     expect(html).not.toContain('<a href="#/content/lonely">Lonely</a>');
