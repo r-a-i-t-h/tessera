@@ -546,6 +546,7 @@ tr[data-list-href].editor-list-item-active,
   align-items: center;
   gap: 0.75rem 1rem;
   flex-wrap: wrap;
+  min-height: 2.85rem;
 }
 
 .editor-back {
@@ -762,18 +763,6 @@ textarea.w3-input[data-kind="json"].editor-code-wrap {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   overflow-x: hidden;
-}
-
-.editor-account-signed-in {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.5rem 1rem;
-}
-
-.editor-account-signed-in > p {
-  margin: 0;
 }
 
 .editor-code-head {
@@ -1223,6 +1212,33 @@ li.editor-list-item.editor-user {
 
 .editor-form-scope .w3-medium {
   margin-top: 0;
+}
+
+.editor-main:has(#edit-user-form) :is(#edit-user-form, > .w3-panel),
+.editor-main:has(#username-form) :is(#username-form, #password-form, > .w3-panel) {
+  max-width: 32rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.editor-toolbar-lead {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.75rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.editor-toolbar-lead h1 {
+  flex: 0 1 auto;
+}
+
+.editor-toolbar-subtitle {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.25;
 }
 
 .editor-form-actions {
@@ -3811,8 +3827,14 @@ button.editor-picker-asset:hover {
   }
 }
 
+/* Keep the main column scrollbar (or gutter) on Navigation so Build/Fields/Raw do not shift width. */
+.editor-scroll:has(#record-editor[data-kind="nav"]) {
+  overflow-x: hidden;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+}
+
 .editor-scroll:has(.editor-nav-build) {
-  overflow: hidden;
   display: flex;
   flex-direction: column;
 }

@@ -243,7 +243,7 @@ export function renderLibrary(
     : `<ul class="w3-ul editor-library">${rows}</ul>`;
   const libraryActions = `<button type="button" class="w3-button w3-white" data-action="add-folder">Add folder</button>
           <button type="button" class="w3-button w3-white" data-action="rescan">Rescan</button>`;
-  return `${editorListToolbar("Library", libraryActions, "editor-entity-opener")}
+  return `${editorListToolbar("Library", libraryActions)}
     ${noticePanel(notice)}
     <p class="editor-crumbs">${crumbs}</p>
     <div class="editor-library-split">

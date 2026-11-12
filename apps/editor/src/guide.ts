@@ -1,3 +1,4 @@
+import { editorListToolbar } from "./dom.js";
 import { guideSectionHref, stylesSheetHref } from "./router.js";
 
 /** Authoring notes shown at #/guide. Keep this aligned with GUIDE.md. */
@@ -8,8 +9,8 @@ export function guideHtml(): string {
   const sheetLink = (id: string, label: string) =>
     `<a href="${stylesSheetHref(id)}">${label}</a>`;
 
-  return `<article class="editor-guide">
-    <h1 class="w3-large">Guide</h1>
+  return `${editorListToolbar("Guide")}
+    <article class="editor-guide">
     <p>How menus, styles, and YAML fit together.</p>
 
     <nav class="editor-guide-toc" aria-label="On this page">

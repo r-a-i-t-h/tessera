@@ -2,7 +2,7 @@ import { siteStyleCss, type SiteStyle } from "@r-a-i-t-h/tessera-model";
 import { bindCodeWrap, codeWrapClass, codeWrapToggle } from "./code-wrap.js";
 import { confirmDialog } from "./confirm-dialog.js";
 import { activateDialog, type DialogController } from "./dialog.js";
-import { errorPanel, escapeHtml, noticePanel } from "./dom.js";
+import { editorListToolbar, errorPanel, escapeHtml, noticePanel } from "./dom.js";
 import { STYLE_FIELDS, styleDraft, styleFieldValues, styleFromValues, styleGroups } from "./forms/style.js";
 import { mountMaximizedCodeEditor, type MaximizedCodeEditorHandle } from "./maximized-code-editor.js";
 import { stylesSheetHref } from "./router.js";
@@ -194,7 +194,7 @@ export function stylesPageHtml(record: Record<string, unknown>, notice = "", err
       </fieldset>`,
     )
     .join("");
-  return `<h1 class="w3-large">Styles</h1>
+  return `${editorListToolbar("Styles")}
     ${noticePanel(notice)}
     ${errorPanel(error)}
     <details class="style-sheet style-tokens"${readStyleTokensOpen() ? " open" : ""}>

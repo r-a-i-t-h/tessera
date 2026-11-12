@@ -5,6 +5,8 @@ import { stylesSheetHref } from "./router.js";
 describe("guideHtml", () => {
   it("links editor pages and stylesheet editors mentioned in the guide", () => {
     const html = guideHtml();
+    expect(html).toContain("editor-list-toolbar");
+    expect(html).toContain("Guide");
     expect(html).toContain('href="#/layouts/master"');
     expect(html).toContain('href="#/content/search"');
     expect(html).toContain('href="#/records/site"');

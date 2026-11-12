@@ -543,7 +543,7 @@ async function bindStyles(
   if (!site) {
     root.innerHTML = chrome(
       user,
-      `<h1 class="w3-large">Styles</h1><p>This site has no site record yet.</p>`,
+      `${editorListToolbar("Styles")}<p>This site has no site record yet.</p>`,
       true,
       "styles",
     );
@@ -680,7 +680,7 @@ async function runPublish(root: HTMLElement): Promise<void> {
 }
 
 async function bindAccount(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {
-  root.innerHTML = chrome(user, accountHtml(user, notice, error), false, "account");
+  root.innerHTML = chrome(user, accountHtml(user, notice, error), true, "account");
   bindChrome(root);
   const usernameForm = root.querySelector<HTMLFormElement>("#username-form");
   usernameForm?.addEventListener("submit", (event) => {
@@ -744,10 +744,15 @@ async function bindAccount(root: HTMLElement, user: PublicUser, notice = "", err
 }
 
 function accountHtml(user: PublicUser, notice: string, error: string): string {
-  return `<h1 class="w3-large">Account</h1>
-    <div class="editor-account-signed-in">
-      <p class="w3-text-grey">Signed in as <strong>${escapeHtml(user.username)}</strong>.</p>
-      <button type="button" class="w3-button w3-light-grey" data-action="logout">Sign out</button>
+  const signOut = '<button type="button" class="w3-button w3-light-grey" data-action="logout">Sign out</button>';
+  return `<div class="editor-toolbar editor-list-toolbar">
+      <div class="editor-toolbar-row">
+        <div class="editor-toolbar-lead">
+          <h1 class="w3-large">Account</h1>
+          <p class="w3-text-grey editor-toolbar-subtitle">Signed in as <strong>${escapeHtml(user.username)}</strong></p>
+        </div>
+        <p class="editor-actions">${signOut}</p>
+      </div>
     </div>
     ${statusPanels(notice, error)}
     <form id="username-form" class="w3-card w3-white w3-padding-large editor-card">
@@ -863,7 +868,7 @@ async function bindUser(
          </div>
        </div>
        <p class="w3-text-grey">No editor matches that username.</p>`,
-      false,
+      true,
       "users",
     );
     bindChrome(root);
@@ -872,7 +877,7 @@ async function bindUser(
   root.innerHTML = chrome(
     user,
     `${userDetailToolbar(target, user, listing.users)}${userEditHtml(target, user, notice, error)}`,
-    false,
+    true,
     "users",
   );
   bindChrome(root);
@@ -3409,7 +3414,10 @@ async function bindEdit(
             : kind === "types"
               ? toolbarDeleteButton("delete-type")
               : "";
-  const actionRow = `<p class="editor-actions${pageHost ? "" : " editor-form-actions"}"><button type="submit" id="record-save"${pageHost ? ' form="record-form"' : ""} class="w3-button w3-theme">Save</button>${sessionActions}${deleteAction}</p>`;
+  const tabListToolbar = host === "tab" && (kind === "site" || kind === "nav");
+  const actionInForm = !pageHost && !tabListToolbar;
+  const linkedSaveForm = pageHost || tabListToolbar ? ' form="record-form"' : "";
+  const actionRow = `<p class="editor-actions${actionInForm ? " editor-form-actions" : ""}"><button type="submit" id="record-save"${linkedSaveForm} class="w3-button w3-theme">Save</button>${sessionActions}${deleteAction}</p>`;
   const saveStatus = `<p id="save-status" class="w3-text-grey" hidden></p>`;
   const editor = `${lifecycleHtml(payload)}
      ${noticePanel(notice)}
@@ -3432,7 +3440,7 @@ async function bindEdit(
      <p class="w3-text-grey editor-record-note"><code>${escapeHtml(payload.file)}</code></p>
      <form id="record-form" class="w3-card w3-white w3-padding-large editor-card">
        ${rawHtmlPageChoicesHidden}${formInner}
-       ${pageHost ? "" : `${saveStatus}${actionRow}`}
+       ${actionInForm ? `${saveStatus}${actionRow}` : ""}
       </form>
      </div>
      </div>
@@ -3445,6 +3453,13 @@ async function bindEdit(
     const slot = root.querySelector<HTMLElement>("#record-editor");
     if (!slot?.isConnected || slot.dataset.kind !== kind || slot.dataset.id !== id) return;
     slot.innerHTML = editor;
+    if (tabListToolbar) {
+      const bar = root.querySelector(".editor-list-toolbar");
+      root.querySelector(".editor-list-toolbar #record-save")?.closest(".editor-actions")?.remove();
+      bar?.querySelector("#save-status")?.remove();
+      bar?.querySelector(".editor-toolbar-row")?.insertAdjacentHTML("beforeend", actionRow);
+      bar?.insertAdjacentHTML("beforeend", saveStatus);
+    }
     scope = slot;
   } else {
     root.innerHTML = chrome(
@@ -3769,7 +3784,7 @@ async function bindEdit(
   bindDuplicateRecord(scope, root, kind, id, existingIdsForKind);
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const button = scope.querySelector<HTMLButtonElement>("#record-save");
+    const button = root.querySelector<HTMLButtonElement>("#record-save");
     if (button) button.disabled = true;
     try {
       let saved;
