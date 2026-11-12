@@ -98,7 +98,8 @@ html.editor-dark .editor-sidebar-version {
   opacity: 1;
 }
 
-html.editor-dark .editor-dark-mode-toggle:hover {
+html.editor-dark .editor-dark-mode-toggle:hover,
+html.editor-dark .editor-cache-clear-toggle:hover {
   background-color: rgba(255, 255, 255, 0.12) !important;
 }
 

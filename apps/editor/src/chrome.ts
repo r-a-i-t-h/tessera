@@ -1,6 +1,11 @@
 import { version as tesseraVersion } from "../../../package.json";
 import { backToTopHtml } from "./back-to-top.js";
-import { darkModeLoginToggle, darkModeSidebarToggle } from "./editor-color-mode.js";
+import {
+  cacheClearLoginToggle,
+  cacheClearSidebarToggle,
+  darkModeLoginToggle,
+  darkModeSidebarToggle,
+} from "./editor-color-mode.js";
 import type { PublicUser } from "./api.js";
 import { isFullAdmin } from "./access.js";
 import { escapeHtml } from "./dom.js";
@@ -141,6 +146,7 @@ export function editorChrome(
         </nav>
         <div class="editor-sidebar-footer w3-bar-block">
           ${darkModeSidebarToggle()}
+          ${cacheClearSidebarToggle()}
         </div>
         <div class="editor-nav-account w3-bar-block">
           <a class="w3-bar-item w3-button editor-sidebar-account-link${section === "account" ? " tessera-nav-current" : ""}" href="#/account" title="Account"${section === "account" ? ' aria-current="page"' : ""}>${EDITOR_SIDEBAR_USER_ICON}<span class="editor-sidebar-account-name">${escapeHtml(user.username)}</span></a>
@@ -178,7 +184,7 @@ export function announceRoute(root: ParentNode): void {
 }
 
 export function loginView(error = "", username = ""): string {
-  return `<header class="editor-bar w3-bar w3-theme w3-large"><span class="w3-bar-item">Tessera editor</span>${darkModeLoginToggle()}</header>
+  return `<header class="editor-bar w3-bar w3-theme w3-large editor-bar--login"><span class="w3-bar-item">Tessera editor</span><span class="editor-bar-login-tools">${darkModeLoginToggle()}${cacheClearLoginToggle()}</span></header>
     <div class="editor-scroll">
     <main class="editor-main"><form id="login-form" class="w3-card w3-white w3-padding-large editor-card">
       <h1 class="w3-large">Sign in</h1>

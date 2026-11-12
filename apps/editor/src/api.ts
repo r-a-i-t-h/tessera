@@ -1,5 +1,16 @@
 import type { DatasetFile, DatasetField, SchemaAdaptationSummary } from "@r-a-i-t-h/tessera-model";
 import { invalidateEditorIndex } from "./editor-index-cache.js";
+import {
+  bustEditorReadCache,
+  isMutatingMethod,
+  readCacheClearInFlight,
+  readCacheGet,
+  readCacheInFlight,
+  readCacheSet,
+  readCacheTrackInFlight,
+} from "./api-read-cache.js";
+
+export { clearEditorReadCache } from "./api-read-cache.js";
 
 export type PublicUser = {
   ok: true;
@@ -24,31 +35,52 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const method = (init.method ?? "GET").toUpperCase();
+
+  if (method === "GET") {
+    const cached = readCacheGet<T>(path);
+    if (cached !== undefined) return cached;
+    const inFlight = readCacheInFlight<T>(path);
+    if (inFlight) return inFlight;
+  }
+
   const headers = new Headers(init.headers);
   if (init.body !== undefined && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
-  let res: Response;
-  try {
-    res = await fetch(path, {
-      credentials: "same-origin",
-      ...init,
-      headers,
-    });
-  } catch {
-    throw new ApiError(0, "Cannot reach the editor API. Is it running?");
-  }
+  const run = async (): Promise<T> => {
+    let res: Response;
+    try {
+      res = await fetch(path, {
+        credentials: "same-origin",
+        ...init,
+        headers,
+      });
+    } catch {
+      throw new ApiError(0, "Cannot reach the editor API. Is it running?");
+    }
 
-  const data: unknown = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new ApiError(res.status, errorMessage(data, res.statusText));
+    const data: unknown = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if (res.status === 401) bustEditorReadCache();
+      throw new ApiError(res.status, errorMessage(data, res.statusText));
+    }
+    if (method === "GET") readCacheSet(path, data);
+    else if (isMutatingMethod(method)) bustEditorReadCache();
+    return data as T;
+  };
+
+  if (method !== "GET") return run();
+
+  const promise = run();
+  readCacheTrackInFlight(path, promise);
+  try {
+    await promise;
+    return readCacheGet<T>(path) as T;
+  } finally {
+    readCacheClearInFlight(path);
   }
-  const method = (init.method ?? "GET").toUpperCase();
-  if (method !== "GET" && method !== "HEAD" && path.startsWith("/api/")) {
-    invalidateEditorIndex();
-  }
-  return data as T;
 }
 
 function errorMessage(data: unknown, fallback: string): string {

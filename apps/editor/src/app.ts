@@ -1,6 +1,7 @@
 import { parse as parseYaml } from "yaml";
 import {
   ApiError,
+  clearEditorReadCache,
   cascadeBlog,
   createBackup,
   deleteBackup,
@@ -504,6 +505,10 @@ function bindChrome(root: HTMLElement): void {
   bindDarkMode(root);
   bindBackToTop(root);
   bindEditorListRows(root);
+  root.querySelector("[data-editor-clear-cache]")?.addEventListener("click", () => {
+    clearEditorReadCache();
+    void render(root);
+  });
   root.querySelector("[data-action=logout]")?.addEventListener("click", async () => {
     await logout().catch(() => undefined);
     window.location.hash = "";
@@ -1078,6 +1083,9 @@ function bindLogin(root: HTMLElement, error?: string, username = ""): void {
   root.innerHTML = loginView(error, username);
   bindDarkMode(root);
   bindBackToTop(root);
+  root.querySelector("[data-editor-clear-cache]")?.addEventListener("click", () => {
+    clearEditorReadCache();
+  });
   const form = root.querySelector<HTMLFormElement>("#login-form");
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();

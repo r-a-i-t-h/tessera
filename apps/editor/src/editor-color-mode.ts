@@ -7,6 +7,8 @@ const DARK_MODE_ICON_MOON = `<svg class="editor-dark-mode-icon" viewBox="0 0 16 
 
 const DARK_MODE_ICON_SUN = `<svg class="editor-dark-mode-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3.1" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" d="M8 1.4v2.2M8 12.4v2.2M1.4 8h2.2M12.4 8h2.2M3.2 3.2l1.55 1.55M11.25 11.25l1.55 1.55M3.2 12.8l1.55-1.55M11.25 4.75l1.55-1.55"/></svg>`;
 
+const RELOAD_DATA_ICON = `<svg class="editor-cache-clear-icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" d="M13.2 8a5.2 5.2 0 1 1-1.5-3.7"/><path fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" d="M13.2 3.2V8h-4.8"/></svg>`;
+
 /** Whether the editor shell uses dark mode. */
 export function readDarkMode(): boolean {
   try {
@@ -55,6 +57,18 @@ export function darkModeSidebarToggle(): string {
 
 export function darkModeLoginToggle(): string {
   return darkModeControlMarkup("w3-bar-item w3-button editor-dark-mode-toggle editor-dark-mode-toggle--login");
+}
+
+function cacheClearMarkup(className: string): string {
+  return `<button type="button" class="${className}" data-editor-clear-cache aria-label="Reload editor data" title="Reload editor data">${RELOAD_DATA_ICON}</button>`;
+}
+
+export function cacheClearSidebarToggle(): string {
+  return cacheClearMarkup("w3-bar-item w3-button editor-cache-clear-toggle");
+}
+
+export function cacheClearLoginToggle(): string {
+  return cacheClearMarkup("w3-bar-item w3-button editor-cache-clear-toggle editor-cache-clear-toggle--login");
 }
 
 export function isDarkModeToggle(target: EventTarget | null): boolean {
