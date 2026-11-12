@@ -1,4 +1,4 @@
-import type { DatasetField, DatasetRootRecord } from "@r-a-i-t-h/tessera-model";
+import type { DatasetField, DatasetFile, DatasetRootRecord } from "@r-a-i-t-h/tessera-model";
 import { emptyRootRecordDraft, fieldById, formatRecordDisplayName } from "@r-a-i-t-h/tessera-model";
 import {
   appendDatasetRecord,
@@ -45,6 +45,7 @@ import { bindRichTextField, runRichTextCommand, type RichTextFieldOptions } from
 import { buildPageTargetChoices, type PageTargetChoices } from "../forms/page-target.js";
 import type { NavEntry } from "@r-a-i-t-h/tessera-model";
 import { openPageTargetPicker as openPageTargetPickerDialog } from "../page-target-picker.js";
+import { openDatasetRecordsRawOverlay } from "./records-raw-overlay.js";
 
 type BindChrome = (root: HTMLElement) => void;
 
@@ -236,6 +237,7 @@ async function mountDatasetGrid(
 
     const recordCount = fileState.records.length;
     const clearAllDisabled = recordCount === 0 || gridMode === "edit" ? " disabled" : "";
+    const rawJsonDisabled = gridMode === "edit" ? " disabled" : "";
 
     root.innerHTML = editorChrome(
       user,
@@ -246,6 +248,7 @@ async function mountDatasetGrid(
           <p class="editor-actions">
             <button type="button" class="w3-button w3-theme" data-dataset-add>Add record</button>
             ${gridToolbarActions}
+            <button type="button" class="w3-button w3-white" data-dataset-raw-json${rawJsonDisabled}>Raw JSON</button>
             <button type="button" class="w3-button w3-white w3-border w3-border-red" data-dataset-clear-all${clearAllDisabled}>Delete all records</button>
           </p>
         </div>
@@ -297,6 +300,21 @@ async function mountDatasetGrid(
       paint();
     });
     host.querySelector("[data-dataset-add]")?.addEventListener("click", () => void openRecordDialog(undefined));
+    host.querySelector("[data-dataset-raw-json]")?.addEventListener("click", (event) => {
+      if (gridMode === "edit") return;
+      const button = event.currentTarget;
+      if (!(button instanceof HTMLButtonElement)) return;
+      openDatasetRecordsRawOverlay({
+        datasetId,
+        records: fileState.records,
+        returnFocus: button,
+        isActive: () => isActiveDatasetGridMount(mountId, datasetId),
+        onSaved: (next: DatasetFile) => {
+          fileState = next;
+          paint();
+        },
+      });
+    });
     host.querySelector("[data-dataset-edit-mode]")?.addEventListener("click", () => {
       gridMode = "edit";
       paint();

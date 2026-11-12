@@ -880,6 +880,71 @@ textarea.w3-input.editor-html {
   overflow: hidden;
 }
 
+html:has(.dataset-raw-overlay-host) .editor-scroll {
+  overflow: hidden;
+}
+
+.dataset-raw-overlay-host {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  box-sizing: border-box;
+  padding: 1rem 1.25rem 1.25rem;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.dataset-raw-overlay-host form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.dataset-raw-overlay-host .dataset-records-raw-dialog-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+  flex: 0 0 auto;
+}
+
+.dataset-raw-overlay-host .dataset-records-raw-tools {
+  flex: 0 0 auto;
+  margin: 0.25rem 0;
+}
+
+.dataset-raw-overlay-host .dataset-records-raw-area {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.dataset-raw-overlay-host .dataset-records-raw-area textarea {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  resize: none;
+  overflow: scroll;
+  scrollbar-gutter: stable;
+}
+
+.dataset-raw-overlay-host .dataset-records-raw-actions {
+  flex: 0 0 auto;
+  margin: 0.75rem 0 0;
+}
+
+.dataset-raw-overlay-host .maximized-code-editor {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .style-sheet-overlay-host {
   position: fixed;
   inset: 0;

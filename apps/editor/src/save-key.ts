@@ -14,7 +14,8 @@ export function editingForm(form: HTMLFormElement | null): HTMLFormElement | nul
     form.id === "asset-detail" ||
     form.id === "folder-detail" ||
     form.hasAttribute("data-sheet") ||
-    form.hasAttribute("data-runtime-raw")
+    form.hasAttribute("data-runtime-raw") ||
+    form.hasAttribute("data-dataset-records-raw")
   ) {
     return form;
   }
@@ -32,9 +33,19 @@ export function triggerEditorSave(root: ParentNode, event: KeyboardEvent): boole
   const dialogs = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
   const topDialog = dialogs[dialogs.length - 1];
   if (topDialog) {
-    const recordForm = topDialog.querySelector("#dataset-record-form");
     event.preventDefault();
-    if (recordForm instanceof HTMLFormElement) recordForm.requestSubmit();
+    const recordForm = topDialog.querySelector("#dataset-record-form");
+    if (recordForm instanceof HTMLFormElement) {
+      recordForm.requestSubmit();
+      return true;
+    }
+    const overlayForm: HTMLFormElement | null =
+      topDialog instanceof HTMLFormElement
+        ? topDialog
+        : topDialog.querySelector<HTMLFormElement>("form");
+    if (overlayForm && editingForm(overlayForm)) {
+      overlayForm.requestSubmit();
+    }
     return true;
   }
 

@@ -8,6 +8,14 @@ describe("maximized code editor", () => {
     document.body.innerHTML = "";
   });
 
+  it("mounts json language mode", () => {
+    document.body.innerHTML = `<form><textarea name="text">{"a":1}</textarea></form>`;
+    const textarea = document.querySelector<HTMLTextAreaElement>("textarea")!;
+    const editor = mountMaximizedCodeEditor(textarea, "json");
+    expect(document.querySelector(".maximized-code-editor")).not.toBeNull();
+    editor.destroy();
+  });
+
   it("syncs document text back to the textarea on destroy", () => {
     document.body.innerHTML = `<form data-runtime-raw>
       <p class="runtime-module-editor-area"><label for="raw">Raw</label><textarea id="raw" name="text">initial</textarea></p>

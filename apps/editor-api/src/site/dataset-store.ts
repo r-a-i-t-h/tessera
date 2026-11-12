@@ -298,6 +298,60 @@ export class DatasetStore {
     return file;
   }
 
+  async replaceRecordsRaw(id: string, raw: string): Promise<DatasetFile> {
+    const text = raw.trim();
+    if (!text) throw new Error("Raw JSON is empty.");
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      throw new Error("Raw JSON is not valid JSON.");
+    }
+    if (!Array.isArray(parsed)) throw new Error("Records must be a JSON array.");
+
+    const file = await this.readFile(id);
+    const byExisting = new Map(file.records.map((r) => [r.uid, r]));
+    const seenUids = new Set<number>();
+    const nextRecords: DatasetRootRecord[] = [];
+
+    for (let index = 0; index < parsed.length; index++) {
+      const item = parsed[index];
+      if (!item || typeof item !== "object" || Array.isArray(item)) {
+        throw new Error(`Record at index ${index} must be an object.`);
+      }
+      const incoming = { ...(item as Record<string, unknown>) };
+      const uid = Number(incoming.uid);
+      if (!Number.isInteger(uid) || uid < 1) {
+        throw new Error(`Record at index ${index} needs a positive integer uid.`);
+      }
+      if (seenUids.has(uid)) throw new Error(`Duplicate uid ${uid}.`);
+      seenUids.add(uid);
+
+      const existing = byExisting.get(uid);
+      const cleaned = stripEmptyOptionalFields(incoming, file.schema.fields);
+      coerceCollectionValues(cleaned, file.schema.fields);
+      delete cleaned.added;
+      delete cleaned.modified;
+      cleaned.uid = uid;
+      if (existing) {
+        cleaned.added = existing.added;
+        cleaned.modified = nowIso();
+      } else {
+        const t = nowIso();
+        cleaned.added = t;
+        cleaned.modified = t;
+      }
+      const issues = validateRootRecord(cleaned, file.schema);
+      if (issues.length) throw new ValidationError(issues);
+      nextRecords.push(cleaned as DatasetRootRecord);
+    }
+
+    file.records = nextRecords;
+    file.nextUid = nextRecords.length ? Math.max(...nextRecords.map((r) => r.uid)) + 1 : 1;
+    await this.writeFile(file);
+    return file;
+  }
+
   /** Removes every row; schema and view are unchanged. Resets the uid counter. */
   async clearAllRecords(id: string): Promise<DatasetFile> {
     const file = await this.readFile(id);

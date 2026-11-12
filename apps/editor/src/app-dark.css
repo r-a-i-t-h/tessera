@@ -198,7 +198,8 @@ html.editor-dark .editor-raw-html-tools {
 }
 
 html.editor-dark .style-sheet-overlay-host,
-html.editor-dark .runtime-module-overlay-host {
+html.editor-dark .runtime-module-overlay-host,
+html.editor-dark .dataset-raw-overlay-host {
   background: #1e1f22;
   color: var(--editor-text);
 }

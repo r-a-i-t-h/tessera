@@ -1,5 +1,5 @@
 import type { DatasetField, DatasetFile } from "@r-a-i-t-h/tessera-model";
-import { summarizeSchemaAdaptation } from "@r-a-i-t-h/tessera-model";
+import { parseDatasetSchema, summarizeSchemaAdaptation } from "@r-a-i-t-h/tessera-model";
 import {
   createDataset,
   deleteDataset,
@@ -12,6 +12,7 @@ import {
   type DatasetSummary,
   type PublicUser,
 } from "../api.js";
+import { bindCodeWrap, codeWrapClass, codeWrapToggle } from "../code-wrap.js";
 import { pageIdError, suggestDuplicateId } from "../forms/page.js";
 import { editorChrome } from "../chrome.js";
 import { mergeEditorNav } from "../sidebar-nav.js";
@@ -58,8 +59,8 @@ function datasetSetupTab(tab: DatasetSetupTab, label: string, active: DatasetSet
   return `<button type="button" class="editor-tab${on ? " is-active" : ""}" role="tab" data-dataset-tab="${tab}" aria-selected="${on}" tabindex="${on ? "0" : "-1"}">${escapeHtml(label)}</button>`;
 }
 
-function datasetRawJson(file: DatasetFile): string {
-  return JSON.stringify(file, null, 2);
+function datasetSchemaJson(fields: readonly DatasetField[]): string {
+  return JSON.stringify({ fields }, null, 2);
 }
 
 function datasetDuplicateToolsHtml(suggestedId: string): string {
@@ -149,6 +150,7 @@ export async function mountDatasetSetup(
   let fileState = file;
   let activeTab: DatasetSetupTab = "dataset";
   let draft: SchemaDraft = schemaDraftFromFields(fileState.schema.fields, fileState.view.columns);
+  let rawDraft: string | undefined;
   let panelError = "";
   let panelNotice = "";
 
@@ -167,7 +169,7 @@ export async function mountDatasetSetup(
         : "";
     const panelStatus =
       panelNotice || panelError
-        ? activeTab === "schema" || activeTab === "dataset"
+        ? activeTab === "schema" || activeTab === "dataset" || activeTab === "raw"
           ? `${panelNotice ? `<p class="w3-text-green w3-small">${escapeHtml(panelNotice)}</p>` : ""}${panelError ? errorPanel(panelError) : ""}`
           : ""
         : "";
@@ -189,20 +191,21 @@ export async function mountDatasetSetup(
             <p class="w3-text-grey w3-small">Template for record labels in pickers and lists. Use field ids in braces.</p>
           </div>`
         : "";
+    const rawShown = rawDraft ?? datasetSchemaJson(draft.fields);
     const rawTabBody =
       activeTab === "raw"
-        ? `<p class="w3-text-grey editor-record-note"><code>datasets/${escapeHtml(datasetId)}.json</code></p>
-          <textarea class="w3-input w3-border editor-html" rows="24" readonly spellcheck="false">${escapeHtml(datasetRawJson(fileState))}</textarea>
-          <p class="w3-text-grey w3-small">Datasets are stored as JSON on disk. Edit schema and records through the other tabs or the data grid.</p>`
+        ? `<p class="w3-text-grey editor-record-note">Schema only (<code>schema</code> in <code>datasets/${escapeHtml(datasetId)}.json</code>). Records are not edited here.</p>
+          <p class="editor-dataset-raw-tools">${codeWrapToggle("dataset-raw-file")}</p>
+          <textarea id="dataset-raw-file" data-dataset-raw-file class="w3-input w3-border editor-raw${codeWrapClass()}" data-kind="json" rows="24" spellcheck="false">${escapeHtml(rawShown)}</textarea>
+          <p class="w3-text-grey w3-small">Paste or edit field definitions as JSON. Save adapts existing records to match (Ctrl+S). Edit record data on <strong>Edit data</strong>.</p>`
         : "";
     const tabBody = `${panelStatus}${datasetTabBody || schemaTabBody || rawTabBody}`;
-    const saveDisabled = activeTab === "raw" ? " disabled" : "";
     const saveTitle =
       activeTab === "schema"
         ? "Save schema and column visibility (Ctrl+S)"
-        : activeTab === "dataset"
-          ? "Save (Ctrl+S)"
-          : "Nothing to save on this tab";
+        : activeTab === "raw"
+          ? "Save schema (Ctrl+S)"
+          : "Save (Ctrl+S)";
 
     const duplicateSuggested = suggestDuplicateId(datasetId, allDatasets.map((d) => d.id));
 
@@ -215,7 +218,7 @@ export async function mountDatasetSetup(
             ${entityOpenerHtml(title, datasetId, entityItems)}
             <p class="editor-actions">
               <a class="w3-button w3-white" href="#/data/${encodeURIComponent(datasetId)}">Edit data</a>
-              <button type="button" class="w3-button w3-theme" data-dataset-save${saveDisabled} title="${escapeHtml(saveTitle)}">Save</button>
+              <button type="button" class="w3-button w3-theme" data-dataset-save title="${escapeHtml(saveTitle)}">Save</button>
               <button type="button" class="w3-button w3-white w3-border w3-border-red" data-dataset-delete-ds>Delete dataset</button>
             </p>
           </div>
@@ -225,7 +228,7 @@ export async function mountDatasetSetup(
             <div class="editor-tabs" role="tablist" aria-label="Dataset editor">
               ${datasetSetupTab("dataset", "Dataset", activeTab)}
               ${datasetSetupTab("schema", "Schema", activeTab)}
-              ${datasetSetupTab("raw", "Raw file", activeTab)}
+              ${datasetSetupTab("raw", "Raw schema", activeTab)}
             </div>
           </div>
           <div class="editor-tab-body">
@@ -255,16 +258,34 @@ export async function mountDatasetSetup(
     if (rootEl) rootEl.innerHTML = renderSchemaForm(draft, schemaFormOptions());
   };
 
+  const stashRawFromDom = () => {
+    const area = root.querySelector<HTMLTextAreaElement>("[data-dataset-raw-file]");
+    if (area) rawDraft = area.value;
+  };
+
   const bindSetupEvents = (host: HTMLElement): void => {
     datasetSetupEvents?.abort();
     datasetSetupEvents = new AbortController();
     const { signal } = datasetSetupEvents;
+    bindCodeWrap(host);
     for (const button of host.querySelectorAll<HTMLButtonElement>("[data-dataset-tab]")) {
       button.addEventListener("click", () => {
         const next = button.dataset.datasetTab;
         if (next !== "dataset" && next !== "schema" && next !== "raw") return;
         if (next === activeTab) return;
         if (activeTab === "schema") syncDraftFromDom();
+        if (activeTab === "raw") {
+          stashRawFromDom();
+          if (next === "schema" && rawDraft) {
+            try {
+              const parsed = parseDatasetSchema(JSON.parse(rawDraft.trim()));
+              draft = { ...draft, fields: parsed.fields };
+              rawDraft = undefined;
+            } catch {
+              // keep structured draft; raw tab keeps its draft
+            }
+          }
+        }
         panelError = "";
         panelNotice = "";
         activeTab = next;
@@ -343,58 +364,92 @@ export async function mountDatasetSetup(
       })();
     });
 
-    const saveSchema = () => {
-      if (activeTab !== "schema") return;
-      const rootEl = schemaRoot();
-      if (!(rootEl instanceof HTMLElement)) return;
-      draft = readSchemaForm(rootEl, draft);
-      const validationError = validateSchemaDraft(draft.fields);
+    const commitSchemaFields = (fields: DatasetField[]) => {
+      const validationError = validateSchemaDraft(fields);
       if (validationError) {
         panelError = validationError;
         panelNotice = "";
         paint();
         return;
       }
-      const preview = summarizePreview(draft.fields, fileState.schema.fields);
+      const preview = summarizePreview(fields, fileState.schema.fields);
       const summary = adaptationSummaryHtml(preview);
       void (async () => {
-        if (!(await confirmDialog({
-          message: `Apply schema changes?\n${summary.replace(/<[^>]+>/g, " ")}`,
-        }))) {
+        if (
+          !(await confirmDialog({
+            message: `Apply schema changes?\n${summary.replace(/<[^>]+>/g, " ")}`,
+          }))
+        ) {
           return;
         }
-      panelError = "";
-      panelNotice = "";
-      const columns = draft.viewColumns;
-      const run = async () => {
-        const schemaRes = await updateDatasetSchema(datasetId, { fields: draft.fields });
-        if (!isActiveDatasetSetupMount(mountId, datasetId)) return schemaRes.file;
-        return (
-          await updateDatasetView(datasetId, {
-            columns,
-            displayName: schemaRes.file.view.displayName ?? "",
+        panelError = "";
+        panelNotice = "";
+        const columns = draft.viewColumns;
+        const run = async () => {
+          const schemaRes = await updateDatasetSchema(datasetId, { fields });
+          if (!isActiveDatasetSetupMount(mountId, datasetId)) return schemaRes.file;
+          return (
+            await updateDatasetView(datasetId, {
+              columns,
+              displayName: schemaRes.file.view.displayName ?? "",
+            })
+          ).file;
+        };
+        void run()
+          .then((nextFile) => {
+            if (!isActiveDatasetSetupMount(mountId, datasetId)) return;
+            fileState = nextFile;
+            draft = schemaDraftFromFields(fileState.schema.fields, fileState.view.columns);
+            rawDraft = undefined;
+            panelNotice = "Schema saved.";
+            paint();
           })
-        ).file;
-      };
-      void run()
-        .then((nextFile) => {
-          if (!isActiveDatasetSetupMount(mountId, datasetId)) return;
-          fileState = nextFile;
-          draft = schemaDraftFromFields(fileState.schema.fields, fileState.view.columns);
-          panelNotice = "Schema saved.";
-          paint();
-        })
-        .catch((err) => {
-          if (!isActiveDatasetSetupMount(mountId, datasetId)) return;
-          panelError = err instanceof Error ? err.message : "Could not save schema.";
-          paint();
-        });
+          .catch((err) => {
+            if (!isActiveDatasetSetupMount(mountId, datasetId)) return;
+            panelError = err instanceof Error ? err.message : "Could not save schema.";
+            paint();
+          });
       })();
     };
 
+    const saveSchema = () => {
+      if (activeTab !== "schema") return;
+      const rootEl = schemaRoot();
+      if (!(rootEl instanceof HTMLElement)) return;
+      draft = readSchemaForm(rootEl, draft);
+      commitSchemaFields(draft.fields);
+    };
+
+    const saveRawSchema = () => {
+      if (activeTab !== "raw") return;
+      const area = host.querySelector<HTMLTextAreaElement>("[data-dataset-raw-file]");
+      const text = area?.value ?? "";
+      rawDraft = text;
+      panelError = "";
+      panelNotice = "";
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(text.trim());
+      } catch {
+        panelError = "Schema JSON is not valid JSON.";
+        paint();
+        return;
+      }
+      let fields: DatasetField[];
+      try {
+        fields = parseDatasetSchema(parsed).fields;
+      } catch (err) {
+        panelError = err instanceof Error ? err.message : "Could not parse schema.";
+        paint();
+        return;
+      }
+      draft = { ...draft, fields };
+      commitSchemaFields(fields);
+    };
+
     const saveCurrent = () => {
-      if (activeTab === "raw") return;
-      if (activeTab === "schema") saveSchema();
+      if (activeTab === "raw") saveRawSchema();
+      else if (activeTab === "schema") saveSchema();
       else saveDatasetSettings();
     };
 

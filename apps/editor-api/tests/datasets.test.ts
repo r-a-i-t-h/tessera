@@ -124,6 +124,42 @@ describe("DatasetStore", () => {
     expect(copy.title).toBe("Renamed Copy");
   });
 
+  it("replaces records from a raw JSON array", async () => {
+    await store.create("meetings", "Meetings");
+    await store.updateSchema("meetings", {
+      fields: [{ key: "f1", id: "heldOn", label: "Held on", kind: "date", required: true }],
+    });
+    const withRecord = await store.appendRecord("meetings", { heldOn: "2026-01-01" });
+    const added = withRecord.records[0]?.added;
+    const raw = JSON.stringify(
+      [
+        { uid: 1, added, modified: "2026-02-01T00:00:00.000Z", heldOn: "2026-02-02" },
+        { uid: 2, added: "2026-02-01T00:00:00.000Z", modified: "2026-02-01T00:00:00.000Z", heldOn: "2026-03-01" },
+      ],
+      null,
+      2,
+    );
+    const file = await store.replaceRecordsRaw("meetings", raw);
+    expect(file.records).toHaveLength(2);
+    expect(file.records[0]?.heldOn).toBe("2026-02-02");
+    expect(file.records[0]?.added).toBe(added);
+    expect(file.nextUid).toBe(3);
+    expect(file.title).toBe("Meetings");
+    await expect(store.replaceRecordsRaw("meetings", "{}")).rejects.toThrow(/array/);
+    await expect(
+      store.replaceRecordsRaw(
+        "meetings",
+        JSON.stringify([
+          { uid: 1, heldOn: "2026-01-01" },
+          { uid: 1, heldOn: "2026-02-01" },
+        ]),
+      ),
+    ).rejects.toThrow(/Duplicate uid/);
+    await expect(store.replaceRecordsRaw("meetings", JSON.stringify([{ uid: 1 }]))).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+  });
+
   it("clears all records and resets nextUid", async () => {
     await store.create("items", "Items");
     await store.updateSchema("items", {

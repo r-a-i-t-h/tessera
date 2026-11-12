@@ -66,7 +66,7 @@ describe("triggerEditTabAdjacent", () => {
       "Dataset editor",
       `<button type="button" role="tab" class="is-active" data-dataset-tab="dataset" aria-selected="true">Dataset</button>
       <button type="button" role="tab" data-dataset-tab="schema">Schema</button>
-      <button type="button" role="tab" data-dataset-tab="raw">Raw file</button>`,
+      <button type="button" role="tab" data-dataset-tab="raw">Raw schema</button>`,
     );
     const onSchema = vi.fn();
     root.querySelector("[data-dataset-tab=schema]")?.addEventListener("click", onSchema);

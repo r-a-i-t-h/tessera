@@ -124,6 +124,24 @@ datasetRoutes.put("/datasets/:id/view", async (c) => {
   }
 });
 
+datasetRoutes.put("/datasets/:id/records/raw", async (c) => {
+  const denied = assertFullAdmin(c);
+  if (denied) return denied;
+  const id = c.req.param("id");
+  if (!isRecordId(id)) return apiError(c, 400, "Dataset id is invalid.");
+  const body: unknown = await c.req.json().catch(() => ({}));
+  const raw =
+    body && typeof body === "object" && "raw" in body ? String((body as { raw?: unknown }).raw ?? "") : "";
+  try {
+    const file = await store(c).replaceRecordsRaw(id, raw);
+    await rebuildPreview(c);
+    return c.json({ ok: true, file });
+  } catch (err) {
+    if (err instanceof ValidationError) return c.json({ ok: false, error: err.message, issues: err.issues }, 400);
+    return apiError(c, 400, err instanceof Error ? err.message : "Could not save records.");
+  }
+});
+
 datasetRoutes.put("/datasets/:id/schema", async (c) => {
   const id = c.req.param("id");
   if (!isRecordId(id)) return apiError(c, 400, "Dataset id is invalid.");

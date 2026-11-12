@@ -739,6 +739,13 @@ export function updateDatasetSchema(
   });
 }
 
+export function saveDatasetRecordsRaw(id: string, raw: string): Promise<{ ok: true; file: DatasetFile }> {
+  return request(`/api/datasets/${encodeURIComponent(id)}/records/raw`, {
+    method: "PUT",
+    body: JSON.stringify({ raw }),
+  });
+}
+
 export function appendDatasetRecord(
   id: string,
   record: Record<string, unknown>,

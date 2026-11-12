@@ -2,6 +2,7 @@ import { autocompletion } from "@codemirror/autocomplete";
 import { defaultKeymap, indentWithTab } from "@codemirror/commands";
 import { css, cssCompletionSource } from "@codemirror/lang-css";
 import { javascript } from "@codemirror/lang-javascript";
+import { json } from "@codemirror/lang-json";
 import {
   bracketMatching,
   defaultHighlightStyle,
@@ -20,7 +21,7 @@ import {
 import { readCodeWrap } from "./code-wrap.js";
 import { readDarkMode } from "./editor-color-mode.js";
 
-export type MaximizedCodeLanguage = "css" | "javascript";
+export type MaximizedCodeLanguage = "css" | "javascript" | "json";
 
 export type MaximizedCodeEditorHandle = {
   focus: () => void;
@@ -55,7 +56,9 @@ export function mountMaximizedCodeEditor(
   const languageExtensions =
     language === "css"
       ? [css(), autocompletion({ override: [cssCompletionSource], activateOnTyping: true })]
-      : [javascript(), autocompletion({ activateOnTyping: true })];
+      : language === "json"
+        ? [json()]
+        : [javascript(), autocompletion({ activateOnTyping: true })];
 
   const dark = readDarkMode();
   const chromeTheme = dark
