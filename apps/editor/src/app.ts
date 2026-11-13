@@ -104,7 +104,14 @@ import {
 } from "./chrome.js";
 import { wireEditorSidebarMobile } from "./editor-sidebar-mobile.js";
 import { blogsFromListing, mergeEditorNav, refreshSidebarNav } from "./sidebar-nav.js";
-import { bindQuickBlog, quickBlogButtonHtml, type QuickBlogSiteOptions } from "./quick-blog.js";
+import {
+  appendTagToInput,
+  bindQuickBlog,
+  collectArticleTags,
+  quickBlogButtonHtml,
+  tagPickerHtml,
+  type QuickBlogSiteOptions,
+} from "./quick-blog.js";
 import { tesseraLogo3x5 } from "./logo-3x5.js";
 import { editPlace, type EditPlace } from "./edit-place.js";
 import {
@@ -3377,9 +3384,18 @@ async function bindEdit(
     kind === "content" && (editMode === "compose" || editMode === "frame" || editMode === "fields")
       ? await loadContentPageIds()
       : undefined;
+  const listingForDuplicate = await listRecords();
+  const articleTags =
+    record?.type === "article" ? collectArticleTags(listingForDuplicate) : undefined;
   const heroUrl =
     record?.type === "article" ? await heroPreviewUrl(stringField(record, "hero")) : undefined;
-  const contentExtras = heroUrl ? { heroUrl } : undefined;
+  const contentExtras =
+    heroUrl || articleTags?.length
+      ? {
+          ...(heroUrl ? { heroUrl } : {}),
+          ...(articleTags?.length ? { articleTags } : {}),
+        }
+      : undefined;
   const rawHtmlPageChoicesHidden =
     kind === "items" || (kind === "layouts" && editMode === "arrange")
       ? pageTargetChoicesHidden(await loadPageTargetChoices())
@@ -3407,7 +3423,6 @@ async function bindEdit(
             : `${navNote}${fieldsHtml(kind, record ?? payload.data, payload.layout, typeIds, contentExtras, pageIds)}`;
   const place = editPlace(kind, id, record);
   const homeId = kind === "content" ? await loadHomePageId() : "";
-  const listingForDuplicate = await listRecords();
   const pageHost = host === "page";
   const entityItems = pageHost ? await buildEditEntityItems(kind, id, record, listingForDuplicate) : [];
   const titleHtml = pageHost ? entityOpenerHtml(place.heading, id, entityItems) : "";
@@ -4210,7 +4225,7 @@ function fieldsHtml(
   data: unknown,
   layout?: PageLayoutHint,
   types?: readonly string[],
-  options?: { heroUrl?: string },
+  options?: { heroUrl?: string; articleTags?: string[] },
   pageIds?: readonly string[],
 ): string {
   if (Array.isArray(data) || !data || typeof data !== "object") {
@@ -4223,7 +4238,14 @@ function fieldsHtml(
   const pageInline = kind === "content" ? { inline: true } : undefined;
   if (kind === "content" && record.type === "blog-index") return indexNote(record);
   if (kind === "content" && record.type === "article") {
-    return `${articleMeta(record)}${renderForm(recordSchema(kind, record, layout, types, pageIds) ?? { fields: [] }, record, pageInline)}${heroField(stringField(record, "hero"), options?.heroUrl)}${frameNote(layout)}${pageTabZonesMarkup(record, layout)}`;
+    const schema = recordSchema(kind, record, layout, types, pageIds) ?? { fields: [] };
+    const tagIndex = schema.fields.findIndex((field) => field.name === "tags");
+    const head = tagIndex >= 0 ? schema.fields.slice(0, tagIndex + 1) : schema.fields;
+    const tail = tagIndex >= 0 ? schema.fields.slice(tagIndex + 1) : [];
+    const tagCloud = options?.articleTags?.length
+      ? `<div class="editor-prop-wide editor-quick-blog-tag-cloud-wrap">${tagPickerHtml(options.articleTags)}</div>`
+      : "";
+    return `${articleMeta(record)}${renderForm({ fields: head }, record, pageInline)}${tagCloud}${tail.length ? renderForm({ fields: tail }, record, pageInline) : ""}${heroField(stringField(record, "hero"), options?.heroUrl)}${frameNote(layout)}${pageTabZonesMarkup(record, layout)}`;
   }
   if (kind === "content" && record.type === "blog") {
     return `${blogMeta(record)}${renderForm(recordSchema(kind, record, layout, types, pageIds) ?? { fields: [] }, record, pageInline)}${frameNote(layout)}${pageTabZonesMarkup(record, layout)}`;
@@ -4522,7 +4544,19 @@ function bindPickers(form: HTMLFormElement): void {
     },
   });
   bindPickerClicks(form, (event) => {
-    const button = (event.target as HTMLElement).closest("button");
+    const target = event.target as HTMLElement;
+    const tagPick = target.closest<HTMLElement>("[data-tag-pick]");
+    if (tagPick && form.contains(tagPick)) {
+      event.preventDefault();
+      const input = form.querySelector<HTMLInputElement>('[name="tags"]');
+      if (input && tagPick.dataset.tagPick) {
+        input.value = appendTagToInput(input.value, tagPick.dataset.tagPick);
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        form.dataset.dirty = "true";
+      }
+      return;
+    }
+    const button = target.closest("button");
     if (!button) return;
     if (button.dataset.insert && button.dataset.target) {
       const insert = button.dataset.insert;

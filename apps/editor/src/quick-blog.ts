@@ -129,7 +129,7 @@ function tagsFieldHtml(): string {
         <input id="quick-blog-tags" name="tags" class="w3-input w3-border" data-kind="csv" autocomplete="off" /></p>`;
 }
 
-function tagPickerHtml(tags: string[]): string {
+export function tagPickerHtml(tags: string[]): string {
   if (!tags.length) return "";
   const links = tags
     .map(
