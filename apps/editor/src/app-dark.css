@@ -210,6 +210,15 @@ html.editor-dark .editor-new-page {
   border-color: var(--editor-border);
 }
 
+html.editor-dark .editor-hero-pane {
+  background: #2a2a2a;
+  border-color: #444;
+}
+
+html.editor-dark .editor-hero-pane-title {
+  color: #e0e0e0;
+}
+
 html.editor-dark .editor-fieldset,
 html.editor-dark .style-group {
   border-color: var(--editor-border);

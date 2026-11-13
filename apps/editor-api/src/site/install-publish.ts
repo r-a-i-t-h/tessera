@@ -1,7 +1,7 @@
-import { access, cp, lstat, readdir, rename, rm } from "node:fs/promises";
+import { access, copyFile, cp, lstat, mkdir, readdir, rename, rm } from "node:fs/promises";
 import { constants } from "node:fs";
 import { userInfo } from "node:os";
-import { isAbsolute, resolve, sep } from "node:path";
+import { dirname, isAbsolute, resolve, sep } from "node:path";
 import { DistError } from "./dist.js";
 
 const INCOMING = ".tessera-incoming";
@@ -41,6 +41,32 @@ export async function installPublish(
     throw new DistError(
       `The live folder may be partial. publish/ is unchanged; publish again to finish. ${errorText(err)}`,
     );
+  }
+  return live;
+}
+
+/**
+ * Copy specific paths from `publish/` into an existing live directory without removing other files.
+ */
+export async function installPublishedPaths(
+  publishDir: string,
+  liveDir: string,
+  relativePaths: readonly string[],
+  instanceRoot: string,
+): Promise<string> {
+  const live = assertLiveDir(liveDir, instanceRoot);
+  await assertLiveDirReady(live);
+  const publishRoot = resolve(publishDir);
+  for (const rel of relativePaths) {
+    const normalized = rel.replace(/\\/g, "/").replace(/^\/+/, "");
+    if (!normalized || normalized.includes("..")) {
+      throw new DistError("Published path is invalid.");
+    }
+    const src = resolve(publishRoot, normalized);
+    if (!src.startsWith(publishRoot)) throw new DistError("Published path is invalid.");
+    const dest = resolve(live, normalized);
+    await mkdir(dirname(dest), { recursive: true });
+    await copyFile(src, dest);
   }
   return live;
 }

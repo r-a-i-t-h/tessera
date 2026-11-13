@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { parseSiteDocument } from "@r-a-i-t-h/tessera-model";
 import { embedDatasetsInDocument } from "../src/site/dataset-embed.js";
-import { emitDist } from "../src/site/dist.js";
+import { emitDist, emitSelectedPages } from "../src/site/dist.js";
 import { SiteStore } from "../src/site/store.js";
 
 const document = parseSiteDocument({
@@ -385,5 +385,17 @@ body { margin: 0; }
     await writeFile(join(fixture.root, "shell", "css", "w3.css"), "body{color:site}\n");
     await emitDist(fixture.document, fixture.target);
     expect(await readFile(join(fixture.root, "publish", "skin", "w3.css"), "utf8")).toContain("color:site");
+  });
+
+  it("emitSelectedPages updates only chosen pages and leaves search-index alone", async () => {
+    const fixture = await target("pages");
+    await writeFile(join(fixture.root, "publish", "search-index.json"), '{"pages":1}\n');
+    const report = await emitSelectedPages(fixture.document, fixture.target, ["about"]);
+    expect(report.pages).toBe(1);
+    expect(report.paths).toEqual(["about/index.html"]);
+    const about = await readFile(join(fixture.root, "publish", "about", "index.html"), "utf8");
+    expect(about).toContain("About");
+    await expect(readFile(join(fixture.root, "publish", "index.html"), "utf8")).rejects.toThrow();
+    expect(await readFile(join(fixture.root, "publish", "search-index.json"), "utf8")).toContain('"pages":1');
   });
 });

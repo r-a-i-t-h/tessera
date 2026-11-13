@@ -104,6 +104,7 @@ import {
 } from "./chrome.js";
 import { wireEditorSidebarMobile } from "./editor-sidebar-mobile.js";
 import { blogsFromListing, mergeEditorNav, refreshSidebarNav } from "./sidebar-nav.js";
+import { bindQuickBlog, quickBlogButtonHtml, type QuickBlogSiteOptions } from "./quick-blog.js";
 import { tesseraLogo3x5 } from "./logo-3x5.js";
 import { editPlace, type EditPlace } from "./edit-place.js";
 import {
@@ -1143,26 +1144,42 @@ function bindInitSite(
 
 async function bindHome(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {
   const listing = await listRecords();
+  const blogs = blogsFromListing(listing);
   const siteRow = listing.records.find((row) => row.kind === "site");
   let publishedHref: string | undefined;
+  let quickBlogSite: QuickBlogSiteOptions = { delivery: "pages" };
   if (siteRow) {
     try {
       const payload = await getRecord("site", siteRow.id);
-      const origin =
+      const data =
         payload.data && typeof payload.data === "object" && !Array.isArray(payload.data)
-          ? (payload.data as { origin?: unknown }).origin
-          : undefined;
+          ? (payload.data as Record<string, unknown>)
+          : {};
+      const origin = data.origin;
       publishedHref = publishedSiteHref(typeof origin === "string" ? origin : undefined);
+      const delivery = data.delivery === "snapshot" ? "snapshot" : "pages";
+      const publishTo = typeof data.publishTo === "string" ? data.publishTo : undefined;
+      quickBlogSite = {
+        delivery,
+        publishTo,
+        origin: typeof origin === "string" ? origin : undefined,
+      };
     } catch {
     }
   }
-  root.innerHTML = chrome(user, homeHtml(listing, notice, error, isFullAdmin(user), publishedHref), false, "home");
+  root.innerHTML = chrome(
+    user,
+    homeHtml(listing, notice, error, isFullAdmin(user), publishedHref, blogs.length),
+    false,
+    "home",
+  );
   bindChrome(root);
   bindInitSite(
     root,
     (nextNotice, nextError) => bindHome(root, user, nextNotice, nextError),
     isFullAdmin(user),
   );
+  if (siteRow && blogs.length) bindQuickBlog(root, listing, blogs, quickBlogSite);
 }
 
 async function bindNavigation(root: HTMLElement, user: PublicUser, notice = "", error = ""): Promise<void> {
@@ -2106,20 +2123,25 @@ function homeHtml(
   error = "",
   canInitSite = true,
   publishedHref?: string,
+  blogCount = 0,
 ): string {
   const site = listing.records.find((row) => row.kind === "site");
   const publishedLink = publishedHref
     ? `<a class="w3-button w3-theme w3-margin-left" href="${escapeHtml(publishedHref)}" target="_blank" rel="noopener noreferrer">Open published site</a>`
     : "";
+  const quickBlog = site && blogCount > 0 ? `<p>${quickBlogButtonHtml()}</p>` : "";
   const body = site
     ? `<p>This site is <strong>${escapeHtml(site.title ?? site.id)}</strong>.</p>
        <p>
          <a class="w3-button w3-theme" href="${escapeHtml(PREVIEW_SITE_HREF)}" target="_blank" rel="noopener noreferrer">Open preview</a>${publishedLink}
-       </p>`
+       </p>
+       ${quickBlog}`
     : startSiteHtml(canInitSite);
-  return `${tesseraLogo3x5()}
+  return `<section class="editor-home w3-center" aria-label="Home">
+    ${tesseraLogo3x5()}
     ${statusPanels(notice, error)}
-    ${body}`;
+    ${body}
+  </section>`;
 }
 
 function startSiteHtml(canInitSite: boolean): string {

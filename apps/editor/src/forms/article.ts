@@ -30,18 +30,28 @@ export function articleMeta(record: Record<string, unknown>): string {
 
 export function heroField(heroId: string, heroUrl?: string): string {
   const preview = heroUrl
-    ? `<p><img data-hero-preview src="${escapeHtml(heroUrl)}" alt="" /></p>`
-    : `<p data-hero-preview hidden></p>`;
-  return `<fieldset class="editor-fieldset"><legend>Hero</legend>
+    ? `<p class="editor-hero-preview"><img data-hero-preview src="${escapeHtml(heroUrl)}" alt="" /></p>`
+    : `<p class="editor-hero-preview" data-hero-preview hidden></p>`;
+  return `<fieldset class="editor-fieldset editor-hero-field"><legend>Hero</legend>
     <input type="hidden" name="fields.hero" value="${escapeHtml(heroId)}" />
     ${preview}
-    <p class="w3-text-grey" data-hero-name>${heroId ? escapeHtml(heroId) : "No image."}</p>
-    <p>
-      <button type="button" class="w3-button w3-white" data-hero-pick>Choose</button>
-      <button type="button" class="w3-button w3-white" data-hero-clear>Clear</button>
-    </p>
-    <p><label>Upload <input data-hero-file type="file" accept="image/*" /></label>
-      <button type="button" class="w3-button w3-white" data-hero-upload>Upload</button></p>
+    <p class="w3-text-grey w3-small editor-hero-name" data-hero-name>${heroId ? escapeHtml(heroId) : "No image."}</p>
+    <div class="editor-hero-split">
+      <div class="editor-hero-pane editor-hero-pane-select">
+        <span class="editor-hero-pane-title">Select</span>
+        <p class="editor-hero-pane-actions">
+          <button type="button" class="w3-button w3-white" data-hero-pick>Choose</button>
+          <button type="button" class="w3-button w3-white" data-hero-clear>Clear</button>
+        </p>
+      </div>
+      <div class="editor-hero-pane editor-hero-pane-upload">
+        <span class="editor-hero-pane-title">Upload</span>
+        <p class="editor-hero-pane-actions">
+          <label class="editor-hero-file-label"><span class="editor-sr-only">Image file</span><input data-hero-file type="file" accept="image/*" /></label>
+          <button type="button" class="w3-button w3-white" data-hero-upload>Upload</button>
+        </p>
+      </div>
+    </div>
   </fieldset>`;
 }
 

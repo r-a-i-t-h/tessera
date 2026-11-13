@@ -189,6 +189,7 @@ export type RecordSummary = {
   type?: string;
   tags?: string[];
   date?: string;
+  author?: string;
   parentId?: string;
 };
 
@@ -301,6 +302,26 @@ export function renderSite(): Promise<RenderResult> {
 
 export function publishSite(): Promise<PublishResult> {
   return request("/api/publish", { method: "POST" });
+}
+
+export type PublishPagesResult = {
+  ok: true;
+  paths: string[];
+  installed?: string;
+};
+
+export function publishPageIds(
+  pageIds: string[],
+  options: { install?: boolean; heroAssetId?: string } = {},
+): Promise<PublishPagesResult> {
+  return request("/api/publish/pages", {
+    method: "POST",
+    body: JSON.stringify({
+      pageIds,
+      ...(options.install ? { install: true } : {}),
+      ...(options.heroAssetId ? { heroAssetId: options.heroAssetId } : {}),
+    }),
+  });
 }
 
 export function initSite(): Promise<RenderResult> {

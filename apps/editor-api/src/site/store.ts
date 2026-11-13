@@ -75,6 +75,7 @@ export type RecordSummary = {
   type?: string;
   tags?: string[];
   date?: string;
+  author?: string;
   parentId?: string;
 };
 
@@ -194,6 +195,7 @@ export class SiteStore {
             ? (data.fields as Record<string, unknown>)
             : {};
         const date = typeof fields.date === "string" ? fields.date : "";
+        const author = typeof fields.author === "string" ? fields.author.trim() : "";
         const parentId = typeof data.parentId === "string" ? data.parentId : "";
         out.push({
           kind,
@@ -202,6 +204,7 @@ export class SiteStore {
           ...(kind === "content" && typeof data.type === "string" && data.type ? { type: data.type } : {}),
           ...(tags.length && (kind === "content" || kind === "items") ? { tags } : {}),
           ...(kind === "content" && date ? { date } : {}),
+          ...(kind === "content" && author ? { author } : {}),
           ...(kind === "content" && parentId ? { parentId } : {}),
         });
       }
@@ -525,6 +528,38 @@ export class SiteStore {
       if (!publishTo) return { doc: withDatasets, dist };
       const installed = await installPublish(this.dist.publishDir, publishTo, dirname(this.dist.publishDir));
       return { doc: withDatasets, dist, installed };
+    } finally {
+      this.publishing = false;
+    }
+  }
+
+  async publishPageIds(
+    pageIds: string[],
+    options: { install?: boolean; heroAssetId?: string } = {},
+  ): Promise<{ paths: string[]; installed?: string }> {
+    if (this.publishing) throw new Error("A publish is already running.");
+    this.publishing = true;
+    try {
+      if (!this.dist) throw new Error("No publish directory configured.");
+      const ids = [...new Set(pageIds.map((id) => id.trim()).filter(Boolean))];
+      if (!ids.length) throw new Error("Choose at least one page to publish.");
+      const doc = await this.loadReadyDocument();
+      if (!doc) throw new Error("Nothing to publish yet. This site needs a layout and at least one page.");
+      const siteRoot = dirname(this.recordsDir);
+      const withDatasets = await embedDatasetsInDocument(siteRoot, doc);
+      const { emitSelectedPages } = await import("./dist.js");
+      const heroAssetIds = options.heroAssetId?.trim() ? [options.heroAssetId.trim()] : [];
+      const report = await emitSelectedPages(withDatasets, this.dist, ids, { heroAssetIds });
+      const publishTo = withDatasets.site.publishTo?.trim();
+      if (!options.install || !publishTo) return { paths: report.paths };
+      const { installPublishedPaths } = await import("./install-publish.js");
+      const installed = await installPublishedPaths(
+        this.dist.publishDir,
+        publishTo,
+        report.paths,
+        dirname(this.dist.publishDir),
+      );
+      return { paths: report.paths, installed };
     } finally {
       this.publishing = false;
     }

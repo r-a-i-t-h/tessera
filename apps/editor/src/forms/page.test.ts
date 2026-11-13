@@ -4,7 +4,9 @@ import {
   newTemplateBody,
   pageFromTemplate,
   pageIdError,
+  slugFromTitle,
   suggestDuplicateId,
+  titleToRecordId,
   withSidebarLink,
 } from "./page.js";
 import { widgetsFromLegacyHtml } from "@r-a-i-t-h/tessera-sections";
@@ -17,6 +19,14 @@ describe("new page", () => {
   it("suggests a free duplicate id", () => {
     expect(suggestDuplicateId("about", ["home"])).toBe("about-copy");
     expect(suggestDuplicateId("about", ["home", "about-copy"])).toBe("about-copy-2");
+  });
+
+  it("slugs titles to kebab ids and avoids collisions", () => {
+    expect(slugFromTitle("Hello World")).toBe("hello-world");
+    expect(slugFromTitle(" Café résumé ")).toBe("cafe-resume");
+    expect(titleToRecordId("My Post", ["home"])).toBe("my-post");
+    expect(titleToRecordId("My Post", ["home", "my-post"])).toBe("my-post-2");
+    expect(titleToRecordId("!!!", [])).toBe("post");
   });
 
   it("accepts a fresh id and rejects blanks, punctuation, and duplicates", () => {

@@ -297,6 +297,15 @@ body {
   height: auto;
 }
 
+.editor-home > p {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.editor-home > p:first-of-type {
+  margin-top: 0;
+}
+
 .editor-back-to-top {
   position: fixed;
   z-index: 13;
@@ -1484,6 +1493,74 @@ img[data-hero-preview] {
   max-width: 16rem;
   max-height: 9rem;
   object-fit: cover;
+}
+
+.editor-hero-field .editor-hero-preview {
+  margin: 0 0 0.35rem;
+}
+
+.editor-hero-field .editor-hero-name {
+  margin: 0 0 0.5rem;
+}
+
+.editor-hero-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.editor-hero-pane {
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #e4e4e4;
+  border-radius: 0.35rem;
+  background: #f8f8f8;
+}
+
+.editor-hero-pane-title {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 0.45rem;
+  color: #444;
+}
+
+.editor-hero-pane-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+  margin: 0;
+}
+
+.editor-hero-pane-upload .editor-hero-pane-actions {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.editor-hero-pane-upload .editor-hero-pane-actions .w3-button {
+  align-self: flex-start;
+}
+
+.editor-hero-file-label {
+  display: block;
+  width: 100%;
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.editor-hero-file-label input[type="file"] {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 420px) {
+  .editor-hero-split {
+    grid-template-columns: 1fr;
+  }
 }
 
 .editor-fieldset {
@@ -3179,6 +3256,56 @@ a.editor-library-row {
 .editor-picker-backdrop .editor-confirm-dialog {
   position: relative;
   width: min(28rem, calc(100% - 2rem));
+}
+
+.editor-picker-backdrop .editor-quick-blog-dialog {
+  position: relative;
+  width: min(42rem, calc(100% - 2rem));
+  max-height: min(90vh, 100% - 2rem);
+  overflow: auto;
+  border-radius: 0.5rem;
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.06),
+    0 12px 32px rgba(0, 0, 0, 0.18);
+}
+
+.editor-quick-blog-dialog > h2 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+}
+
+.editor-quick-blog-form {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.editor-quick-blog-form .editor-fieldset {
+  margin: 0;
+}
+
+.editor-quick-blog-tags-field .editor-schema-enum-head {
+  margin-bottom: 0.2rem;
+}
+
+.editor-quick-blog-tag-cloud-wrap {
+  margin-top: -0.15rem;
+}
+
+.editor-quick-blog-tag-cloud {
+  margin: 0;
+}
+
+.editor-quick-blog-tag-cloud-label {
+  margin: 0 0 0.3rem;
+}
+
+.editor-quick-blog-tag-cloud-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.editor-quick-blog-tag-cloud-list .w3-button {
+  margin: 0 !important;
 }
 
 .editor-confirm-message {

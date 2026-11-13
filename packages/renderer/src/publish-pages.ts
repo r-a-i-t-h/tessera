@@ -48,6 +48,31 @@ export const DEFAULT_PAGE_STYLESHEETS = [
  * plus a JSON description. Nav is whatever the master layout places.
  */
 export function publishPages(document: SiteDocument, options: PublishPagesOptions): PublishedFile[] {
+  const files = publishPageFiles(document, options, undefined);
+  const tree = publishedPageTree(document);
+  const pages = flattenPageTree(tree);
+  const origin = options.origin.replace(/\/$/, "");
+  files.push({
+    path: "sitemap.xml",
+    contents: sitemapXml(origin, pages),
+  });
+  return files;
+}
+
+/** HTML for a subset of published pages. Omits `sitemap.xml`. Unknown ids are skipped. */
+export function publishSelectedPages(
+  document: SiteDocument,
+  options: PublishPagesOptions,
+  pageIds: ReadonlySet<string>,
+): PublishedFile[] {
+  return publishPageFiles(document, options, pageIds);
+}
+
+function publishPageFiles(
+  document: SiteDocument,
+  options: PublishPagesOptions,
+  onlyIds: ReadonlySet<string> | undefined,
+): PublishedFile[] {
   const origin = options.origin.replace(/\/$/, "");
   const lang = options.lang ?? "en";
   const registry = options.registry ?? new ComponentRegistry();
@@ -59,6 +84,7 @@ export function publishPages(document: SiteDocument, options: PublishPagesOption
   const files: PublishedFile[] = [];
 
   for (const node of pages) {
+    if (onlyIds && !onlyIds.has(node.page.id)) continue;
     const microApps: MicroAppMount[] = [];
     const body = renderPage({
       document,
@@ -86,10 +112,6 @@ export function publishPages(document: SiteDocument, options: PublishPagesOption
     });
   }
 
-  files.push({
-    path: "sitemap.xml",
-    contents: sitemapXml(origin, pages),
-  });
   return files;
 }
 

@@ -128,6 +128,7 @@ export {
 export {
   DEFAULT_PAGE_STYLESHEETS,
   publishPages,
+  publishSelectedPages,
   hrefFor,
   canonicalUrl,
   assetHref,

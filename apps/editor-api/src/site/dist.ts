@@ -5,6 +5,7 @@ import type { SiteDocument } from "@r-a-i-t-h/tessera-model";
 import {
   createDefaultRegistry,
   publishPages,
+  publishSelectedPages,
   searchIndexJson,
 } from "@r-a-i-t-h/tessera-renderer";
 import { registerExtras } from "@r-a-i-t-h/tessera-extras";
@@ -43,6 +44,75 @@ const KEEP_AT_ROOT = new Set(["media", "img", "skin", "data", "runtime-modules"]
 
 export function siteDelivery(site: { delivery?: string | undefined }): "pages" | "snapshot" {
   return site.delivery === "snapshot" ? "snapshot" : "pages";
+}
+
+export type SelectedPagesReport = {
+  paths: string[];
+  pages: number;
+};
+
+/**
+ * Write HTML for a subset of pages into `publish/` only. Skips search index and dist cleanup.
+ * Pages delivery only.
+ */
+export async function emitSelectedPages(
+  document: SiteDocument,
+  target: DistTarget,
+  pageIds: readonly string[],
+  options: { heroAssetIds?: readonly string[] } = {},
+): Promise<SelectedPagesReport> {
+  if (siteDelivery(document.site) !== "pages") {
+    throw new DistError("Selective publish is only supported for pages delivery.");
+  }
+  const pagesBundle = join(target.bundleDir, "tessera-pages.js");
+  if (!existsSync(pagesBundle)) {
+    throw new DistError("Build the site runtime first (tessera-pages.js is missing).");
+  }
+  if (!existsSync(target.skinDir)) {
+    throw new DistError("Skin CSS is missing, so the pages dist was not written.");
+  }
+  const origin = requireOrigin(document.site.origin);
+  const shell = await readOptional(target.shellIndex);
+  const files = publishSelectedPages(document, {
+    origin,
+    registry: createDefaultRegistry(registerExtras),
+    skin: w3Skin,
+    stylesheets: stylesheetsFromShell(shell),
+    script: "./tessera-pages.js",
+  }, new Set(pageIds));
+  await mkdir(target.publishDir, { recursive: true });
+  for (const file of files) {
+    await writeTextAtomic(
+      join(target.publishDir, file.path),
+      file.contents.endsWith("\n") ? file.contents : `${file.contents}\n`,
+    );
+  }
+  const mediaPaths = await copyMediaAssetIds(document, target.publishDir, options.heroAssetIds ?? []);
+  const paths = [...files.map((file) => file.path), ...mediaPaths];
+  return { paths, pages: files.filter((file) => file.path.endsWith(".html")).length };
+}
+
+async function copyMediaAssetIds(
+  document: SiteDocument,
+  publishDir: string,
+  assetIds: readonly string[],
+): Promise<string[]> {
+  const wanted = new Set(assetIds.map((id) => id.trim()).filter(Boolean));
+  if (!wanted.size) return [];
+  const filesDir = join(dirname(publishDir), "files");
+  const mediaDir = join(publishDir, "media");
+  await mkdir(mediaDir, { recursive: true });
+  const written: string[] = [];
+  for (const item of document.media ?? []) {
+    if (!wanted.has(item.id)) continue;
+    const name = flatMediaName(item.url);
+    if (!name) continue;
+    const source = join(filesDir, name);
+    if (!existsSync(source)) continue;
+    await copyFile(source, join(mediaDir, name));
+    written.push(`media/${name}`);
+  }
+  return written;
 }
 
 /** Rebuild `publish/` for the site's delivery. Throws `DistError` before replacing HTML. */

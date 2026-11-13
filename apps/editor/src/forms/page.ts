@@ -36,6 +36,29 @@ export type SidebarLinkResult =
   | { ok: true; nav: unknown[] }
   | { ok: false; message: string };
 
+/** Kebab slug from a title, before record-id rules and uniqueness. */
+export function slugFromTitle(title: string): string {
+  return title
+    .trim()
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/** Article/page id from title: kebab-case, unique among `existingIds`. */
+export function titleToRecordId(title: string, existingIds: readonly string[]): string {
+  let base = slugFromTitle(title);
+  if (!base || !PAGE_ID.test(base)) base = "post";
+  if (!existingIds.includes(base)) return base;
+  for (let n = 2; n < 10_000; n++) {
+    const candidate = `${base}-${n}`;
+    if (!existingIds.includes(candidate)) return candidate;
+  }
+  return `${base}-${Date.now()}`;
+}
+
 export function pageIdError(id: string, existingIds: readonly string[]): string | undefined {
   const trimmed = id.trim();
   if (!trimmed) return "Enter an id.";

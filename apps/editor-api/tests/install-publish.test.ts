@@ -2,7 +2,7 @@ import { chmod, lstat, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "
 import { tmpdir, userInfo } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { installPublish } from "../src/site/install-publish.js";
+import { installPublish, installPublishedPaths } from "../src/site/install-publish.js";
 
 describe("installPublish", () => {
   const dirs: string[] = [];
@@ -112,5 +112,34 @@ describe("installPublish", () => {
     } finally {
       await chmod(live, 0o755);
     }
+  });
+});
+
+describe("installPublishedPaths", () => {
+  const dirs: string[] = [];
+
+  afterEach(async () => {
+    await Promise.all(dirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
+  });
+
+  it("copies only the given files and keeps other live files", async () => {
+    const root = await mkdtemp(join(tmpdir(), "tessera-install-paths-"));
+    dirs.push(root);
+    const instance = join(root, "site");
+    const publish = join(instance, "publish");
+    const live = join(root, "www");
+    await mkdir(publish, { recursive: true });
+    await mkdir(live, { recursive: true });
+    await writeFile(join(publish, "index.html"), "<p>Welcome</p>\n");
+    await mkdir(join(publish, "news"), { recursive: true });
+    await writeFile(join(publish, "news", "index.html"), "<p>News</p>\n");
+    await writeFile(join(live, "index.html"), "<p>old home</p>\n");
+    await writeFile(join(live, "keep.txt"), "untouched\n");
+
+    await installPublishedPaths(publish, live, ["news/index.html"], instance);
+
+    expect(await readFile(join(live, "index.html"), "utf8")).toContain("old home");
+    expect(await readFile(join(live, "keep.txt"), "utf8")).toBe("untouched\n");
+    expect(await readFile(join(live, "news", "index.html"), "utf8")).toContain("News");
   });
 });
