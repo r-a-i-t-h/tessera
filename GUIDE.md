@@ -156,12 +156,14 @@ Use **Bindings + Insert** for any component Tessera offers through the binding w
 |----------|-------------|
 | **Gallery binding** | Primary — multiple folders, filename filter, slides, reuse across pages. |
 | **Gallery Compose section** | Quick fix — one folder on **this page only**. Migrate to a binding when the gallery matters. |
+| **Documents binding / Compose** | File list from library folder(s): every file (images + PDFs and other types), download links, type icons. Same folder order as gallery (`sort`, then filename; numeric prefixes on names are hidden in titles). |
 
 Other binding kinds have **no** Compose section shortcut — configure them only as bindings.
 
 ### Binding kinds
 
 - **Gallery** — Pictures from library folders, as a grid or slides.
+- **Documents** — Every file in a library folder as a list (thumbnails for images, type badge for other formats).
 - **Reveal banner** — Grid of image panels (Miller’s Ark–style homepage hero): set banner width, height, and panels per row (1–6); optional title size (1–2 em) and expanded gap (default 10px, the space left beside a grown panel); up to six panels with image, title, and link. Each panel shows its slice of full-size artwork; hover to grow on desktop; click or tap to reveal the full banner, then navigate. Insert only; no Compose palette section. Panel **image** is a site-relative library path (e.g. `./media/hero/img1.jpg`). Panel **link** is a **page id** (same id as Pages or Nav) or a full external URL (`https://…`, `mailto:…`); use **Choose page** in the binding editor. Do not use `./` or publish paths for panel links.
 - **Dataset list** — Rows from a [dataset](#datasets): table, cards, or plain list; or the same data passed to a **runtime module** for a custom view. Sort, limit, column pick, and filters are binding props.
 - **Raw HTML** — Markup from a ticket vendor, payment form, or similar (scripts and iframes kept on publish). Edit in the binding editor with Image, Document, and Page link inserts; insert with Compose → Insert. Not a layout Component.

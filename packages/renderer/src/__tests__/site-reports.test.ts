@@ -4,6 +4,7 @@ import { createDefaultRegistry } from "../default-registry.js";
 import {
   buildMaintenanceReport,
   collectMediaIdsFromHtml,
+  composeFolderIdsFromHtml,
   listBrokenRefs,
   listOrphanPages,
   listRescanDrift,
@@ -45,6 +46,14 @@ describe("mediaIdFromUrl / collectMediaIdsFromHtml", () => {
         `<p><img src="./media/a.png" alt="" /><a href="/media/b.pdf">B</a></p>`,
       ),
     ).toEqual(["a", "b"]);
+  });
+});
+
+describe("composeFolderIdsFromHtml", () => {
+  it("reads gallery and documents folder markers", () => {
+    const html = `<div data-tessera="gallery" data-folder="lambs"></div>
+<div data-tessera="documents" data-folder="papers"></div>`;
+    expect(composeFolderIdsFromHtml(html)).toEqual(["lambs", "papers"]);
   });
 });
 

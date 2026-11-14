@@ -197,6 +197,7 @@ export type Section = SectionFlags &
     | { kind: "toc" }
     | { kind: "youtube"; videoId: string; /** iframe `title` for accessibility */ title: string }
     | { kind: "gallery"; folder: string; mode: GalleryMode }
+    | { kind: "documents"; folder: string }
     | { kind: "pasted"; html: string }
     | { kind: "html"; html: string }
   );
@@ -215,10 +216,11 @@ export type PaletteKind =
   | "toc"
   | "youtube"
   | "gallery"
+  | "documents"
   | "pasted";
 
 /** Compose sidebar groups (each followed by a divider except after the last). */
-export const COMPOSE_PALETTE_GROUP_LENGTHS: readonly number[] = [3, 3, 8];
+export const COMPOSE_PALETTE_GROUP_LENGTHS: readonly number[] = [3, 3, 9];
 
 export const PALETTE: { kind: PaletteKind; label: string }[] = [
   { kind: "heading", label: "Heading" },
@@ -233,6 +235,7 @@ export const PALETTE: { kind: PaletteKind; label: string }[] = [
   { kind: "imgbox", label: "Image box" },
   { kind: "youtube", label: "YouTube" },
   { kind: "gallery", label: "Gallery" },
+  { kind: "documents", label: "Documents" },
   { kind: "pasted", label: "Pasted note" },
   { kind: "insert", label: "Insert" },
 ];
@@ -401,6 +404,8 @@ export function blankSection(kind: PaletteKind): Section {
       return { kind: "youtube", videoId: "", title: "" };
     case "gallery":
       return { kind: "gallery", folder: "", mode: "grid" };
+    case "documents":
+      return { kind: "documents", folder: "" };
     case "pasted":
       return { kind: "pasted", html: "" };
   }
@@ -468,6 +473,8 @@ export function paintSection(section: Section, lookup: ToneLookup = EMPTY_LOOKUP
       return paintYoutube(section);
     case "gallery":
       return `<div class="${joinClass(BLOCK_CLASS, "tessera-page-gallery")}" data-tessera="gallery" data-folder="${escapeAttr(section.folder)}" data-mode="${section.mode === "slides" ? "slides" : "grid"}"></div>`;
+    case "documents":
+      return `<div class="${joinClass(BLOCK_CLASS, "tessera-page-documents")}" data-tessera="documents" data-folder="${escapeAttr(section.folder)}"></div>`;
     case "pasted":
       return `<div class="${joinClass(BLOCK_CLASS, "tessera-pasted")}"><div class="tessera-pasted-sheet">${renderMarkdownLinks(section.html)}</div></div>`;
     case "html":
@@ -754,6 +761,12 @@ function asPageElement(el: ElNode, lookup: ToneLookup): Section | null {
       kind: "gallery",
       folder: attr(el, "data-folder"),
       mode: attr(el, "data-mode") === "slides" ? "slides" : "grid",
+    };
+  }
+  if (marker === "documents" || hasClass(el, "tessera-page-documents")) {
+    return {
+      kind: "documents",
+      folder: attr(el, "data-folder"),
     };
   }
   if (hasClass(el, "tessera-youtube")) {

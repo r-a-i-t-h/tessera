@@ -16,6 +16,7 @@ describe("default component registry", () => {
       "breadcrumbs",
       "linkCluster",
       "gallery",
+      "documents",
       "imageRevealGallery",
       "searchBox",
       "searchResults",

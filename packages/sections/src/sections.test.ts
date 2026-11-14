@@ -226,6 +226,7 @@ describe("paintSections", () => {
       { kind: "subpages", title: "In this section" },
       { kind: "youtube", videoId: "QvAdmE0vPW0", title: "Lambs in the barn" },
       { kind: "gallery", folder: "lambs", mode: "slides" },
+      { kind: "documents", folder: "papers" },
       { kind: "pasted", html: "<p>A short line.</p><p>And another paragraph that the sheet grows to fit.</p>" },
       { kind: "html", html: `<div class="wh-hero"><p>Keep</p></div>` },
     ];
@@ -476,6 +477,7 @@ describe("paintSections", () => {
       { kind: "subpages", title: "Visit" },
       { kind: "youtube", videoId: "https://www.youtube.com/watch?v=QvAdmE0vPW0", title: "Farm" },
       { kind: "gallery", folder: "lambs", mode: "grid" },
+      { kind: "documents", folder: "papers" },
       { kind: "pasted", html: "<p>Author text</p>" },
     ]);
     expect(html).toContain('data-tessera="subpages"');
@@ -486,6 +488,8 @@ describe("paintSections", () => {
     expect(html).toContain("tessera-video");
     expect(html).toContain('data-tessera="gallery"');
     expect(html).toContain('data-mode="grid"');
+    expect(html).toContain('data-tessera="documents"');
+    expect(html).toContain('data-folder="papers"');
     expect(html).toContain("tessera-pasted-sheet");
     expect(html).toContain("<p>Author text</p>");
     expect(html).not.toContain("BABIES");

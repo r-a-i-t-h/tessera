@@ -6,6 +6,8 @@ import {
   bindingSentence,
   embedDraftFromForm,
   embedRecord,
+  documentsDraft,
+  documentsRecord,
   galleryDraft,
   galleryDraftFromForm,
   galleryRecord,
@@ -49,6 +51,12 @@ describe("binding sentences", () => {
       }),
     ).toBe("Slides of the hall-gallery and lambs folders.");
     expect(bindingSentence({ component: "gallery", props: { mode: "grid" } })).toBe("A gallery with no folders yet.");
+  });
+
+  it("describes a documents binding", () => {
+    expect(
+      bindingSentence({ component: "documents", props: { folders: ["doc-gallery-poc"] } }),
+    ).toBe("File list of the doc-gallery-poc folder.");
   });
 
   it("leaves unknown components on the raw file", () => {
@@ -118,6 +126,9 @@ describe("binding records", () => {
     const grid = galleryDraft(slides);
     grid.mode = "grid";
     expect(galleryRecord("hall-gallery", grid).props).not.toHaveProperty("autoplay");
+    expect(documentsRecord("papers", documentsDraft({ component: "documents", props: { folders: ["a", "b"] } })).props).toEqual({
+      folders: ["a", "b"],
+    });
   });
 
   it("renders reveal banner panels with page picker and choices payload", () => {

@@ -15,6 +15,7 @@ const paletteKinds = [
   "toc",
   "youtube",
   "gallery",
+  "documents",
   "pasted",
   "html",
 ] as const;

@@ -40,7 +40,7 @@ describe("library picker", () => {
     const docs = renderPicker(listing, "document", null);
     expect(docs).toContain("editor-picker-assets");
     expect(docs).toContain("notes.pdf");
-    expect(docs).toContain("editor-thumb-file");
+    expect(docs).toContain("tessera-file-icon-type");
     expect(docs).not.toContain("/thumb");
   });
 

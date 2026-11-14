@@ -1,4 +1,5 @@
 import { registerGalleryComponents } from "./builtins/gallery.js";
+import { registerDocumentsComponents } from "./builtins/documents.js";
 import { registerHtmlEmbedComponent } from "./builtins/html-embed.js";
 import { registerImageRevealGalleryComponents } from "./builtins/image-reveal-gallery.js";
 import { registerNavComponents } from "./builtins/nav.js";
@@ -16,6 +17,7 @@ export function createDefaultRegistry(extend?: RegistryExtension): ComponentRegi
   const define = (name: string, fn: ComponentFn) => registry.define(name, fn);
   registerNavComponents(define);
   registerGalleryComponents(define);
+  registerDocumentsComponents(define);
   registerImageRevealGalleryComponents(define);
   registerSearchComponents(define);
   registerHtmlEmbedComponent(define);

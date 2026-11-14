@@ -384,3 +384,141 @@ tessera-image-reveal-gallery .tessera-irg-panel:focus-visible {
     transition-duration: 0.01ms;
   }
 }
+
+
+/* Folder file list (documents component) — compact rows, one full-width link, no list chrome */
+.tessera-documents {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: none !important;
+}
+
+.tessera-documents > .tessera-documents-item {
+  list-style: none;
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none !important;
+}
+
+.tessera-documents-link {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  max-width: 100%;
+  min-height: 2.25rem;
+  padding: 0.2rem 0.35rem;
+  box-sizing: border-box;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 2px;
+}
+
+.tessera-documents-link:hover,
+.tessera-documents-link:focus-visible {
+  background-color: #f1f1f1;
+}
+
+.tessera-documents-visual {
+  flex: 0 0 auto;
+  width: 2.75rem;
+  line-height: 0;
+}
+
+.tessera-documents .tessera-documents-thumb {
+  width: 2.75rem;
+  height: 2.125rem;
+  object-fit: cover;
+  display: block;
+  background: #eee;
+}
+
+.tessera-documents .tessera-file-icon.tessera-documents-file-icon {
+  width: 2.75rem;
+  height: 2.125rem;
+}
+
+.tessera-documents .tessera-file-icon-sheet {
+  clip-path: polygon(0 0, calc(100% - 0.45rem) 0, 100% 0.45rem, 100% 100%, 0 100%);
+}
+
+.tessera-documents .tessera-file-icon-sheet::before {
+  width: 0.45rem;
+  height: 0.45rem;
+}
+
+.tessera-documents .tessera-file-icon-type {
+  font-size: 0.5rem;
+  top: 56%;
+}
+
+.tessera-documents-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+  white-space: normal;
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+
+.tessera-documents-meta {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding-left: 0.5rem;
+  text-align: right;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: #616161;
+}
+
+.tessera-file-icon {
+  position: relative;
+  display: inline-block;
+  width: 4.5rem;
+  height: 3.5rem;
+  box-sizing: border-box;
+}
+
+.tessera-file-icon-sheet {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 1px solid #bbb;
+  border-radius: 2px;
+  background: linear-gradient(145deg, #fafafa 0%, #e8e8e8 55%, #f4f4f4 100%);
+  box-shadow: inset 0 0 0 1px #fff;
+  /* Dog-ear cut: diagonal from top edge to right edge at the top-right corner. */
+  clip-path: polygon(0 0, calc(100% - 0.7rem) 0, 100% 0.7rem, 100% 100%, 0 100%);
+}
+
+.tessera-file-icon-sheet::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0.7rem;
+  height: 0.7rem;
+  box-sizing: border-box;
+  /* Folded underside: triangle matching the notch (hypotenuse top-left → bottom-right of this square). */
+  background: linear-gradient(225deg, #f0f0f0 0%, #b8b8b8 100%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+  box-shadow: -1px 1px 0 rgba(0, 0, 0, 0.06);
+}
+
+.tessera-file-icon-type {
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  transform: translate(-50%, -50%);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #333;
+  text-shadow: 0 1px 0 #fff;
+  pointer-events: none;
+}

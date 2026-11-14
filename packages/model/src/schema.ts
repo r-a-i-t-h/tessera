@@ -283,6 +283,17 @@ export const FolderImageSchema = z.object({
   alt: z.string().optional(),
 });
 
+/** One file in a folder-backed document list (all library kinds in that folder). */
+export const FolderDocumentSchema = z.object({
+  file: z.string().min(1),
+  url: z.string().min(1).optional(),
+  title: z.string().optional(),
+  ext: z.string().optional(),
+  bytes: z.number().int().nonnegative().optional(),
+  kind: z.enum(["image", "document"]).optional(),
+  sort: z.number().optional(),
+});
+
 /**
  * First-class scanned folder — discrete gallery source (not a flat media bank).
  * Gallery components reference folder id(s); optional regex filter on `file`.
@@ -292,6 +303,7 @@ export const FolderSchema = z.object({
   /** URL prefix for files, e.g. `./media/goats`. */
   path: z.string().min(1),
   images: z.array(FolderImageSchema).default([]),
+  documents: z.array(FolderDocumentSchema).default([]),
 });
 
 /**
@@ -489,6 +501,7 @@ export type Item = z.infer<typeof ItemSchema>;
 export type Media = z.infer<typeof MediaSchema>;
 export type RuntimeModule = z.infer<typeof RuntimeModuleSchema>;
 export type FolderImage = z.infer<typeof FolderImageSchema>;
+export type FolderDocument = z.infer<typeof FolderDocumentSchema>;
 export type Folder = z.infer<typeof FolderSchema>;
 export type Binding = z.infer<typeof BindingSchema>;
 export type SiteMeta = z.infer<typeof SiteMetaSchema>;

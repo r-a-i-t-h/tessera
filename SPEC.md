@@ -257,6 +257,7 @@ Without being limiting, Tessera should ship enough shared pieces to build a full
 | Listings / items | First-class story for iterating structured items (not only one-off site `ComponentFn`s) |
 | Blog | Reserved `blog`, `article`, and `blog-index`. Tenants, a paged reading list, and a date index. A menu branch exists only under a blog added to nav |
 | Gallery | `<tessera-gallery>` grid, slides, and dialog. A library folder is the image set |
+| Documents | `documents` component: folder file list (all members), thumbnails and type icons |
 | Document browser | Browse structured document-like content |
 | Layout primitives | imgbox, quote, row/column helpers — preferably as WCs and/or skin helpers |
 | Nav | Document-owned designed tree + optional `source`; presentations via components (tags / tree / collapse / custom) |

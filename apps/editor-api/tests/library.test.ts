@@ -52,6 +52,7 @@ describe("projectLibrary", () => {
     expect(projected.folders[0]?.images).toEqual([
       { file: "porch.svg", url: "./media/porch.svg", alt: "The porch" },
     ]);
+    expect(projected.folders[0]?.documents?.map((d) => d.file)).toEqual(["porch.svg", "notes.pdf"]);
   });
 
   it("copies a url media record and a path folder through unchanged", () => {
@@ -471,9 +472,9 @@ describe("asset library", () => {
 
     expect(rebuild).toHaveBeenCalledTimes(1);
     expect(result.removed).toEqual([{ id: porch.id, name: "porch.png" }]);
-    expect(result.added.map((file) => file.name).sort()).toEqual(["brief.pdf", "extra.png"]);
+    expect(result.added.map((file) => file.name).sort()).toEqual(["brief.pdf", "extra.png", "readme.txt"]);
     expect(result.added.every((file) => file.folderId === "scanned")).toBe(true);
-    expect(result.skipped).toEqual([{ name: "readme.txt", reason: "Only images and PDF files can be added." }]);
+    expect(result.skipped).toEqual([]);
     const listing = await library.list();
     expect(listing.assets.find((asset) => asset.id === porch.id)).toBeUndefined();
     expect(listing.assets.find((asset) => asset.id === notes.id)?.folderId).toBe("uploads");

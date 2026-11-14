@@ -1,3 +1,4 @@
+import { folderAssetDisplayName, tesseraFileIconHtml } from "@r-a-i-t-h/tessera-model";
 import { editorListToolbar, escapeHtml, noticePanel } from "../dom.js";
 import {
   libraryAssetListOrderSelect,
@@ -158,11 +159,18 @@ export function libraryParentBrowseId(folders: FolderRow[], openId: LibraryBrows
   return libraryBrowseId(folders, folder.parentId);
 }
 
+export function compareFolderAssets(a: AssetRow, b: AssetRow): number {
+  const as = a.sort ?? Number.MAX_SAFE_INTEGER;
+  const bs = b.sort ?? Number.MAX_SAFE_INTEGER;
+  if (as !== bs) return as - bs;
+  return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+}
+
 export function libraryAssetThumb(asset: AssetRow): string {
   if (asset.kind === "image") {
     return `<img class="editor-thumb" src="/api/library/assets/${encodeURIComponent(asset.id)}/thumb" alt="" loading="lazy" decoding="async" data-fallback="/api/library/assets/${encodeURIComponent(asset.id)}/file" />`;
   }
-  return `<span class="editor-thumb editor-thumb-file">PDF</span>`;
+  return tesseraFileIconHtml(asset.ext, escapeHtml, "editor-thumb tessera-file-icon");
 }
 
 export function parentFolderLabel(folders: FolderRow[], folderId: string | null): string {
@@ -310,13 +318,37 @@ function folderOptions(folders: FolderRow[], current: string | null): string {
   return options || `<option value="">No folders yet</option>`;
 }
 
-export function folderDetail(folder: FolderRow, folders: FolderRow[]): string {
+function folderFileListRows(assets: AssetRow[], folderId: string): string {
+  const members = assets.filter((a) => a.folderId === folderId).sort(compareFolderAssets);
+  if (!members.length) {
+    return `<p class="w3-text-grey w3-small">No files in this folder yet.</p>`;
+  }
+  const rows = members
+    .map((asset) => {
+      const thumb = libraryAssetThumb(asset);
+      return `<li class="editor-folder-file-row w3-bar w3-border-bottom w3-hover-light-grey">
+        <span class="w3-bar-item">${thumb}</span>
+        <span class="w3-bar-item">${escapeHtml(folderAssetDisplayName(asset.name, asset.title))}</span>
+        <span class="w3-bar-item w3-right w3-small w3-text-grey">${escapeHtml(asset.ext.toUpperCase())}</span>
+      </li>`;
+    })
+    .join("");
+  return `<section class="editor-folder-files w3-margin-top">
+    <p><strong>Files in this folder</strong></p>
+    <p class="w3-text-grey w3-small">Site order matches the image gallery: optional Sort field, then filename. Numeric prefixes on names sort invisibly in titles.</p>
+    <ul class="w3-ul w3-white w3-border">${rows}</ul>
+  </section>`;
+}
+
+export function folderDetail(folder: FolderRow, folders: FolderRow[], assets: AssetRow[] = []): string {
+  const fileList = folderFileListRows(assets, folder.id);
   if (folder.system) {
     return `<div id="folder-detail" data-folder="${escapeHtml(folder.id)}">
     <p><strong>Details</strong></p>
     <p><strong>Folder id</strong> ${escapeHtml(folder.id)}</p>
     <p><strong>Parent</strong> ${escapeHtml(parentFolderLabel(folders, folder.parentId))}</p>
     <p class="w3-text-grey w3-small">System folders cannot be moved or renamed.</p>
+    ${fileList}
   </div>`;
   }
   return `<form id="folder-detail" data-folder="${escapeHtml(folder.id)}">
@@ -327,6 +359,7 @@ export function folderDetail(folder: FolderRow, folders: FolderRow[]): string {
       <button type="submit" class="w3-button w3-theme">Save</button>
       <button type="button" class="w3-button w3-white" data-delete-folder="${escapeHtml(folder.id)}">Delete</button>
     </p>
+    ${fileList}
   </form>`;
 }
 

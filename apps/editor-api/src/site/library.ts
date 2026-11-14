@@ -17,7 +17,10 @@ export function isSystemLibraryFolder(id: string): boolean {
   return (SYSTEM_LIBRARY_FOLDER_IDS as readonly string[]).includes(id);
 }
 
-export const ALLOWED_EXT = new Set(["jpg", "jpeg", "png", "gif", "webp", "svg", "pdf"]);
+const IMAGE_EXT = new Set(["jpg", "jpeg", "png", "gif", "webp", "svg"]);
+const DOCUMENT_EXT = new Set(["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "csv", "zip", "rtf", "md"]);
+
+export const ALLOWED_EXT = new Set([...IMAGE_EXT, ...DOCUMENT_EXT]);
 
 export type AssetKind = "image" | "document";
 
@@ -54,8 +57,17 @@ export function normalizeExt(filename: string): string {
 
 export function kindForExt(ext: string): AssetKind | undefined {
   const normalized = ext === "jpeg" ? "jpg" : ext.toLowerCase();
-  if (!ALLOWED_EXT.has(normalized) && normalized !== "jpg") return undefined;
-  return normalized === "pdf" ? "document" : "image";
+  if (!ALLOWED_EXT.has(normalized)) return undefined;
+  if (IMAGE_EXT.has(normalized)) return "image";
+  return "document";
+}
+
+/** Folder member order shared by gallery images and document lists. */
+export function compareLibraryAssets(a: LibraryAsset, b: LibraryAsset): number {
+  const as = a.sort ?? Number.MAX_SAFE_INTEGER;
+  const bs = b.sort ?? Number.MAX_SAFE_INTEGER;
+  if (as !== bs) return as - bs;
+  return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
 }
 
 /** Slug that satisfies the record id rule. Empty or odd names become `file`. */
@@ -168,24 +180,32 @@ function toMedia(asset: LibraryAsset): Media {
 
 function toFolder(node: Record<string, unknown>, assets: LibraryAsset[]): Folder {
   const id = String(node.id);
-  const images = assets
-    .filter((asset) => asset.kind === "image" && asset.folderId === id)
-    .sort((a, b) => {
-      const as = a.sort ?? Number.MAX_SAFE_INTEGER;
-      const bs = b.sort ?? Number.MAX_SAFE_INTEGER;
-      if (as !== bs) return as - bs;
-      return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
-    })
+  const inFolder = assets.filter((asset) => asset.folderId === id);
+  const images = inFolder
+    .filter((asset) => asset.kind === "image")
+    .sort(compareLibraryAssets)
     .map((asset) => ({
       file: asset.name,
       url: publicAssetUrl(asset.id, asset.ext),
       ...(asset.caption ? { caption: asset.caption } : {}),
       ...(asset.alt ? { alt: asset.alt } : {}),
     }));
+  const documents = inFolder
+    .sort(compareLibraryAssets)
+    .map((asset) => ({
+      file: asset.name,
+      url: publicAssetUrl(asset.id, asset.ext),
+      ext: asset.ext,
+      kind: asset.kind,
+      ...(asset.title ? { title: asset.title } : {}),
+      ...(asset.bytes !== undefined ? { bytes: asset.bytes } : {}),
+      ...(asset.sort !== undefined ? { sort: asset.sort } : {}),
+    }));
   return {
     id,
     path: "./media",
     images,
+    documents,
   };
 }
 

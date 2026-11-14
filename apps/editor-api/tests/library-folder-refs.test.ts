@@ -31,6 +31,19 @@ describe("rewriteLibraryFolderRefs", () => {
     });
   });
 
+  it("rewrites documents compose sections and bindings", () => {
+    const tree = {
+      zones: { main: { sections: [{ kind: "documents", folder: "docs" }] } },
+    };
+    const binding = { id: "d", component: "documents", props: { folders: ["docs"] } };
+    expect(rewriteLibraryFolderRefs(tree, "docs", "papers").value).toEqual({
+      zones: { main: { sections: [{ kind: "documents", folder: "papers" }] } },
+    });
+    expect(rewriteLibraryFolderRefs(binding, "docs", "papers").value).toMatchObject({
+      props: { folders: ["papers"] },
+    });
+  });
+
   it("leaves unrelated values unchanged", () => {
     const input = { kind: "text", html: "<p>Hi</p>" };
     expect(rewriteLibraryFolderRefs(input, "a", "b")).toEqual({ value: input, changed: false });

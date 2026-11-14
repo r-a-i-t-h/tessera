@@ -102,6 +102,21 @@ function mustacheIds(html: string): string[] {
   return ids;
 }
 
+const COMPOSE_FOLDER_MARKER = /\bdata-tessera="(?:gallery|documents)"[^>]*\bdata-folder="([^"]*)"/gi;
+
+/** Library folder ids from Compose gallery / documents markers in zone HTML. */
+export function composeFolderIdsFromHtml(html: string): string[] {
+  if (!html.includes("data-tessera")) return [];
+  const ids: string[] = [];
+  COMPOSE_FOLDER_MARKER.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = COMPOSE_FOLDER_MARKER.exec(html))) {
+    const id = (match[1] ?? "").trim();
+    if (id) ids.push(id);
+  }
+  return ids;
+}
+
 function folderIdsFromProps(props: Record<string, unknown> | undefined): string[] {
   if (!props) return [];
   const raw = props.folders ?? props.folder;
@@ -218,6 +233,10 @@ function mediaIdsInFolder(document: SiteDocument, folderId: string): string[] {
     const fromUrl = image.url ? mediaIdFromUrl(image.url) : undefined;
     if (fromUrl) ids.push(fromUrl);
   }
+  for (const doc of folder.documents ?? []) {
+    const fromUrl = doc.url ? mediaIdFromUrl(doc.url) : undefined;
+    if (fromUrl) ids.push(fromUrl);
+  }
   return ids;
 }
 
@@ -252,6 +271,7 @@ export function collectAssetUsage(document: SiteDocument): AssetUsage {
   };
   const onHtml = (html: string) => {
     for (const id of collectMediaIdsFromHtml(html)) onMedia(id);
+    for (const folderId of composeFolderIdsFromHtml(html)) onFolder(folderId);
   };
   const onComponent = (_name: string, props?: Record<string, unknown>) => {
     for (const folderId of folderIdsFromProps(props)) onFolder(folderId);
@@ -422,6 +442,9 @@ function collectBrokenFromZones(
       for (const id of collectMediaIdsFromHtml(html)) {
         if (!mediaById.has(id)) noteBroken(collector, source, "missing media", id, true);
       }
+      for (const folderId of composeFolderIdsFromHtml(html)) {
+        if (!folderById.has(folderId)) noteBroken(collector, source, "missing folder", folderId, false);
+      }
     },
     (_name, props) => {
       for (const folderId of folderIdsFromProps(props)) {
@@ -476,6 +499,9 @@ export function listBrokenRefs(document: SiteDocument): {
       (html) => {
         for (const id of collectMediaIdsFromHtml(html)) {
           if (!mediaById.has(id)) noteBroken(collector, source, "missing media", id, true);
+        }
+        for (const folderId of composeFolderIdsFromHtml(html)) {
+          if (!folderById.has(folderId)) noteBroken(collector, source, "missing folder", folderId, false);
         }
       },
       (_name, props) => {

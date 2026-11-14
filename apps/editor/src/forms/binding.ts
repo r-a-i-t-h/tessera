@@ -21,6 +21,7 @@ import {
 
 export type BindingKind =
   | "gallery"
+  | "documents"
   | "imageReveal"
   | "embed"
   | "dataset"
@@ -59,6 +60,13 @@ export type GalleryDraft = {
   recordExtra: Record<string, unknown>;
 };
 
+export type DocumentsDraft = {
+  folders: string[];
+  filter: string;
+  propsExtra: Record<string, unknown>;
+  recordExtra: Record<string, unknown>;
+};
+
 export type EmbedDraft = {
   html: string;
   propsExtra: Record<string, unknown>;
@@ -84,6 +92,7 @@ export type NewBinding = {
   step: 1 | 2 | 3;
   component: string;
   gallery: GalleryDraft;
+  documents: DocumentsDraft;
   imageReveal: ImageRevealDraft;
   embed: EmbedDraft;
   dataset: DatasetDraft;
@@ -95,6 +104,7 @@ const TOKEN = /\{\{([a-zA-Z0-9_-]+)\}\}/g;
 export function bindingKind(data: unknown): BindingKind {
   if (!isRecord(data) || typeof data.component !== "string") return "other";
   if (data.component === "gallery") return "gallery";
+  if (data.component === "documents") return "documents";
   if (data.component === "imageRevealGallery") return "imageReveal";
   if (data.component === "htmlEmbed") return "embed";
   if (data.component === "runtimeModule") {
@@ -113,6 +123,7 @@ export function blankNewBinding(): NewBinding {
     step: 1,
     component: "",
     gallery: blankGallery(),
+    documents: blankDocuments(),
     imageReveal: blankImageReveal(),
     embed: blankEmbed(),
     dataset: blankDataset(),
@@ -154,6 +165,35 @@ export function galleryRecord(id: string, draft: GalleryDraft): Record<string, u
   if (draft.mode === "slides" && draft.autoplay) props.autoplay = true;
   else delete props.autoplay;
   return { ...draft.recordExtra, id, component: "gallery", props };
+}
+
+function blankDocuments(): DocumentsDraft {
+  return { folders: [], filter: "", propsExtra: {}, recordExtra: {} };
+}
+
+export function documentsDraft(data: unknown): DocumentsDraft {
+  const record = isRecord(data) ? data : {};
+  const props = isRecord(record.props) ? record.props : {};
+  const propsExtra = { ...props };
+  delete propsExtra.folders;
+  delete propsExtra.folder;
+  delete propsExtra.filter;
+  return {
+    folders: stringList(props.folders ?? props.folder),
+    filter: typeof props.filter === "string" ? props.filter : "",
+    propsExtra,
+    recordExtra: recordExtra(record),
+  };
+}
+
+export function documentsRecord(id: string, draft: DocumentsDraft): Record<string, unknown> {
+  const props: Record<string, unknown> = { ...draft.propsExtra };
+  if (draft.folders.length) props.folders = [...draft.folders];
+  else delete props.folders;
+  const filter = draft.filter.trim();
+  if (filter) props.filter = filter;
+  else delete props.filter;
+  return { ...draft.recordExtra, id, component: "documents", props };
 }
 
 export function embedDraft(data: unknown): EmbedDraft {
@@ -351,6 +391,7 @@ export function bindingIdError(id: string, existingIds: readonly string[]): stri
 export function bindingSentence(data: unknown): string {
   const kind = bindingKind(data);
   if (kind === "gallery") return galleryPhrase(galleryDraft(data));
+  if (kind === "documents") return documentsPhrase(documentsDraft(data));
   if (kind === "imageReveal") return imageRevealPhrase(imageRevealDraft(data));
   if (kind === "embed") return embedPhrase(embedDraft(data));
   if (kind === "dataset") return datasetPhrase(datasetDraft(data));
@@ -405,6 +446,7 @@ export function navHeadings(data: unknown): string[] {
 export function renderBindingForm(id: string, data: unknown, choices: BindingChoices): string {
   const kind = bindingKind(data);
   if (kind === "gallery") return renderGalleryForm(id, galleryDraft(data), choices.folders);
+  if (kind === "documents") return renderDocumentsForm(id, documentsDraft(data), choices.folders);
   if (kind === "imageReveal") return renderImageRevealForm(id, imageRevealDraft(data), choices);
   if (kind === "embed") return renderEmbedForm(id, embedDraft(data), choices);
   if (kind === "dataset") return renderDatasetForm(id, datasetDraft(data), choices);
@@ -441,6 +483,23 @@ export function renderGalleryForm(id: string, draft: GalleryDraft, folders: read
     </fieldset>`;
 }
 
+export function renderDocumentsForm(id: string, draft: DocumentsDraft, folders: readonly { id: string }[]): string {
+  return `${insertLine(id)}${hiddenExtra("documents", draft.propsExtra, draft.recordExtra)}
+    <p class="w3-small w3-text-grey">Lists every file in the chosen library folder(s): image thumbnails, type icons for other formats, download links. Order matches the image gallery (sort field, then filename; numeric prefixes on names sort invisibly in titles).</p>
+    <fieldset class="editor-fieldset"><legend>Folders</legend>
+      ${documentsFolderFields(draft, folders)}
+    </fieldset>`;
+}
+
+export function documentsDraftFromForm(controls: readonly ControlValue[], folderIds: readonly string[]): DocumentsDraft {
+  return {
+    folders: [...folderIds],
+    filter: valueOf(controls, "documents-filter").trim(),
+    propsExtra: parseObject(valueOf(controls, "documents-props-extra")),
+    recordExtra: parseObject(valueOf(controls, "documents-record-extra")),
+  };
+}
+
 export function galleryDraftFromForm(controls: readonly ControlValue[], folderIds: readonly string[]): GalleryDraft {
   const mode: GalleryMode = valueOf(controls, "gallery-mode") === "slides" ? "slides" : "grid";
   return {
@@ -455,11 +514,13 @@ export function galleryDraftFromForm(controls: readonly ControlValue[], folderId
 
 export function renderNewBinding(state: NewBinding, choices: BindingChoices): string {
   if (state.kind === "gallery" && state.step > 1) return galleryWizard(state, choices);
+  if (state.kind === "documents" && state.step > 1) return documentsWizard(state, choices);
   if (state.kind === "imageReveal" && state.step > 1) return imageRevealWizard(state, choices);
-  const multiStep = state.kind === "gallery" || state.kind === "imageReveal";
+  const multiStep = state.kind === "gallery" || state.kind === "documents" || state.kind === "imageReveal";
   return `${kindField(state)}
     ${idField(state)}
-    ${state.kind === "gallery" ? `${carryPictures(state.gallery)}${carryLook(state.gallery)}` : kindBody(state, choices)}
+    ${state.kind === "gallery" ? `${carryPictures(state.gallery)}${carryLook(state.gallery)}` : ""}${state.kind === "documents" ? carryDocumentsFolders(state.documents) : ""}
+    ${kindBody(state, choices)}
     ${formErrorPanel()}
     ${newBindingActions(multiStep ? "Next" : "Create binding")}`;
 }
@@ -489,12 +550,18 @@ export function readNewBinding(
   gallery.filter = valueOf(controls, "gallery-filter").trim();
   gallery.mode = valueOf(controls, "gallery-mode") === "slides" ? "slides" : "grid";
   gallery.autoplay = gallery.mode === "slides" && flag(controls, "gallery-autoplay");
+  const documents = blankDocuments();
+  if (kind === "documents") {
+    documents.folders = folderIds ? [...folderIds] : valuesOf(controls, "documents-folder");
+    documents.filter = valueOf(controls, "documents-filter").trim();
+  }
   return {
     kind,
     id: valueOf(controls, "binding-id"),
     step,
     component: valueOf(controls, "binding-component"),
     gallery,
+    documents,
     imageReveal: controls.some((control) => control.name === "ir-width" || control.name === "ir-panel-url")
       ? imageRevealDraftFromForm(controls)
       : blankImageReveal(),
@@ -511,6 +578,7 @@ export function readNewBinding(
 export function newBindingRecord(state: NewBinding): Record<string, unknown> {
   const id = state.id.trim();
   if (state.kind === "gallery") return galleryRecord(id, state.gallery);
+  if (state.kind === "documents") return documentsRecord(id, state.documents);
   if (state.kind === "imageReveal") return imageRevealRecord(id, state.imageReveal);
   if (state.kind === "embed") return embedRecord(id, state.embed);
   if (state.kind === "dataset") return datasetRecord(id, state.dataset);
@@ -550,6 +618,23 @@ function imageRevealWizard(state: NewBinding, choices: BindingChoices): string {
     ${newBindingActions("Create binding", { back: true })}`;
 }
 
+function documentsWizard(state: NewBinding, choices: BindingChoices): string {
+  const token = `{{${state.id.trim()}}}`;
+  if (state.step === 2) {
+    return `<p>Documents <code>${escapeHtml(token)}</code></p>
+      <input type="hidden" name="binding-kind" value="documents" />
+      <input type="hidden" name="binding-id" value="${escapeHtml(state.id)}" />
+      <input type="hidden" name="binding-step" value="2" />
+      ${carryDocumentsFolders(state.documents)}
+      <fieldset class="editor-fieldset"><legend>Folders</legend>
+        ${documentsFolderFields(state.documents, choices.folders, true)}
+      </fieldset>
+      ${formErrorPanel()}
+      ${newBindingActions("Create binding", { back: true })}`;
+  }
+  return "";
+}
+
 function galleryWizard(state: NewBinding, choices: BindingChoices): string {
   const token = `{{${state.id.trim() || "id"}}}`;
   if (state.step === 2) {
@@ -579,6 +664,7 @@ function galleryWizard(state: NewBinding, choices: BindingChoices): string {
 function kindField(state: NewBinding): string {
   const kinds: { value: BindingKind; label: string }[] = [
     { value: "gallery", label: "Gallery" },
+    { value: "documents", label: "Documents" },
     { value: "imageReveal", label: "Reveal banner" },
     { value: "embed", label: "Raw HTML" },
     { value: "dataset", label: "Dataset list" },
@@ -603,6 +689,9 @@ function idField(state: NewBinding): string {
 }
 
 function kindBody(state: NewBinding, choices: BindingChoices): string {
+  if (state.kind === "documents") {
+    return `<p class="w3-small w3-text-grey">Folder file list for downloads — images show as thumbnails, other types as labelled icons. Choose folders on the next step.</p>`;
+  }
   if (state.kind === "imageReveal") {
     return `<p class="w3-small w3-text-grey">Cropped image panels with hover and click-to-reveal. Configure panels on the next step, then insert with Compose → Insert.</p>`;
   }
@@ -675,6 +764,26 @@ function galleryPhrase(draft: GalleryDraft): string {
   if (!draft.folders.length) return "A gallery with no folders yet.";
   if (draft.folders.length === 1) return `${look} of the ${draft.folders[0]} folder.`;
   return `${look} of the ${joinNames(draft.folders)} folders.`;
+}
+
+function documentsFolderFields(draft: DocumentsDraft, folders: readonly { id: string }[], focusFilter = false): string {
+  const listed = listedFolders(draft.folders, folders);
+  const checks = listed.length ? folderChecklist(listed, draft.folders) : "";
+  return `<div class="editor-props">${checks}
+    <p><label for="documents-filter">Only filenames matching</label>
+      <input id="documents-filter" name="documents-filter" class="w3-input w3-border" spellcheck="false" placeholder="2024" value="${escapeHtml(draft.filter)}"${focusFilter ? " data-binding-focus" : ""} /></p>
+</div>`;
+}
+
+function carryDocumentsFolders(draft: DocumentsDraft): string {
+  return `${draft.folders.map((id) => `<input type="hidden" name="documents-folder" value="${escapeHtml(id)}" />`).join("")}
+    <input type="hidden" name="documents-filter" value="${escapeHtml(draft.filter)}" />`;
+}
+
+function documentsPhrase(draft: DocumentsDraft): string {
+  if (!draft.folders.length) return "A document list with no folders yet.";
+  if (draft.folders.length === 1) return `File list of the ${draft.folders[0]} folder.`;
+  return `File list of the ${joinNames(draft.folders)} folders.`;
 }
 
 function imageRevealStageFields(draft: ImageRevealDraft, focus = false): string {
@@ -895,6 +1004,7 @@ function recordExtra(record: Record<string, unknown>): Record<string, unknown> {
 function parseKind(value: string): BindingKind {
   if (
     value === "gallery" ||
+    value === "documents" ||
     value === "imageReveal" ||
     value === "embed" ||
     value === "dataset" ||

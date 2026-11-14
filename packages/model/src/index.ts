@@ -22,6 +22,7 @@ export {
   MediaSchema,
   RuntimeModuleSchema,
   FolderImageSchema,
+  FolderDocumentSchema,
   FolderSchema,
   BindingSchema,
   TypeFieldSchema,
@@ -40,6 +41,12 @@ export {
   resolveAspect,
   aspectClassName,
 } from "./schema.js";
+export {
+  fileTypeOverlay,
+  folderAssetDisplayName,
+  formatFileBytes,
+  tesseraFileIconHtml,
+} from "./file-asset.js";
 export {
   blogHeroStyle,
   blogHeroWidth,
@@ -96,6 +103,7 @@ export type {
   Media,
   RuntimeModule,
   FolderImage,
+  FolderDocument,
   Folder,
   Binding,
   TypeField,

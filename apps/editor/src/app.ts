@@ -199,6 +199,8 @@ import {
   bindingControls,
   embedDraftFromForm,
   embedRecord,
+  documentsDraftFromForm,
+  documentsRecord,
   galleryDraftFromForm,
   galleryRecord,
   imageRevealDraftFromForm,
@@ -1572,13 +1574,24 @@ function bindNewBinding(root: HTMLElement, listing: RecordList): void {
     event.preventDefault();
     if (!choices) return;
     state = readNewBinding(bindingControls(form), folderSelection(form), choices, form);
-    state.step = state.step === 3 ? 2 : 1;
+    if (state.kind === "documents") state.step = 1;
+    else state.step = state.step === 3 ? 2 : 1;
     paint();
   });
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     if (!choices) return;
     state = readNewBinding(bindingControls(form), folderSelection(form), choices, form);
+    if (state.kind === "documents" && state.step < 2) {
+      const problem = state.step === 1 ? bindingIdError(state.id, existing) : undefined;
+      if (problem) {
+        showFormError(form, problem);
+        return;
+      }
+      state = { ...state, step: 2 };
+      paint();
+      return;
+    }
     if (state.kind === "gallery" && state.step < 3) {
       const problem = state.step === 1 ? bindingIdError(state.id, existing) : undefined;
       if (problem) {
@@ -1626,7 +1639,7 @@ async function createBinding(
     return;
   }
   const notice =
-    state.kind === "gallery" || state.kind === "embed" || state.kind === "dataset"
+    state.kind === "gallery" || state.kind === "documents" || state.kind === "embed" || state.kind === "dataset"
       ? `Created ${id}. Put it on a page with Compose → Insert.`
       : `Created ${id}.`;
   pendingEdit = { mode: state.kind === "other" ? "raw" : "fields", notice };
@@ -4463,6 +4476,7 @@ function bindingBody(id: string, form: HTMLFormElement, original: unknown, choic
   const kind = bindingKind(original);
   const controls = bindingControls(form);
   if (kind === "gallery") return galleryRecord(id, galleryDraftFromForm(controls, folderSelection(form) ?? []));
+  if (kind === "documents") return documentsRecord(id, documentsDraftFromForm(controls, folderSelection(form) ?? []));
   if (kind === "imageReveal") return imageRevealRecord(id, imageRevealDraftFromForm(controls));
   if (kind === "embed") return embedRecord(id, embedDraftFromForm(controls));
   if (kind === "dataset") {
@@ -4750,7 +4764,7 @@ async function bindLibrary(root: HTMLElement, user: PublicUser, routeOpenId: str
     const slot = root.querySelector<HTMLElement>("#library-detail");
     if (!slot) return;
     root.querySelectorAll(".editor-library-row-active").forEach((row) => row.classList.remove("editor-library-row-active"));
-    slot.innerHTML = folderDetail(folder, listing.folders);
+    slot.innerHTML = folderDetail(folder, listing.folders, listing.assets);
     const form = slot.querySelector<HTMLFormElement>("#folder-detail");
     form?.addEventListener("submit", (event) => {
       event.preventDefault();

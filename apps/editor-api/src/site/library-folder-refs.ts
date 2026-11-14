@@ -20,12 +20,12 @@ export function rewriteLibraryFolderRefs(value: unknown, from: string, to: strin
     if (result.changed) changed = true;
   }
 
-  if (next.kind === "gallery" && next.folder === from) {
+  if ((next.kind === "gallery" || next.kind === "documents") && next.folder === from) {
     next.folder = to;
     changed = true;
   }
 
-  if (next.component === "gallery") {
+  if (next.component === "gallery" || next.component === "documents") {
     const props = next.props;
     if (props && typeof props === "object" && !Array.isArray(props)) {
       const copy = { ...(props as Record<string, unknown>) };

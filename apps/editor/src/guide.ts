@@ -120,10 +120,16 @@ export function guideHtml(): string {
       <li><strong>Gallery binding</strong> — Primary: folders, filters, slides, reuse across pages.</li>
       <li><strong>Gallery Compose section</strong> — Quick fix: one folder on this page only. Move to a binding when it matters.</li>
     </ul>
+    <h3 class="w3-medium">Documents: binding vs Compose section</h3>
+    <ul>
+      <li><strong>Documents binding</strong> — File list from one or more folders; optional filename filter; reuse across pages.</li>
+      <li><strong>Documents Compose section</strong> — One folder on this page only. Every file in the folder (images, PDFs, etc.): thumbnails or type icons, download links. Order matches gallery (sort, then filename; numeric prefixes hidden in titles).</li>
+    </ul>
     <p>Other binding kinds are <strong>binding only</strong> (no Compose section).</p>
     <h3 class="w3-medium">Binding kinds</h3>
     <ul>
       <li><strong>Gallery</strong> — Library folders as grid or slides.</li>
+      <li><strong>Documents</strong> — Library folder file list (not image preview).</li>
       <li><strong>Reveal banner</strong> — Cropped panels, hover grow, click-to-reveal, then link (Miller’s Ark homepage hero). Panel image: site-relative path; panel link: page id or external URL (Choose page in the binding editor). Insert only.</li>
       <li><strong>Dataset list</strong> — Rows from a <a href="${guideSectionHref("datasets")}">dataset</a>: table, cards, or plain list; or the same data passed to a <strong>runtime module</strong> for a custom view. Sort, limit, column pick, and filters are binding props.</li>
       <li><strong>Raw HTML</strong> — Markup from a ticket vendor, payment provider, or similar (scripts and iframes kept on publish). Edit in the binding editor with Image, Document, and Page link inserts; insert on a page with Compose → Insert. Not a layout Component.</li>

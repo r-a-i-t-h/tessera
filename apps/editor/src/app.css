@@ -4323,3 +4323,13 @@ textarea.editor-page-zone-preview {
   font-size: 0.85rem;
 }
 
+
+
+.editor-thumb.tessera-file-icon {
+  width: 4.5rem;
+  height: 3.5rem;
+}
+
+.editor-folder-file-row .w3-bar-item {
+  vertical-align: middle;
+}

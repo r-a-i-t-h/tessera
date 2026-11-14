@@ -332,6 +332,41 @@ describe("authored zone HTML", () => {
     expect(html).not.toContain("data-tessera");
   });
 
+  it("expands a documents compose marker", () => {
+    const doc = makeFixtureDoc();
+    doc.folders = [
+      {
+        id: "papers",
+        path: "./media",
+        images: [],
+        documents: [
+          {
+            file: "02-notes.pdf",
+            url: "./media/notes.pdf",
+            ext: "pdf",
+            kind: "document",
+            title: "Notes",
+          },
+        ],
+      },
+    ];
+    const home = doc.pages.find((page) => page.id === "home");
+    home!.zones.main = [
+      {
+        type: "text",
+        html: `<div class="tessera-page-documents" data-tessera="documents" data-folder="papers"></div>`,
+      },
+    ];
+    const html = renderPage({
+      document: doc,
+      pageId: "home",
+      registry: registryWithDefaults(),
+    });
+    expect(html).toContain("tessera-documents");
+    expect(html).toContain("Notes");
+    expect(html).not.toContain('data-tessera="documents"');
+  });
+
   it("leaves a pasted note's authored HTML in place", () => {
     const doc = makeFixtureDoc();
     const home = doc.pages.find((page) => page.id === "home");

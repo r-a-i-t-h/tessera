@@ -424,6 +424,8 @@ function kindName(node: EditNode): string {
       return "YouTube";
     case "gallery":
       return "Gallery";
+    case "documents":
+      return "Documents";
     case "pasted":
       return "Pasted note";
     case "html":
@@ -470,6 +472,8 @@ function listPreviewText(node: EditNode, choices?: Choices): string {
     case "youtube":
       return normalizePreview(node.title) || normalizePreview(youtubeVideoId(node.videoId) || node.videoId);
     case "gallery":
+      return normalizePreview(node.folder);
+    case "documents":
       return normalizePreview(node.folder);
     case "pasted":
       return normalizePreview(htmlToPlainText(node.html));
@@ -537,6 +541,8 @@ function propsFor(node: EditNode, choices: Choices, locked: boolean): string {
       return youtubeProps(node);
     case "gallery":
       return `<label class="editor-prop">Folder <select data-field="folder">${folderOptions(choices.folders, node.folder)}</select></label><label class="editor-prop">Layout <select data-field="mode"><option value="grid"${node.mode === "grid" ? " selected" : ""}>Grid</option><option value="slides"${node.mode === "slides" ? " selected" : ""}>Slides</option></select></label>`;
+    case "documents":
+      return `<label class="editor-prop">Folder <select data-field="folder">${folderOptions(choices.folders, node.folder)}</select></label>`;
     case "pasted":
       return editingToolbar(inlineTools());
     case "html":
@@ -557,6 +563,8 @@ function lockedProps(node: EditNode, choices: Choices): string {
     case "card":
       return `<label class="editor-prop">Title <input data-field="title" class="w3-input" value="${escapeAttr(node.title)}"></label>`;
     case "gallery":
+      return `<label class="editor-prop">Folder <select data-field="folder">${folderOptions(choices.folders, node.folder)}</select></label>`;
+    case "documents":
       return `<label class="editor-prop">Folder <select data-field="folder">${folderOptions(choices.folders, node.folder)}</select></label>`;
     case "youtube":
       return youtubeProps(node);
@@ -654,6 +662,10 @@ function bodyFor(node: EditNode, choices: Choices, zone: string, locked: boolean
     case "gallery": {
       const name = node.folder || "Choose a folder";
       return `<p class="w3-panel w3-pale-yellow">Gallery: ${escapeText(name)} (${node.mode === "slides" ? "slides" : "grid"})</p>`;
+    }
+    case "documents": {
+      const name = node.folder || "Choose a folder";
+      return `<p class="w3-panel w3-pale-yellow">Documents: ${escapeText(name)}</p>`;
     }
     case "pasted":
       return `<div class="${joinClass(BLOCK_CLASS, "tessera-pasted")}"><div class="tessera-pasted-sheet"><div contenteditable="true" data-field="html" data-placeholder="Write on the paper…">${htmlForEditing(node.html)}</div></div></div>`;
@@ -871,7 +883,7 @@ function onField(form: HTMLFormElement, target: EventTarget | null, fromChange: 
         return;
       }
     }
-    if (node.kind === "gallery" && field === "folder") {
+    if ((node.kind === "gallery" || node.kind === "documents") && field === "folder") {
       node.folder = value;
       if (fromChange) rerenderArticle(form, node.uid);
       return;
@@ -1319,7 +1331,7 @@ function applyControl(node: EditLeaf | EditCard | EditPanel, field: string, valu
     node.videoId = id || value.trim();
   }
   if (node.kind === "youtube" && field === "title") node.title = value;
-  if (node.kind === "gallery" && field === "folder") node.folder = value;
+  if ((node.kind === "gallery" || node.kind === "documents") && field === "folder") node.folder = value;
   if (node.kind === "gallery" && field === "mode") node.mode = value === "slides" ? "slides" : "grid";
 }
 

@@ -1,9 +1,10 @@
+import { documents } from "./builtins/documents.js";
 import { gallery } from "./builtins/gallery.js";
 import { subpageList } from "./builtins/nav.js";
 import { expandToc } from "./toc.js";
 import type { RenderContext } from "./types.js";
 
-const MARKER = /<(nav|div)\b[^>]*\bdata-tessera="(subpages|gallery)"[^>]*>(?:\s*)<\/\1>/gi;
+const MARKER = /<(nav|div)\b[^>]*\bdata-tessera="(subpages|gallery|documents)"[^>]*>(?:\s*)<\/\1>/gi;
 
 /** Replace subpages and gallery markers left in authored HTML. */
 export function expandPageElements(html: string, ctx: RenderContext): string {
@@ -17,6 +18,9 @@ export function expandPageElements(html: string, ctx: RenderContext): string {
     if (kind === "gallery") {
       const mode = attr(full, "data-mode") === "slides" ? "slides" : "grid";
       return gallery(ctx, { folders: [attr(full, "data-folder")], mode }) ?? "";
+    }
+    if (kind === "documents") {
+      return documents(ctx, { folders: [attr(full, "data-folder")] }) ?? "";
     }
     return full;
   });

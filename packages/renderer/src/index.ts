@@ -61,6 +61,12 @@ export {
   type GallerySlide,
 } from "./builtins/gallery.js";
 export {
+  registerDocumentsComponents,
+  documents,
+  documentsFromFolders,
+  type DocumentRow,
+} from "./builtins/documents.js";
+export {
   registerGalleryElement,
   TesseraGallery,
   type GalleryItem,
