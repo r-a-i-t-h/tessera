@@ -3308,6 +3308,28 @@ a.editor-library-row {
   margin: 0 !important;
 }
 
+.editor-quick-blog-text-props {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.editor-quick-blog-text-props .editor-section-editing-tools {
+  display: contents;
+}
+
+.editor-quick-blog-text .editor-text-body {
+  min-height: 10rem;
+  padding: 0.5rem 0.65rem;
+}
+
+.editor-quick-blog-text-surface [contenteditable]:empty::before {
+  content: attr(data-placeholder);
+  color: #888;
+}
+
 .editor-confirm-message {
   white-space: pre-wrap;
 }

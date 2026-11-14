@@ -1,3 +1,4 @@
+import { BLOCK_CLASS, parseHeadingLevel, type HeadingLevel } from "@r-a-i-t-h/tessera-sections";
 import type { RecordList } from "./api.js";
 import { getLibrary, publishPageIds, saveRecord, uploadLibrary, type RecordSummary } from "./api.js";
 import {
@@ -153,6 +154,39 @@ function snapshotNote(site: QuickBlogSiteOptions): string {
   return `<p class="editor-prop-wide w3-small w3-text-grey">Snapshot delivery: use <strong>Publish site</strong> for the live copy. QuickBlog still updates the preview.</p>`;
 }
 
+function textLevelSelect(level: HeadingLevel): string {
+  const options = [1, 2, 3, 4]
+    .map((item) => `<option value="${item}"${level === item ? " selected" : ""}>${item}</option>`)
+    .join("");
+  return `<label class="editor-prop">Level <select data-field="level" data-quick-blog-level>${options}</select></label>`;
+}
+
+function quickBlogTextFieldHtml(level: HeadingLevel = 2): string {
+  return `<div class="editor-prop-wide editor-quick-blog-text">
+          <motion class="editor-quick-blog-text-props">
+            ${textLevelSelect(level)}
+            <label class="editor-prop">Super space <input type="checkbox" data-field="loose" data-quick-blog-loose /></label>
+            <span class="editor-quick-blog-text-tools">${editingToolbar(inlineTools(), listTools())}</span>
+          </motion>
+          <div class="editor-section-body editor-quick-blog-text-surface">
+            <div class="${BLOCK_CLASS} editor-text" data-quick-blog-text>
+              <h${level} contenteditable="true" data-field="heading" data-plain="true" data-placeholder="Heading"></h${level}>
+              <div class="editor-text-body tessera-text w3-border" contenteditable="true" data-quick-blog-body data-field="html" data-blocks="true" data-placeholder="Write…"></div>
+            </div>
+          </div>
+        </div>`.replaceAll("motion", "div");
+}
+
+function retagQuickBlogHeading(form: HTMLFormElement, level: HeadingLevel): void {
+  const root = form.querySelector<HTMLElement>("[data-quick-blog-text]");
+  const current = root?.querySelector<HTMLElement>('[data-field="heading"]');
+  if (!current || current.tagName === `H${level}`) return;
+  const next = document.createElement(`h${level}`);
+  for (const attr of current.attributes) next.setAttribute(attr.name, attr.value);
+  next.innerHTML = current.innerHTML;
+  current.replaceWith(next);
+}
+
 async function openQuickBlog(listing: RecordList, blogs: EditorNavBlog[], site: QuickBlogSiteOptions): Promise<void> {
   if (!blogs.length) return;
   const defaultBlog = blogs[0]!.id;
@@ -171,10 +205,7 @@ async function openQuickBlog(listing: RecordList, blogs: EditorNavBlog[], site: 
         <p class="editor-prop-wide w3-text-grey w3-small">Id: <span data-id-preview>—</span></p>
         <p class="editor-prop-wide"><label for="fields.author">Author</label>
           <input id="fields.author" name="fields.author" class="w3-input w3-border" value="${escapeHtml(authorDefault)}" autocomplete="off" /></p>
-        <div class="editor-prop-wide"><label>Body</label>
-          ${editingToolbar(inlineTools(), listTools())}
-          <div class="editor-text-body tessera-text w3-border" contenteditable="true" data-quick-blog-body data-field="html" data-blocks="true" data-placeholder="Write…"></div>
-        </div>
+        ${quickBlogTextFieldHtml()}
         <div class="editor-prop-wide">${heroField("", undefined)}</div>
         <p class="editor-prop-wide"><label for="fields.precis">Precis</label>
           <input id="fields.precis" name="fields.precis" class="w3-input w3-border" autocomplete="off" /></p>
@@ -244,6 +275,16 @@ async function openQuickBlog(listing: RecordList, blogs: EditorNavBlog[], site: 
   blogSelect?.addEventListener("change", () => {
     const blogId = blogSelect.value;
     if (authorInput) authorInput.value = topAuthorForBlog(listing, blogId);
+  });
+
+  const levelSelect = form.querySelector<HTMLSelectElement>("[data-quick-blog-level]");
+  levelSelect?.addEventListener("change", () => {
+    retagQuickBlogHeading(form, parseHeadingLevel(levelSelect.value));
+  });
+
+  const looseCheck = form.querySelector<HTMLInputElement>("[data-quick-blog-loose]");
+  looseCheck?.addEventListener("change", () => {
+    form.querySelector(".editor-quick-blog-text .editor-text")?.classList.toggle("tessera-loose", looseCheck.checked);
   });
 
   const close = () => {
@@ -383,12 +424,17 @@ async function submitQuickBlog(
     showFormError(form, "Choose a blog.");
     return;
   }
+  const textRoot = form.querySelector<HTMLElement>("[data-quick-blog-text]");
   const bodyEl = form.querySelector<HTMLElement>("[data-quick-blog-body]");
   const html = bodyEl ? htmlFromEditing(bodyEl.innerHTML, true) : "";
   if (!html.trim()) {
     showFormError(form, "Enter a body.");
     return;
   }
+  const headingEl = textRoot?.querySelector<HTMLElement>('[data-field="heading"]');
+  const heading = (headingEl?.textContent ?? "").replace(/\n+/g, " ").trim();
+  const level = parseHeadingLevel(form.querySelector<HTMLSelectElement>("[data-quick-blog-level]")?.value ?? "2");
+  const loose = form.querySelector<HTMLInputElement>("[data-quick-blog-loose]")?.checked === true;
 
   const fields: Record<string, string> = { date: todayIsoDate() };
   const precis = form.querySelector<HTMLInputElement>('[name="fields.precis"]')?.value.trim() ?? "";
@@ -412,7 +458,15 @@ async function submitQuickBlog(
       fields,
       zones: {
         main: {
-          blocks: [{ kind: "text", heading: "", level: 2, html }],
+          blocks: [
+            {
+              kind: "text",
+              heading,
+              level,
+              html,
+              ...(loose ? { loose: true } : {}),
+            },
+          ],
         },
       },
     };
